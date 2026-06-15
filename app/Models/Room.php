@@ -10,22 +10,22 @@ class Room extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ['hotel_id', 'room_type_id', 'room_number', 'floor', 'status', 'notes'];
+    protected $fillable = [
+        'hotel_id','room_type_id','room_number','floor',
+        'room_sub_type','linked_room_id','is_always_linked',
+        'status','notes',
+    ];
 
-    public function hotel()
-    {
-        return $this->belongsTo(Hotel::class);
-    }
+    protected $casts = [
+        'is_always_linked' => 'boolean',
+    ];
 
-    public function roomType()
-    {
-        return $this->belongsTo(RoomType::class);
-    }
+    public function hotel()      { return $this->belongsTo(Hotel::class); }
+    public function roomType()   { return $this->belongsTo(RoomType::class); }
+    public function reservations(){ return $this->hasMany(Reservation::class); }
+    public function linkedRoom() { return $this->belongsTo(Room::class, 'linked_room_id'); }
 
-    public function reservations()
-    {
-        return $this->hasMany(Reservation::class);
-    }
+    // --- scopes ---
 
     public function scopeAvailable(Builder $query): Builder
     {
@@ -37,27 +37,55 @@ class Room extends Model
         return $query->where('status', $status);
     }
 
+    // --- helpers ---
+
+    public function isSuiteA(): bool   { return $this->room_sub_type === 'suite_a'; }
+    public function isSuiteB(): bool   { return $this->room_sub_type === 'suite_b'; }
+    public function isSuite(): bool    { return in_array($this->room_sub_type, ['suite_a','suite_b']); }
+    public function isApartment(): bool{ return $this->room_sub_type === 'apartment'; }
+    public function isHall(): bool     { return $this->room_sub_type === 'hall'; }
+
+    public function isLinkedRoomAvailable(): bool
+    {
+        if (!$this->linked_room_id) return false;
+        $linked = $this->linkedRoom;
+        return $linked && $linked->status === 'available';
+    }
+
+    // --- labels ---
+
+    public function getSubTypeLabelAttribute(): string
+    {
+        return match($this->room_sub_type) {
+            'suite_a'   => 'جناح A',
+            'suite_b'   => 'جناح B',
+            'apartment' => 'شقة',
+            'hall'      => 'صالة',
+            default     => 'غرفة عادية',
+        };
+    }
+
     public function getStatusLabelAttribute(): string
     {
         return match($this->status) {
-            'available' => 'متاحة',
-            'reserved' => 'محجوزة',
-            'occupied' => 'مشغولة',
-            'under_inspection' => 'تحت الفحص',
-            'maintenance' => 'صيانة',
-            default => $this->status,
+            'available'       => 'متاحة',
+            'reserved'        => 'محجوزة',
+            'occupied'        => 'مشغولة',
+            'under_inspection'=> 'تحت الفحص',
+            'maintenance'     => 'صيانة',
+            default           => $this->status,
         };
     }
 
     public function getStatusColorAttribute(): string
     {
         return match($this->status) {
-            'available' => 'green',
-            'reserved' => 'blue',
-            'occupied' => 'red',
+            'available'        => 'green',
+            'reserved'         => 'blue',
+            'occupied'         => 'red',
             'under_inspection' => 'yellow',
-            'maintenance' => 'gray',
-            default => 'gray',
+            'maintenance'      => 'gray',
+            default            => 'gray',
         };
     }
 }

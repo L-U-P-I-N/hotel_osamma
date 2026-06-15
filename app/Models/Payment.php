@@ -10,8 +10,8 @@ class Payment extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'reservation_id', 'received_by', 'amount', 'currency', 'method',
-        'bank_receipt_path', 'bank_transfer_ref', 'payment_date', 'type', 'notes',
+        'reservation_id','shift_id','received_by','amount','currency','method',
+        'bank_receipt_path','bank_transfer_ref','payment_date','type','notes',
     ];
 
     protected $casts = [
@@ -24,8 +24,6 @@ class Payment extends Model
         return $this->belongsTo(Reservation::class);
     }
 
-    public function receivedBy()
-    {
-        return $this->belongsTo(User::class, 'received_by');
-    }
+    public function receivedBy() { return $this->belongsTo(User::class, 'received_by'); }
+    public function shift()      { return $this->belongsTo(Shift::class); }
 }

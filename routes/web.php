@@ -9,6 +9,7 @@ use App\Http\Controllers\ReservationController;
 use App\Http\Controllers\CheckOutController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\SettlementController;
+use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\BlacklistController;
 use App\Http\Controllers\UserController;
@@ -83,17 +84,18 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('permission:payments.bank_receipt')
         ->where('file', '.*');
 
-    // Cash Settlement
-    Route::middleware('permission:settlement.view')->group(function () {
+    // Cash Settlement (legacy)
+    Route::middleware('permission:shifts.view')->group(function () {
         Route::get('/settlement', [SettlementController::class, 'index'])->name('settlement.index');
     });
-    Route::middleware('permission:settlement.manage')->group(function () {
-        Route::post('/settlement/withdrawal', [SettlementController::class, 'addWithdrawal'])->name('settlement.withdrawal');
-        Route::post('/settlement/signatures', [SettlementController::class, 'saveSignatures'])->name('settlement.signatures');
+
+    // Shifts (New system)
+    Route::middleware('permission:shifts.view')->group(function () {
+        Route::get('/shifts', [ShiftController::class, 'index'])->name('shifts.index');
     });
-    Route::post('/settlement/lock', [SettlementController::class, 'lock'])
-        ->name('settlement.lock')
-        ->middleware('permission:settlement.lock');
+    Route::post('/shifts/open', [ShiftController::class, 'open'])->name('shifts.open')->middleware('permission:shifts.view');
+    Route::post('/shifts/withdrawal', [ShiftController::class, 'addWithdrawal'])->name('shifts.withdrawal')->middleware('permission:withdrawal.create');
+    Route::post('/shifts/close', [ShiftController::class, 'close'])->name('shifts.close')->middleware('permission:shifts.view');
 
     // Reports
     Route::middleware('permission:reports.view')->group(function () {
@@ -115,6 +117,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/users', [UserController::class, 'store'])->name('users.store');
         Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
         Route::patch('/users/{user}/toggle', [UserController::class, 'toggleActive'])->name('users.toggle');
+        Route::get('/users/{user}/permissions', [UserController::class, 'permissions'])->name('users.permissions');
+        Route::post('/users/{user}/permissions', [UserController::class, 'togglePermission'])->name('users.togglePermission');
     });
     Route::get('/audit-log', [UserController::class, 'auditLog'])
         ->name('audit.log')

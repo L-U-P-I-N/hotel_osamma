@@ -251,27 +251,91 @@
 <div x-show="currentStep === 3" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
     <h2 class="text-lg font-semibold text-gray-800 mb-5 pb-3 border-b border-gray-100">اختيار الغرفة</h2>
 
+    <!-- Selected room summary -->
     <div x-show="selectedRoom" class="mb-4 p-4 bg-primary-50 border border-primary-200 rounded-xl flex items-center gap-4">
-        <div class="w-12 h-12 bg-primary-600 rounded-xl flex items-center justify-center text-white font-bold text-lg" x-text="selectedRoom?.room_number"></div>
+        <div class="w-12 h-12 bg-primary-600 rounded-xl flex items-center justify-center text-white font-bold text-lg" x-text="suiteBookingType === 'both' ? selectedRoom?.room_number + '+' + (linkedInfo?.linked_number ?? '') : selectedRoom?.room_number"></div>
         <div>
-            <div class="font-semibold text-primary-800" x-text="'غرفة ' + selectedRoom?.room_number"></div>
+            <div class="font-semibold text-primary-800" x-text="roomSelectionLabel()"></div>
             <div class="text-sm text-primary-600" x-text="selectedRoom?.room_type_name + ' - الطابق ' + selectedRoom?.floor"></div>
-            <div class="text-sm font-medium text-primary-700 mt-0.5" x-text="formatNumber(selectedRoom?.base_price) + ' ر.ي / ليلة'"></div>
+            <div class="text-sm font-medium text-primary-700 mt-0.5" x-text="formatNumber(effectiveRoomPrice()) + ' ر.ي / ليلة'"></div>
         </div>
-        <button type="button" @click="selectedRoom=null; roomId=''" class="mr-auto text-primary-400 hover:text-primary-600 text-xs">تغيير</button>
+        <button type="button" @click="clearRoomSelection()" class="mr-auto text-primary-400 hover:text-primary-600 text-xs">تغيير</button>
+    </div>
+
+    <!-- Suite A/B booking type selector -->
+    <div x-show="selectedRoom && linkedInfo && !linkedInfo.is_always_linked" class="mb-5 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+        <p class="text-sm font-semibold text-blue-800 mb-3">خيارات حجز الجناح</p>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <label class="cursor-pointer">
+                <input type="radio" x-model="suiteBookingType" value="a_only" class="sr-only peer" @change="calcTotal()">
+                <div class="border-2 border-gray-200 peer-checked:border-blue-500 peer-checked:bg-blue-100 rounded-xl p-3 text-center transition-all text-sm">
+                    <div class="font-semibold text-gray-700 peer-checked:text-blue-800" x-text="selectedRoom?.room_number + ' فقط'"></div>
+                    <div class="text-xs text-gray-400 mt-0.5" x-text="formatNumber(selectedRoom?.base_price) + ' ر.ي'"></div>
+                </div>
+            </label>
+            <label class="cursor-pointer" x-show="linkedInfo?.linked_available">
+                <input type="radio" x-model="suiteBookingType" value="b_only" class="sr-only peer" @change="calcTotal()">
+                <div class="border-2 border-gray-200 peer-checked:border-blue-500 peer-checked:bg-blue-100 rounded-xl p-3 text-center transition-all text-sm">
+                    <div class="font-semibold text-gray-700" x-text="(linkedInfo?.linked_number ?? '') + ' فقط'"></div>
+                    <div class="text-xs text-gray-400 mt-0.5" x-text="formatNumber(selectedRoom?.base_price) + ' ر.ي'"></div>
+                </div>
+            </label>
+            <label class="cursor-pointer" x-show="linkedInfo?.linked_available">
+                <input type="radio" x-model="suiteBookingType" value="both" class="sr-only peer" @change="calcTotal()">
+                <div class="border-2 border-gray-200 peer-checked:border-purple-500 peer-checked:bg-purple-50 rounded-xl p-3 text-center transition-all text-sm">
+                    <div class="font-semibold text-gray-700" x-text="selectedRoom?.room_number + ' + ' + (linkedInfo?.linked_number ?? '')"></div>
+                    <div class="text-xs text-gray-400 mt-0.5" x-text="formatNumber((selectedRoom?.base_price ?? 0) * 2) + ' ر.ي (معاً)'"></div>
+                </div>
+            </label>
+        </div>
+        <div x-show="!linkedInfo?.linked_available" class="mt-2 text-xs text-yellow-700 bg-yellow-50 rounded-lg p-2">
+            الجناح المقابل محجوز — يمكن حجز هذا الجناح منفرداً فقط.
+        </div>
+    </div>
+
+    <!-- Apartment notice -->
+    <div x-show="selectedRoom && linkedInfo?.is_always_linked" class="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
+        <strong>الشقة تُحجز دائماً كوحدة كاملة</strong> — سيشمل الحجز الغرفتين
+        <span x-text="selectedRoom?.room_number + ' و ' + (linkedInfo?.linked_number ?? '')"></span> تلقائياً.
     </div>
 
     <input type="hidden" name="room_id" x-model="roomId">
+    <input type="hidden" name="suite_booking_type" x-model="suiteBookingType">
 
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         @foreach($availableRooms as $room)
-        <div @click="selectRoom({{ json_encode(['id'=>$room->id,'room_number'=>$room->room_number,'floor'=>$room->floor,'base_price'=>$room->roomType->base_price,'room_type_name'=>$room->roomType->name]) }})"
+        @php
+            $info = $linkedAvailability[$room->id] ?? null;
+            $roomData = [
+                'id'             => $room->id,
+                'room_number'    => $room->room_number,
+                'floor'          => $room->floor,
+                'base_price'     => (float)$room->roomType->base_price,
+                'room_type_name' => $room->roomType->name,
+                'sub_type'       => $room->room_sub_type,
+            ];
+        @endphp
+        <div @click="selectRoom({{ json_encode($roomData) }}, {{ json_encode($info) }})"
              class="cursor-pointer border-2 rounded-xl p-3 transition-all duration-200"
              :class="roomId == '{{ $room->id }}' ? 'border-primary-600 bg-primary-50' : 'border-green-200 bg-green-50 hover:border-primary-400'">
-            <div class="text-xl font-bold text-gray-800">{{ $room->room_number }}</div>
+            <div class="flex items-center gap-1">
+                <div class="text-xl font-bold text-gray-800">{{ $room->room_number }}</div>
+                @if($room->room_sub_type === 'suite_a')
+                    <span class="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-medium">A</span>
+                @elseif($room->room_sub_type === 'suite_b')
+                    <span class="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-medium">B</span>
+                @elseif($room->room_sub_type === 'apartment')
+                    <span class="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">شقة</span>
+                @elseif($room->room_sub_type === 'hall')
+                    <span class="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-medium">صالة</span>
+                @endif
+            </div>
             <div class="text-xs text-gray-500 mt-0.5">{{ $room->roomType->name }}</div>
             <div class="text-xs text-gray-400">الطابق {{ $room->floor }}</div>
             <div class="text-xs font-semibold text-green-700 mt-1">{{ number_format($room->roomType->base_price,0) }} ر.ي</div>
+            @if($info && $info['linked_available'])
+                <div class="text-xs text-blue-600 mt-0.5">+ {{ $info['linked_number'] }} متاحة</div>
+            @endif
         </div>
         @endforeach
         @if($availableRooms->isEmpty())
@@ -307,7 +371,7 @@
                 <div class="text-xs text-blue-500 mt-0.5">ليلة</div>
             </div>
             <div class="bg-green-50 rounded-xl p-3 text-center">
-                <div class="text-2xl font-bold text-green-700" x-text="formatNumber(selectedRoom?.base_price || 0)"></div>
+                <div class="text-2xl font-bold text-green-700" x-text="formatNumber(effectiveRoomPrice())"></div>
                 <div class="text-xs text-green-500 mt-0.5">ر.ي / ليلة</div>
             </div>
             <div class="bg-primary-50 rounded-xl p-3 text-center">
@@ -447,7 +511,7 @@
         <div class="bg-gray-50 rounded-xl p-4">
             <h3 class="font-semibold text-gray-700 text-sm mb-3">بيانات الحجز</h3>
             <div class="space-y-1.5 text-sm">
-                <div class="flex justify-between"><span class="text-gray-500">الغرفة:</span><span class="font-medium" x-text="selectedRoom?.room_number || '-'"></span></div>
+                <div class="flex justify-between"><span class="text-gray-500">الغرفة:</span><span class="font-medium" x-text="roomSelectionLabel() || '-'"></span></div>
                 <div class="flex justify-between"><span class="text-gray-500">النوع:</span><span x-text="selectedRoom?.room_type_name || '-'"></span></div>
                 <div class="flex justify-between"><span class="text-gray-500">تاريخ الدخول:</span><span x-text="checkInDate || '-'"></span></div>
                 <div class="flex justify-between"><span class="text-gray-500">تاريخ الخروج:</span><span x-text="checkOutDate || '-'"></span></div>
@@ -510,7 +574,9 @@ function checkInWizard() {
         guestData: { full_name:'', nationality:'', occupation:'', origin:'', purpose:'', id_type:'national_id', id_number:'', id_issuer:'', id_issue_date:'', phone:'', notes:'' },
         companions: [],
         selectedRoom: null,
+        linkedInfo: null,
         roomId: '',
+        suiteBookingType: 'a_only',
         checkInDate: '',
         checkOutDate: '',
         nights: 0,
@@ -555,17 +621,51 @@ function checkInWizard() {
             this.companions.splice(idx, 1);
         },
 
-        selectRoom(room) {
+        selectRoom(room, info) {
             this.selectedRoom = room;
+            this.linkedInfo = info || null;
             this.roomId = room.id;
+            // Default suite_booking_type based on room sub_type
+            if (info && !info.is_always_linked) {
+                this.suiteBookingType = room.sub_type === 'suite_a' ? 'a_only' : 'b_only';
+            } else if (info && info.is_always_linked) {
+                this.suiteBookingType = 'both';
+            } else {
+                this.suiteBookingType = '';
+            }
             this.calcTotal();
+        },
+
+        clearRoomSelection() {
+            this.selectedRoom = null;
+            this.linkedInfo = null;
+            this.roomId = '';
+            this.suiteBookingType = 'a_only';
+            this.totalAmount = 0;
+            this.nights = 0;
+        },
+
+        effectiveRoomPrice() {
+            const base = this.selectedRoom?.base_price || 0;
+            return this.suiteBookingType === 'both' ? base * 2 : base;
+        },
+
+        roomSelectionLabel() {
+            if (!this.selectedRoom) return '';
+            if (this.suiteBookingType === 'both') {
+                return 'جناح ' + this.selectedRoom.room_number + ' + ' + (this.linkedInfo?.linked_number ?? '');
+            }
+            if (this.linkedInfo?.is_always_linked) {
+                return 'شقة ' + this.selectedRoom.room_number + ' + ' + (this.linkedInfo?.linked_number ?? '');
+            }
+            return 'غرفة ' + this.selectedRoom.room_number;
         },
 
         calcTotal() {
             if (this.checkInDate && this.checkOutDate && this.selectedRoom) {
                 const d1 = new Date(this.checkInDate), d2 = new Date(this.checkOutDate);
                 this.nights = Math.max(0, Math.floor((d2 - d1) / 86400000));
-                this.totalAmount = this.nights * (this.selectedRoom.base_price || 0);
+                this.totalAmount = this.nights * this.effectiveRoomPrice();
             }
         },
 

@@ -22,10 +22,29 @@ class CheckInController extends Controller
 
     public function create()
     {
-        $availableRooms = Room::with('roomType')->available()->orderBy('floor')->orderBy('room_number')->get();
+        $availableRooms = Room::with('roomType', 'linkedRoom')
+            ->available()
+            ->orderBy('floor')
+            ->orderBy('room_number')
+            ->get();
+
+        // Build a map of linked-room availability for the JS wizard
+        $linkedAvailability = [];
+        foreach ($availableRooms as $room) {
+            if ($room->linked_room_id) {
+                $linkedAvailability[$room->id] = [
+                    'linked_id'        => $room->linked_room_id,
+                    'linked_available' => $room->isLinkedRoomAvailable(),
+                    'linked_number'    => $room->linkedRoom?->room_number,
+                    'sub_type'         => $room->room_sub_type,
+                    'is_always_linked' => (bool)$room->is_always_linked,
+                ];
+            }
+        }
+
         $admins = User::role('admin')->where('is_active', true)->get();
         $nationalities = $this->getNationalities();
-        return view('checkin.create', compact('availableRooms', 'admins', 'nationalities'));
+        return view('checkin.create', compact('availableRooms', 'linkedAvailability', 'admins', 'nationalities'));
     }
 
     public function store(Request $request)
@@ -44,6 +63,7 @@ class CheckInController extends Controller
             'companions.*.full_name' => 'required_with:companions.*.relationship|string',
             'companions.*.relationship' => 'nullable|in:wife,son,daughter,brother,sister,father,mother,other',
             'companions.*.marriage_doc' => 'required_if:companions.*.relationship,wife|nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'suite_booking_type'        => 'nullable|in:a_only,b_only,both',
         ]);
 
         try {

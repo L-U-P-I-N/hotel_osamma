@@ -59,6 +59,9 @@
                         <div class="flex items-center gap-3">
                             <button @click="editUser={{ json_encode(['id'=>$user->id,'name'=>$user->name,'phone'=>$user->phone,'role'=>$user->roles->first()?->name]) }}; editModal=true"
                                     class="text-xs font-medium" style="color:#0F4C75;">تعديل</button>
+                            @if(!$user->isAdmin())
+                            <a href="{{ route('users.permissions', $user) }}" class="text-xs font-medium text-purple-600 hover:text-purple-800">صلاحيات</a>
+                            @endif
                             @if($user->id !== auth()->id())
                             <form method="POST" action="{{ route('users.toggle', $user) }}">
                                 @csrf @method('PATCH')

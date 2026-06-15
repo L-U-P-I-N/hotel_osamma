@@ -9,8 +9,8 @@ class CashWithdrawal extends Model
     use HasFactory;
 
     protected $fillable = [
-        'cash_settlement_id', 'amount', 'currency', 'withdrawal_date',
-        'withdrawn_by_name', 'handed_by_name', 'notes',
+        'cash_settlement_id','shift_id','amount','currency',
+        'withdrawal_date','withdrawn_by_name','handed_by_name','notes',
     ];
 
     protected $casts = [
@@ -18,8 +18,6 @@ class CashWithdrawal extends Model
         'withdrawal_date' => 'datetime',
     ];
 
-    public function cashSettlement()
-    {
-        return $this->belongsTo(CashSettlement::class);
-    }
+    public function cashSettlement() { return $this->belongsTo(CashSettlement::class); }
+    public function shift()          { return $this->belongsTo(Shift::class); }
 }

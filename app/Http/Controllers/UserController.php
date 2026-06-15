@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Services\AuditLogService;
+use App\Services\PermissionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
@@ -15,6 +16,39 @@ class UserController extends Controller
         $users = User::with('roles')->paginate(25);
         $roles = Role::all();
         return view('users.index', compact('users', 'roles'));
+    }
+
+    public function permissions(User $user)
+    {
+        $permissionMap = PermissionService::getMap($user);
+        return view('users.permissions', compact('user', 'permissionMap'));
+    }
+
+    public function togglePermission(Request $request, User $user)
+    {
+        $request->validate([
+            'permission' => 'required|string',
+            'grant'      => 'required|boolean',
+        ]);
+
+        if ($user->isAdmin()) {
+            return back()->withErrors(['error' => 'لا يمكن تعديل صلاحيات المدير']);
+        }
+
+        if (in_array($request->permission, PermissionService::ADMIN_ONLY)) {
+            return back()->withErrors(['error' => 'هذه الصلاحية للمدير فقط']);
+        }
+
+        PermissionService::toggle($user, $request->permission, (bool)$request->grant, auth()->user());
+        AuditLogService::log('update', $user, [], [
+            'permission' => $request->permission,
+            'granted'    => $request->grant,
+        ], auth()->user());
+
+        $label = PermissionService::ALL_PERMISSIONS[$request->permission]['label'] ?? $request->permission;
+        $action = $request->grant ? 'منح' : 'سحب';
+
+        return back()->with('success', "تم {$action} صلاحية \"{$label}\" بنجاح");
     }
 
     public function store(Request $request)

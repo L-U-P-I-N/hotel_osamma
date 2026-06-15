@@ -11,28 +11,18 @@ class RoomTypeSeeder extends Seeder
     {
         $hotel = Hotel::first();
 
-        RoomType::create([
-            'hotel_id' => $hotel->id,
-            'name' => 'single',
-            'base_price' => 5000.00,
-            'max_capacity' => 1,
-            'description' => 'غرفة مفردة مريحة',
-        ]);
+        $types = [
+            ['name' => 'غرفة عادية', 'base_price' => 8000,  'max_capacity' => 2,  'description' => 'غرفة عادية مريحة'],
+            ['name' => 'جناح',       'base_price' => 15000, 'max_capacity' => 4,  'description' => 'جناح فاخر — يُحجز منفرداً أو مع الجناح المقابل'],
+            ['name' => 'شقة',        'base_price' => 20000, 'max_capacity' => 6,  'description' => 'شقة كاملة — تُحجز دائماً كوحدة واحدة'],
+            ['name' => 'صالة',       'base_price' => 30000, 'max_capacity' => 50, 'description' => 'صالة اجتماعات وأفراح'],
+        ];
 
-        RoomType::create([
-            'hotel_id' => $hotel->id,
-            'name' => 'double',
-            'base_price' => 8000.00,
-            'max_capacity' => 2,
-            'description' => 'غرفة مزدوجة فسيحة',
-        ]);
-
-        RoomType::create([
-            'hotel_id' => $hotel->id,
-            'name' => 'suite',
-            'base_price' => 15000.00,
-            'max_capacity' => 4,
-            'description' => 'جناح فاخر مع صالة',
-        ]);
+        foreach ($types as $type) {
+            RoomType::firstOrCreate(
+                ['hotel_id' => $hotel->id, 'name' => $type['name']],
+                $type + ['hotel_id' => $hotel->id]
+            );
+        }
     }
 }

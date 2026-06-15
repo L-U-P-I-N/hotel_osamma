@@ -1,6 +1,7 @@
 <?php
 namespace App\Models;
 
+use App\Services\PermissionService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -12,36 +13,53 @@ class User extends Authenticatable
     use HasFactory, Notifiable, HasRoles, SoftDeletes;
 
     protected $fillable = [
-        'name', 'employee_id', 'username', 'password', 'phone', 'is_active',
+        'name','employee_id','username','password','phone','is_active',
     ];
 
-    protected $hidden = ['password', 'remember_token'];
+    protected $hidden = ['password','remember_token'];
 
     protected function casts(): array
     {
         return [
-            'password' => 'hashed',
+            'password'  => 'hashed',
             'is_active' => 'boolean',
         ];
     }
 
-    public function reservations()
+    // --- relationships ---
+
+    public function reservations()    { return $this->hasMany(Reservation::class, 'created_by'); }
+    public function payments()        { return $this->hasMany(Payment::class, 'received_by'); }
+    public function cashSettlements() { return $this->hasMany(CashSettlement::class); }
+    public function shifts()          { return $this->hasMany(Shift::class); }
+    public function auditLogs()       { return $this->hasMany(AuditLog::class); }
+    public function userPermissions() { return $this->hasMany(UserPermission::class); }
+
+    // --- role helpers ---
+
+    public function isAdmin(): bool
     {
-        return $this->hasMany(Reservation::class, 'created_by');
+        return $this->hasRole('admin');
     }
 
-    public function payments()
+    public function isReceptionist(): bool
     {
-        return $this->hasMany(Payment::class, 'received_by');
+        return $this->hasRole('receptionist');
     }
 
-    public function cashSettlements()
+    // --- permission override: replaces Spatie check with our dynamic system ---
+
+    public function hasPermissionTo($permission, $guardName = null): bool
     {
-        return $this->hasMany(CashSettlement::class);
+        $key = is_string($permission) ? $permission : $permission->name;
+        return PermissionService::userCan($this, $key);
     }
 
-    public function auditLogs()
+    public function can($abilities, $arguments = []): bool
     {
-        return $this->hasMany(AuditLog::class);
+        if (is_string($abilities)) {
+            return PermissionService::userCan($this, $abilities);
+        }
+        return parent::can($abilities, $arguments);
     }
 }
