@@ -82,8 +82,7 @@ class ReservationController extends Controller
         ]);
 
         $nights = Carbon::parse($validated['check_in_date'])->diffInDays($validated['check_out_date']);
-        $pricePerNight = $reservation->room->roomType->base_price_per_night;
-        $newTotal = $nights * $pricePerNight;
+        $newTotal = $nights * $reservation->room->roomType->base_price;
 
         $old = $reservation->toArray();
 
@@ -99,6 +98,61 @@ class ReservationController extends Controller
         AuditLogService::log('update', $reservation, $old, $reservation->fresh()->toArray(), auth()->user());
 
         return redirect()->route('reservations.show', $reservation)->with('success', 'تم تحديث الحجز بنجاح');
+    }
+
+    public function renew(Request $request, Reservation $reservation)
+    {
+        if ($reservation->status !== 'checked_in') {
+            return back()->withErrors(['error' => 'لا يمكن تجديد إلا الحجوزات النشطة (مسجل دخول)']);
+        }
+
+        $validated = $request->validate([
+            'new_check_out_date' => 'required|date|after:' . $reservation->check_out_date->format('Y-m-d'),
+            'advance_payment'    => 'nullable|numeric|min:0',
+            'payment_method'     => 'nullable|in:cash,pos,bank_transfer',
+            'currency'           => 'nullable|in:YER,SAR,USD',
+            'notes'              => 'nullable|string|max:500',
+        ], [
+            'new_check_out_date.required' => 'تاريخ الخروج الجديد مطلوب',
+            'new_check_out_date.after'    => 'يجب أن يكون تاريخ الخروج الجديد بعد التاريخ الحالي',
+        ]);
+
+        $extraNights = $reservation->check_out_date->diffInDays($validated['new_check_out_date']);
+        $pricePerNight = $reservation->room->roomType->base_price;
+        $extraAmount  = $extraNights * $pricePerNight;
+
+        $old = $reservation->only(['check_out_date', 'total_amount']);
+
+        $reservation->update([
+            'check_out_date' => $validated['new_check_out_date'],
+            'total_amount'   => $reservation->total_amount + $extraAmount,
+            'notes'          => $reservation->notes
+                                    ? $reservation->notes . "\n[تجديد +{$extraNights} ليلة]"
+                                    : "[تجديد +{$extraNights} ليلة]" . ($validated['notes'] ? ': ' . $validated['notes'] : ''),
+        ]);
+
+        if (!empty($validated['advance_payment']) && $validated['advance_payment'] > 0) {
+            \App\Models\Payment::create([
+                'reservation_id' => $reservation->id,
+                'received_by'    => auth()->id(),
+                'amount'         => $validated['advance_payment'],
+                'currency'       => $validated['currency'] ?? 'YER',
+                'method'         => $validated['payment_method'] ?? 'cash',
+                'payment_date'   => now(),
+                'type'           => 'reservation',
+            ]);
+            $reservation->increment('paid_amount', $validated['advance_payment']);
+            $reservation->refresh()->updatePaymentStatus();
+        }
+
+        AuditLogService::log('update', $reservation, $old, [
+            'check_out_date' => $validated['new_check_out_date'],
+            'extra_nights'   => $extraNights,
+            'extra_amount'   => $extraAmount,
+        ], auth()->user());
+
+        return redirect()->route('reservations.show', $reservation)
+            ->with('success', "تم تجديد الإقامة بنجاح — تمديد {$extraNights} ليلة إضافية");
     }
 
     public function cancel(Reservation $reservation)

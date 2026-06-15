@@ -105,9 +105,15 @@ class CheckOutService
             ]);
             $reservation->updatePaymentStatus();
 
-            // f. Update Room status
-            $newRoomStatus = ($data['has_damage'] ?? false) ? 'maintenance' : 'under_inspection';
+            // f. Update Room status — no damage → available immediately, damage → maintenance
+            $newRoomStatus = ($data['has_damage'] ?? false) ? 'maintenance' : 'available';
             $reservation->room->update(['status' => $newRoomStatus]);
+
+            // Free the linked room too (suite B or apartment partner)
+            if ($reservation->linked_room_id) {
+                \App\Models\Room::where('id', $reservation->linked_room_id)
+                    ->update(['status' => $newRoomStatus]);
+            }
 
             // g. Log audit
             AuditLogService::log('update', $reservation, ['status' => 'checked_in'], ['status' => 'checked_out'], $user);

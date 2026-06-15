@@ -32,6 +32,10 @@
         @endif
         @endcan
         @if($reservation->status === 'checked_in')
+        @can('checkin.view')
+        <button onclick="document.getElementById('renewModal').classList.remove('hidden')"
+                class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition">تجديد الإقامة</button>
+        @endcan
         @can('checkout.process')
         <a href="{{ route('checkout.show', $reservation) }}" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition">تسجيل الخروج</a>
         @endcan
@@ -221,4 +225,108 @@
 </div>
 
 </div>
+
+<!-- Renewal Modal -->
+@if($reservation->status === 'checked_in')
+@can('checkin.view')
+<div id="renewModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+     onclick="if(event.target===this) this.classList.add('hidden')">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg" onclick="event.stopPropagation()">
+        <div class="p-6 border-b border-gray-100 flex items-center justify-between">
+            <h3 class="font-bold text-gray-800 text-lg">تجديد الإقامة</h3>
+            <button onclick="document.getElementById('renewModal').classList.add('hidden')"
+                    class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <form method="POST" action="{{ route('reservations.renew', $reservation) }}"
+              x-data="renewForm()" class="p-6 space-y-4">
+            @csrf
+            <div class="grid grid-cols-2 gap-3 bg-gray-50 rounded-xl p-3 text-sm">
+                <div><span class="text-gray-500">تاريخ الدخول:</span> <strong>{{ $reservation->check_in_date->format('d/m/Y') }}</strong></div>
+                <div><span class="text-gray-500">تاريخ الخروج الحالي:</span> <strong>{{ $reservation->check_out_date->format('d/m/Y') }}</strong></div>
+                <div><span class="text-gray-500">سعر الليلة:</span> <strong>{{ number_format($reservation->room->roomType->base_price, 0) }} ر.ي</strong></div>
+                <div><span class="text-gray-500">الرصيد المتبقي:</span> <strong class="{{ $reservation->balance > 0 ? 'text-red-600' : 'text-green-600' }}">{{ number_format($reservation->balance, 0) }} ر.ي</strong></div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">تاريخ الخروج الجديد <span class="text-red-500">*</span></label>
+                <input type="date" name="new_check_out_date" x-model="newDate"
+                       min="{{ $reservation->check_out_date->addDay()->format('Y-m-d') }}"
+                       @change="calcExtra()" required
+                       class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+            </div>
+
+            <div x-show="extraNights > 0" class="grid grid-cols-3 gap-3">
+                <div class="bg-blue-50 rounded-xl p-3 text-center">
+                    <div class="text-xl font-bold text-blue-700" x-text="extraNights"></div>
+                    <div class="text-xs text-blue-500 mt-0.5">ليالٍ إضافية</div>
+                </div>
+                <div class="bg-green-50 rounded-xl p-3 text-center">
+                    <div class="text-xl font-bold text-green-700" x-text="formatNum(extraAmount)"></div>
+                    <div class="text-xs text-green-500 mt-0.5">مبلغ إضافي (ر.ي)</div>
+                </div>
+                <div class="bg-primary-50 rounded-xl p-3 text-center">
+                    <div class="text-xl font-bold text-primary-700" x-text="formatNum({{ $reservation->total_amount }} + extraAmount)"></div>
+                    <div class="text-xs text-primary-500 mt-0.5">الإجمالي الجديد</div>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">دفعة مقدمة (اختياري)</label>
+                <div class="grid grid-cols-2 gap-3">
+                    <input type="number" name="advance_payment" x-model.number="advancePay"
+                           min="0" step="0.01" placeholder="0"
+                           class="border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                    <select name="payment_method" class="border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                        <option value="cash">نقدي</option>
+                        <option value="pos">شبكة POS</option>
+                        <option value="bank_transfer">تحويل بنكي</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">ملاحظات</label>
+                <input type="text" name="notes" placeholder="سبب التجديد..."
+                       class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+            </div>
+
+            <div class="flex gap-3 pt-2">
+                <button type="submit" :disabled="extraNights <= 0"
+                        class="flex-1 py-2.5 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-700 transition disabled:opacity-40">
+                    تأكيد التجديد
+                </button>
+                <button type="button" onclick="document.getElementById('renewModal').classList.add('hidden')"
+                        class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50 transition">
+                    إلغاء
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+@push('scripts')
+<script>
+function renewForm() {
+    return {
+        newDate: '',
+        extraNights: 0,
+        extraAmount: 0,
+        advancePay: 0,
+        pricePerNight: {{ $reservation->room->roomType->base_price }},
+        currentOut: '{{ $reservation->check_out_date->format('Y-m-d') }}',
+        calcExtra() {
+            if (!this.newDate) return;
+            const d1 = new Date(this.currentOut), d2 = new Date(this.newDate);
+            this.extraNights = Math.max(0, Math.floor((d2 - d1) / 86400000));
+            this.extraAmount = this.extraNights * this.pricePerNight;
+        },
+        formatNum(n) { return (parseFloat(n)||0).toLocaleString('ar-YE'); },
+    }
+}
+</script>
+@endpush
+@endcan
+@endif
+
 @endsection

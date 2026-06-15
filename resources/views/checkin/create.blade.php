@@ -359,6 +359,15 @@
                    class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
         </div>
         <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">عدد الليالي</label>
+            <div class="flex items-center gap-2">
+                <input type="number" x-model.number="nightsInput" min="1" max="365"
+                       @input="updateCheckoutFromNights()"
+                       class="w-24 border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none text-center font-bold">
+                <span class="text-sm text-gray-500">ليلة</span>
+            </div>
+        </div>
+        <div>
             <label class="block text-sm font-medium text-gray-700 mb-1.5">تاريخ المغادرة <span class="text-red-500">*</span></label>
             <input type="date" name="check_out_date" x-model="checkOutDate" required
                    :min="checkInDate || today()" @change="calcTotal()"
@@ -440,17 +449,28 @@
             </div>
 
             <!-- Bank Transfer Fields -->
-            <div x-show="paymentMethod === 'bank_transfer'" class="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
+            <div x-show="paymentMethod === 'bank_transfer'" x-cloak
+                 class="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
                 <h4 class="font-medium text-blue-800 text-sm">بيانات التحويل البنكي</h4>
                 <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">رقم السند / المرجع *</label>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">رقم السند / المرجع</label>
                     <input type="text" name="bank_transfer_ref" placeholder="أدخل رقم السند"
                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
                 </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">سند التحويل البنكي (صورة/PDF) *</label>
-                    <input type="file" name="bank_receipt" accept="image/*,.pdf"
-                           class="w-full text-sm text-gray-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-blue-600 file:text-white hover:file:bg-blue-700">
+                <div x-data="{ receiptName: '' }">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">سند التحويل البنكي (صورة/PDF)</label>
+                    <label class="flex items-center gap-3 cursor-pointer border-2 border-dashed border-blue-300 rounded-xl p-3 hover:border-blue-500 hover:bg-blue-100 transition">
+                        <input type="file" name="bank_receipt" accept="image/*,.pdf" class="hidden"
+                               @change="receiptName = $event.target.files[0]?.name ?? ''">
+                        <div class="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-blue-800" x-text="receiptName || 'انقر لرفع سند التحويل'"></p>
+                            <p class="text-xs text-blue-500 mt-0.5" x-show="!receiptName">JPG, PNG, PDF — حتى 10MB</p>
+                            <p class="text-xs text-green-600 mt-0.5" x-show="receiptName">تم اختيار الملف ✓</p>
+                        </div>
+                    </label>
                 </div>
             </div>
 
@@ -593,6 +613,7 @@ function checkInWizard() {
         checkInDate: '',
         checkOutDate: '',
         nights: 0,
+        nightsInput: 1,
         totalAmount: 0,
         paymentStatus: 'paid',
         paymentMethod: 'cash',
@@ -631,6 +652,7 @@ function checkInWizard() {
                     suiteBookingType:this.suiteBookingType,
                     checkInDate:     this.checkInDate,
                     checkOutDate:    this.checkOutDate,
+                    nightsInput:     this.nightsInput,
                     paymentStatus:   this.paymentStatus,
                     paymentMethod:   this.paymentMethod,
                     paidAmount:      this.paidAmount,
@@ -651,6 +673,7 @@ function checkInWizard() {
                 this.suiteBookingType = s.suiteBookingType  ?? 'a_only';
                 this.checkInDate      = s.checkInDate       || this.checkInDate;
                 this.checkOutDate     = s.checkOutDate      || this.checkOutDate;
+                this.nightsInput      = s.nightsInput       ?? 1;
                 this.paymentStatus    = s.paymentStatus     ?? 'paid';
                 this.paymentMethod    = s.paymentMethod     ?? 'cash';
                 this.paidAmount       = s.paidAmount        ?? 0;
@@ -730,10 +753,20 @@ function checkInWizard() {
             return 'غرفة ' + this.selectedRoom.room_number;
         },
 
+        updateCheckoutFromNights() {
+            if (this.checkInDate && this.nightsInput > 0) {
+                const d = new Date(this.checkInDate);
+                d.setDate(d.getDate() + parseInt(this.nightsInput));
+                this.checkOutDate = d.toISOString().split('T')[0];
+                this.calcTotal();
+            }
+        },
+
         calcTotal() {
             if (this.checkInDate && this.checkOutDate && this.selectedRoom) {
                 const d1 = new Date(this.checkInDate), d2 = new Date(this.checkOutDate);
                 this.nights = Math.max(0, Math.floor((d2 - d1) / 86400000));
+                this.nightsInput = this.nights || 1;
                 this.totalAmount = this.nights * this.effectiveRoomPrice();
                 this.saveToSession();
             }
