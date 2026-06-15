@@ -179,10 +179,10 @@
                 @forelse($recentReservations as $res)
                 <tr class="hover:bg-gray-50 transition-colors">
                     <td class="px-6 py-3 text-gray-500">#{{ $res->id }}</td>
-                    <td class="px-6 py-3 font-medium text-gray-800">{{ $res->guest->full_name }}</td>
-                    <td class="px-6 py-3 text-gray-600">{{ $res->room->room_number }}</td>
-                    <td class="px-6 py-3 text-gray-600">{{ $res->check_in_date->format('d/m/Y') }}</td>
-                    <td class="px-6 py-3 text-gray-600">{{ $res->check_out_date->format('d/m/Y') }}</td>
+                    <td class="px-6 py-3 font-medium text-gray-800">{{ $res->guest?->full_name ?? '—' }}</td>
+                    <td class="px-6 py-3 text-gray-600">{{ $res->room?->room_number ?? '—' }}</td>
+                    <td class="px-6 py-3 text-gray-600">{{ $res->check_in_date?->format('d/m/Y') ?? '—' }}</td>
+<td class="px-6 py-3 text-gray-600">{{ $res->check_out_date?->format('d/m/Y') ?? '—' }}</td>
                     <td class="px-6 py-3">
                         @php
                             $sc = ['confirmed'=>'bg-blue-100 text-blue-800','checked_in'=>'bg-green-100 text-green-800','checked_out'=>'bg-gray-100 text-gray-800','cancelled'=>'bg-red-100 text-red-800'];
