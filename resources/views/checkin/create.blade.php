@@ -28,7 +28,8 @@
     </div>
 </div>
 
-<form id="checkInForm" method="POST" action="{{ route('checkin.store') }}" enctype="multipart/form-data">
+<form id="checkInForm" method="POST" action="{{ route('checkin.store') }}" enctype="multipart/form-data"
+      @submit="handleSubmit($event)">
 @csrf
 
 <!-- STEP 1: Guest Details -->
@@ -554,10 +555,16 @@
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
         </button>
 
-        <button type="submit" x-show="currentStep === 5" :disabled="blacklistAlert"
-                class="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition disabled:opacity-50">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            تأكيد وحفظ الحجز
+        <button type="submit" x-show="currentStep === 5"
+                :disabled="blacklistAlert || submitting"
+                class="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed">
+            <template x-if="!submitting">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </template>
+            <template x-if="submitting">
+                <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+            </template>
+            <span x-text="submitting ? 'جارٍ الحفظ...' : 'تأكيد وحفظ الحجز'"></span>
         </button>
     </div>
 </div>
@@ -566,7 +573,13 @@
 @endsection
 
 @push('scripts')
+@if(session('success'))
+<script>sessionStorage.removeItem('hotel_checkin_wizard');</script>
+@endif
 <script>
+const CHECKIN_SESSION_KEY = 'hotel_checkin_wizard';
+const HAS_BACKEND_ERRORS = {{ $errors->any() ? 'true' : 'false' }};
+
 function checkInWizard() {
     return {
         currentStep: 1,
@@ -589,12 +602,67 @@ function checkInWizard() {
         blacklistAlert: false,
         blacklistReason: '',
         idTypeLabel: { national_id:'هوية وطنية', passport:'جواز سفر', residence:'إقامة' },
+        submitting: false,
 
         init() {
             const today = new Date().toISOString().split('T')[0];
             this.checkInDate = today;
             const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1);
             this.checkOutDate = tomorrow.toISOString().split('T')[0];
+
+            // Restore saved state (survives page refresh or error redirect)
+            this.restoreFromSession();
+
+            // If backend returned errors, jump to step 5 so errors are visible
+            if (HAS_BACKEND_ERRORS && this.roomId) {
+                this.currentStep = 5;
+            }
+        },
+
+        saveToSession() {
+            try {
+                sessionStorage.setItem(CHECKIN_SESSION_KEY, JSON.stringify({
+                    currentStep:     this.currentStep,
+                    guestData:       this.guestData,
+                    companions:      this.companions.map(c => ({ ...c, id_preview: null })),
+                    roomId:          this.roomId,
+                    selectedRoom:    this.selectedRoom,
+                    linkedInfo:      this.linkedInfo,
+                    suiteBookingType:this.suiteBookingType,
+                    checkInDate:     this.checkInDate,
+                    checkOutDate:    this.checkOutDate,
+                    paymentStatus:   this.paymentStatus,
+                    paymentMethod:   this.paymentMethod,
+                    paidAmount:      this.paidAmount,
+                }));
+            } catch(e) {}
+        },
+
+        restoreFromSession() {
+            try {
+                const raw = sessionStorage.getItem(CHECKIN_SESSION_KEY);
+                if (!raw) return;
+                const s = JSON.parse(raw);
+                this.guestData        = s.guestData        ?? this.guestData;
+                this.companions       = s.companions        ?? [];
+                this.roomId           = s.roomId            ?? '';
+                this.selectedRoom     = s.selectedRoom      ?? null;
+                this.linkedInfo       = s.linkedInfo        ?? null;
+                this.suiteBookingType = s.suiteBookingType  ?? 'a_only';
+                this.checkInDate      = s.checkInDate       || this.checkInDate;
+                this.checkOutDate     = s.checkOutDate      || this.checkOutDate;
+                this.paymentStatus    = s.paymentStatus     ?? 'paid';
+                this.paymentMethod    = s.paymentMethod     ?? 'cash';
+                this.paidAmount       = s.paidAmount        ?? 0;
+                this.currentStep      = s.currentStep       ?? 1;
+                this.$nextTick(() => this.calcTotal());
+            } catch(e) {}
+        },
+
+        handleSubmit(event) {
+            if (this.blacklistAlert) { event.preventDefault(); return; }
+            this.submitting = true;
+            // Keep session alive — will be cleared server-side on success
         },
 
         today() {
@@ -625,7 +693,6 @@ function checkInWizard() {
             this.selectedRoom = room;
             this.linkedInfo = info || null;
             this.roomId = room.id;
-            // Default suite_booking_type based on room sub_type
             if (info && !info.is_always_linked) {
                 this.suiteBookingType = room.sub_type === 'suite_a' ? 'a_only' : 'b_only';
             } else if (info && info.is_always_linked) {
@@ -634,6 +701,7 @@ function checkInWizard() {
                 this.suiteBookingType = '';
             }
             this.calcTotal();
+            this.saveToSession();
         },
 
         clearRoomSelection() {
@@ -643,6 +711,7 @@ function checkInWizard() {
             this.suiteBookingType = 'a_only';
             this.totalAmount = 0;
             this.nights = 0;
+            this.saveToSession();
         },
 
         effectiveRoomPrice() {
@@ -666,6 +735,7 @@ function checkInWizard() {
                 const d1 = new Date(this.checkInDate), d2 = new Date(this.checkOutDate);
                 this.nights = Math.max(0, Math.floor((d2 - d1) / 86400000));
                 this.totalAmount = this.nights * this.effectiveRoomPrice();
+                this.saveToSession();
             }
         },
 
@@ -683,10 +753,16 @@ function checkInWizard() {
         },
 
         nextStep() {
-            if (this.canProceed() && this.currentStep < 5) this.currentStep++;
+            if (this.canProceed() && this.currentStep < 5) {
+                this.currentStep++;
+                this.saveToSession();
+            }
         },
         prevStep() {
-            if (this.currentStep > 1) this.currentStep--;
+            if (this.currentStep > 1) {
+                this.currentStep--;
+                this.saveToSession();
+            }
         },
 
         formatNumber(n) {
