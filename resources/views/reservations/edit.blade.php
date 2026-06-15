@@ -42,7 +42,7 @@
           x-data="{
             checkIn: '{{ old('check_in_date', $reservation->check_in_date->format('Y-m-d')) }}',
             checkOut: '{{ old('check_out_date', $reservation->check_out_date->format('Y-m-d')) }}',
-            pricePerNight: {{ $reservation->room->roomType->base_price_per_night }},
+            pricePerNight: {{ $reservation->room->roomType->base_price }},
             get nights() {
                 if (!this.checkIn || !this.checkOut) return 0;
                 const d = (new Date(this.checkOut) - new Date(this.checkIn)) / 86400000;
@@ -79,7 +79,7 @@
                 <div class="flex items-center justify-between text-sm flex-wrap gap-2">
                     <div class="flex items-center gap-4">
                         <span class="text-gray-600">عدد الليالي: <strong x-text="nights" class="text-gray-900"></strong></span>
-                        <span class="text-gray-600">السعر/ليلة: <strong>{{ number_format($reservation->room->roomType->base_price_per_night, 0) }} ر.ي</strong></span>
+                        <span class="text-gray-600">السعر/ليلة: <strong>{{ number_format($reservation->room->roomType->base_price, 0) }} ر.ي</strong></span>
                     </div>
                     <div class="text-base font-bold" style="color:#0F4C75;">
                         الإجمالي: <span x-text="total.toLocaleString('ar-SA')"></span> ر.ي

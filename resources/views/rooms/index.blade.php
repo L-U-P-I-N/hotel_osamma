@@ -76,7 +76,7 @@
         $dotColors = ['available'=>'bg-green-500','reserved'=>'bg-blue-500','occupied'=>'bg-red-500','under_inspection'=>'bg-yellow-500','maintenance'=>'bg-gray-400'];
     @endphp
     <div class="border-2 {{ $colors[$room->status] ?? 'border-gray-300 bg-gray-50' }} rounded-xl transition-all duration-200">
-        <div @click="openRoom({{ $room->toJson() }}, '{{ $room->roomType->name }}', {{ $room->roomType->base_price_per_night ?? $room->roomType->base_price ?? 0 }})"
+        <div @click="openRoom({{ $room->toJson() }}, '{{ $room->roomType->name }}', {{ $room->roomType->base_price ?? 0 }})"
              class="cursor-pointer p-4 select-none">
             <div class="flex items-center justify-between mb-2">
                 <span class="text-xl font-bold text-gray-800">{{ $room->room_number }}</span>
@@ -84,7 +84,7 @@
             </div>
             <div class="text-xs text-gray-500">{{ $room->roomType->name }}</div>
             <div class="text-xs text-gray-400 mt-0.5">الطابق {{ $room->floor }}</div>
-            <div class="mt-2 text-xs font-medium text-gray-700">{{ number_format($room->roomType->base_price_per_night ?? $room->roomType->base_price ?? 0, 0) }} ر.ي</div>
+            <div class="mt-2 text-xs font-medium text-gray-700">{{ number_format($room->roomType->base_price ?? 0, 0) }} ر.ي</div>
         </div>
         @can('rooms.manage')
         <div class="flex border-t border-gray-200 divide-x divide-x-reverse divide-gray-200">

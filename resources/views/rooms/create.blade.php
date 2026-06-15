@@ -53,7 +53,7 @@
                     <option value="">-- اختر نوع الغرفة --</option>
                     @foreach($roomTypes as $type)
                     <option value="{{ $type->id }}" {{ old('room_type_id') == $type->id ? 'selected' : '' }}>
-                        {{ $type->name }} — {{ number_format($type->base_price_per_night, 0) }} ر.ي / ليلة
+                        {{ $type->name }} — {{ number_format($type->base_price, 0) }} ر.ي / ليلة
                     </option>
                     @endforeach
                 </select>
