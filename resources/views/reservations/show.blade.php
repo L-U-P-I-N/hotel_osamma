@@ -57,12 +57,12 @@
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
         <h3 class="font-semibold text-gray-700 mb-4">بيانات النزيل</h3>
         <div class="space-y-2 text-sm">
-            <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">الاسم</span><span class="font-medium">{{ $reservation->guest->full_name }}</span></div>
-            <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">الجنسية</span><span>{{ $reservation->guest->nationality ?: '-' }}</span></div>
-            <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">نوع الهوية</span><span>{{ $reservation->guest->getIdTypeLabel() }}</span></div>
+            <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">الاسم</span><span class="font-medium">{{ $reservation->guest?->full_name ?? '—' }}</span></div>
+            <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">الجنسية</span><span>{{ $reservation->guest?->nationality ?: '-' }}</span></div>
+            <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">نوع الهوية</span><span>{{ $reservation->guest?->getIdTypeLabel() ?? '—' }}</span></div>
             @can('guests.sensitive')
-            <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">رقم الهوية</span><span class="font-mono">{{ $reservation->guest->id_number }}</span></div>
-            <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">الجوال</span><span class="font-mono">{{ $reservation->guest->phone ?: '-' }}</span></div>
+            <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">رقم الهوية</span><span class="font-mono">{{ $reservation->guest?->id_number ?? '—' }}</span></div>
+            <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">الجوال</span><span class="font-mono">{{ $reservation->guest?->phone ?: '-' }}</span></div>
             @endcan
             <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">جهة القدوم</span><span>{{ $reservation->origin ?: '-' }}</span></div>
             <div class="flex justify-between py-1.5"><span class="text-gray-500">الغرض</span><span>{{ $reservation->purpose ?: '-' }}</span></div>
@@ -72,10 +72,10 @@
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
         <h3 class="font-semibold text-gray-700 mb-4">بيانات الحجز</h3>
         <div class="space-y-2 text-sm">
-            <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">الغرفة</span><span class="font-bold text-primary-800">{{ $reservation->room->room_number }}</span></div>
-            <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">النوع</span><span>{{ $reservation->room->roomType->name }}</span></div>
-            <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">تاريخ الدخول</span><span>{{ $reservation->check_in_date->format('d/m/Y') }}</span></div>
-            <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">تاريخ الخروج</span><span>{{ $reservation->check_out_date->format('d/m/Y') }}</span></div>
+            <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">الغرفة</span><span class="font-bold text-primary-800">{{ $reservation->room?->room_number ?? '—' }}</span></div>
+            <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">النوع</span><span>{{ $reservation->room?->roomType?->name ?? '—' }}</span></div>
+            <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">تاريخ الدخول</span><span>{{ $reservation->check_in_date?->format('d/m/Y') ?? '—' }}</span></div>
+            <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">تاريخ الخروج</span><span>{{ $reservation->check_out_date?->format('d/m/Y') ?? '—' }}</span></div>
             <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">عدد الليالي</span><span class="font-medium">{{ $reservation->nights }}</span></div>
             <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">الإجمالي</span><span class="font-bold">{{ number_format($reservation->total_amount, 2) }} ر.ي</span></div>
             <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">المدفوع</span><span class="font-medium text-green-600">{{ number_format($reservation->paid_amount, 2) }} ر.ي</span></div>
@@ -173,7 +173,7 @@
                     <td class="px-4 py-2 font-bold text-green-700">{{ number_format($p->amount, 2) }} {{ $p->currency }}</td>
                     <td class="px-4 py-2 text-gray-600">{{ match($p->method) { 'cash'=>'نقدي', 'pos'=>'POS', 'bank_transfer'=>'تحويل', default=>$p->method } }}</td>
                     <td class="px-4 py-2 text-gray-600">{{ match($p->type) { 'reservation'=>'حجز', 'compensation'=>'تعويض', 'extra_service'=>'خدمة إضافية', default=>$p->type } }}</td>
-                    <td class="px-4 py-2 text-gray-600">{{ $p->receivedBy->name }}</td>
+                    <td class="px-4 py-2 text-gray-600">{{ $p->receivedBy?->name ?? '—' }}</td>
                     <td class="px-4 py-2">
                         @if($p->bank_receipt_path)
                         @can('payments.bank_receipt')
@@ -243,16 +243,16 @@
               x-data="renewForm()" class="p-6 space-y-4">
             @csrf
             <div class="grid grid-cols-2 gap-3 bg-gray-50 rounded-xl p-3 text-sm">
-                <div><span class="text-gray-500">تاريخ الدخول:</span> <strong>{{ $reservation->check_in_date->format('d/m/Y') }}</strong></div>
-                <div><span class="text-gray-500">تاريخ الخروج الحالي:</span> <strong>{{ $reservation->check_out_date->format('d/m/Y') }}</strong></div>
-                <div><span class="text-gray-500">سعر الليلة:</span> <strong>{{ number_format($reservation->room->roomType->base_price, 0) }} ر.ي</strong></div>
+                <div><span class="text-gray-500">تاريخ الدخول:</span> <strong>{{ $reservation->check_in_date?->format('d/m/Y') ?? '—' }}</strong></div>
+                <div><span class="text-gray-500">تاريخ الخروج الحالي:</span> <strong>{{ $reservation->check_out_date?->format('d/m/Y') ?? '—' }}</strong></div>
+                <div><span class="text-gray-500">سعر الليلة:</span> <strong>{{ number_format($reservation->room?->roomType?->base_price ?? 0, 0) }} ر.ي</strong></div>
                 <div><span class="text-gray-500">الرصيد المتبقي:</span> <strong class="{{ $reservation->balance > 0 ? 'text-red-600' : 'text-green-600' }}">{{ number_format($reservation->balance, 0) }} ر.ي</strong></div>
             </div>
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1.5">تاريخ الخروج الجديد <span class="text-red-500">*</span></label>
                 <input type="date" name="new_check_out_date" x-model="newDate"
-                       min="{{ $reservation->check_out_date->addDay()->format('Y-m-d') }}"
+                       min="{{ $reservation->check_out_date?->addDay()->format('Y-m-d') ?? '' }}"
                        @change="calcExtra()" required
                        class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
             </div>
@@ -313,8 +313,8 @@ function renewForm() {
         extraNights: 0,
         extraAmount: 0,
         advancePay: 0,
-        pricePerNight: {{ $reservation->room->roomType->base_price }},
-        currentOut: '{{ $reservation->check_out_date->format('Y-m-d') }}',
+        pricePerNight: {{ $reservation->room?->roomType?->base_price ?? 0 }},
+        currentOut: '{{ $reservation->check_out_date?->format('Y-m-d') ?? '' }}',
         calcExtra() {
             if (!this.newDate) return;
             const d1 = new Date(this.currentOut), d2 = new Date(this.newDate);

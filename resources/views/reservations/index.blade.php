@@ -76,12 +76,12 @@
                 <tr class="hover:bg-gray-50 transition-colors">
                     <td class="px-4 py-3 text-gray-400 text-xs">#{{ $res->id }}</td>
                     <td class="px-4 py-3">
-                        <div class="font-medium text-gray-800">{{ $res->guest->full_name }}</div>
-                        <div class="text-xs text-gray-400">{{ $res->guest->nationality }}</div>
+                        <div class="font-medium text-gray-800">{{ $res->guest?->full_name ?? '—' }}</div>
+                        <div class="text-xs text-gray-400">{{ $res->guest?->nationality ?? '' }}</div>
                     </td>
-                    <td class="px-4 py-3 font-semibold text-gray-800">{{ $res->room->room_number }}</td>
-                    <td class="px-4 py-3 text-gray-600">{{ $res->check_in_date->format('d/m/Y') }}</td>
-                    <td class="px-4 py-3 text-gray-600">{{ $res->check_out_date->format('d/m/Y') }}</td>
+                    <td class="px-4 py-3 font-semibold text-gray-800">{{ $res->room?->room_number ?? '—' }}</td>
+                    <td class="px-4 py-3 text-gray-600">{{ $res->check_in_date?->format('d/m/Y') ?? '—' }}</td>
+                    <td class="px-4 py-3 text-gray-600">{{ $res->check_out_date?->format('d/m/Y') ?? '—' }}</td>
                     <td class="px-4 py-3 font-medium text-gray-800">{{ number_format($res->total_amount, 0) }}</td>
                     <td class="px-4 py-3">
                         <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium {{ $payColors[$res->payment_status] ?? 'bg-gray-100 text-gray-700' }}">

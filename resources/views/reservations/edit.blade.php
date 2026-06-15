@@ -17,12 +17,12 @@
         <div class="flex items-center justify-between flex-wrap gap-3 text-sm">
             <div>
                 <span class="text-gray-500">النزيل:</span>
-                <span class="font-semibold text-gray-800 mr-2">{{ $reservation->guest->full_name }}</span>
+                <span class="font-semibold text-gray-800 mr-2">{{ $reservation->guest?->full_name ?? '—' }}</span>
             </div>
             <div>
                 <span class="text-gray-500">الغرفة الحالية:</span>
-                <span class="font-semibold mr-2" style="color:#0F4C75;">{{ $reservation->room->room_number }}</span>
-                <span class="text-gray-400 text-xs">({{ $reservation->room->roomType->name }})</span>
+                <span class="font-semibold mr-2" style="color:#0F4C75;">{{ $reservation->room?->room_number ?? '—' }}</span>
+                <span class="text-gray-400 text-xs">({{ $reservation->room?->roomType?->name ?? '—' }})</span>
             </div>
         </div>
     </div>
@@ -40,9 +40,9 @@
 
     <form method="POST" action="{{ route('reservations.update', $reservation) }}" class="space-y-5"
           x-data="{
-            checkIn: '{{ old('check_in_date', $reservation->check_in_date->format('Y-m-d')) }}',
-            checkOut: '{{ old('check_out_date', $reservation->check_out_date->format('Y-m-d')) }}',
-            pricePerNight: {{ $reservation->room->roomType->base_price }},
+            checkIn: '{{ old('check_in_date', $reservation->check_in_date?->format('Y-m-d') ?? '') }}',
+            checkOut: '{{ old('check_out_date', $reservation->check_out_date?->format('Y-m-d') ?? '') }}',
+            pricePerNight: {{ $reservation->room?->roomType?->base_price ?? 0 }},
             get nights() {
                 if (!this.checkIn || !this.checkOut) return 0;
                 const d = (new Date(this.checkOut) - new Date(this.checkIn)) / 86400000;
@@ -57,7 +57,7 @@
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1.5">تاريخ الدخول <span class="text-red-500">*</span></label>
                 <input type="date" name="check_in_date" x-model="checkIn"
-                       value="{{ old('check_in_date', $reservation->check_in_date->format('Y-m-d')) }}" required
+                       value="{{ old('check_in_date', $reservation->check_in_date?->format('Y-m-d') ?? '') }}" required
                        class="w-full border @error('check_in_date') border-red-400 bg-red-50 @else border-gray-300 @enderror rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none transition">
                 @error('check_in_date')
                 <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
@@ -67,7 +67,7 @@
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1.5">تاريخ الخروج <span class="text-red-500">*</span></label>
                 <input type="date" name="check_out_date" x-model="checkOut"
-                       value="{{ old('check_out_date', $reservation->check_out_date->format('Y-m-d')) }}" required
+                       value="{{ old('check_out_date', $reservation->check_out_date?->format('Y-m-d') ?? '') }}" required
                        class="w-full border @error('check_out_date') border-red-400 bg-red-50 @else border-gray-300 @enderror rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none transition">
                 @error('check_out_date')
                 <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
@@ -79,7 +79,7 @@
                 <div class="flex items-center justify-between text-sm flex-wrap gap-2">
                     <div class="flex items-center gap-4">
                         <span class="text-gray-600">عدد الليالي: <strong x-text="nights" class="text-gray-900"></strong></span>
-                        <span class="text-gray-600">السعر/ليلة: <strong>{{ number_format($reservation->room->roomType->base_price, 0) }} ر.ي</strong></span>
+                        <span class="text-gray-600">السعر/ليلة: <strong>{{ number_format($reservation->room?->roomType?->base_price ?? 0, 0) }} ر.ي</strong></span>
                     </div>
                     <div class="text-base font-bold" style="color:#0F4C75;">
                         الإجمالي: <span x-text="total.toLocaleString('ar-SA')"></span> ر.ي

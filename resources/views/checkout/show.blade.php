@@ -11,19 +11,19 @@
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div class="bg-gray-50 rounded-lg p-3 text-center">
             <div class="text-xs text-gray-500 mb-1">النزيل</div>
-            <div class="font-semibold text-gray-800 text-sm">{{ $reservation->guest->full_name }}</div>
+            <div class="font-semibold text-gray-800 text-sm">{{ $reservation->guest?->full_name ?? '—' }}</div>
         </div>
         <div class="bg-gray-50 rounded-lg p-3 text-center">
             <div class="text-xs text-gray-500 mb-1">الغرفة</div>
-            <div class="font-bold text-primary-800 text-lg">{{ $reservation->room->room_number }}</div>
+            <div class="font-bold text-primary-800 text-lg">{{ $reservation->room?->room_number ?? '—' }}</div>
         </div>
         <div class="bg-gray-50 rounded-lg p-3 text-center">
             <div class="text-xs text-gray-500 mb-1">تاريخ الدخول</div>
-            <div class="font-medium text-gray-700 text-sm">{{ $reservation->check_in_date->format('d/m/Y') }}</div>
+            <div class="font-medium text-gray-700 text-sm">{{ $reservation->check_in_date?->format('d/m/Y') ?? '—' }}</div>
         </div>
         <div class="bg-gray-50 rounded-lg p-3 text-center">
             <div class="text-xs text-gray-500 mb-1">تاريخ الخروج</div>
-            <div class="font-medium text-gray-700 text-sm">{{ $reservation->check_out_date->format('d/m/Y') }}</div>
+            <div class="font-medium text-gray-700 text-sm">{{ $reservation->check_out_date?->format('d/m/Y') ?? '—' }}</div>
         </div>
     </div>
 

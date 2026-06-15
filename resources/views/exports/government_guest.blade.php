@@ -45,14 +45,14 @@
         <span class="meta-value">{{ now()->format('d/m/Y H:i') }}</span>
 
         <span class="meta-label">رقم الغرفة:</span>
-        <span class="meta-value">{{ $reservation->room->room_number }}</span>
+        <span class="meta-value">{{ $reservation->room?->room_number ?? '—' }}</span>
         <span class="meta-label">نوع الغرفة:</span>
-        <span class="meta-value">{{ $reservation->room->roomType->name }}</span>
+        <span class="meta-value">{{ $reservation->room?->roomType?->name ?? '—' }}</span>
 
         <span class="meta-label">تاريخ الوصول:</span>
-        <span class="meta-value">{{ $reservation->check_in_date->format('d/m/Y') }}</span>
+        <span class="meta-value">{{ $reservation->check_in_date?->format('d/m/Y') ?? '—' }}</span>
         <span class="meta-label">تاريخ المغادرة:</span>
-        <span class="meta-value">{{ $reservation->check_out_date->format('d/m/Y') }}</span>
+        <span class="meta-value">{{ $reservation->check_out_date?->format('d/m/Y') ?? '—' }}</span>
 
         <span class="meta-label">الغرض من الزيارة:</span>
         <span class="meta-value">{{ $reservation->purpose ?? '-' }}</span>
@@ -78,14 +78,14 @@
         </thead>
         <tbody>
             <tr>
-                <td><strong>{{ $reservation->guest->full_name }}</strong></td>
-                <td>{{ $reservation->guest->nationality ?? '-' }}</td>
-                <td>{{ $reservation->guest->getIdTypeLabel() }}</td>
-                <td>{{ $reservation->guest->id_number }}</td>
-                <td>{{ $reservation->guest->id_issuer ?? '-' }}</td>
-                <td>{{ $reservation->guest->id_issue_date?->format('d/m/Y') ?? '-' }}</td>
-                <td>{{ $reservation->guest->phone ?? '-' }}</td>
-                <td>{{ $reservation->guest->occupation ?? '-' }}</td>
+                <td><strong>{{ $reservation->guest?->full_name ?? '—' }}</strong></td>
+                <td>{{ $reservation->guest?->nationality ?? '-' }}</td>
+                <td>{{ $reservation->guest?->getIdTypeLabel() ?? '—' }}</td>
+                <td>{{ $reservation->guest?->id_number ?? '—' }}</td>
+                <td>{{ $reservation->guest?->id_issuer ?? '-' }}</td>
+                <td>{{ $reservation->guest?->id_issue_date?->format('d/m/Y') ?? '-' }}</td>
+                <td>{{ $reservation->guest?->phone ?? '-' }}</td>
+                <td>{{ $reservation->guest?->occupation ?? '-' }}</td>
             </tr>
         </tbody>
     </table>
@@ -135,10 +135,10 @@
         <div class="sig-box">
             <div class="sig-line"></div>
             <div class="sig-label">توقيع موظف الاستقبال</div>
-            <div class="sig-name">{{ $reservation->createdBy->name ?? '-' }}</div>
+            <div class="sig-name">{{ $reservation->createdBy?->name ?? '-' }}</div>
         </div>
         <div class="center-info">
-            <p>صدر بواسطة: {{ auth()->user()?->name ?? $reservation->createdBy->name ?? 'النظام' }}</p>
+            <p>صدر بواسطة: {{ auth()->user()?->name ?? $reservation->createdBy?->name ?? 'النظام' }}</p>
             <p style="margin-top:3px;">{{ now()->format('d/m/Y H:i:s') }}</p>
             <div class="stamp">{{ $hotel->name ?? 'فندق أسامة' }} — نظام إدارة الفندق</div>
         </div>
