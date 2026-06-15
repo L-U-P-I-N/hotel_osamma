@@ -449,7 +449,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-600 mb-1">سند التحويل البنكي (صورة/PDF) *</label>
-                    <input type="file" name="bank_receipt" accept="image/*,.pdf" required
+                    <input type="file" name="bank_receipt" accept="image/*,.pdf"
                            class="w-full text-sm text-gray-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-blue-600 file:text-white hover:file:bg-blue-700">
                 </div>
             </div>
