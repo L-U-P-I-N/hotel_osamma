@@ -12,6 +12,18 @@ class RoomSeeder extends Seeder
     {
         $hotel = Hotel::first();
 
+        // Clear existing rooms safely (bypass FK checks per driver)
+        $driver = \DB::getDriverName();
+        if ($driver === 'sqlite') {
+            \DB::statement('PRAGMA foreign_keys = OFF');
+            \DB::table('rooms')->where('hotel_id', $hotel->id)->delete();
+            \DB::statement('PRAGMA foreign_keys = ON');
+        } else {
+            \DB::statement('SET FOREIGN_KEY_CHECKS=0');
+            \DB::table('rooms')->where('hotel_id', $hotel->id)->delete();
+            \DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        }
+
         $regular = RoomType::where('hotel_id', $hotel->id)->where('name', 'غرفة عادية')->first();
         $suite   = RoomType::where('hotel_id', $hotel->id)->where('name', 'جناح')->first();
         $apt     = RoomType::where('hotel_id', $hotel->id)->where('name', 'شقة')->first();
