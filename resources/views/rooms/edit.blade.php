@@ -119,12 +119,10 @@
                 <label class="block text-sm font-medium text-gray-700 mb-1.5">الحالة الجديدة</label>
                 <select name="status" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none transition">
                     <option value="available"        {{ $room->status === 'available'        ? 'selected' : '' }}>متاحة</option>
-                    <option value="under_inspection" {{ $room->status === 'under_inspection' ? 'selected' : '' }}>تحت الفحص</option>
-                    <option value="maintenance"      {{ $room->status === 'maintenance'      ? 'selected' : '' }}>صيانة</option>
-                    @can('rooms.manage')
                     <option value="reserved"         {{ $room->status === 'reserved'         ? 'selected' : '' }}>محجوزة</option>
                     <option value="occupied"         {{ $room->status === 'occupied'         ? 'selected' : '' }}>مشغولة</option>
-                    @endcan
+                    <option value="under_inspection" {{ $room->status === 'under_inspection' ? 'selected' : '' }}>تحت الفحص</option>
+                    <option value="maintenance"      {{ $room->status === 'maintenance'      ? 'selected' : '' }}>صيانة</option>
                 </select>
             </div>
             <button type="submit" class="px-5 py-2.5 text-white rounded-lg text-sm font-medium transition" style="background:#0F4C75;">
