@@ -32,14 +32,12 @@ class RoomController extends Controller
 
     public function create()
     {
-        $this->authorize('rooms.manage');
         $roomTypes = RoomType::all();
         return view('rooms.create', compact('roomTypes'));
     }
 
     public function store(Request $request)
     {
-        $this->authorize('rooms.manage');
 
         $validated = $request->validate([
             'room_number'   => 'required|string|max:10|unique:rooms,room_number',
@@ -77,14 +75,12 @@ class RoomController extends Controller
 
     public function edit(Room $room)
     {
-        $this->authorize('rooms.manage');
         $roomTypes = RoomType::all();
         return view('rooms.edit', compact('room', 'roomTypes'));
     }
 
     public function update(Request $request, Room $room)
     {
-        $this->authorize('rooms.manage');
 
         $validated = $request->validate([
             'room_number'   => 'required|string|max:10|unique:rooms,room_number,' . $room->id,
@@ -113,7 +109,6 @@ class RoomController extends Controller
 
     public function destroy(Room $room)
     {
-        $this->authorize('rooms.manage');
 
         if ($room->reservations()->whereIn('status', ['confirmed', 'checked_in'])->exists()) {
             return back()->with('error', 'لا يمكن حذف الغرفة ' . $room->room_number . ' لوجود حجوزات نشطة عليها');
