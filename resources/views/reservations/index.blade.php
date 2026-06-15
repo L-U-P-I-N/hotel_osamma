@@ -94,11 +94,22 @@
                         </span>
                     </td>
                     <td class="px-4 py-3">
-                        <div class="flex items-center gap-2">
-                            <a href="{{ route('reservations.show', $res) }}" class="text-primary-600 hover:text-primary-800 text-xs font-medium">عرض</a>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <a href="{{ route('reservations.show', $res) }}" class="text-xs font-medium" style="color:#0F4C75;">عرض</a>
+                            @can('checkin.view')
+                            @if(in_array($res->status, ['confirmed','checked_in']))
+                            <a href="{{ route('reservations.edit', $res) }}" class="text-xs font-medium text-gray-600 hover:text-gray-800">تعديل</a>
+                            @endif
+                            @if(!in_array($res->status, ['checked_out','cancelled']))
+                            <form method="POST" action="{{ route('reservations.cancel', $res) }}" onsubmit="return confirm('إلغاء الحجز #{{ $res->id }}؟')">
+                                @csrf @method('PATCH')
+                                <button type="submit" class="text-xs font-medium text-red-500 hover:text-red-700">إلغاء</button>
+                            </form>
+                            @endif
+                            @endcan
                             @if($res->status === 'checked_in')
                             @can('checkout.process')
-                            <a href="{{ route('checkout.show', $res) }}" class="text-red-600 hover:text-red-800 text-xs font-medium">خروج</a>
+                            <a href="{{ route('checkout.show', $res) }}" class="text-xs font-medium text-red-600 hover:text-red-800">خروج</a>
                             @endcan
                             @endif
                         </div>

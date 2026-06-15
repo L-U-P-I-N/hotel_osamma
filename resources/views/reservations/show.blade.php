@@ -19,7 +19,18 @@
         <span class="text-gray-500 text-sm">حالة الدفع:</span>
         <span class="px-3 py-1 rounded-full text-sm font-medium {{ $pc[$reservation->payment_status] ?? '' }}">{{ $reservation->payment_status_label }}</span>
     </div>
-    <div class="flex items-center gap-3 mr-auto">
+    <div class="flex items-center gap-2 mr-auto flex-wrap">
+        @can('checkin.view')
+        @if(in_array($reservation->status, ['confirmed','checked_in']))
+        <a href="{{ route('reservations.edit', $reservation) }}" class="px-4 py-2 border text-sm rounded-lg hover:bg-gray-50 transition" style="border-color:#0F4C75;color:#0F4C75;">تعديل</a>
+        @endif
+        @if(!in_array($reservation->status, ['checked_out','cancelled']))
+        <form method="POST" action="{{ route('reservations.cancel', $reservation) }}" onsubmit="return confirm('هل أنت متأكد من إلغاء هذا الحجز؟')">
+            @csrf @method('PATCH')
+            <button type="submit" class="px-4 py-2 border border-red-300 text-red-600 text-sm rounded-lg hover:bg-red-50 transition">إلغاء الحجز</button>
+        </form>
+        @endif
+        @endcan
         @if($reservation->status === 'checked_in')
         @can('checkout.process')
         <a href="{{ route('checkout.show', $reservation) }}" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition">تسجيل الخروج</a>

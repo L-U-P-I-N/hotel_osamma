@@ -33,6 +33,13 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/rooms', [RoomController::class, 'index'])->name('rooms.index');
         Route::get('/rooms/available', [RoomController::class, 'available'])->name('rooms.available');
     });
+    Route::middleware('permission:rooms.manage')->group(function () {
+        Route::get('/rooms/create', [RoomController::class, 'create'])->name('rooms.create');
+        Route::post('/rooms', [RoomController::class, 'store'])->name('rooms.store');
+        Route::get('/rooms/{room}/edit', [RoomController::class, 'edit'])->name('rooms.edit');
+        Route::put('/rooms/{room}', [RoomController::class, 'update'])->name('rooms.update');
+        Route::delete('/rooms/{room}', [RoomController::class, 'destroy'])->name('rooms.destroy');
+    });
     Route::post('/rooms/{room}/status', [RoomController::class, 'updateStatus'])
         ->name('rooms.updateStatus')
         ->middleware('permission:rooms.manage|rooms.maintenance');
@@ -56,6 +63,9 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware('permission:checkin.view')->group(function () {
         Route::get('/reservations', [ReservationController::class, 'index'])->name('reservations.index');
         Route::get('/reservations/{reservation}', [ReservationController::class, 'show'])->name('reservations.show');
+        Route::get('/reservations/{reservation}/edit', [ReservationController::class, 'edit'])->name('reservations.edit');
+        Route::put('/reservations/{reservation}', [ReservationController::class, 'update'])->name('reservations.update');
+        Route::patch('/reservations/{reservation}/cancel', [ReservationController::class, 'cancel'])->name('reservations.cancel');
     });
 
     // Check-out

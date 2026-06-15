@@ -5,6 +5,17 @@
 @section('content')
 <div x-data="roomsPage()" x-init="init()">
 
+<!-- Header -->
+<div class="flex items-center justify-between mb-5">
+    <p class="text-sm text-gray-500">إجمالي الغرف: {{ $rooms->count() }}</p>
+    @can('rooms.manage')
+    <a href="{{ route('rooms.create') }}" class="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm transition" style="background:#0F4C75;">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        إضافة غرفة
+    </a>
+    @endcan
+</div>
+
 <!-- Filter Bar -->
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
     <form method="GET" class="flex flex-wrap gap-3 items-end">
@@ -64,20 +75,50 @@
         ];
         $dotColors = ['available'=>'bg-green-500','reserved'=>'bg-blue-500','occupied'=>'bg-red-500','under_inspection'=>'bg-yellow-500','maintenance'=>'bg-gray-400'];
     @endphp
-    <div @click="openRoom({{ $room->toJson() }}, '{{ $room->roomType->name }}', {{ $room->roomType->base_price }})"
-         class="cursor-pointer border-2 {{ $colors[$room->status] ?? 'border-gray-300 bg-gray-50' }} rounded-xl p-4 transition-all duration-200 select-none">
-        <div class="flex items-center justify-between mb-2">
-            <span class="text-xl font-bold text-gray-800">{{ $room->room_number }}</span>
-            <span class="w-3 h-3 rounded-full {{ $dotColors[$room->status] ?? 'bg-gray-400' }}"></span>
+    <div class="border-2 {{ $colors[$room->status] ?? 'border-gray-300 bg-gray-50' }} rounded-xl transition-all duration-200">
+        <div @click="openRoom({{ $room->toJson() }}, '{{ $room->roomType->name }}', {{ $room->roomType->base_price_per_night ?? $room->roomType->base_price ?? 0 }})"
+             class="cursor-pointer p-4 select-none">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xl font-bold text-gray-800">{{ $room->room_number }}</span>
+                <span class="w-3 h-3 rounded-full {{ $dotColors[$room->status] ?? 'bg-gray-400' }}"></span>
+            </div>
+            <div class="text-xs text-gray-500">{{ $room->roomType->name }}</div>
+            <div class="text-xs text-gray-400 mt-0.5">الطابق {{ $room->floor }}</div>
+            <div class="mt-2 text-xs font-medium text-gray-700">{{ number_format($room->roomType->base_price_per_night ?? $room->roomType->base_price ?? 0, 0) }} ر.ي</div>
         </div>
-        <div class="text-xs text-gray-500">{{ $room->roomType->name }}</div>
-        <div class="text-xs text-gray-400 mt-0.5">الطابق {{ $room->floor }}</div>
-        <div class="mt-2 text-xs font-medium text-gray-700">{{ number_format($room->roomType->base_price, 0) }} ر.ي</div>
+        @can('rooms.manage')
+        <div class="flex border-t border-gray-200 divide-x divide-x-reverse divide-gray-200">
+            <a href="{{ route('rooms.edit', $room) }}" class="flex-1 text-center py-1.5 text-xs font-medium hover:bg-white transition" style="color:#0F4C75;">تعديل</a>
+            <button @click.stop="confirmDelete({{ $room->id }}, '{{ $room->room_number }}')"
+                    class="flex-1 text-center py-1.5 text-xs font-medium text-red-500 hover:bg-white transition">حذف</button>
+        </div>
+        @endcan
     </div>
     @empty
     <div class="col-span-full text-center py-12 text-gray-400">لا توجد غرف مطابقة للتصفية</div>
     @endforelse
 </div>
+
+<!-- Delete Confirm Modal -->
+@can('rooms.manage')
+<div x-show="deleteModal" x-cloak
+     class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+     @click.self="deleteModal=false">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
+        <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        </div>
+        <h3 class="font-bold text-gray-800 mb-2">تأكيد الحذف</h3>
+        <p class="text-sm text-gray-600 mb-5">هل أنت متأكد من حذف الغرفة <strong x-text="deleteRoomNumber"></strong>؟<br><span class="text-xs text-red-500">لا يمكن التراجع عن هذا الإجراء</span></p>
+        <form :action="`/rooms/${deleteRoomId}`" method="POST" class="flex gap-3 justify-center">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="px-5 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition font-medium">نعم، احذف</button>
+            <button type="button" @click="deleteModal=false" class="px-5 py-2 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition">إلغاء</button>
+        </form>
+    </div>
+</div>
+@endcan
 
 <!-- Room Detail Modal -->
 <div x-show="modalOpen" x-cloak
@@ -148,6 +189,9 @@
 function roomsPage() {
     return {
         modalOpen: false,
+        deleteModal: false,
+        deleteRoomId: null,
+        deleteRoomNumber: '',
         selectedRoom: {},
         selectedRoomType: '',
         selectedRoomPrice: 0,
@@ -161,6 +205,11 @@ function roomsPage() {
             this.selectedRoomType = type;
             this.selectedRoomPrice = price;
             this.modalOpen = true;
+        },
+        confirmDelete(id, number) {
+            this.deleteRoomId = id;
+            this.deleteRoomNumber = number;
+            this.deleteModal = true;
         }
     }
 }

@@ -1,6 +1,6 @@
 @extends('layouts.app')
-@section('title', 'تسجيل دخول جديد')
-@section('page-title', 'تسجيل دخول جديد')
+@section('title', 'إضافة حجز جديد')
+@section('page-title', 'إضافة حجز جديد')
 
 @section('content')
 <div x-data="checkInWizard()" x-init="init()">
@@ -493,7 +493,7 @@
         <button type="submit" x-show="currentStep === 5" :disabled="blacklistAlert"
                 class="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition disabled:opacity-50">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            تأكيد وتسجيل الدخول
+            تأكيد وحفظ الحجز
         </button>
     </div>
 </div>
