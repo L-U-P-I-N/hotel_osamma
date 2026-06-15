@@ -17,6 +17,7 @@ class PermissionService
     const RECEPTIONIST_DEFAULTS = [
         'dashboard.view',
         'rooms.view',
+        'rooms.maintenance',
         'checkin.create',
         'checkin.view',
         'checkout.process',
@@ -42,6 +43,7 @@ class PermissionService
         'blacklist.manage'      => ['label' => 'إدارة القائمة السوداء',       'default' => false],
         'government.export'     => ['label' => 'التصدير للجهات الحكومية',    'default' => false],
         'report.monthly'        => ['label' => 'التقرير الشهري',              'default' => false],
+        'rooms.maintenance'     => ['label' => 'تغيير حالة الغرفة (صيانة/فحص/متاحة)', 'default' => true],
     ];
 
     public static function userCan(User $user, string $permission): bool
