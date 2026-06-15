@@ -12,7 +12,6 @@ class RoomSeeder extends Seeder
     {
         $hotel = Hotel::first();
 
-        // Clear existing rooms safely (bypass FK checks per driver)
         $driver = \DB::getDriverName();
         if ($driver === 'sqlite') {
             \DB::statement('PRAGMA foreign_keys = OFF');
@@ -26,11 +25,10 @@ class RoomSeeder extends Seeder
 
         $regular = RoomType::where('hotel_id', $hotel->id)->where('name', 'غرفة عادية')->first();
         $suite   = RoomType::where('hotel_id', $hotel->id)->where('name', 'جناح')->first();
-        $apt     = RoomType::where('hotel_id', $hotel->id)->where('name', 'شقة')->first();
         $hall    = RoomType::where('hotel_id', $hotel->id)->where('name', 'صالة')->first();
 
         // Floor 1: hall only
-        $hallRoom = Room::create([
+        Room::create([
             'hotel_id'      => $hotel->id,
             'room_type_id'  => $hall->id,
             'room_number'   => '101',
@@ -39,12 +37,15 @@ class RoomSeeder extends Seeder
             'status'        => 'available',
         ]);
 
-        // Floors 2-6: suite A/B pair + 2 regular + apartment pair + 2 regular
+        // Floors 2-6: 8 doors each
+        // Door 1  → Suite A/B pair  (X01A + X01B)
+        // Doors 2-7 → 6 regular rooms (X02 … X07)
+        // Door 8  → Suite A/B pair  (X08A + X08B)
         for ($floor = 2; $floor <= 6; $floor++) {
             $f = (string)$floor;
 
-            // Suite A (e.g. 201A) — linked to suite B
-            $suiteA = Room::create([
+            // Door 1 — Suite A
+            $suiteA1 = Room::create([
                 'hotel_id'      => $hotel->id,
                 'room_type_id'  => $suite->id,
                 'room_number'   => $f . '01A',
@@ -52,72 +53,49 @@ class RoomSeeder extends Seeder
                 'room_sub_type' => 'suite_a',
                 'status'        => 'available',
             ]);
+            // Door 1 — Suite B
+            $suiteB1 = Room::create([
+                'hotel_id'       => $hotel->id,
+                'room_type_id'   => $suite->id,
+                'room_number'    => $f . '01B',
+                'floor'          => $floor,
+                'room_sub_type'  => 'suite_b',
+                'linked_room_id' => $suiteA1->id,
+                'status'         => 'available',
+            ]);
+            $suiteA1->update(['linked_room_id' => $suiteB1->id]);
 
-            // Suite B (e.g. 201B) — linked to suite A
-            $suiteB = Room::create([
+            // Doors 2-7 — regular rooms
+            for ($door = 2; $door <= 7; $door++) {
+                Room::create([
+                    'hotel_id'     => $hotel->id,
+                    'room_type_id' => $regular->id,
+                    'room_number'  => $f . str_pad($door, 2, '0', STR_PAD_LEFT),
+                    'floor'        => $floor,
+                    'status'       => 'available',
+                ]);
+            }
+
+            // Door 8 — Suite A
+            $suiteA8 = Room::create([
                 'hotel_id'      => $hotel->id,
                 'room_type_id'  => $suite->id,
-                'room_number'   => $f . '01B',
+                'room_number'   => $f . '08A',
                 'floor'         => $floor,
-                'room_sub_type' => 'suite_b',
-                'linked_room_id'=> $suiteA->id,
+                'room_sub_type' => 'suite_a',
                 'status'        => 'available',
             ]);
-            $suiteA->update(['linked_room_id' => $suiteB->id]);
-
-            // Regular rooms 202 and 203
-            Room::create([
-                'hotel_id'     => $hotel->id,
-                'room_type_id' => $regular->id,
-                'room_number'  => $f . '02',
-                'floor'        => $floor,
-                'status'       => 'available',
+            // Door 8 — Suite B
+            $suiteB8 = Room::create([
+                'hotel_id'       => $hotel->id,
+                'room_type_id'   => $suite->id,
+                'room_number'    => $f . '08B',
+                'floor'          => $floor,
+                'room_sub_type'  => 'suite_b',
+                'linked_room_id' => $suiteA8->id,
+                'status'         => 'available',
             ]);
-            Room::create([
-                'hotel_id'     => $hotel->id,
-                'room_type_id' => $regular->id,
-                'room_number'  => $f . '03',
-                'floor'        => $floor,
-                'status'       => 'available',
-            ]);
-
-            // Apartment pair 204 + 205 (always linked)
-            $apt1 = Room::create([
-                'hotel_id'        => $hotel->id,
-                'room_type_id'    => $apt->id,
-                'room_number'     => $f . '04',
-                'floor'           => $floor,
-                'room_sub_type'   => 'apartment',
-                'is_always_linked'=> true,
-                'status'          => 'available',
-            ]);
-            $apt2 = Room::create([
-                'hotel_id'        => $hotel->id,
-                'room_type_id'    => $apt->id,
-                'room_number'     => $f . '05',
-                'floor'           => $floor,
-                'room_sub_type'   => 'apartment',
-                'is_always_linked'=> true,
-                'linked_room_id'  => $apt1->id,
-                'status'          => 'available',
-            ]);
-            $apt1->update(['linked_room_id' => $apt2->id]);
-
-            // Regular rooms 206 and 207
-            Room::create([
-                'hotel_id'     => $hotel->id,
-                'room_type_id' => $regular->id,
-                'room_number'  => $f . '06',
-                'floor'        => $floor,
-                'status'       => 'available',
-            ]);
-            Room::create([
-                'hotel_id'     => $hotel->id,
-                'room_type_id' => $regular->id,
-                'room_number'  => $f . '07',
-                'floor'        => $floor,
-                'status'       => 'available',
-            ]);
+            $suiteA8->update(['linked_room_id' => $suiteB8->id]);
         }
     }
 }
