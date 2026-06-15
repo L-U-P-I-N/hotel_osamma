@@ -57,12 +57,16 @@ class PermissionService
         }
 
         // Check explicit record
-        $record = UserPermission::where('user_id', $user->id)
-            ->where('permission_key', $permission)
-            ->first();
+        try {
+            $record = UserPermission::where('user_id', $user->id)
+                ->where('permission_key', $permission)
+                ->first();
 
-        if ($record !== null) {
-            return $record->is_granted;
+            if ($record !== null) {
+                return $record->is_granted;
+            }
+        } catch (\Throwable $e) {
+            // جدول user_permissions غير موجود أو خطأ في DB — نرجع للقيمة الافتراضية
         }
 
         // settlement.view is alias for shifts.view

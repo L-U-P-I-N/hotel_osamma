@@ -54,12 +54,4 @@ class User extends Authenticatable
         $key = is_string($permission) ? $permission : $permission->name;
         return PermissionService::userCan($this, $key);
     }
-
-    public function can($abilities, $arguments = []): bool
-    {
-        if (is_string($abilities)) {
-            return PermissionService::userCan($this, $abilities);
-        }
-        return parent::can($abilities, $arguments);
-    }
 }
