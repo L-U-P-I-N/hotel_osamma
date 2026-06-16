@@ -98,14 +98,13 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/settlement', [SettlementController::class, 'index'])->name('settlement.index');
     });
 
-    // Shifts (New system)
+    // Shifts
     Route::middleware('permission:shifts.view')->group(function () {
         Route::get('/shifts', [ShiftController::class, 'index'])->name('shifts.index');
+        Route::post('/shifts/close', [ShiftController::class, 'close'])->name('shifts.close');
+        Route::get('/shifts/{shift}/pdf', [ShiftController::class, 'exportPdf'])->name('shifts.pdf');
     });
-    Route::post('/shifts/open', [ShiftController::class, 'open'])->name('shifts.open')->middleware('permission:shifts.view');
     Route::post('/shifts/withdrawal', [ShiftController::class, 'addWithdrawal'])->name('shifts.withdrawal')->middleware('permission:withdrawal.create');
-    Route::post('/shifts/close', [ShiftController::class, 'close'])->name('shifts.close')->middleware('permission:shifts.view');
-    Route::get('/shifts/{shift}/pdf', [ShiftController::class, 'exportPdf'])->name('shifts.pdf')->middleware('permission:shifts.view');
 
     // Reports
     Route::middleware('permission:reports.view')->group(function () {

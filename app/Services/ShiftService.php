@@ -9,32 +9,23 @@ use Illuminate\Database\Eloquent\Collection;
 
 class ShiftService
 {
-    public function openShift(User $user, string $type): Shift
+    public function openShift(User $user): Shift
     {
-        // أغلق أي وردية مفتوحة سابقاً تلقائياً
+        // إذا كان لديه وردية مفتوحة بالفعل، أعدها (لا تفتح جديدة)
         $existing = $this->getActiveShift($user);
         if ($existing) {
-            $this->closeShift($existing, 'أُغلقت تلقائياً عند فتح وردية جديدة');
+            return $existing;
         }
 
         $shift = Shift::create([
             'user_id'    => $user->id,
             'shift_date' => today(),
-            'shift_type' => $type,
             'started_at' => now(),
             'is_closed'  => false,
         ]);
 
         AuditLogService::log('create', $shift, null, $shift->toArray(), $user);
         return $shift;
-    }
-
-    public static function guessShiftType(): string
-    {
-        $hour = (int) now()->format('H');
-        if ($hour >= 6 && $hour < 14)  return 'morning';
-        if ($hour >= 14 && $hour < 22) return 'evening';
-        return 'night';
     }
 
     public function getActiveShift(User $user): ?Shift
@@ -118,12 +109,12 @@ class ShiftService
         }
 
         $shift->update([
-            'total_received_yer'     => $recv['YER'],
-            'total_received_sar'     => $recv['SAR'],
-            'total_received_usd'     => $recv['USD'],
-            'total_withdrawals_yer'  => $wdr['YER'],
-            'total_withdrawals_sar'  => $wdr['SAR'],
-            'total_withdrawals_usd'  => $wdr['USD'],
+            'total_received_yer'    => $recv['YER'],
+            'total_received_sar'    => $recv['SAR'],
+            'total_received_usd'    => $recv['USD'],
+            'total_withdrawals_yer' => $wdr['YER'],
+            'total_withdrawals_sar' => $wdr['SAR'],
+            'total_withdrawals_usd' => $wdr['USD'],
         ]);
     }
 

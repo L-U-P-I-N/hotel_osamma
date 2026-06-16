@@ -2,7 +2,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Shift;
-use App\Models\User;
 use App\Services\ShiftService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -22,44 +21,8 @@ class ShiftController extends Controller
         }
 
         $allActive = $user->isAdmin() ? $this->service->getAllActiveShifts() : collect();
-        $suggestedShiftType = ShiftService::guessShiftType();
 
-        // Admin: list of employees to assign shifts to
-        $employees = $user->isAdmin()
-            ? User::where('is_active', true)->orderBy('name')->get()
-            : collect();
-
-        return view('shifts.index', compact(
-            'activeShift', 'recentShifts', 'allActive', 'suggestedShiftType', 'employees'
-        ));
-    }
-
-    public function open(Request $request)
-    {
-        // Only admin can open shifts
-        if (!auth()->user()->isAdmin()) {
-            return back()->withErrors(['error' => 'فتح الوردية من صلاحيات الإدارة فقط']);
-        }
-
-        $request->validate([
-            'user_id'    => 'required|exists:users,id',
-            'shift_type' => 'required|in:morning,evening,night',
-        ], [
-            'user_id.required'    => 'يجب تحديد الموظف',
-            'user_id.exists'      => 'الموظف غير موجود',
-            'shift_type.required' => 'نوع الوردية مطلوب',
-            'shift_type.in'       => 'نوع الوردية غير صالح',
-        ]);
-
-        $targetUser = User::findOrFail($request->user_id);
-
-        try {
-            $shift = $this->service->openShift($targetUser, $request->shift_type);
-            return redirect()->route('shifts.index')
-                ->with('success', 'تم فتح وردية ' . $shift->type_label . ' للموظف ' . $targetUser->name);
-        } catch (\Exception $e) {
-            return back()->withErrors(['error' => $e->getMessage()]);
-        }
+        return view('shifts.index', compact('activeShift', 'recentShifts', 'allActive'));
     }
 
     public function addWithdrawal(Request $request)
@@ -70,7 +33,6 @@ class ShiftController extends Controller
             'amount'               => 'required|numeric|min:0.01',
             'currency'             => 'required|in:YER,SAR,USD',
             'withdrawn_by_name'    => 'required|string|max:100',
-            'handed_by_name'       => 'nullable|string|max:100',
             'notes'                => 'nullable|string|max:500',
             'withdrawal_type'      => 'nullable|in:expense,currency_exchange',
             'exchange_to_currency' => 'required_if:withdrawal_type,currency_exchange|nullable|in:YER,SAR,USD|different:currency',
@@ -93,8 +55,7 @@ class ShiftController extends Controller
 
         try {
             $this->service->addWithdrawal($shift, $request->all());
-            $msg = $isExchange ? 'تم تسجيل عملية صرف العملة بنجاح' : 'تم تسجيل السحب بنجاح';
-            return back()->with('success', $msg);
+            return back()->with('success', $isExchange ? 'تم تسجيل عملية صرف العملة بنجاح' : 'تم تسجيل السحب بنجاح');
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()]);
         }
@@ -103,9 +64,7 @@ class ShiftController extends Controller
     public function close(Request $request)
     {
         $request->validate([
-            'notes'              => 'nullable|string|max:1000',
-            'employee_signature' => 'nullable|string',
-            'admin_signature'    => 'nullable|string',
+            'notes' => 'nullable|string|max:1000',
         ]);
 
         $shift = $this->service->getActiveShift(auth()->user());
@@ -114,12 +73,7 @@ class ShiftController extends Controller
         }
 
         try {
-            $this->service->closeShift(
-                $shift,
-                $request->notes ?? '',
-                $request->employee_signature ?? '',
-                $request->admin_signature ?? '',
-            );
+            $this->service->closeShift($shift, $request->notes ?? '');
             return redirect()->route('shifts.index')->with('success', 'تم إقفال الوردية بنجاح');
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()]);

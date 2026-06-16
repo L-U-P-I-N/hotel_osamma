@@ -124,7 +124,6 @@
 <body>
 
 @php
-    $typeLabels = ['morning' => 'صباحية', 'evening' => 'مسائية', 'night' => 'ليلية'];
     $curLabels  = ['YER' => 'ر.ي', 'SAR' => 'ر.س', 'USD' => '$'];
     $payLabels  = ['unpaid' => 'غير مدفوع', 'partial' => 'جزئي', 'paid' => 'مدفوع', 'deferred' => 'مؤجل'];
 
@@ -152,8 +151,6 @@
 <div class="header">
     <h1>{{ ar_pdf('تقرير الوردية') }}</h1>
     <div class="sub">
-        {{ ar_pdf('وردية') }} {{ ar_pdf($typeLabels[$shift->shift_type] ?? $shift->shift_type) }}
-        &nbsp;|&nbsp;
         {{ $shift->shift_date->format('d/m/Y') }}
         &nbsp;|&nbsp;
         {{ ar_pdf('الموظف:') }} {{ ar_pdf($shift->user?->name) }}
