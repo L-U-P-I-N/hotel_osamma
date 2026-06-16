@@ -156,6 +156,6 @@ class RoomController extends Controller
         if ($request->expectsJson()) {
             return response()->json(['success' => true, 'room' => $room->fresh()]);
         }
-        return back()->with('success', 'تم تحديث حالة الغرفة بنجاح');
+        return redirect()->route('rooms.index')->with('success', 'تم تحديث حالة الغرفة بنجاح');
     }
 }
