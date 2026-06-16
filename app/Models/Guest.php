@@ -13,25 +13,17 @@ class Guest extends Model
     protected $fillable = [
         'full_name', 'nationality', 'occupation', 'id_type', 'id_number',
         'id_issuer', 'id_issue_date', 'phone', 'id_image_path',
-        'is_blacklisted', 'blacklist_reason', 'blacklisted_at',
     ];
 
     protected $casts = [
-        'id_number' => 'encrypted',
-        'phone' => 'encrypted',
-        'is_blacklisted' => 'boolean',
+        'id_number'     => 'encrypted',
+        'phone'         => 'encrypted',
         'id_issue_date' => 'date',
-        'blacklisted_at' => 'datetime',
     ];
 
     public function reservations()
     {
         return $this->hasMany(Reservation::class);
-    }
-
-    public function scopeBlacklisted(Builder $query): Builder
-    {
-        return $query->where('is_blacklisted', true);
     }
 
     public function scopeSearchByIdNumber(Builder $query, string $number): Builder

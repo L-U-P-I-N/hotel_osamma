@@ -40,7 +40,6 @@ class PermissionService
         'guest.edit'            => ['label' => 'تعديل بيانات النزيل',         'default' => false],
         'room.price.edit'       => ['label' => 'تعديل سعر الغرفة',           'default' => false],
         'payments.bank_receipt' => ['label' => 'عرض سندات التحويل',           'default' => false],
-        'blacklist.manage'      => ['label' => 'إدارة القائمة السوداء',       'default' => false],
         'government.export'     => ['label' => 'التصدير للجهات الحكومية',    'default' => false],
         'report.monthly'        => ['label' => 'التقرير الشهري',              'default' => false],
         'rooms.maintenance'     => ['label' => 'تغيير حالة الغرفة (صيانة/فحص/متاحة)', 'default' => true],

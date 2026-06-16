@@ -11,7 +11,6 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\SettlementController;
 use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\ReportController;
-use App\Http\Controllers\BlacklistController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\DailyReportController;
 use App\Http\Controllers\CurrencyController;
@@ -60,11 +59,6 @@ Route::middleware(['auth'])->group(function () {
     // Guest name autocomplete (AJAX)
     Route::get('/guests/search', [CheckInController::class, 'guestSearch'])
         ->name('guests.search')
-        ->middleware('permission:checkin.create|guests.view');
-
-    // Blacklist check (AJAX)
-    Route::get('/guests/blacklist-check', [CheckInController::class, 'blacklistCheck'])
-        ->name('guests.blacklistCheck')
         ->middleware('permission:checkin.create|guests.view');
 
     // Guest lookup for auto-fill (AJAX)
@@ -126,13 +120,6 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware('permission:users.manage')->group(function () {
         Route::get('/currencies', [CurrencyController::class, 'index'])->name('currencies.index');
         Route::put('/currencies/{currency}', [CurrencyController::class, 'update'])->name('currencies.update');
-    });
-
-    // Blacklist
-    Route::middleware('permission:blacklist.manage')->group(function () {
-        Route::get('/blacklist', [BlacklistController::class, 'index'])->name('blacklist.index');
-        Route::post('/blacklist', [BlacklistController::class, 'store'])->name('blacklist.store');
-        Route::delete('/blacklist/{guest}', [BlacklistController::class, 'remove'])->name('blacklist.remove');
     });
 
     // Users

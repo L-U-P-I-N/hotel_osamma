@@ -1,7 +1,6 @@
 <?php
 namespace App\Services;
 
-use App\Exceptions\BlacklistedException;
 use App\Models\Companion;
 use App\Models\Guest;
 use App\Models\Payment;
@@ -16,15 +15,7 @@ class CheckInService
     {
         return DB::transaction(function () use ($data, $user) {
 
-            // 1. فحص القائمة السوداء
-            if (!empty($data['id_number'])) {
-                $existing = Guest::searchByIdNumber($data['id_number'])->first();
-                if ($existing && $existing->is_blacklisted) {
-                    throw new BlacklistedException('هذا النزيل موجود في القائمة السوداء: ' . $existing->blacklist_reason);
-                }
-            }
-
-            // 2. التحقق من الغرفة الرئيسية
+            // 1. التحقق من الغرفة الرئيسية
             $room = Room::findOrFail($data['room_id']);
             if ($room->status !== 'available') {
                 throw new \RuntimeException('الغرفة رقم ' . $room->room_number . ' غير متاحة للحجز');

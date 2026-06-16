@@ -160,7 +160,7 @@ class CheckInController extends Controller
             ->orderBy('full_name')
             ->limit(8)
             ->get(['id', 'full_name', 'nationality', 'occupation', 'id_type', 'id_number',
-                   'id_issuer', 'id_issue_date', 'phone', 'is_blacklisted']);
+                   'id_issuer', 'id_issue_date', 'phone']);
 
         return response()->json($guests->map(fn($g) => [
             'id'            => $g->id,
@@ -172,22 +172,7 @@ class CheckInController extends Controller
             'id_issuer'     => $g->id_issuer ?? '',
             'id_issue_date' => $g->id_issue_date?->format('Y-m-d') ?? '',
             'phone'         => $g->phone ?? '',
-            'is_blacklisted'=> $g->is_blacklisted,
         ]));
-    }
-
-    public function blacklistCheck(Request $request)
-    {
-        $idNumber = $request->input('id_number');
-        if (empty($idNumber)) {
-            return response()->json(['blacklisted' => false]);
-        }
-
-        $guest = Guest::searchByIdNumber($idNumber)->first();
-        return response()->json([
-            'blacklisted' => $guest?->is_blacklisted ?? false,
-            'reason' => $guest?->blacklist_reason,
-        ]);
     }
 
     public function guestLookup(Request $request)
@@ -200,15 +185,13 @@ class CheckInController extends Controller
         $guest = Guest::searchByIdNumber($idNumber)->withCount('reservations')->first();
 
         if (!$guest) {
-            return response()->json(['found' => false, 'blacklisted' => false]);
+            return response()->json(['found' => false]);
         }
 
         $lastReservation = $guest->reservations()->latest('check_in_date')->first();
 
         return response()->json([
             'found'              => true,
-            'blacklisted'        => $guest->is_blacklisted,
-            'reason'             => $guest->blacklist_reason,
             'full_name'          => $guest->full_name,
             'nationality'        => $guest->nationality,
             'occupation'         => $guest->occupation ?? '',

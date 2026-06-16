@@ -22,7 +22,6 @@ class RolesSeeder extends Seeder
             'guests.view',
             'guests.sensitive',
             'companions.manage',
-            'blacklist.manage',
             'payments.create',
             'payments.view',
             'payments.bank_receipt',

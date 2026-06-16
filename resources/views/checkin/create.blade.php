@@ -48,17 +48,8 @@
 <div x-show="currentStep === 1" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
     <h2 class="text-lg font-semibold text-gray-800 mb-5 pb-3 border-b border-gray-100">بيانات النزيل</h2>
 
-    <!-- Blacklist Alert -->
-    <div x-show="blacklistAlert" x-cloak class="mb-4 p-4 bg-red-50 border border-red-300 rounded-lg flex items-start gap-3">
-        <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-        <div>
-            <p class="font-semibold text-red-800 text-sm">تحذير: هذا النزيل في القائمة السوداء</p>
-            <p class="text-red-700 text-xs mt-0.5" x-text="blacklistReason"></p>
-        </div>
-    </div>
-
     <!-- Returning Guest Alert -->
-    <div x-show="returningGuest && !blacklistAlert" x-cloak class="mb-4 p-4 bg-green-50 border border-green-300 rounded-lg flex items-start gap-3">
+    <div x-show="returningGuest" x-cloak class="mb-4 p-4 bg-green-50 border border-green-300 rounded-lg flex items-start gap-3">
         <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
         <div>
             <p class="font-semibold text-green-800 text-sm">نزيل سابق — تم تعبئة البيانات تلقائياً</p>
@@ -95,9 +86,6 @@
                                     <span x-show="guest.nationality"> · <span x-text="guest.nationality"></span></span>
                                 </p>
                             </div>
-                            <template x-if="guest.is_blacklisted">
-                                <span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">قائمة سوداء</span>
-                            </template>
                         </div>
                     </button>
                 </template>
@@ -148,7 +136,6 @@
             <input type="text" name="id_number" x-model="guestData.id_number" required
                    @input.debounce.600ms="checkBlacklist()"
                    class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none"
-                   :class="blacklistAlert ? 'border-red-500 focus:ring-red-500' : ''">
         </div>
 
         <div>
@@ -734,7 +721,7 @@
         </button>
 
         <button type="submit" x-show="currentStep === 5"
-                :disabled="blacklistAlert || submitting"
+                :disabled="submitting"
                 class="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed">
             <template x-if="!submitting">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -781,8 +768,6 @@ function checkInWizard() {
         paidAmount: 0,
         idImagePreview: null,
         idImageName: '',
-        blacklistAlert: false,
-        blacklistReason: '',
         returningGuest: false,
         returningGuestVisits: 0,
         returningGuestLastVisit: '',
@@ -859,7 +844,6 @@ function checkInWizard() {
         },
 
         handleSubmit(event) {
-            if (this.blacklistAlert) { event.preventDefault(); return; }
             this.submitting = true;
             // Keep session alive — will be cleared server-side on success
         },
@@ -878,10 +862,7 @@ function checkInWizard() {
                     headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 });
                 const data = await res.json();
-                this.blacklistAlert  = data.blacklisted ?? false;
-                this.blacklistReason = data.reason || '';
-
-                if (data.found && !data.blacklisted) {
+                if (data.found) {
                     // Auto-fill guest data, but keep origin/purpose/notes (booking-specific)
                     const origin  = this.guestData.origin;
                     const purpose = this.guestData.purpose;
@@ -989,7 +970,6 @@ function checkInWizard() {
                 if (!this.guestData.id_number)   return 'رقم الهوية مطلوب';
                 if (!this.guestData.phone)        return 'رقم الجوال مطلوب';
                 if (!this.idImagePreview && !this.idImageName) return 'صورة الهوية مطلوبة';
-                if (this.blacklistAlert)          return 'هذا النزيل موجود في القائمة السوداء — لا يمكن إتمام الحجز';
                 return '';
             }
             if (this.currentStep === 3) {
@@ -1098,10 +1078,6 @@ function guestAutocomplete() {
             this.guestData.id_issue_date= guest.id_issue_date;
             this.guestData.phone        = guest.phone;
             this.returningGuest = true;
-            if (guest.is_blacklisted) {
-                this.blacklistAlert = true;
-                this.blacklistReason = 'هذا النزيل في القائمة السوداء';
-            }
             this.close();
             this.saveToSession();
         },
