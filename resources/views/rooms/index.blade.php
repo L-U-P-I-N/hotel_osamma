@@ -84,7 +84,13 @@
             </div>
             <div class="text-xs text-gray-500">{{ $room->roomType->name }}</div>
             <div class="text-xs text-gray-400 mt-0.5">الطابق {{ $room->floor }}</div>
-            <div class="mt-2 text-xs font-medium text-gray-700">{{ number_format($room->roomType->base_price ?? 0, 0) }} ر.ي</div>
+            @if($room->room_sub_type && $room->room_sub_type !== 'regular')
+            @php $subBadge = ['double'=>['label'=>'زوجية','cls'=>'bg-pink-100 text-pink-700'],'suite_a'=>['label'=>'جناح A','cls'=>'bg-blue-100 text-blue-700'],'suite_b'=>['label'=>'جناح B','cls'=>'bg-purple-100 text-purple-700'],'hall'=>['label'=>'صالة','cls'=>'bg-gray-100 text-gray-600'],'apartment'=>['label'=>'شقة','cls'=>'bg-amber-100 text-amber-700']][$room->room_sub_type] ?? null; @endphp
+            @if($subBadge)
+            <span class="inline-block mt-1 px-1.5 py-0.5 rounded text-xs font-medium {{ $subBadge['cls'] }}">{{ $subBadge['label'] }}</span>
+            @endif
+            @endif
+            <div class="mt-1 text-xs font-medium text-gray-700">{{ number_format($room->roomType->base_price ?? 0, 0) }} ر.ي</div>
         </div>
         @can('rooms.manage')
         <div class="flex border-t border-gray-200 divide-x divide-x-reverse divide-gray-200">
@@ -146,6 +152,10 @@
                     <div class="font-semibold" x-text="selectedRoomType"></div>
                 </div>
                 <div class="bg-gray-50 rounded-lg p-3">
+                    <div class="text-gray-500 text-xs mb-1">التصنيف</div>
+                    <div class="font-semibold" x-text="subTypeLabels[selectedRoom.room_sub_type] || 'عادية'"></div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-3">
                     <div class="text-gray-500 text-xs mb-1">السعر/ليلة</div>
                     <div class="font-semibold" x-text="selectedRoomPrice.toLocaleString() + ' ر.ي'"></div>
                 </div>
@@ -199,6 +209,10 @@ function roomsPage() {
         statusLabels: {
             available: 'متاحة', reserved: 'محجوزة', occupied: 'مشغولة',
             under_inspection: 'تحت الفحص', maintenance: 'صيانة'
+        },
+        subTypeLabels: {
+            regular: 'عادية', double: 'زوجية', suite_a: 'جناح A',
+            suite_b: 'جناح B', hall: 'صالة', apartment: 'شقة'
         },
         init() {},
         openRoom(room, type, price) {

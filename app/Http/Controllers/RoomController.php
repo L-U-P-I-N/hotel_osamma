@@ -106,7 +106,13 @@ class RoomController extends Controller
         ]);
 
         $old = $room->toArray();
-        $room->update($validated);
+        $room->update([
+            'room_number'   => $validated['room_number'],
+            'floor'         => $validated['floor'],
+            'room_type_id'  => $validated['room_type_id'],
+            'room_sub_type' => $validated['room_sub_type'] ?? $room->room_sub_type,
+            'notes'         => $validated['notes'] ?? null,
+        ]);
         AuditLogService::log('update', $room, $old, $room->fresh()->toArray(), auth()->user());
 
         return redirect()->route('rooms.index')->with('success', 'تم تحديث بيانات الغرفة بنجاح');
