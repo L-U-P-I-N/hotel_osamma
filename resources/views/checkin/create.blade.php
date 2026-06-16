@@ -612,6 +612,24 @@
 <div x-show="currentStep === 5" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
     <h2 class="text-lg font-semibold text-gray-800 mb-5 pb-3 border-b border-gray-100">مراجعة وتأكيد البيانات</h2>
 
+    @if($errors->any())
+    <div class="bg-red-50 border border-red-200 rounded-xl p-4 mb-5">
+        <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+            </svg>
+            <div>
+                <p class="font-semibold text-red-800 text-sm mb-1">يوجد أخطاء في البيانات، يرجى مراجعتها:</p>
+                <ul class="text-red-700 text-sm space-y-0.5 list-disc list-inside">
+                    @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div class="bg-gray-50 rounded-xl p-4">
             <h3 class="font-semibold text-gray-700 text-sm mb-3">بيانات النزيل</h3>
@@ -653,8 +671,17 @@
     </div>
 </div>
 
+<!-- Step Error Message -->
+<div x-show="stepError" x-transition
+     class="flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 mt-4 text-sm">
+    <svg class="w-5 h-5 flex-shrink-0 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+    </svg>
+    <span x-text="stepError"></span>
+</div>
+
 <!-- Navigation Buttons -->
-<div class="flex items-center justify-between mt-5">
+<div class="flex items-center justify-between mt-4">
     <button type="button" @click="prevStep()" x-show="currentStep > 1"
             class="flex items-center gap-2 px-5 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
@@ -664,8 +691,7 @@
 
     <div class="flex gap-3">
         <button type="button" @click="nextStep()" x-show="currentStep < 5"
-                :disabled="!canProceed()"
-                class="flex items-center gap-2 px-6 py-2.5 bg-primary-800 text-white rounded-lg text-sm hover:bg-primary-700 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                class="flex items-center gap-2 px-6 py-2.5 bg-primary-800 text-white rounded-lg text-sm hover:bg-primary-700 transition">
             التالي
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
         </button>
@@ -726,6 +752,7 @@ function checkInWizard() {
         typeFilter: 'all',
         idTypeLabel: { national_id:'هوية وطنية', passport:'جواز سفر', residence:'إقامة' },
         submitting: false,
+        stepError: '',
 
         init() {
             const today = new Date().toISOString().split('T')[0];
@@ -740,6 +767,13 @@ function checkInWizard() {
             if (HAS_BACKEND_ERRORS && this.roomId) {
                 this.currentStep = 5;
             }
+
+            // Auto-clear step error when user fills in data
+            this.$watch('guestData', () => { if (this.stepError) this.stepError = ''; }, { deep: true });
+            this.$watch('roomId',     () => { if (this.stepError) this.stepError = ''; });
+            this.$watch('checkInDate',  () => { if (this.stepError) this.stepError = ''; });
+            this.$watch('checkOutDate', () => { if (this.stepError) this.stepError = ''; });
+            this.$watch('idImagePreview', () => { if (this.stepError) this.stepError = ''; });
         },
 
         saveToSession() {
@@ -910,28 +944,50 @@ function checkInWizard() {
             return 0;
         },
 
-        canProceed() {
-            if (this.currentStep === 1) return this.guestData.full_name && this.guestData.occupation && this.guestData.id_number && this.guestData.phone && this.idImagePreview && !this.blacklistAlert;
-            if (this.currentStep === 3) return !!this.roomId;
-            if (this.currentStep === 4) {
-                if (!this.checkInDate || !this.checkOutDate || this.nights <= 0) return false;
-                if (BOOKING_MODE === 'reserve') {
-                    if (this.paymentStatus === 'unpaid') return false;
-                    if (this.paymentStatus === 'partial' && this.effectivePaid < 1000) return false;
-                }
-                return true;
+        getStepError() {
+            if (this.currentStep === 1) {
+                if (!this.guestData.full_name)   return 'الاسم الرباعي مطلوب';
+                if (!this.guestData.occupation)  return 'المهنة مطلوبة';
+                if (!this.guestData.id_number)   return 'رقم الهوية مطلوب';
+                if (!this.guestData.phone)        return 'رقم الجوال مطلوب';
+                if (!this.idImagePreview && !this.idImageName) return 'صورة الهوية مطلوبة';
+                if (this.blacklistAlert)          return 'هذا النزيل موجود في القائمة السوداء — لا يمكن إتمام الحجز';
+                return '';
             }
-            return true;
+            if (this.currentStep === 3) {
+                if (!this.roomId) return 'يرجى اختيار غرفة';
+                return '';
+            }
+            if (this.currentStep === 4) {
+                if (!this.checkInDate)              return 'تاريخ الدخول مطلوب';
+                if (!this.checkOutDate)             return 'تاريخ الخروج مطلوب';
+                if (this.nights <= 0)               return 'تاريخ الخروج يجب أن يكون بعد تاريخ الدخول';
+                if (BOOKING_MODE === 'reserve' && this.paymentStatus === 'unpaid') return 'الحجز المسبق يتطلب دفع عربون';
+                if (BOOKING_MODE === 'reserve' && this.paymentStatus === 'partial' && this.effectivePaid < 1000) return 'العربون يجب أن لا يقل عن 1,000 ريال يمني';
+                return '';
+            }
+            return '';
+        },
+
+        canProceed() {
+            return this.getStepError() === '';
         },
 
         nextStep() {
-            if (this.canProceed() && this.currentStep < 5) {
+            const err = this.getStepError();
+            if (err) {
+                this.stepError = err;
+                return;
+            }
+            this.stepError = '';
+            if (this.currentStep < 5) {
                 this.currentStep++;
                 this.saveToSession();
             }
         },
         prevStep() {
             if (this.currentStep > 1) {
+                this.stepError = '';
                 this.currentStep--;
                 this.saveToSession();
             }
