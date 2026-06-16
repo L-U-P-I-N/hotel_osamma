@@ -75,29 +75,25 @@
 
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1.5">الجنسية</label>
-            <select name="nationality" x-model="guestData.nationality" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
-                <option value="">اختر الجنسية</option>
-                @foreach($nationalities as $nat)
-                <option value="{{ $nat }}">{{ $nat }}</option>
-                @endforeach
-            </select>
-        </div>
-
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1.5">المهنة</label>
-            <input type="text" name="occupation" x-model="guestData.occupation"
+            <input type="text" name="nationality" x-model="guestData.nationality" placeholder="مثال: يمني، سعودي..."
                    class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
         </div>
 
         <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1.5">جهة القدوم <span class="text-red-500">*</span></label>
-            <input type="text" name="origin" x-model="guestData.origin" required placeholder="المدينة / المنطقة"
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">المهنة <span class="text-red-500">*</span></label>
+            <input type="text" name="occupation" x-model="guestData.occupation" required
                    class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
         </div>
 
         <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1.5">الغرض من القدوم <span class="text-red-500">*</span></label>
-            <input type="text" name="purpose" x-model="guestData.purpose" required placeholder="سياحة / عمل / علاج..."
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">جهة القدوم</label>
+            <input type="text" name="origin" x-model="guestData.origin" placeholder="المدينة / المنطقة"
+                   class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">الغرض من القدوم</label>
+            <input type="text" name="purpose" x-model="guestData.purpose" placeholder="سياحة / عمل / علاج..."
                    class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
         </div>
 
@@ -131,8 +127,8 @@
         </div>
 
         <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1.5">رقم الجوال</label>
-            <input type="text" name="phone" x-model="guestData.phone"
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">رقم الجوال <span class="text-red-500">*</span></label>
+            <input type="text" name="phone" x-model="guestData.phone" required
                    class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
         </div>
 
@@ -144,7 +140,7 @@
 
         <!-- ID Image Upload -->
         <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 mb-1.5">صورة الهوية</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">صورة الهوية <span class="text-red-500">*</span></label>
             <div class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-primary-400 transition-colors cursor-pointer relative"
                  @dragover.prevent @drop.prevent="handleIdImageDrop($event)">
                 <input type="file" name="id_image" accept="image/*,.pdf" class="absolute inset-0 opacity-0 cursor-pointer"
@@ -915,7 +911,7 @@ function checkInWizard() {
         },
 
         canProceed() {
-            if (this.currentStep === 1) return this.guestData.full_name && this.guestData.id_number && !this.blacklistAlert;
+            if (this.currentStep === 1) return this.guestData.full_name && this.guestData.occupation && this.guestData.id_number && this.guestData.phone && this.idImagePreview && !this.blacklistAlert;
             if (this.currentStep === 3) return !!this.roomId;
             if (this.currentStep === 4) {
                 if (!this.checkInDate || !this.checkOutDate || this.nights <= 0) return false;
