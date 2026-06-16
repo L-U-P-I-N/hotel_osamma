@@ -19,8 +19,9 @@ class ShiftController extends Controller
         }
 
         $allActive = $user->isAdmin() ? $this->service->getAllActiveShifts() : collect();
+        $suggestedShiftType = ShiftService::guessShiftType();
 
-        return view('shifts.index', compact('activeShift', 'recentShifts', 'allActive'));
+        return view('shifts.index', compact('activeShift', 'recentShifts', 'allActive', 'suggestedShiftType'));
     }
 
     public function open(Request $request)

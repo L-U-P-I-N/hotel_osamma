@@ -32,7 +32,7 @@
             <div class="grid grid-cols-3 gap-3">
                 @foreach(['morning'=>['label'=>'صباحية','time'=>'6ص - 2م','icon'=>'🌅'], 'evening'=>['label'=>'مسائية','time'=>'2م - 10م','icon'=>'🌆'], 'night'=>['label'=>'ليلية','time'=>'10م - 6ص','icon'=>'🌙']] as $type => $info)
                 <label class="cursor-pointer">
-                    <input type="radio" name="shift_type" value="{{ $type }}" class="sr-only peer" {{ $type === 'morning' ? 'checked' : '' }}>
+                    <input type="radio" name="shift_type" value="{{ $type }}" class="sr-only peer" {{ $type === $suggestedShiftType ? 'checked' : '' }}>
                     <div class="border-2 border-gray-200 rounded-xl p-3 text-center transition-all peer-checked:border-primary-600 peer-checked:bg-primary-50" style="--tw-border-opacity:1;">
                         <div class="text-2xl mb-1">{{ $info['icon'] }}</div>
                         <div class="text-sm font-semibold text-gray-800">{{ $info['label'] }}</div>
