@@ -33,6 +33,8 @@
         @endcan
         @if($reservation->status === 'checked_in')
         @can('checkin.view')
+        <button onclick="document.getElementById('transferRoomModal').classList.remove('hidden')"
+                class="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm hover:bg-orange-600 transition">تغيير الغرفة</button>
         <button onclick="document.getElementById('renewModal').classList.remove('hidden')"
                 class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition">تجديد الإقامة</button>
         @endcan
@@ -305,6 +307,62 @@
         </form>
     </div>
 </div>
+<!-- Transfer Room Modal -->
+@if($reservation->status === 'checked_in')
+@can('checkin.view')
+<div id="transferRoomModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+     onclick="if(event.target===this) this.classList.add('hidden')">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+        <div class="flex items-center justify-between p-5 border-b border-gray-100">
+            <h3 class="text-lg font-semibold text-gray-800">تغيير الغرفة</h3>
+            <button onclick="document.getElementById('transferRoomModal').classList.add('hidden')"
+                    class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+        </div>
+        <form method="POST" action="{{ route('reservations.transferRoom', $reservation) }}">
+            @csrf
+            <div class="p-5 space-y-4">
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">
+                    <p class="font-medium">الغرفة الحالية: <span class="font-bold">{{ $reservation->room?->room_number }}</span></p>
+                    <p class="text-xs mt-0.5">ستنتقل الغرفة الحالية إلى وضع <strong>تحت الفحص</strong> بعد النقل</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">الغرفة الجديدة <span class="text-red-500">*</span></label>
+                    <select name="new_room_id" required
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                        <option value="">اختر غرفة متاحة...</option>
+                        @foreach($availableRooms as $room)
+                        <option value="{{ $room->id }}">
+                            غرفة {{ $room->room_number }} — الطابق {{ $room->floor }}
+                            @if($room->roomType) ({{ $room->roomType->name }}) @endif
+                        </option>
+                        @endforeach
+                    </select>
+                    @if($availableRooms->isEmpty())
+                    <p class="text-xs text-red-500 mt-1">لا توجد غرف متاحة حالياً</p>
+                    @endif
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">سبب التغيير</label>
+                    <textarea name="notes" rows="2" placeholder="مثال: مشكلة في تكييف الغرفة..."
+                              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none resize-none"></textarea>
+                </div>
+            </div>
+            <div class="flex gap-3 px-5 pb-5">
+                <button type="submit" {{ $availableRooms->isEmpty() ? 'disabled' : '' }}
+                        class="flex-1 py-2.5 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600 transition disabled:opacity-50">
+                    تأكيد النقل
+                </button>
+                <button type="button" onclick="document.getElementById('transferRoomModal').classList.add('hidden')"
+                        class="flex-1 py-2.5 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50 transition">
+                    إلغاء
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+@endcan
+@endif
+
 @push('scripts')
 <script>
 function renewForm() {

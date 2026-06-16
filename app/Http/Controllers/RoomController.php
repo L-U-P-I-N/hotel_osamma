@@ -143,10 +143,10 @@ class RoomController extends Controller
     public function updateStatus(Request $request, Room $room)
     {
         $request->validate([
-            'status' => 'required|in:available,reserved,occupied,under_inspection,maintenance',
+            'status' => 'required|in:available,under_inspection,maintenance',
         ], [
             'status.required' => 'الحالة مطلوبة',
-            'status.in'       => 'الحالة المحددة غير صالحة',
+            'status.in'       => 'لا يمكن تعيين هذه الحالة يدوياً — مشغولة ومحجوزة تتغيران تلقائياً عبر الحجوزات فقط',
         ]);
 
         $old = ['status' => $room->status];

@@ -47,7 +47,10 @@ class ReservationController extends Controller
     public function show(Reservation $reservation)
     {
         $reservation->load(['guest', 'room.roomType', 'companions', 'payments', 'extraCharges', 'roomInspections.images', 'createdBy', 'adminApproval']);
-        return view('reservations.show', compact('reservation'));
+        $availableRooms = $reservation->status === 'checked_in'
+            ? Room::with('roomType')->where('status', 'available')->orderBy('floor')->orderBy('room_number')->get()
+            : collect();
+        return view('reservations.show', compact('reservation', 'availableRooms'));
     }
 
     public function edit(Reservation $reservation)
@@ -180,6 +183,49 @@ class ReservationController extends Controller
 
         return redirect()->route('reservations.show', $reservation)
             ->with('success', 'تم تسجيل وصول النزيل بنجاح — الغرفة أصبحت مشغولة');
+    }
+
+    public function transferRoom(Request $request, Reservation $reservation)
+    {
+        if ($reservation->status !== 'checked_in') {
+            return back()->with('error', 'تغيير الغرفة متاح فقط للحجوزات النشطة (مسجل دخول)');
+        }
+
+        $validated = $request->validate([
+            'new_room_id' => 'required|exists:rooms,id|different:' . $reservation->room_id,
+            'notes'       => 'nullable|string|max:500',
+        ], [
+            'new_room_id.required'  => 'يرجى اختيار الغرفة الجديدة',
+            'new_room_id.different' => 'الغرفة الجديدة يجب أن تختلف عن الغرفة الحالية',
+        ]);
+
+        $newRoom = Room::findOrFail($validated['new_room_id']);
+
+        if ($newRoom->status !== 'available') {
+            return back()->withErrors(['new_room_id' => 'الغرفة المختارة غير متاحة']);
+        }
+
+        $oldRoom = $reservation->room;
+        $old = ['room_id' => $reservation->room_id];
+
+        // Move guest to new room
+        $reservation->update([
+            'room_id' => $newRoom->id,
+            'notes'   => $reservation->notes
+                            ? $reservation->notes . "\n[نقل من غرفة {$oldRoom->room_number} إلى {$newRoom->room_number}]"
+                            : "[نقل من غرفة {$oldRoom->room_number} إلى {$newRoom->room_number}]" . ($validated['notes'] ? ': ' . $validated['notes'] : ''),
+        ]);
+
+        // New room becomes occupied
+        $newRoom->update(['status' => 'occupied']);
+
+        // Old room goes to inspection
+        $oldRoom->update(['status' => 'under_inspection']);
+
+        AuditLogService::log('update', $reservation, $old, ['room_id' => $newRoom->id, 'action' => 'room_transfer'], auth()->user());
+
+        return redirect()->route('reservations.show', $reservation)
+            ->with('success', "تم نقل النزيل من غرفة {$oldRoom->room_number} إلى غرفة {$newRoom->room_number} — الغرفة القديمة في وضع الفحص");
     }
 
     public function cancel(Reservation $reservation)
