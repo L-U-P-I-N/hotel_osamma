@@ -783,12 +783,13 @@ function checkInWizard() {
             const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1);
             this.checkOutDate = tomorrow.toISOString().split('T')[0];
 
-            // Restore saved state (survives page refresh or error redirect)
-            this.restoreFromSession();
-
-            // If backend returned errors, jump to step 5 so errors are visible
-            if (HAS_BACKEND_ERRORS && this.roomId) {
-                this.currentStep = 5;
+            // Only restore saved state when recovering from a backend validation error
+            if (HAS_BACKEND_ERRORS) {
+                this.restoreFromSession();
+                if (this.roomId) this.currentStep = 5;
+            } else {
+                // Fresh visit — clear any leftover session data from a previous incomplete form
+                sessionStorage.removeItem(CHECKIN_SESSION_KEY);
             }
 
             // Auto-clear step error when user fills in data
