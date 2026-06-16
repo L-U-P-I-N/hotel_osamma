@@ -91,11 +91,21 @@
             <a href="{{ route('checkin.create') }}"
                class="flex items-center gap-3 p-3 bg-primary-50 hover:bg-primary-100 rounded-lg transition-colors">
                 <div class="w-9 h-9 bg-primary-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
                 </div>
                 <div>
-                    <div class="font-medium text-sm text-primary-800">تسجيل دخول جديد</div>
-                    <div class="text-xs text-primary-500">إضافة حجز ونزيل</div>
+                    <div class="font-medium text-sm text-primary-800">تسجيل الدخول</div>
+                    <div class="text-xs text-primary-500">النزيل موجود الآن</div>
+                </div>
+            </a>
+            <a href="{{ route('checkin.create', ['mode' => 'reserve']) }}"
+               class="flex items-center gap-3 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+                <div class="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                </div>
+                <div>
+                    <div class="font-medium text-sm text-blue-800">حجز لزبون</div>
+                    <div class="text-xs text-blue-500">النزيل سيصل لاحقاً</div>
                 </div>
             </a>
             @endcan

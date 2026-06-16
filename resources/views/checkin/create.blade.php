@@ -1,8 +1,19 @@
 @extends('layouts.app')
-@section('title', 'إضافة حجز جديد')
-@section('page-title', 'إضافة حجز جديد')
+@section('title', $mode === 'reserve' ? 'حجز لزبون' : 'تسجيل الدخول')
+@section('page-title', $mode === 'reserve' ? 'حجز لزبون' : 'تسجيل الدخول')
 
 @section('content')
+@if($mode === 'reserve')
+<div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center gap-3 text-sm text-blue-800">
+    <svg class="w-5 h-5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+    <span><strong>حجز مسبق</strong> — سيتم تحديد الغرفة كـ <strong>محجوزة</strong> وتبقى فارغة حتى وصول النزيل</span>
+</div>
+@else
+<div class="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3 text-sm text-green-800">
+    <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
+    <span><strong>تسجيل دخول فوري</strong> — النزيل موجود الآن، ستصبح الغرفة <strong>مشغولة</strong></span>
+</div>
+@endif
 <div x-data="checkInWizard()" x-init="init()">
 
 <!-- Step Indicator -->
@@ -31,6 +42,7 @@
 <form id="checkInForm" method="POST" action="{{ route('checkin.store') }}" enctype="multipart/form-data"
       @submit="handleSubmit($event)">
 @csrf
+<input type="hidden" name="booking_mode" value="{{ $mode }}">`
 
 <!-- STEP 1: Guest Details -->
 <div x-show="currentStep === 1" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
@@ -593,7 +605,7 @@
             <template x-if="submitting">
                 <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
             </template>
-            <span x-text="submitting ? 'جارٍ الحفظ...' : 'تأكيد وحفظ الحجز'"></span>
+            <span x-text="submitting ? 'جارٍ الحفظ...' : '{{ $mode === 'reserve' ? 'تأكيد الحجز المسبق' : 'تأكيد تسجيل الدخول' }}'"></span>
         </button>
     </div>
 </div>

@@ -20,8 +20,10 @@ class CheckInController extends Controller
         private GovernmentExportService $exportService
     ) {}
 
-    public function create()
+    public function create(Request $request)
     {
+        $mode = $request->input('mode', 'checkin'); // 'checkin' | 'reserve'
+
         $availableRooms = Room::with('roomType', 'linkedRoom')
             ->available()
             ->orderBy('floor')
@@ -44,7 +46,7 @@ class CheckInController extends Controller
 
         $admins = User::role('admin')->where('is_active', true)->get();
         $nationalities = $this->getNationalities();
-        return view('checkin.create', compact('availableRooms', 'linkedAvailability', 'admins', 'nationalities'));
+        return view('checkin.create', compact('availableRooms', 'linkedAvailability', 'admins', 'nationalities', 'mode'));
     }
 
     public function store(Request $request)
@@ -64,6 +66,7 @@ class CheckInController extends Controller
             'companions.*.relationship' => 'nullable|in:wife,son,daughter,brother,sister,father,mother,other',
             'companions.*.marriage_doc' => 'required_if:companions.*.relationship,wife|nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
             'suite_booking_type'        => 'nullable|in:a_only,b_only,both',
+            'booking_mode'              => 'nullable|in:checkin,reserve',
         ]);
 
         try {

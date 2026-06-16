@@ -71,6 +71,8 @@ class CheckInService
             $guest->save();
 
             // 6. الحجز
+            $isReserve = ($data['booking_mode'] ?? 'checkin') === 'reserve';
+
             $reservation = Reservation::create([
                 'guest_id'           => $guest->id,
                 'room_id'            => $room->id,
@@ -82,7 +84,7 @@ class CheckInService
                 'origin'             => $data['origin'] ?? null,
                 'purpose'            => $data['purpose'] ?? null,
                 'notes'              => $data['notes'] ?? null,
-                'status'             => 'checked_in',
+                'status'             => $isReserve ? 'confirmed' : 'checked_in',
                 'payment_status'     => $data['payment_status'],
                 'total_amount'       => $data['total_amount'],
                 'paid_amount'        => 0,
@@ -91,9 +93,10 @@ class CheckInService
             ]);
 
             // 7. تحديث حالة الغرف
-            $room->update(['status' => 'occupied']);
+            $roomStatus = $isReserve ? 'reserved' : 'occupied';
+            $room->update(['status' => $roomStatus]);
             if ($linkedRoom) {
-                $linkedRoom->update(['status' => 'occupied']);
+                $linkedRoom->update(['status' => $roomStatus]);
             }
 
             // 8. المرافقون

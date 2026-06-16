@@ -161,6 +161,27 @@ class ReservationController extends Controller
             ->with('success', "تم تجديد الإقامة بنجاح — تمديد {$extraNights} ليلة إضافية");
     }
 
+    public function arrive(Reservation $reservation)
+    {
+        if ($reservation->status !== 'confirmed') {
+            return back()->with('error', 'لا يمكن تسجيل الوصول إلا للحجوزات المؤكدة');
+        }
+
+        $old = ['status' => $reservation->status];
+
+        $reservation->update(['status' => 'checked_in']);
+
+        $reservation->room?->update(['status' => 'occupied']);
+        if ($reservation->linkedRoom) {
+            $reservation->linkedRoom->update(['status' => 'occupied']);
+        }
+
+        AuditLogService::log('update', $reservation, $old, ['status' => 'checked_in'], auth()->user());
+
+        return redirect()->route('reservations.show', $reservation)
+            ->with('success', 'تم تسجيل وصول النزيل بنجاح — الغرفة أصبحت مشغولة');
+    }
+
     public function cancel(Reservation $reservation)
     {
         if ($reservation->status === 'checked_out') {
