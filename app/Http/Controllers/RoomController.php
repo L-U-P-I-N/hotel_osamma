@@ -40,10 +40,11 @@ class RoomController extends Controller
     {
 
         $validated = $request->validate([
-            'room_number'   => 'required|string|max:10|unique:rooms,room_number',
-            'floor'         => 'required|integer|min:1|max:30',
-            'room_type_id'  => 'required|exists:room_types,id',
-            'notes'         => 'nullable|string|max:500',
+            'room_number'    => 'required|string|max:10|unique:rooms,room_number',
+            'floor'          => 'required|integer|min:1|max:30',
+            'room_type_id'   => 'required|exists:room_types,id',
+            'room_sub_type'  => 'nullable|in:regular,double,suite_a,suite_b,hall,apartment',
+            'notes'          => 'nullable|string|max:500',
         ], [
             'room_number.required'  => 'رقم الغرفة مطلوب',
             'room_number.max'       => 'رقم الغرفة لا يتجاوز 10 أحرف',
@@ -54,18 +55,20 @@ class RoomController extends Controller
             'floor.max'             => 'رقم الطابق لا يتجاوز 30',
             'room_type_id.required' => 'نوع الغرفة مطلوب',
             'room_type_id.exists'   => 'نوع الغرفة المحدد غير موجود',
+            'room_sub_type.in'      => 'تصنيف الغرفة غير صالح',
             'notes.max'             => 'الملاحظات لا تتجاوز 500 حرف',
         ]);
 
         $hotel = Hotel::first();
 
         $room = Room::create([
-            'hotel_id'     => $hotel->id,
-            'room_type_id' => $validated['room_type_id'],
-            'room_number'  => $validated['room_number'],
-            'floor'        => $validated['floor'],
-            'status'       => 'available',
-            'notes'        => $validated['notes'] ?? null,
+            'hotel_id'      => $hotel->id,
+            'room_type_id'  => $validated['room_type_id'],
+            'room_number'   => $validated['room_number'],
+            'floor'         => $validated['floor'],
+            'room_sub_type' => $validated['room_sub_type'] ?? 'regular',
+            'status'        => 'available',
+            'notes'         => $validated['notes'] ?? null,
         ]);
 
         AuditLogService::log('create', $room, [], $room->toArray(), auth()->user());
@@ -83,10 +86,11 @@ class RoomController extends Controller
     {
 
         $validated = $request->validate([
-            'room_number'   => 'required|string|max:10|unique:rooms,room_number,' . $room->id,
-            'floor'         => 'required|integer|min:1|max:30',
-            'room_type_id'  => 'required|exists:room_types,id',
-            'notes'         => 'nullable|string|max:500',
+            'room_number'    => 'required|string|max:10|unique:rooms,room_number,' . $room->id,
+            'floor'          => 'required|integer|min:1|max:30',
+            'room_type_id'   => 'required|exists:room_types,id',
+            'room_sub_type'  => 'nullable|in:regular,double,suite_a,suite_b,hall,apartment',
+            'notes'          => 'nullable|string|max:500',
         ], [
             'room_number.required'  => 'رقم الغرفة مطلوب',
             'room_number.max'       => 'رقم الغرفة لا يتجاوز 10 أحرف',
@@ -97,6 +101,7 @@ class RoomController extends Controller
             'floor.max'             => 'رقم الطابق لا يتجاوز 30',
             'room_type_id.required' => 'نوع الغرفة مطلوب',
             'room_type_id.exists'   => 'نوع الغرفة المحدد غير موجود',
+            'room_sub_type.in'      => 'تصنيف الغرفة غير صالح',
             'notes.max'             => 'الملاحظات لا تتجاوز 500 حرف',
         ]);
 

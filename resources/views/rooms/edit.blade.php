@@ -82,6 +82,33 @@
                 </div>
 
                 <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">تصنيف الغرفة <span class="text-red-500">*</span></label>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        @foreach([
+                            'regular'   => ['label' => 'عادية',   'icon' => '🛏️'],
+                            'double'    => ['label' => 'زوجية',   'icon' => '👫'],
+                            'suite_a'   => ['label' => 'جناح A',  'icon' => '🏨'],
+                            'suite_b'   => ['label' => 'جناح B',  'icon' => '🏨'],
+                            'hall'      => ['label' => 'صالة',    'icon' => '🏛️'],
+                            'apartment' => ['label' => 'شقة',     'icon' => '🏠'],
+                        ] as $value => $opt)
+                        <label class="cursor-pointer">
+                            <input type="radio" name="room_sub_type" value="{{ $value }}"
+                                   {{ old('room_sub_type', $room->room_sub_type ?? 'regular') === $value ? 'checked' : '' }}
+                                   class="sr-only peer">
+                            <div class="border-2 border-gray-200 peer-checked:border-primary-600 peer-checked:bg-primary-50 rounded-xl p-3 text-center transition-all">
+                                <div class="text-lg mb-0.5">{{ $opt['icon'] }}</div>
+                                <div class="text-xs font-semibold text-gray-700 peer-checked:text-primary-800">{{ $opt['label'] }}</div>
+                            </div>
+                        </label>
+                        @endforeach
+                    </div>
+                    @error('room_sub_type')
+                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">ملاحظات</label>
                     <textarea name="notes" rows="3" maxlength="500"
                               class="w-full border @error('notes') border-red-400 bg-red-50 @else border-gray-300 @enderror rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none transition resize-none">{{ old('notes', $room->notes) }}</textarea>

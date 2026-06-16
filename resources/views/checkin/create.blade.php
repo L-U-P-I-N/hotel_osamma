@@ -314,6 +314,9 @@
             <button type="button" @click="typeFilter = 'regular'"
                     :class="typeFilter === 'regular' ? 'bg-primary-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
                     class="px-3 py-1 rounded-full text-xs font-medium transition">عادية</button>
+            <button type="button" @click="typeFilter = 'double'"
+                    :class="typeFilter === 'double' ? 'bg-primary-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                    class="px-3 py-1 rounded-full text-xs font-medium transition">زوجية</button>
             <button type="button" @click="typeFilter = 'suite'"
                     :class="typeFilter === 'suite' ? 'bg-primary-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
                     class="px-3 py-1 rounded-full text-xs font-medium transition">جناح</button>
@@ -338,8 +341,9 @@
             ];
             $roomTypeKey = match($room->room_sub_type) {
                 'suite_a', 'suite_b' => 'suite',
-                'hall' => 'hall',
-                default => 'regular',
+                'hall'               => 'hall',
+                'double'             => 'double',
+                default              => 'regular',
             };
         @endphp
 
@@ -399,7 +403,9 @@
              :class="roomId == '{{ $room->id }}' ? 'border-primary-600 bg-primary-50' : 'border-green-200 bg-green-50 hover:border-primary-400'">
             <div class="flex items-center gap-1">
                 <div class="text-xl font-bold text-gray-800">{{ $room->room_number }}</div>
-                @if($room->room_sub_type === 'apartment')
+                @if($room->room_sub_type === 'double')
+                    <span class="text-xs bg-pink-100 text-pink-700 px-1.5 py-0.5 rounded font-medium">زوجية</span>
+                @elseif($room->room_sub_type === 'apartment')
                     <span class="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">شقة</span>
                 @elseif($room->room_sub_type === 'hall')
                     <span class="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-medium">صالة</span>

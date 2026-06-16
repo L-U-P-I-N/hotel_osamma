@@ -44,6 +44,7 @@ class Room extends Model
     public function isSuite(): bool    { return in_array($this->room_sub_type, ['suite_a','suite_b']); }
     public function isApartment(): bool{ return $this->room_sub_type === 'apartment'; }
     public function isHall(): bool     { return $this->room_sub_type === 'hall'; }
+    public function isDouble(): bool   { return $this->room_sub_type === 'double'; }
 
     public function isLinkedRoomAvailable(): bool
     {
@@ -61,6 +62,7 @@ class Room extends Model
             'suite_b'   => 'جناح B',
             'apartment' => 'شقة',
             'hall'      => 'صالة',
+            'double'    => 'غرفة زوجية',
             default     => 'غرفة عادية',
         };
     }
