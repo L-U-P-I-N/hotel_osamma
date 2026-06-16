@@ -71,15 +71,20 @@ class ShiftService
             throw new \RuntimeException('لا يمكن إضافة سحب لوردية مقفلة');
         }
 
+        $type = $data['withdrawal_type'] ?? 'expense';
+
         $withdrawal = CashWithdrawal::create([
-            'shift_id'           => $shift->id,
-            'cash_settlement_id' => null,
-            'amount'             => $data['amount'],
-            'currency'           => $data['currency'] ?? 'YER',
-            'withdrawal_date'    => $data['withdrawal_date'] ?? now(),
-            'withdrawn_by_name'  => $data['withdrawn_by_name'],
-            'handed_by_name'     => $data['handed_by_name'] ?? '-',
-            'notes'              => $data['notes'] ?? null,
+            'shift_id'             => $shift->id,
+            'cash_settlement_id'   => null,
+            'amount'               => $data['amount'],
+            'currency'             => $data['currency'] ?? 'YER',
+            'withdrawal_date'      => $data['withdrawal_date'] ?? now(),
+            'withdrawn_by_name'    => $data['withdrawn_by_name'],
+            'handed_by_name'       => $data['handed_by_name'] ?? '-',
+            'notes'                => $data['notes'] ?? null,
+            'withdrawal_type'      => $type,
+            'exchange_to_currency' => $type === 'currency_exchange' ? ($data['exchange_to_currency'] ?? null) : null,
+            'exchange_to_amount'   => $type === 'currency_exchange' ? ($data['exchange_to_amount'] ?? null) : null,
         ]);
 
         $this->computeTotals($shift);

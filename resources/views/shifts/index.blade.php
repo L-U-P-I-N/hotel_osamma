@@ -109,7 +109,7 @@
                 <p class="text-xs text-gray-400">بدأت {{ $activeShift->started_at->format('H:i') }} — {{ $activeShift->shift_date->format('d/m/Y') }}</p>
             </div>
         </div>
-        <div class="flex gap-2">
+        <div class="flex gap-2 flex-wrap">
             @can('withdrawal.create')
             <button @click="withdrawalModal=true"
                     class="flex items-center gap-2 px-4 py-2 border border-red-300 text-red-600 rounded-lg text-sm hover:bg-red-50 transition">
@@ -117,6 +117,11 @@
                 تسجيل سحب
             </button>
             @endcan
+            <a href="{{ route('shifts.pdf', $activeShift) }}" target="_blank"
+               class="flex items-center gap-2 px-4 py-2 border border-blue-300 text-blue-600 rounded-lg text-sm hover:bg-blue-50 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                طباعة الوردية
+            </a>
             <button @click="closeModal=true"
                     class="flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg text-sm hover:bg-gray-700 transition">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
@@ -199,13 +204,26 @@
             <thead class="bg-gray-50"><tr>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المستلم</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المبلغ</th>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">النوع</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">ملاحظات</th>
             </tr></thead>
             <tbody class="divide-y divide-gray-50">
                 @foreach($activeShift->withdrawals as $w)
-                <tr>
+                <tr class="{{ $w->isExchange() ? 'bg-yellow-50' : '' }}">
                     <td class="px-4 py-2 text-gray-700 text-xs">{{ $w->withdrawn_by_name }}</td>
-                    <td class="px-4 py-2 font-semibold text-red-600">{{ number_format($w->amount, 0) }} {{ $w->currency }}</td>
+                    <td class="px-4 py-2 font-semibold text-red-600 whitespace-nowrap">
+                        {{ number_format($w->amount, 0) }} {{ $w->currency }}
+                        @if($w->isExchange() && $w->exchange_to_amount)
+                        <span class="text-xs text-yellow-700 mr-1">← {{ number_format($w->exchange_to_amount, 0) }} {{ $w->exchange_to_currency }}</span>
+                        @endif
+                    </td>
+                    <td class="px-4 py-2">
+                        @if($w->isExchange())
+                        <span class="px-1.5 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded">صرف عملة</span>
+                        @else
+                        <span class="text-gray-400 text-xs">مصروف</span>
+                        @endif
+                    </td>
                     <td class="px-4 py-2 text-gray-400 text-xs">{{ $w->notes ?? '-' }}</td>
                 </tr>
                 @endforeach
@@ -235,9 +253,14 @@
                 </span>
                 <span class="text-gray-500 text-xs">{{ $s->started_at->format('H:i') }} — {{ $s->ended_at?->format('H:i') }}</span>
             </div>
-            <div class="flex gap-4 text-xs">
+            <div class="flex items-center gap-3 text-xs">
                 <span class="text-green-700">+{{ number_format($s->total_received_yer, 0) }} ر.ي</span>
                 <span class="text-red-600">-{{ number_format($s->total_withdrawals_yer, 0) }} ر.ي</span>
+                <a href="{{ route('shifts.pdf', $s) }}" target="_blank"
+                   class="flex items-center gap-1 px-2 py-1 border border-gray-200 text-gray-500 rounded hover:bg-gray-50 transition">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                    PDF
+                </a>
             </div>
         </div>
         @endforeach
@@ -269,23 +292,37 @@
 {{-- Modal: تسجيل سحب --}}
 @can('withdrawal.create')
 <div x-show="withdrawalModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="withdrawalModal=false">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md" x-data="{ wType: 'expense' }">
         <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h3 class="font-bold text-gray-800">تسجيل سحب</h3>
+            <h3 class="font-bold text-gray-800" x-text="wType === 'currency_exchange' ? 'تسجيل صرف عملة' : 'تسجيل سحب'"></h3>
             <button @click="withdrawalModal=false" class="text-gray-400 hover:text-gray-600">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>
         <form method="POST" action="{{ route('shifts.withdrawal') }}" class="p-6 space-y-4">
             @csrf
+
+            {{-- نوع السحب --}}
+            <div class="flex rounded-lg overflow-hidden border border-gray-200">
+                <button type="button" @click="wType='expense'"
+                        :class="wType==='expense' ? 'bg-red-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'"
+                        class="flex-1 py-2 text-xs font-medium transition">مصروف عادي</button>
+                <button type="button" @click="wType='currency_exchange'"
+                        :class="wType==='currency_exchange' ? 'bg-yellow-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'"
+                        class="flex-1 py-2 text-xs font-medium transition">صرف عملة</button>
+            </div>
+            <input type="hidden" name="withdrawal_type" :value="wType">
+
             <div class="grid grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">المبلغ *</label>
+                    <label class="block text-xs font-medium text-gray-600 mb-1"
+                           x-text="wType==='currency_exchange' ? 'المبلغ المسحوب *' : 'المبلغ *'"></label>
                     <input type="number" name="amount" step="0.01" min="0.01" required
                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">العملة</label>
+                    <label class="block text-xs font-medium text-gray-600 mb-1"
+                           x-text="wType==='currency_exchange' ? 'عملة السحب' : 'العملة'"></label>
                     <select name="currency" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
                         <option value="YER">ريال يمني</option>
                         <option value="SAR">ريال سعودي</option>
@@ -293,6 +330,27 @@
                     </select>
                 </div>
             </div>
+
+            {{-- حقول صرف العملة --}}
+            <div x-show="wType==='currency_exchange'" class="grid grid-cols-2 gap-3 bg-yellow-50 rounded-lg p-3 border border-yellow-200">
+                <div>
+                    <label class="block text-xs font-medium text-yellow-700 mb-1">المبلغ المُحوَّل إليه *</label>
+                    <input type="number" name="exchange_to_amount" step="0.01" min="0.01"
+                           :required="wType==='currency_exchange'"
+                           class="w-full border border-yellow-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-yellow-400 outline-none bg-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-yellow-700 mb-1">العملة المُحوَّل إليها *</label>
+                    <select name="exchange_to_currency"
+                            :required="wType==='currency_exchange'"
+                            class="w-full border border-yellow-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-yellow-400 outline-none bg-white">
+                        <option value="SAR">ريال سعودي</option>
+                        <option value="USD">دولار</option>
+                        <option value="YER">ريال يمني</option>
+                    </select>
+                </div>
+            </div>
+
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1">اسم المستلم *</label>
                 <input type="text" name="withdrawn_by_name" required
@@ -303,8 +361,10 @@
                 <input type="text" name="notes"
                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
             </div>
-            <button type="submit" class="w-full py-2.5 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition">
-                تسجيل السحب
+            <button type="submit"
+                    :class="wType==='currency_exchange' ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-red-600 hover:bg-red-700'"
+                    class="w-full py-2.5 text-white rounded-lg text-sm font-semibold transition"
+                    x-text="wType==='currency_exchange' ? 'تسجيل صرف العملة' : 'تسجيل السحب'">
             </button>
         </form>
     </div>

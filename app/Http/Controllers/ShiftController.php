@@ -1,7 +1,9 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Models\Shift;
 use App\Services\ShiftService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
 class ShiftController extends Controller
@@ -44,18 +46,26 @@ class ShiftController extends Controller
 
     public function addWithdrawal(Request $request)
     {
+        $isExchange = $request->input('withdrawal_type') === 'currency_exchange';
+
         $request->validate([
-            'amount'             => 'required|numeric|min:0.01',
-            'currency'           => 'required|in:YER,SAR,USD',
-            'withdrawn_by_name'  => 'required|string|max:100',
-            'handed_by_name'     => 'nullable|string|max:100',
-            'notes'              => 'nullable|string|max:500',
+            'amount'               => 'required|numeric|min:0.01',
+            'currency'             => 'required|in:YER,SAR,USD',
+            'withdrawn_by_name'    => 'required|string|max:100',
+            'handed_by_name'       => 'nullable|string|max:100',
+            'notes'                => 'nullable|string|max:500',
+            'withdrawal_type'      => 'nullable|in:expense,currency_exchange',
+            'exchange_to_currency' => 'required_if:withdrawal_type,currency_exchange|nullable|in:YER,SAR,USD|different:currency',
+            'exchange_to_amount'   => 'required_if:withdrawal_type,currency_exchange|nullable|numeric|min:0.01',
         ], [
-            'amount.required'            => 'المبلغ مطلوب',
-            'amount.numeric'             => 'يجب أن يكون المبلغ رقماً',
-            'amount.min'                 => 'المبلغ يجب أن يكون أكبر من صفر',
-            'currency.required'          => 'العملة مطلوبة',
-            'withdrawn_by_name.required' => 'اسم المستلم مطلوب',
+            'amount.required'               => 'المبلغ مطلوب',
+            'amount.numeric'                => 'يجب أن يكون المبلغ رقماً',
+            'amount.min'                    => 'المبلغ يجب أن يكون أكبر من صفر',
+            'currency.required'             => 'العملة مطلوبة',
+            'withdrawn_by_name.required'    => 'اسم المستلم مطلوب',
+            'exchange_to_currency.required_if' => 'عملة الصرف المقابلة مطلوبة',
+            'exchange_to_currency.different'   => 'عملة الصرف يجب أن تختلف عن عملة السحب',
+            'exchange_to_amount.required_if'   => 'المبلغ المُحوَّل إليه مطلوب',
         ]);
 
         $shift = $this->service->getActiveShift(auth()->user());
@@ -65,7 +75,8 @@ class ShiftController extends Controller
 
         try {
             $this->service->addWithdrawal($shift, $request->all());
-            return back()->with('success', 'تم تسجيل السحب بنجاح');
+            $msg = $isExchange ? 'تم تسجيل عملية صرف العملة بنجاح' : 'تم تسجيل السحب بنجاح';
+            return back()->with('success', $msg);
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()]);
         }
@@ -95,5 +106,21 @@ class ShiftController extends Controller
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()]);
         }
+    }
+
+    public function exportPdf(Shift $shift)
+    {
+        $shift->load(['user', 'payments.reservation.guest', 'payments.reservation.room', 'withdrawals']);
+
+        $pdf = Pdf::loadView('shifts.report_pdf', compact('shift'));
+        $pdf->setPaper('a4', 'portrait');
+
+        $dompdf = $pdf->getDomPDF();
+        $options = $dompdf->getOptions();
+        $options->setFontDir(storage_path('fonts'));
+        $options->setFontCache(storage_path('fonts'));
+        $dompdf->setOptions($options);
+
+        return $pdf->download('shift-report-' . $shift->id . '.pdf');
     }
 }

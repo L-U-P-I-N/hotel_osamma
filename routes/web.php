@@ -105,6 +105,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/shifts/open', [ShiftController::class, 'open'])->name('shifts.open')->middleware('permission:shifts.view');
     Route::post('/shifts/withdrawal', [ShiftController::class, 'addWithdrawal'])->name('shifts.withdrawal')->middleware('permission:withdrawal.create');
     Route::post('/shifts/close', [ShiftController::class, 'close'])->name('shifts.close')->middleware('permission:shifts.view');
+    Route::get('/shifts/{shift}/pdf', [ShiftController::class, 'exportPdf'])->name('shifts.pdf')->middleware('permission:shifts.view');
 
     // Reports
     Route::middleware('permission:reports.view')->group(function () {
