@@ -15,39 +15,103 @@
 
 {{-- ===== لا توجد وردية مفتوحة ===== --}}
 @if(!$activeShift)
-<div class="max-w-lg mx-auto">
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
-    <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style="background:#e8f0f7;">
-        <svg class="w-8 h-8" style="color:#0F4C75;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-        </svg>
-    </div>
-    <h3 class="text-lg font-bold text-gray-800 mb-2">لا توجد وردية مفتوحة</h3>
-    <p class="text-gray-500 text-sm mb-6">افتح وردية جديدة لبدء تسجيل المستلمات والسحبيات</p>
 
-    <form method="POST" action="{{ route('shifts.open') }}" class="space-y-4">
-        @csrf
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">نوع الوردية</label>
-            <div class="grid grid-cols-3 gap-3">
-                @foreach(['morning'=>['label'=>'صباحية','time'=>'6ص - 2م','icon'=>'🌅'], 'evening'=>['label'=>'مسائية','time'=>'2م - 10م','icon'=>'🌆'], 'night'=>['label'=>'ليلية','time'=>'10م - 6ص','icon'=>'🌙']] as $type => $info)
-                <label class="cursor-pointer">
-                    <input type="radio" name="shift_type" value="{{ $type }}" class="sr-only peer" {{ $type === $suggestedShiftType ? 'checked' : '' }}>
-                    <div class="border-2 border-gray-200 rounded-xl p-3 text-center transition-all peer-checked:border-primary-600 peer-checked:bg-primary-50" style="--tw-border-opacity:1;">
-                        <div class="text-2xl mb-1">{{ $info['icon'] }}</div>
-                        <div class="text-sm font-semibold text-gray-800">{{ $info['label'] }}</div>
-                        <div class="text-xs text-gray-400">{{ $info['time'] }}</div>
-                    </div>
-                </label>
-                @endforeach
+@if(auth()->user()->isAdmin())
+{{-- ===== أدمن: فتح وردية لموظف ===== --}}
+<div class="max-w-xl mx-auto space-y-5">
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div class="flex items-center gap-3 mb-5">
+            <div class="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center">
+                <svg class="w-5 h-5 text-primary-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <div>
+                <h3 class="font-bold text-gray-800">تعيين وردية لموظف</h3>
+                <p class="text-xs text-gray-500">الأدمن يحدد الموظف ونوع الوردية</p>
             </div>
         </div>
-        <button type="submit" class="w-full py-3 text-white rounded-xl font-semibold text-sm transition" style="background:#0F4C75;">
-            فتح الوردية
-        </button>
-    </form>
+
+        <form method="POST" action="{{ route('shifts.open') }}" class="space-y-4">
+            @csrf
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">الموظف <span class="text-red-500">*</span></label>
+                <select name="user_id" required class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                    <option value="">— اختر الموظف —</option>
+                    @foreach($employees as $emp)
+                    <option value="{{ $emp->id }}">{{ $emp->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">نوع الوردية</label>
+                <div class="grid grid-cols-3 gap-3">
+                    @foreach(['morning'=>['label'=>'صباحية','time'=>'6ص - 2م','icon'=>'🌅'], 'evening'=>['label'=>'مسائية','time'=>'2م - 10م','icon'=>'🌆'], 'night'=>['label'=>'ليلية','time'=>'10م - 6ص','icon'=>'🌙']] as $type => $info)
+                    <label class="cursor-pointer">
+                        <input type="radio" name="shift_type" value="{{ $type }}" class="sr-only peer" {{ $type === $suggestedShiftType ? 'checked' : '' }}>
+                        <div class="border-2 border-gray-200 rounded-xl p-3 text-center transition-all peer-checked:border-primary-600 peer-checked:bg-primary-50">
+                            <div class="text-2xl mb-1">{{ $info['icon'] }}</div>
+                            <div class="text-sm font-semibold text-gray-800">{{ $info['label'] }}</div>
+                            <div class="text-xs text-gray-400">{{ $info['time'] }}</div>
+                        </div>
+                    </label>
+                    @endforeach
+                </div>
+            </div>
+            <button type="submit" class="w-full py-3 text-white rounded-xl font-semibold text-sm transition" style="background:#0F4C75;">
+                فتح الوردية وتعيينها للموظف
+            </button>
+        </form>
+    </div>
+
+    {{-- ورديات مفتوحة حالياً --}}
+    @if($allActive->count() > 0)
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-5 py-3 border-b border-gray-100 bg-gray-50">
+            <h3 class="font-semibold text-gray-700 text-sm">الورديات المفتوحة الآن ({{ $allActive->count() }})</h3>
+        </div>
+        <div class="divide-y divide-gray-50">
+            @foreach($allActive as $s)
+            <div class="px-5 py-3 flex items-center justify-between text-sm">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-base
+                        {{ $s->shift_type === 'morning' ? 'bg-yellow-100' : ($s->shift_type === 'evening' ? 'bg-blue-100' : 'bg-indigo-100') }}">
+                        {{ $s->shift_type === 'morning' ? '🌅' : ($s->shift_type === 'evening' ? '🌆' : '🌙') }}
+                    </div>
+                    <div>
+                        <p class="font-medium text-gray-800">{{ $s->user->name }}</p>
+                        <p class="text-xs text-gray-400">{{ $s->type_label }} — منذ {{ $s->started_at->format('H:i') }}</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 text-xs">
+                    <span class="text-green-700 font-medium">{{ number_format($s->total_received_yer, 0) }} ر.ي</span>
+                    <a href="{{ route('shifts.pdf', $s) }}" target="_blank"
+                       class="flex items-center gap-1 px-2 py-1 border border-gray-200 text-gray-500 rounded hover:bg-gray-50 transition">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                        PDF
+                    </a>
+                </div>
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
+
 </div>
+
+@else
+{{-- ===== موظف: انتظار تعيين وردية ===== --}}
+<div class="max-w-md mx-auto">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-10 text-center">
+        <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+        </div>
+        <h3 class="text-lg font-bold text-gray-700 mb-2">لا توجد وردية مُعيَّنة لك</h3>
+        <p class="text-gray-400 text-sm">انتظر حتى تُعيِّن لك الإدارة وردية للبدء بالعمل</p>
+    </div>
 </div>
+@endif
 
 {{-- سجل الورديات السابقة --}}
 @if($recentShifts->count() > 0)
@@ -268,10 +332,11 @@
 </div>
 @endif
 
-@if($allActive->count() > 0)
-<div class="mt-5 bg-white rounded-xl shadow-sm border border-yellow-200 border">
-    <div class="px-5 py-3 border-b border-yellow-100 bg-yellow-50 rounded-t-xl">
-        <h3 class="font-semibold text-yellow-800 text-sm">ورديات مفتوحة لموظفين آخرين</h3>
+{{-- ورديات موظفين آخرين مفتوحة — للأدمن فقط --}}
+@if(auth()->user()->isAdmin() && $allActive->where('user_id', '!=', auth()->id())->count() > 0)
+<div class="mt-5 bg-white rounded-xl shadow-sm border border-blue-100">
+    <div class="px-5 py-3 border-b border-blue-100 bg-blue-50 rounded-t-xl">
+        <h3 class="font-semibold text-blue-800 text-sm">ورديات مفتوحة لموظفين آخرين</h3>
     </div>
     <div class="divide-y divide-gray-50">
         @foreach($allActive->where('user_id', '!=', auth()->id()) as $s)
@@ -280,7 +345,14 @@
                 <span class="font-medium text-gray-700">{{ $s->user->name }}</span>
                 <span class="px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700">{{ $s->type_label }}</span>
             </div>
-            <span class="text-gray-400 text-xs">منذ {{ $s->started_at->diffForHumans() }}</span>
+            <div class="flex items-center gap-3 text-xs">
+                <span class="text-gray-400">منذ {{ $s->started_at->diffForHumans() }}</span>
+                <a href="{{ route('shifts.pdf', $s) }}" target="_blank"
+                   class="flex items-center gap-1 px-2 py-1 border border-gray-200 text-gray-500 rounded hover:bg-gray-50 transition">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                    PDF
+                </a>
+            </div>
         </div>
         @endforeach
     </div>

@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Shift;
+use App\Models\User;
 use App\Services\ShiftService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -14,7 +15,7 @@ class ShiftController extends Controller
     {
         $user = auth()->user();
         $activeShift = $this->service->getActiveShift($user);
-        $recentShifts = $this->service->getHistory($user, 7);
+        $recentShifts = $this->service->getHistory($user, 10);
 
         if ($activeShift) {
             $activeShift->load(['payments.reservation.guest', 'withdrawals']);
@@ -23,22 +24,39 @@ class ShiftController extends Controller
         $allActive = $user->isAdmin() ? $this->service->getAllActiveShifts() : collect();
         $suggestedShiftType = ShiftService::guessShiftType();
 
-        return view('shifts.index', compact('activeShift', 'recentShifts', 'allActive', 'suggestedShiftType'));
+        // Admin: list of employees to assign shifts to
+        $employees = $user->isAdmin()
+            ? User::where('is_active', true)->orderBy('name')->get()
+            : collect();
+
+        return view('shifts.index', compact(
+            'activeShift', 'recentShifts', 'allActive', 'suggestedShiftType', 'employees'
+        ));
     }
 
     public function open(Request $request)
     {
+        // Only admin can open shifts
+        if (!auth()->user()->isAdmin()) {
+            return back()->withErrors(['error' => 'فتح الوردية من صلاحيات الإدارة فقط']);
+        }
+
         $request->validate([
+            'user_id'    => 'required|exists:users,id',
             'shift_type' => 'required|in:morning,evening,night',
         ], [
+            'user_id.required'    => 'يجب تحديد الموظف',
+            'user_id.exists'      => 'الموظف غير موجود',
             'shift_type.required' => 'نوع الوردية مطلوب',
             'shift_type.in'       => 'نوع الوردية غير صالح',
         ]);
 
+        $targetUser = User::findOrFail($request->user_id);
+
         try {
-            $shift = $this->service->openShift(auth()->user(), $request->shift_type);
+            $shift = $this->service->openShift($targetUser, $request->shift_type);
             return redirect()->route('shifts.index')
-                ->with('success', 'تم فتح الوردية ' . $shift->type_label . ' بنجاح');
+                ->with('success', 'تم فتح وردية ' . $shift->type_label . ' للموظف ' . $targetUser->name);
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()]);
         }
@@ -58,11 +76,11 @@ class ShiftController extends Controller
             'exchange_to_currency' => 'required_if:withdrawal_type,currency_exchange|nullable|in:YER,SAR,USD|different:currency',
             'exchange_to_amount'   => 'required_if:withdrawal_type,currency_exchange|nullable|numeric|min:0.01',
         ], [
-            'amount.required'               => 'المبلغ مطلوب',
-            'amount.numeric'                => 'يجب أن يكون المبلغ رقماً',
-            'amount.min'                    => 'المبلغ يجب أن يكون أكبر من صفر',
-            'currency.required'             => 'العملة مطلوبة',
-            'withdrawn_by_name.required'    => 'اسم المستلم مطلوب',
+            'amount.required'                  => 'المبلغ مطلوب',
+            'amount.numeric'                   => 'يجب أن يكون المبلغ رقماً',
+            'amount.min'                       => 'المبلغ يجب أن يكون أكبر من صفر',
+            'currency.required'                => 'العملة مطلوبة',
+            'withdrawn_by_name.required'       => 'اسم المستلم مطلوب',
             'exchange_to_currency.required_if' => 'عملة الصرف المقابلة مطلوبة',
             'exchange_to_currency.different'   => 'عملة الصرف يجب أن تختلف عن عملة السحب',
             'exchange_to_amount.required_if'   => 'المبلغ المُحوَّل إليه مطلوب',
@@ -70,7 +88,7 @@ class ShiftController extends Controller
 
         $shift = $this->service->getActiveShift(auth()->user());
         if (!$shift) {
-            return back()->withErrors(['error' => 'لا توجد وردية مفتوحة، افتح وردية أولاً']);
+            return back()->withErrors(['error' => 'لا توجد وردية مفتوحة لك']);
         }
 
         try {
