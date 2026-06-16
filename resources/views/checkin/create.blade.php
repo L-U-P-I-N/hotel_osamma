@@ -42,7 +42,7 @@
 <form id="checkInForm" method="POST" action="{{ route('checkin.store') }}" enctype="multipart/form-data"
       @submit="handleSubmit($event)">
 @csrf
-<input type="hidden" name="booking_mode" value="{{ $mode }}">`
+<input type="hidden" name="booking_mode" value="{{ $mode }}">
 
 <!-- STEP 1: Guest Details -->
 <div x-show="currentStep === 1" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
@@ -271,7 +271,7 @@
 
 <!-- STEP 3: Room Selection -->
 <div x-show="currentStep === 3" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-    <h2 class="text-lg font-semibold text-gray-800 mb-5 pb-3 border-b border-gray-100">اختيار الغرفة</h2>
+    <h2 class="text-lg font-semibold text-gray-800 mb-4 pb-3 border-b border-gray-100">اختيار الغرفة</h2>
 
     <!-- Selected room summary -->
     <div x-show="selectedRoom" class="mb-4 p-4 bg-primary-50 border border-primary-200 rounded-xl flex items-center gap-4">
@@ -284,37 +284,6 @@
         <button type="button" @click="clearRoomSelection()" class="mr-auto text-primary-400 hover:text-primary-600 text-xs">تغيير</button>
     </div>
 
-    <!-- Suite A/B booking type selector -->
-    <div x-show="selectedRoom && linkedInfo && !linkedInfo.is_always_linked" class="mb-5 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-        <p class="text-sm font-semibold text-blue-800 mb-3">خيارات حجز الجناح</p>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <label class="cursor-pointer">
-                <input type="radio" x-model="suiteBookingType" value="a_only" class="sr-only peer" @change="calcTotal()">
-                <div class="border-2 border-gray-200 peer-checked:border-blue-500 peer-checked:bg-blue-100 rounded-xl p-3 text-center transition-all text-sm">
-                    <div class="font-semibold text-gray-700 peer-checked:text-blue-800" x-text="selectedRoom?.room_number + ' فقط'"></div>
-                    <div class="text-xs text-gray-400 mt-0.5" x-text="formatNumber(selectedRoom?.base_price) + ' ر.ي'"></div>
-                </div>
-            </label>
-            <label class="cursor-pointer" x-show="linkedInfo?.linked_available">
-                <input type="radio" x-model="suiteBookingType" value="b_only" class="sr-only peer" @change="calcTotal()">
-                <div class="border-2 border-gray-200 peer-checked:border-blue-500 peer-checked:bg-blue-100 rounded-xl p-3 text-center transition-all text-sm">
-                    <div class="font-semibold text-gray-700" x-text="(linkedInfo?.linked_number ?? '') + ' فقط'"></div>
-                    <div class="text-xs text-gray-400 mt-0.5" x-text="formatNumber(selectedRoom?.base_price) + ' ر.ي'"></div>
-                </div>
-            </label>
-            <label class="cursor-pointer" x-show="linkedInfo?.linked_available">
-                <input type="radio" x-model="suiteBookingType" value="both" class="sr-only peer" @change="calcTotal()">
-                <div class="border-2 border-gray-200 peer-checked:border-purple-500 peer-checked:bg-purple-50 rounded-xl p-3 text-center transition-all text-sm">
-                    <div class="font-semibold text-gray-700" x-text="selectedRoom?.room_number + ' + ' + (linkedInfo?.linked_number ?? '')"></div>
-                    <div class="text-xs text-gray-400 mt-0.5" x-text="formatNumber((selectedRoom?.base_price ?? 0) * 2) + ' ر.ي (معاً)'"></div>
-                </div>
-            </label>
-        </div>
-        <div x-show="!linkedInfo?.linked_available" class="mt-2 text-xs text-yellow-700 bg-yellow-50 rounded-lg p-2">
-            الجناح المقابل محجوز — يمكن حجز هذا الجناح منفرداً فقط.
-        </div>
-    </div>
-
     <!-- Apartment notice -->
     <div x-show="selectedRoom && linkedInfo?.is_always_linked" class="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
         <strong>الشقة تُحجز دائماً كوحدة كاملة</strong> — سيشمل الحجز الغرفتين
@@ -324,8 +293,39 @@
     <input type="hidden" name="room_id" x-model="roomId">
     <input type="hidden" name="suite_booking_type" x-model="suiteBookingType">
 
+    <!-- Filters -->
+    <div class="mb-5 space-y-2">
+        <div class="flex flex-wrap items-center gap-2">
+            <span class="text-xs font-medium text-gray-500 w-12 flex-shrink-0">الطابق:</span>
+            <button type="button" @click="floorFilter = 'all'"
+                    :class="floorFilter === 'all' ? 'bg-primary-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                    class="px-3 py-1 rounded-full text-xs font-medium transition">الكل</button>
+            @foreach($floors as $floor)
+            <button type="button" @click="floorFilter = '{{ $floor }}'"
+                    :class="floorFilter === '{{ $floor }}' ? 'bg-primary-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                    class="px-3 py-1 rounded-full text-xs font-medium transition">{{ $floor }}</button>
+            @endforeach
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <span class="text-xs font-medium text-gray-500 w-12 flex-shrink-0">النوع:</span>
+            <button type="button" @click="typeFilter = 'all'"
+                    :class="typeFilter === 'all' ? 'bg-primary-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                    class="px-3 py-1 rounded-full text-xs font-medium transition">الكل</button>
+            <button type="button" @click="typeFilter = 'regular'"
+                    :class="typeFilter === 'regular' ? 'bg-primary-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                    class="px-3 py-1 rounded-full text-xs font-medium transition">عادية</button>
+            <button type="button" @click="typeFilter = 'suite'"
+                    :class="typeFilter === 'suite' ? 'bg-primary-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                    class="px-3 py-1 rounded-full text-xs font-medium transition">جناح</button>
+            <button type="button" @click="typeFilter = 'hall'"
+                    :class="typeFilter === 'hall' ? 'bg-primary-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                    class="px-3 py-1 rounded-full text-xs font-medium transition">صالة</button>
+        </div>
+    </div>
+
+    <!-- Room Grid -->
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-        @foreach($availableRooms as $room)
+        @foreach($displayRooms as $room)
         @php
             $info = $linkedAvailability[$room->id] ?? null;
             $roomData = [
@@ -336,17 +336,70 @@
                 'room_type_name' => $room->roomType->name,
                 'sub_type'       => $room->room_sub_type,
             ];
+            $roomTypeKey = match($room->room_sub_type) {
+                'suite_a', 'suite_b' => 'suite',
+                'hall' => 'hall',
+                default => 'regular',
+            };
         @endphp
-        <div @click="selectRoom({{ json_encode($roomData) }}, {{ json_encode($info) }})"
+
+        @if($room->room_sub_type === 'suite_a')
+        @php
+            $doorLabel = rtrim($room->room_number, 'AB');
+            $linkedRoomData = $info ? [
+                'id'             => $info['linked_id'],
+                'room_number'    => $info['linked_number'],
+                'floor'          => $room->floor,
+                'base_price'     => (float)$room->roomType->base_price,
+                'room_type_name' => $room->roomType->name,
+                'sub_type'       => 'suite_b',
+            ] : null;
+        @endphp
+        {{-- Suite door card with inline A / B / A+B selector --}}
+        <div x-show="(floorFilter === 'all' || floorFilter === '{{ $room->floor }}') && (typeFilter === 'all' || typeFilter === 'suite')"
+             class="border-2 rounded-xl p-3 transition-all duration-200"
+             :class="(roomId == '{{ $room->id }}' || roomId == '{{ $info ? $info['linked_id'] : '' }}') ? 'border-primary-600 bg-primary-50' : 'border-blue-200 bg-blue-50'">
+            <div class="flex items-center justify-between mb-1.5">
+                <div class="flex items-center gap-1.5">
+                    <span class="text-xl font-bold text-gray-800">{{ $doorLabel }}</span>
+                    <span class="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-medium">جناح</span>
+                </div>
+                <span class="text-xs text-gray-400">ط{{ $room->floor }}</span>
+            </div>
+            <div class="text-xs text-gray-500 mb-1">{{ $room->roomType->name }}</div>
+            <div class="text-xs font-semibold text-green-700 mb-2.5">{{ number_format($room->roomType->base_price,0) }} ر.ي / ليلة</div>
+            <div class="flex gap-1">
+                {{-- A only --}}
+                <button type="button"
+                        @click="selectRoom({{ json_encode($roomData) }}, {{ json_encode($info) }}, 'a_only')"
+                        :class="roomId == '{{ $room->id }}' && suiteBookingType === 'a_only' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400 hover:text-blue-700'"
+                        class="flex-1 border rounded-lg py-1.5 text-xs font-bold transition text-center">A</button>
+                @if($info && $info['linked_available'] && $linkedRoomData)
+                {{-- B only --}}
+                <button type="button"
+                        @click="selectRoom({{ json_encode($linkedRoomData) }}, null, 'b_only')"
+                        :class="roomId == '{{ $info['linked_id'] }}' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-600 border-gray-300 hover:border-purple-400 hover:text-purple-700'"
+                        class="flex-1 border rounded-lg py-1.5 text-xs font-bold transition text-center">B</button>
+                {{-- Both --}}
+                <button type="button"
+                        @click="selectRoom({{ json_encode($roomData) }}, {{ json_encode($info) }}, 'both')"
+                        :class="roomId == '{{ $room->id }}' && suiteBookingType === 'both' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-300 hover:border-indigo-400 hover:text-indigo-700'"
+                        class="flex-1 border rounded-lg py-1.5 text-xs font-bold transition text-center">A+B</button>
+                @else
+                <div class="flex-1 border border-gray-100 rounded-lg py-1.5 text-xs text-center text-gray-300 bg-gray-50 cursor-not-allowed" title="البوابة B محجوزة">B</div>
+                @endif
+            </div>
+        </div>
+
+        @else
+        {{-- Regular / Hall / Apartment card --}}
+        <div x-show="(floorFilter === 'all' || floorFilter === '{{ $room->floor }}') && (typeFilter === 'all' || typeFilter === '{{ $roomTypeKey }}')"
+             @click="selectRoom({{ json_encode($roomData) }}, {{ json_encode($info) }})"
              class="cursor-pointer border-2 rounded-xl p-3 transition-all duration-200"
              :class="roomId == '{{ $room->id }}' ? 'border-primary-600 bg-primary-50' : 'border-green-200 bg-green-50 hover:border-primary-400'">
             <div class="flex items-center gap-1">
                 <div class="text-xl font-bold text-gray-800">{{ $room->room_number }}</div>
-                @if($room->room_sub_type === 'suite_a')
-                    <span class="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-medium">A</span>
-                @elseif($room->room_sub_type === 'suite_b')
-                    <span class="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-medium">B</span>
-                @elseif($room->room_sub_type === 'apartment')
+                @if($room->room_sub_type === 'apartment')
                     <span class="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">شقة</span>
                 @elseif($room->room_sub_type === 'hall')
                     <span class="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-medium">صالة</span>
@@ -359,8 +412,10 @@
                 <div class="text-xs text-blue-600 mt-0.5">+ {{ $info['linked_number'] }} متاحة</div>
             @endif
         </div>
+        @endif
         @endforeach
-        @if($availableRooms->isEmpty())
+
+        @if($displayRooms->isEmpty())
         <div class="col-span-full text-center py-10 text-gray-400">
             <p class="text-sm">لا توجد غرف متاحة حالياً</p>
         </div>
@@ -440,6 +495,17 @@
                 </label>
             </div>
         </div>
+
+        @if($mode === 'reserve')
+        <!-- Reserve: minimum 1,000 YER deposit warning -->
+        <div class="md:col-span-2"
+             x-show="paymentStatus === 'unpaid' || (paymentStatus === 'partial' && effectivePaid < 1000)">
+            <div class="p-3 bg-amber-50 border border-amber-300 rounded-xl flex items-start gap-2 text-sm text-amber-800">
+                <svg class="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                <span>الحجز المسبق يتطلب دفع عربون لا يقل عن <strong>1,000 ريال يمني</strong></span>
+            </div>
+        </div>
+        @endif
 
         <!-- Payment Details (paid or partial) -->
         <div x-show="paymentStatus === 'paid' || paymentStatus === 'partial'" class="md:col-span-2 space-y-4">
@@ -620,6 +686,7 @@
 <script>
 const CHECKIN_SESSION_KEY = 'hotel_checkin_wizard';
 const HAS_BACKEND_ERRORS = {{ $errors->any() ? 'true' : 'false' }};
+const BOOKING_MODE = '{{ $mode }}';
 
 function checkInWizard() {
     return {
@@ -646,6 +713,8 @@ function checkInWizard() {
         returningGuest: false,
         returningGuestVisits: 0,
         returningGuestLastVisit: '',
+        floorFilter: 'all',
+        typeFilter: 'all',
         idTypeLabel: { national_id:'هوية وطنية', passport:'جواز سفر', residence:'إقامة' },
         submitting: false,
 
@@ -762,11 +831,13 @@ function checkInWizard() {
             this.companions.splice(idx, 1);
         },
 
-        selectRoom(room, info) {
+        selectRoom(room, info, forcedType = null) {
             this.selectedRoom = room;
             this.linkedInfo = info || null;
             this.roomId = room.id;
-            if (info && !info.is_always_linked) {
+            if (forcedType) {
+                this.suiteBookingType = forcedType;
+            } else if (info && !info.is_always_linked) {
                 this.suiteBookingType = room.sub_type === 'suite_a' ? 'a_only' : 'b_only';
             } else if (info && info.is_always_linked) {
                 this.suiteBookingType = 'both';
@@ -831,7 +902,14 @@ function checkInWizard() {
         canProceed() {
             if (this.currentStep === 1) return this.guestData.full_name && this.guestData.id_number && !this.blacklistAlert;
             if (this.currentStep === 3) return !!this.roomId;
-            if (this.currentStep === 4) return this.checkInDate && this.checkOutDate && this.nights > 0;
+            if (this.currentStep === 4) {
+                if (!this.checkInDate || !this.checkOutDate || this.nights <= 0) return false;
+                if (BOOKING_MODE === 'reserve') {
+                    if (this.paymentStatus === 'unpaid') return false;
+                    if (this.paymentStatus === 'partial' && this.effectivePaid < 1000) return false;
+                }
+                return true;
+            }
             return true;
         },
 

@@ -46,7 +46,16 @@ class CheckInController extends Controller
 
         $admins = User::role('admin')->where('is_active', true)->get();
         $nationalities = $this->getNationalities();
-        return view('checkin.create', compact('availableRooms', 'linkedAvailability', 'admins', 'nationalities', 'mode'));
+
+        // Filter display rooms: hide suite_b when its suite_a pair is available
+        $linkedBIds = $availableRooms->where('room_sub_type', 'suite_a')
+            ->pluck('linked_room_id')->filter()->toArray();
+        $displayRooms = $availableRooms->filter(
+            fn($r) => !($r->room_sub_type === 'suite_b' && in_array($r->id, $linkedBIds))
+        );
+        $floors = $displayRooms->pluck('floor')->unique()->sort()->values();
+
+        return view('checkin.create', compact('availableRooms', 'displayRooms', 'floors', 'linkedAvailability', 'admins', 'nationalities', 'mode'));
     }
 
     public function store(Request $request)
@@ -68,6 +77,17 @@ class CheckInController extends Controller
             'suite_booking_type'        => 'nullable|in:a_only,b_only,both',
             'booking_mode'              => 'nullable|in:checkin,reserve',
         ]);
+
+        if ($request->input('booking_mode') === 'reserve') {
+            $payStatus = $request->input('payment_status');
+            $paidAmt   = (float) $request->input('paid_amount', 0);
+            if ($payStatus === 'unpaid') {
+                return back()->withErrors(['payment_status' => 'الحجز المسبق يتطلب دفع عربون — لا يمكن تركه بدون دفعة'])->withInput();
+            }
+            if ($payStatus === 'partial' && $paidAmt < 1000) {
+                return back()->withErrors(['paid_amount' => 'العربون يجب أن لا يقل عن 1,000 ريال يمني للحجز المسبق'])->withInput();
+            }
+        }
 
         try {
             $data = $request->except(['_token']);
