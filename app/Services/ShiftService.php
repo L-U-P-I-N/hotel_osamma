@@ -11,9 +11,10 @@ class ShiftService
 {
     public function openShift(User $user, string $type): Shift
     {
+        // أغلق أي وردية مفتوحة سابقاً تلقائياً
         $existing = $this->getActiveShift($user);
         if ($existing) {
-            throw new \RuntimeException('لديك وردية ' . $existing->type_label . ' مفتوحة بالفعل، أقفلها أولاً');
+            $this->closeShift($existing, 'أُغلقت تلقائياً عند فتح وردية جديدة');
         }
 
         $shift = Shift::create([
@@ -26,6 +27,14 @@ class ShiftService
 
         AuditLogService::log('create', $shift, null, $shift->toArray(), $user);
         return $shift;
+    }
+
+    public static function guessShiftType(): string
+    {
+        $hour = (int) now()->format('H');
+        if ($hour >= 6 && $hour < 14)  return 'morning';
+        if ($hour >= 14 && $hour < 22) return 'evening';
+        return 'night';
     }
 
     public function getActiveShift(User $user): ?Shift
