@@ -25,6 +25,24 @@ class Room extends Model
     public function reservations(){ return $this->hasMany(Reservation::class); }
     public function linkedRoom() { return $this->belongsTo(Room::class, 'linked_room_id'); }
 
+    // --- mutators ---
+
+    public function setRoomNumberAttribute(string $value): void
+    {
+        $this->attributes['room_number'] = self::normalizeDigits($value);
+    }
+
+    public static function normalizeDigits(string $value): string
+    {
+        return strtr(trim($value), [
+            '٠'=>'0','١'=>'1','٢'=>'2','٣'=>'3','٤'=>'4',
+            '٥'=>'5','٦'=>'6','٧'=>'7','٨'=>'8','٩'=>'9',
+            // Persian digits
+            '۰'=>'0','۱'=>'1','۲'=>'2','۳'=>'3','۴'=>'4',
+            '۵'=>'5','۶'=>'6','۷'=>'7','۸'=>'8','۹'=>'9',
+        ]);
+    }
+
     // --- scopes ---
 
     public function scopeAvailable(Builder $query): Builder

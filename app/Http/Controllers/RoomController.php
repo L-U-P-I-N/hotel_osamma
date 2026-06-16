@@ -41,6 +41,7 @@ class RoomController extends Controller
 
     public function store(Request $request)
     {
+        $request->merge(['room_number' => Room::normalizeDigits($request->input('room_number', ''))]);
 
         $validated = $request->validate([
             'room_number'    => 'required|string|max:10|unique:rooms,room_number',
@@ -87,6 +88,7 @@ class RoomController extends Controller
 
     public function update(Request $request, Room $room)
     {
+        $request->merge(['room_number' => Room::normalizeDigits($request->input('room_number', ''))]);
 
         $validated = $request->validate([
             'room_number'    => 'required|string|max:10|unique:rooms,room_number,' . $room->id,

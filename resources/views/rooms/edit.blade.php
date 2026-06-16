@@ -160,4 +160,16 @@
     @endcanany
 
 </div>
+@push('scripts')
+<script>
+(function() {
+    var map = {'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9',
+               '۰':'0','۱':'1','۲':'2','۳':'3','۴':'4','۵':'5','۶':'6','۷':'7','۸':'8','۹':'9'};
+    function normalize(v) { return v.replace(/[٠-٩۰-۹]/g, function(d){ return map[d]||d; }); }
+    document.querySelectorAll('input[name="room_number"]').forEach(function(el) {
+        el.addEventListener('input', function(){ this.value = normalize(this.value); });
+    });
+})();
+</script>
+@endpush
 @endsection
