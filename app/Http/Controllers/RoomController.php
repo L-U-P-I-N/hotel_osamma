@@ -19,6 +19,9 @@ class RoomController extends Controller
         if ($request->filled('type')) {
             $query->whereHas('roomType', fn($q) => $q->where('name', $request->type));
         }
+        if ($request->filled('sub_type')) {
+            $query->where('room_sub_type', $request->sub_type);
+        }
         if ($request->filled('floor')) {
             $query->where('floor', $request->floor);
         }

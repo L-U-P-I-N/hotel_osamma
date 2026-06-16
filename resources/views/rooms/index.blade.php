@@ -39,6 +39,18 @@
                 @endforeach
             </select>
         </div>
+        <div class="flex-1 min-w-36">
+            <label class="block text-xs font-medium text-gray-600 mb-1">التصنيف</label>
+            <select name="sub_type" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                <option value="">جميع التصنيفات</option>
+                <option value="regular"   {{ request('sub_type')==='regular'   ? 'selected' : '' }}>عادية</option>
+                <option value="double"    {{ request('sub_type')==='double'    ? 'selected' : '' }}>زوجية</option>
+                <option value="suite_a"   {{ request('sub_type')==='suite_a'   ? 'selected' : '' }}>جناح A</option>
+                <option value="suite_b"   {{ request('sub_type')==='suite_b'   ? 'selected' : '' }}>جناح B</option>
+                <option value="hall"      {{ request('sub_type')==='hall'      ? 'selected' : '' }}>صالة</option>
+                <option value="apartment" {{ request('sub_type')==='apartment' ? 'selected' : '' }}>شقة</option>
+            </select>
+        </div>
         <div class="flex-1 min-w-28">
             <label class="block text-xs font-medium text-gray-600 mb-1">الطابق</label>
             <select name="floor" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
