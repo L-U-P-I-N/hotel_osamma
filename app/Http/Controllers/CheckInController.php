@@ -149,6 +149,33 @@ class CheckInController extends Controller
         return Storage::disk('private')->download($filePath);
     }
 
+    public function guestSearch(Request $request)
+    {
+        $q = trim($request->input('q', ''));
+        if (strlen($q) < 2) {
+            return response()->json([]);
+        }
+
+        $guests = Guest::where('full_name', 'like', "%{$q}%")
+            ->orderBy('full_name')
+            ->limit(8)
+            ->get(['id', 'full_name', 'nationality', 'occupation', 'id_type', 'id_number',
+                   'id_issuer', 'id_issue_date', 'phone', 'is_blacklisted']);
+
+        return response()->json($guests->map(fn($g) => [
+            'id'            => $g->id,
+            'full_name'     => $g->full_name,
+            'nationality'   => $g->nationality ?? '',
+            'occupation'    => $g->occupation ?? '',
+            'id_type'       => $g->id_type,
+            'id_number'     => $g->id_number,
+            'id_issuer'     => $g->id_issuer ?? '',
+            'id_issue_date' => $g->id_issue_date?->format('Y-m-d') ?? '',
+            'phone'         => $g->phone ?? '',
+            'is_blacklisted'=> $g->is_blacklisted,
+        ]));
+    }
+
     public function blacklistCheck(Request $request)
     {
         $idNumber = $request->input('id_number');

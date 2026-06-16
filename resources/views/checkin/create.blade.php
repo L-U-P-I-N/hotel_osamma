@@ -67,10 +67,47 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="md:col-span-2">
+        <div class="md:col-span-2 relative" x-data="guestAutocomplete()">
             <label class="block text-sm font-medium text-gray-700 mb-1.5">الاسم الرباعي <span class="text-red-500">*</span></label>
             <input type="text" name="full_name" x-model="guestData.full_name" required
+                   autocomplete="off"
+                   @input.debounce.300ms="search()"
+                   @keydown.arrow-down.prevent="moveDown()"
+                   @keydown.arrow-up.prevent="moveUp()"
+                   @keydown.enter.prevent="selectCurrent()"
+                   @keydown.escape="close()"
+                   @blur="delayClose()"
                    class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
+
+            <!-- Autocomplete Dropdown -->
+            <div x-show="open && results.length > 0" x-transition
+                 class="absolute z-50 right-0 left-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden max-h-64 overflow-y-auto">
+                <template x-for="(guest, i) in results" :key="guest.id">
+                    <button type="button"
+                            @mousedown.prevent="selectGuest(guest)"
+                            :class="i === activeIndex ? 'bg-primary-50' : 'hover:bg-gray-50'"
+                            class="w-full text-right px-4 py-3 border-b border-gray-50 last:border-0 transition">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-800" x-text="guest.full_name"></p>
+                                <p class="text-xs text-gray-500 mt-0.5">
+                                    <span x-text="guest.id_number"></span>
+                                    <span x-show="guest.nationality"> · <span x-text="guest.nationality"></span></span>
+                                </p>
+                            </div>
+                            <template x-if="guest.is_blacklisted">
+                                <span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">قائمة سوداء</span>
+                            </template>
+                        </div>
+                    </button>
+                </template>
+            </div>
+
+            <!-- Returning guest notice -->
+            <div x-show="returningGuest" class="mt-2 flex items-center gap-2 text-xs text-green-700 bg-green-50 rounded-lg px-3 py-1.5">
+                <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                نزيل مكرر — تم ملء البيانات تلقائياً
+            </div>
         </div>
 
         <div>
@@ -721,6 +758,7 @@
 const CHECKIN_SESSION_KEY = 'hotel_checkin_wizard';
 const HAS_BACKEND_ERRORS = {{ $errors->any() ? 'true' : 'false' }};
 const BOOKING_MODE = '{{ $mode }}';
+const GUEST_SEARCH_URL = '{{ route('guests.search') }}';
 
 function checkInWizard() {
     return {
@@ -1032,6 +1070,54 @@ function checkInWizard() {
             }
         },
     }
+}
+
+function guestAutocomplete() {
+    return {
+        results: [],
+        open: false,
+        activeIndex: -1,
+        _closeTimer: null,
+
+        async search() {
+            const q = this.guestData.full_name;
+            if (!q || q.length < 2) { this.results = []; this.open = false; return; }
+            const res = await fetch(GUEST_SEARCH_URL + '?q=' + encodeURIComponent(q));
+            this.results = await res.json();
+            this.open = this.results.length > 0;
+            this.activeIndex = -1;
+        },
+
+        selectGuest(guest) {
+            this.guestData.full_name    = guest.full_name;
+            this.guestData.nationality  = guest.nationality;
+            this.guestData.occupation   = guest.occupation;
+            this.guestData.id_type      = guest.id_type;
+            this.guestData.id_number    = guest.id_number;
+            this.guestData.id_issuer    = guest.id_issuer;
+            this.guestData.id_issue_date= guest.id_issue_date;
+            this.guestData.phone        = guest.phone;
+            this.returningGuest = true;
+            if (guest.is_blacklisted) {
+                this.blacklistAlert = true;
+                this.blacklistReason = 'هذا النزيل في القائمة السوداء';
+            }
+            this.close();
+            this.saveToSession();
+        },
+
+        selectCurrent() {
+            if (this.activeIndex >= 0 && this.results[this.activeIndex]) {
+                this.selectGuest(this.results[this.activeIndex]);
+            }
+        },
+
+        moveDown() { if (this.open) this.activeIndex = Math.min(this.activeIndex + 1, this.results.length - 1); },
+        moveUp()   { if (this.open) this.activeIndex = Math.max(this.activeIndex - 1, 0); },
+
+        close() { this.open = false; this.activeIndex = -1; },
+        delayClose() { this._closeTimer = setTimeout(() => this.close(), 200); },
+    };
 }
 </script>
 @endpush

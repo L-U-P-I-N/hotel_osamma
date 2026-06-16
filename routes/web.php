@@ -57,6 +57,11 @@ Route::middleware(['auth'])->group(function () {
         ->name('checkin.exportGov')
         ->middleware('permission:government.export');
 
+    // Guest name autocomplete (AJAX)
+    Route::get('/guests/search', [CheckInController::class, 'guestSearch'])
+        ->name('guests.search')
+        ->middleware('permission:checkin.create|guests.view');
+
     // Blacklist check (AJAX)
     Route::get('/guests/blacklist-check', [CheckInController::class, 'blacklistCheck'])
         ->name('guests.blacklistCheck')
