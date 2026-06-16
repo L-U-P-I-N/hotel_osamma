@@ -455,6 +455,11 @@
                    :min="checkInDate || today()" @change="calcTotal()"
                    class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
         </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">وقت الوصول</label>
+            <input type="time" name="check_in_time" x-model="checkInTime"
+                   class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+        </div>
 
         <!-- Summary box -->
         <div x-show="nights > 0" class="md:col-span-2 grid grid-cols-3 gap-3">
@@ -628,6 +633,7 @@
                 <div class="flex justify-between"><span class="text-gray-500">الغرفة:</span><span class="font-medium" x-text="roomSelectionLabel() || '-'"></span></div>
                 <div class="flex justify-between"><span class="text-gray-500">النوع:</span><span x-text="selectedRoom?.room_type_name || '-'"></span></div>
                 <div class="flex justify-between"><span class="text-gray-500">تاريخ الدخول:</span><span x-text="checkInDate || '-'"></span></div>
+                <div x-show="checkInTime" class="flex justify-between"><span class="text-gray-500">وقت الوصول:</span><span x-text="checkInTime"></span></div>
                 <div class="flex justify-between"><span class="text-gray-500">تاريخ الخروج:</span><span x-text="checkOutDate || '-'"></span></div>
                 <div class="flex justify-between"><span class="text-gray-500">عدد الليالي:</span><span x-text="nights"></span></div>
             </div>
@@ -705,6 +711,7 @@ function checkInWizard() {
         roomId: '',
         suiteBookingType: 'a_only',
         checkInDate: '',
+        checkInTime: '',
         checkOutDate: '',
         nights: 0,
         nightsInput: 1,
@@ -750,6 +757,7 @@ function checkInWizard() {
                     linkedInfo:      this.linkedInfo,
                     suiteBookingType:this.suiteBookingType,
                     checkInDate:     this.checkInDate,
+                    checkInTime:     this.checkInTime,
                     checkOutDate:    this.checkOutDate,
                     nightsInput:     this.nightsInput,
                     paymentStatus:   this.paymentStatus,
@@ -771,6 +779,7 @@ function checkInWizard() {
                 this.linkedInfo       = s.linkedInfo        ?? null;
                 this.suiteBookingType = s.suiteBookingType  ?? 'a_only';
                 this.checkInDate      = s.checkInDate       || this.checkInDate;
+                this.checkInTime      = s.checkInTime       || this.checkInTime;
                 this.checkOutDate     = s.checkOutDate      || this.checkOutDate;
                 this.nightsInput      = s.nightsInput       ?? 1;
                 this.paymentStatus    = s.paymentStatus     ?? 'paid';

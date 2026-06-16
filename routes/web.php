@@ -13,6 +13,8 @@ use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\BlacklistController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\DailyReportController;
+use App\Http\Controllers\CurrencyController;
 
 Route::get('/', fn() => redirect()->route('login'));
 
@@ -109,6 +111,15 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/reports/occupancy', [ReportController::class, 'occupancy'])->name('reports.occupancy');
         Route::get('/reports/revenue', [ReportController::class, 'revenue'])->name('reports.revenue');
         Route::get('/reports/staff', [ReportController::class, 'staffPerformance'])->name('reports.staff');
+        Route::get('/reports/daily', [DailyReportController::class, 'index'])->name('reports.daily');
+        Route::get('/reports/daily/pdf', [DailyReportController::class, 'exportPdf'])->name('reports.daily.pdf');
+        Route::get('/reports/daily/excel', [DailyReportController::class, 'exportExcel'])->name('reports.daily.excel');
+    });
+
+    // Currencies
+    Route::middleware('permission:users.manage')->group(function () {
+        Route::get('/currencies', [CurrencyController::class, 'index'])->name('currencies.index');
+        Route::put('/currencies/{currency}', [CurrencyController::class, 'update'])->name('currencies.update');
     });
 
     // Blacklist

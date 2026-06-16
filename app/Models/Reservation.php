@@ -12,7 +12,7 @@ class Reservation extends Model
 
     protected $fillable = [
         'guest_id','room_id','linked_room_id','suite_booking_type','created_by',
-        'check_in_date','check_out_date','actual_check_out','origin','purpose','notes',
+        'check_in_date','check_in_time','check_out_date','actual_check_out','origin','purpose','notes',
         'status','payment_status','total_amount','paid_amount',
         'admin_approval_id','government_exported','government_exported_at',
     ];

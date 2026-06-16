@@ -80,6 +80,7 @@ class CheckInService
                 'suite_booking_type' => $suiteBookingType,
                 'created_by'         => $user->id,
                 'check_in_date'      => $data['check_in_date'],
+                'check_in_time'      => $data['check_in_time'] ?? null,
                 'check_out_date'     => $data['check_out_date'],
                 'origin'             => $data['origin'] ?? null,
                 'purpose'            => $data['purpose'] ?? null,

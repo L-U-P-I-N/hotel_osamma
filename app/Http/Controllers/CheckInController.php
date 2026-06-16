@@ -66,6 +66,7 @@ class CheckInController extends Controller
             'id_number' => 'required|string',
             'room_id' => 'required|exists:rooms,id',
             'check_in_date' => 'required|date',
+            'check_in_time' => 'nullable|regex:/^\d{2}:\d{2}$/',
             'check_out_date' => 'required|date|after:check_in_date',
             'payment_status' => 'required|in:unpaid,partial,paid,deferred',
             'id_image' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
