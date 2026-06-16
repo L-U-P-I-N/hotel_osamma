@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Reservation;
 use App\Models\Room;
+use App\Models\User;
 use App\Services\AuditLogService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -33,9 +34,14 @@ class ReservationController extends Controller
             $query->whereDate('check_out_date', '<=', $request->to);
         }
 
-        $reservations = $query->latest()->paginate(25)->withQueryString();
+        if ($request->filled('created_by')) {
+            $query->where('created_by', $request->created_by);
+        }
 
-        return view('reservations.index', compact('reservations'));
+        $reservations = $query->latest()->paginate(25)->withQueryString();
+        $staff = User::where('is_active', true)->orderBy('name')->get();
+
+        return view('reservations.index', compact('reservations', 'staff'));
     }
 
     public function show(Reservation $reservation)

@@ -34,6 +34,17 @@
             <input type="date" name="to" value="{{ request('to') }}"
                    class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
         </div>
+        @can('users.manage')
+        <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">الموظف</label>
+            <select name="created_by" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                <option value="">جميع الموظفين</option>
+                @foreach($staff as $employee)
+                <option value="{{ $employee->id }}" {{ request('created_by')==$employee->id?'selected':'' }}>{{ $employee->name }}</option>
+                @endforeach
+            </select>
+        </div>
+        @endcan
         <button type="submit" class="px-4 py-2 bg-primary-800 text-white rounded-lg text-sm hover:bg-primary-700 transition">بحث</button>
         <a href="{{ route('reservations.index') }}" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200 transition">إعادة تعيين</a>
     </form>
@@ -64,6 +75,7 @@
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الإجمالي</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الدفع</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الحالة</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">بواسطة</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">إجراءات</th>
                 </tr>
             </thead>
@@ -93,6 +105,7 @@
                             {{ $res->status_label }}
                         </span>
                     </td>
+                    <td class="px-4 py-3 text-xs text-gray-500">{{ $res->createdBy?->name ?? '—' }}</td>
                     <td class="px-4 py-3">
                         <div class="flex items-center gap-2 flex-wrap">
                             <a href="{{ route('reservations.show', $res) }}" class="text-xs font-medium" style="color:#0F4C75;">عرض</a>
@@ -116,7 +129,7 @@
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="9" class="px-4 py-10 text-center text-gray-400">لا توجد حجوزات</td></tr>
+                <tr><td colspan="10" class="px-4 py-10 text-center text-gray-400">لا توجد حجوزات</td></tr>
                 @endforelse
             </tbody>
         </table>

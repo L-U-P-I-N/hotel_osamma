@@ -45,6 +45,15 @@
         </div>
     </div>
 
+    <!-- Returning Guest Alert -->
+    <div x-show="returningGuest && !blacklistAlert" x-cloak class="mb-4 p-4 bg-green-50 border border-green-300 rounded-lg flex items-start gap-3">
+        <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+        <div>
+            <p class="font-semibold text-green-800 text-sm">نزيل سابق — تم تعبئة البيانات تلقائياً</p>
+            <p class="text-green-700 text-xs mt-0.5" x-text="'عدد الزيارات السابقة: ' + returningGuestVisits + (returningGuestLastVisit ? ' · آخر زيارة: ' + returningGuestLastVisit : '')"></p>
+        </div>
+    </div>
+
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="md:col-span-2">
             <label class="block text-sm font-medium text-gray-700 mb-1.5">الاسم الرباعي <span class="text-red-500">*</span></label>
@@ -622,6 +631,9 @@ function checkInWizard() {
         idImageName: '',
         blacklistAlert: false,
         blacklistReason: '',
+        returningGuest: false,
+        returningGuestVisits: 0,
+        returningGuestLastVisit: '',
         idTypeLabel: { national_id:'هوية وطنية', passport:'جواز سفر', residence:'إقامة' },
         submitting: false,
 
@@ -693,14 +705,40 @@ function checkInWizard() {
         },
 
         async checkBlacklist() {
-            if (!this.guestData.id_number || this.guestData.id_number.length < 3) return;
+            if (!this.guestData.id_number || this.guestData.id_number.length < 3) {
+                this.returningGuest = false;
+                return;
+            }
             try {
-                const res = await fetch(`/guests/blacklist-check?id_number=${encodeURIComponent(this.guestData.id_number)}`, {
+                const res = await fetch(`/guests/lookup?id_number=${encodeURIComponent(this.guestData.id_number)}`, {
                     headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 });
                 const data = await res.json();
-                this.blacklistAlert = data.blacklisted;
+                this.blacklistAlert  = data.blacklisted ?? false;
                 this.blacklistReason = data.reason || '';
+
+                if (data.found && !data.blacklisted) {
+                    // Auto-fill guest data, but keep origin/purpose/notes (booking-specific)
+                    const origin  = this.guestData.origin;
+                    const purpose = this.guestData.purpose;
+                    const notes   = this.guestData.notes;
+                    this.guestData = {
+                        ...this.guestData,
+                        full_name:     data.full_name     || this.guestData.full_name,
+                        nationality:   data.nationality   || this.guestData.nationality,
+                        occupation:    data.occupation    || this.guestData.occupation,
+                        id_type:       data.id_type       || this.guestData.id_type,
+                        id_issuer:     data.id_issuer     || this.guestData.id_issuer,
+                        id_issue_date: data.id_issue_date || this.guestData.id_issue_date,
+                        phone:         data.phone         || this.guestData.phone,
+                        origin, purpose, notes,
+                    };
+                    this.returningGuest      = true;
+                    this.returningGuestVisits    = data.reservations_count || 0;
+                    this.returningGuestLastVisit = data.last_visit || '';
+                } else {
+                    this.returningGuest = false;
+                }
             } catch(e) {}
         },
 

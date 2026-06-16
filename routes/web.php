@@ -60,6 +60,11 @@ Route::middleware(['auth'])->group(function () {
         ->name('guests.blacklistCheck')
         ->middleware('permission:checkin.create|guests.view');
 
+    // Guest lookup for auto-fill (AJAX)
+    Route::get('/guests/lookup', [CheckInController::class, 'guestLookup'])
+        ->name('guests.lookup')
+        ->middleware('permission:checkin.create|guests.view');
+
     // Reservations
     Route::middleware('permission:checkin.view')->group(function () {
         Route::get('/reservations', [ReservationController::class, 'index'])->name('reservations.index');

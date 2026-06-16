@@ -134,6 +134,37 @@ class CheckInController extends Controller
         ]);
     }
 
+    public function guestLookup(Request $request)
+    {
+        $idNumber = $request->input('id_number');
+        if (empty($idNumber) || strlen($idNumber) < 3) {
+            return response()->json(['found' => false]);
+        }
+
+        $guest = Guest::searchByIdNumber($idNumber)->withCount('reservations')->first();
+
+        if (!$guest) {
+            return response()->json(['found' => false, 'blacklisted' => false]);
+        }
+
+        $lastReservation = $guest->reservations()->latest('check_in_date')->first();
+
+        return response()->json([
+            'found'              => true,
+            'blacklisted'        => $guest->is_blacklisted,
+            'reason'             => $guest->blacklist_reason,
+            'full_name'          => $guest->full_name,
+            'nationality'        => $guest->nationality,
+            'occupation'         => $guest->occupation ?? '',
+            'id_type'            => $guest->id_type,
+            'id_issuer'          => $guest->id_issuer ?? '',
+            'id_issue_date'      => $guest->id_issue_date?->format('Y-m-d') ?? '',
+            'phone'              => $guest->phone ?? '',
+            'reservations_count' => $guest->reservations_count,
+            'last_visit'         => $lastReservation?->check_in_date?->format('d/m/Y'),
+        ]);
+    }
+
     private function getNationalities(): array
     {
         return [
