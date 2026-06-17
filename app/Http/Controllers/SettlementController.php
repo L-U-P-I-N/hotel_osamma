@@ -12,18 +12,22 @@ class SettlementController extends Controller
     {
         $settlement = $this->service->getOrCreateTodaySettlement(auth()->user());
         $settlement->load(['withdrawals', 'user', 'lockedBy']);
-        return view('settlement.index', compact('settlement'));
+        $perCurrency = $this->service->getPerCurrencyTotals($settlement);
+        return view('settlement.index', compact('settlement', 'perCurrency'));
     }
 
     public function addWithdrawal(Request $request)
     {
         $request->validate([
-            'amount' => 'required|numeric|min:0.01',
-            'currency' => 'required|in:YER,SAR,USD',
-            'withdrawal_date' => 'required|date',
-            'withdrawn_by_name' => 'required|string',
-            'handed_by_name' => 'required|string',
-            'notes' => 'nullable|string',
+            'amount'               => 'required|numeric|min:0.01',
+            'currency'             => 'required|in:YER,SAR,USD',
+            'withdrawal_date'      => 'required|date',
+            'withdrawn_by_name'    => 'required|string',
+            'handed_by_name'       => 'required|string',
+            'notes'                => 'nullable|string',
+            'withdrawal_type'      => 'required|in:expense,currency_exchange',
+            'exchange_to_currency' => 'nullable|required_if:withdrawal_type,currency_exchange|in:YER,SAR,USD',
+            'exchange_to_amount'   => 'nullable|required_if:withdrawal_type,currency_exchange|numeric|min:0.01',
         ]);
 
         $settlement = $this->service->getOrCreateTodaySettlement(auth()->user());
