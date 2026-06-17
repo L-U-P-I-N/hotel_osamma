@@ -183,7 +183,7 @@ class TestDataSeeder extends Seeder
                 'currency'       => 'YER',
                 'method'         => $r['pay_method'] ?? 'cash',
                 'payment_date'   => $checkIn->copy()->addHour(),
-                'type'           => 'room',
+                'type'           => 'reservation',
             ]);
         }
 
