@@ -93,9 +93,14 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('permission:payments.bank_receipt')
         ->where('file', '.*');
 
-    // Cash Settlement (legacy)
+    // Cash Settlement
     Route::middleware('permission:shifts.view')->group(function () {
         Route::get('/settlement', [SettlementController::class, 'index'])->name('settlement.index');
+    });
+    Route::middleware('permission:shifts.view')->group(function () {
+        Route::post('/settlement/withdrawal', [SettlementController::class, 'addWithdrawal'])->name('settlement.withdrawal');
+        Route::post('/settlement/signatures', [SettlementController::class, 'saveSignatures'])->name('settlement.signatures');
+        Route::post('/settlement/lock', [SettlementController::class, 'lock'])->name('settlement.lock');
     });
 
     // Shifts
@@ -108,6 +113,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Reports
     Route::middleware('permission:reports.view')->group(function () {
+        Route::get('/reports', fn() => redirect()->route('reports.occupancy'))->name('reports.index');
         Route::get('/reports/occupancy', [ReportController::class, 'occupancy'])->name('reports.occupancy');
         Route::get('/reports/revenue', [ReportController::class, 'revenue'])->name('reports.revenue');
         Route::get('/reports/staff', [ReportController::class, 'staffPerformance'])->name('reports.staff');
