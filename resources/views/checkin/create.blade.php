@@ -412,9 +412,21 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1.5">تاريخ الوصول <span class="text-red-500">*</span></label>
-            <input type="date" name="check_in_date" x-model="checkInDate" required
-                   :min="today()" @change="calcTotal()"
-                   class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+            <template x-if="BOOKING_MODE === 'checkin'">
+                <div>
+                    <div class="w-full border border-gray-200 bg-gray-50 rounded-lg px-4 py-2.5 text-sm text-gray-700 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        <span x-text="checkInDate"></span>
+                        <span class="text-xs text-gray-400 mr-1">(اليوم)</span>
+                    </div>
+                    <input type="hidden" name="check_in_date" :value="checkInDate">
+                </div>
+            </template>
+            <template x-if="BOOKING_MODE !== 'checkin'">
+                <input type="date" name="check_in_date" x-model="checkInDate" required
+                       :min="today()" @change="calcTotal()"
+                       class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+            </template>
         </div>
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1.5">عدد الليالي</label>
@@ -760,6 +772,10 @@ function checkInWizard() {
             this.checkInDate = today;
             const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1);
             this.checkOutDate = tomorrow.toISOString().split('T')[0];
+            if (BOOKING_MODE === 'checkin') {
+                const now = new Date();
+                this.checkInTime = now.toTimeString().slice(0, 5);
+            }
 
             // Only restore saved state when recovering from a backend validation error
             if (HAS_BACKEND_ERRORS) {
@@ -928,6 +944,7 @@ function checkInWizard() {
                 if (!this.checkInDate)              return 'تاريخ الدخول مطلوب';
                 if (!this.checkOutDate)             return 'تاريخ الخروج مطلوب';
                 if (this.nights <= 0)               return 'تاريخ الخروج يجب أن يكون بعد تاريخ الدخول';
+                if (this.paymentStatus === 'partial' && (parseFloat(this.paidAmount) || 0) <= 0) return 'يرجى إدخال المبلغ المدفوع';
                 if (BOOKING_MODE === 'reserve' && this.paymentStatus === 'unpaid') return 'الحجز المسبق يتطلب دفع عربون';
                 if (BOOKING_MODE === 'reserve' && this.paymentStatus === 'partial' && this.effectivePaid < 1000) return 'العربون يجب أن لا يقل عن 1,000 ريال يمني';
                 return '';
