@@ -438,22 +438,47 @@
         </div>
 
         <!-- Summary box -->
-        <div x-show="nights > 0" class="md:col-span-2 grid grid-cols-3 gap-3">
-            <div class="bg-blue-50 rounded-xl p-3 text-center">
-                <div class="text-2xl font-bold text-blue-700" x-text="nights"></div>
-                <div class="text-xs text-blue-500 mt-0.5">ليلة</div>
+        <div x-show="nights > 0" class="md:col-span-2 space-y-3">
+            <div class="grid grid-cols-3 gap-3">
+                <div class="bg-blue-50 rounded-xl p-3 text-center">
+                    <div class="text-2xl font-bold text-blue-700" x-text="nights"></div>
+                    <div class="text-xs text-blue-500 mt-0.5">ليلة</div>
+                </div>
+                <div class="bg-green-50 rounded-xl p-3 text-center relative">
+                    <div class="text-2xl font-bold text-green-700" x-text="formatNumber(effectiveRoomPrice())"></div>
+                    <div class="text-xs text-green-500 mt-0.5">ر.ي / ليلة</div>
+                    <div x-show="customPrice !== null" class="text-xs text-amber-600 mt-0.5">(معدَّل)</div>
+                </div>
+                <div class="bg-primary-50 rounded-xl p-3 text-center">
+                    <div class="text-2xl font-bold text-primary-700" x-text="formatNumber(totalAmount)"></div>
+                    <div class="text-xs text-primary-500 mt-0.5">إجمالي ر.ي</div>
+                </div>
             </div>
-            <div class="bg-green-50 rounded-xl p-3 text-center">
-                <div class="text-2xl font-bold text-green-700" x-text="formatNumber(effectiveRoomPrice())"></div>
-                <div class="text-xs text-green-500 mt-0.5">ر.ي / ليلة</div>
-            </div>
-            <div class="bg-primary-50 rounded-xl p-3 text-center">
-                <div class="text-2xl font-bold text-primary-700" x-text="formatNumber(totalAmount)"></div>
-                <div class="text-xs text-primary-500 mt-0.5">إجمالي ر.ي</div>
+
+            <!-- Price override -->
+            <div class="border border-amber-200 bg-amber-50 rounded-xl p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <label class="text-sm font-medium text-amber-800">تعديل سعر الليلة (تفاوض)</label>
+                    <button type="button" x-show="customPrice !== null"
+                            @click="customPrice = null; calcTotal()"
+                            class="text-xs text-gray-400 hover:text-red-500 underline">
+                        استعادة السعر الأصلي (<span x-text="formatNumber(selectedRoom?.base_price || 0)"></span> ر.ي)
+                    </button>
+                </div>
+                <div class="flex items-center gap-3">
+                    <input type="number" min="0" step="100"
+                           :placeholder="'السعر الأصلي: ' + formatNumber(selectedRoom?.base_price || 0)"
+                           x-model.number="customPrice"
+                           @input="calcTotal()"
+                           class="flex-1 border border-amber-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-amber-400 outline-none bg-white">
+                    <span class="text-sm text-amber-700 font-medium whitespace-nowrap">ر.ي / ليلة</span>
+                </div>
+                <p class="text-xs text-amber-600 mt-1.5">اتركه فارغاً لاستخدام السعر الأصلي للغرفة</p>
             </div>
         </div>
 
         <input type="hidden" name="total_amount" :value="totalAmount">
+        <input type="hidden" name="price_per_night" :value="effectiveRoomPrice()">
 
         <!-- Payment Status -->
         <div class="md:col-span-2">
@@ -718,6 +743,7 @@ function checkInWizard() {
         nights: 0,
         nightsInput: 1,
         totalAmount: 0,
+        customPrice: null,
         paymentStatus: 'paid',
         paymentMethod: 'cash',
         paidAmount: 0,
@@ -769,6 +795,7 @@ function checkInWizard() {
                     paymentStatus:   this.paymentStatus,
                     paymentMethod:   this.paymentMethod,
                     paidAmount:      this.paidAmount,
+                    customPrice:     this.customPrice,
                 }));
             } catch(e) {}
         },
@@ -791,6 +818,7 @@ function checkInWizard() {
                 this.paymentStatus    = s.paymentStatus     ?? 'paid';
                 this.paymentMethod    = s.paymentMethod     ?? 'cash';
                 this.paidAmount       = s.paidAmount        ?? 0;
+                this.customPrice      = s.customPrice       ?? null;
                 this.currentStep      = s.currentStep       ?? 1;
                 this.$nextTick(() => this.calcTotal());
             } catch(e) {}
@@ -841,7 +869,9 @@ function checkInWizard() {
         },
 
         effectiveRoomPrice() {
-            const base = this.selectedRoom?.base_price || 0;
+            const base = (this.customPrice !== null && this.customPrice !== '')
+                ? parseFloat(this.customPrice) || 0
+                : (this.selectedRoom?.base_price || 0);
             return this.suiteBookingType === 'both' ? base * 2 : base;
         },
 
