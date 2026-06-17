@@ -62,7 +62,18 @@ class ReservationController extends Controller
 
         $reservation->load(['guest', 'room.roomType', 'companions']);
 
-        return view('reservations.edit', compact('reservation'));
+        $companionsData = $reservation->companions->map(fn($c) => [
+            'id'           => $c->id,
+            'full_name'    => $c->full_name,
+            'nationality'  => $c->nationality ?? '',
+            'id_type'      => $c->id_type ?? '',
+            'id_number'    => $c->id_number ?? '',
+            'relationship' => $c->relationship ?? '',
+            'delete'       => false,
+            '_key'         => $c->id,
+        ])->values()->toArray();
+
+        return view('reservations.edit', compact('reservation', 'companionsData'));
     }
 
     public function update(Request $request, Reservation $reservation)

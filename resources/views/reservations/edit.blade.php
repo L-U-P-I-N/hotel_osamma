@@ -234,16 +234,7 @@ function editReservation() {
         checkIn: '{{ old('check_in_date', $reservation->check_in_date?->format('Y-m-d') ?? '') }}',
         checkOut: '{{ old('check_out_date', $reservation->check_out_date?->format('Y-m-d') ?? '') }}',
         pricePerNight: {{ $reservation->room?->roomType?->base_price ?? 0 }},
-        companions: @json($reservation->companions->map(fn($c) => [
-            'id' => $c->id,
-            'full_name' => $c->full_name,
-            'nationality' => $c->nationality ?? '',
-            'id_type' => $c->id_type ?? '',
-            'id_number' => $c->id_number ?? '',
-            'relationship' => $c->relationship ?? '',
-            'delete' => false,
-            '_key' => $c->id,
-        ])),
+        companions: @json($companionsData),
         _nextKey: {{ $reservation->companions->count() + 1 }},
 
         get nights() {
