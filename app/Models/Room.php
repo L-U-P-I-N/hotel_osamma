@@ -12,12 +12,16 @@ class Room extends Model
 
     protected $fillable = [
         'hotel_id','room_type_id','room_number','floor',
+        'price_yer','price_sar','price_usd',
         'room_sub_type','linked_room_id','is_always_linked',
         'status','notes',
     ];
 
     protected $casts = [
         'is_always_linked' => 'boolean',
+        'price_yer' => 'decimal:2',
+        'price_sar' => 'decimal:2',
+        'price_usd' => 'decimal:2',
     ];
 
     public function hotel()      { return $this->belongsTo(Hotel::class); }
@@ -53,6 +57,46 @@ class Room extends Model
     public function scopeByStatus(Builder $query, string $status): Builder
     {
         return $query->where('status', $status);
+    }
+
+    // --- pricing ---
+
+    /**
+     * Price for a given currency. YER falls back to the room type's base_price
+     * when not explicitly set on the room (backwards compatibility).
+     */
+    public function priceFor(string $currency): float
+    {
+        $currency = strtoupper($currency);
+        $value = match ($currency) {
+            'SAR'   => $this->price_sar,
+            'USD'   => $this->price_usd,
+            default => $this->price_yer,
+        };
+
+        if (($value === null || $value === '') && $currency === 'YER') {
+            return (float) ($this->roomType->base_price ?? 0);
+        }
+
+        return (float) ($value ?? 0);
+    }
+
+    public function pricesArray(): array
+    {
+        return [
+            'YER' => $this->priceFor('YER'),
+            'SAR' => $this->priceFor('SAR'),
+            'USD' => $this->priceFor('USD'),
+        ];
+    }
+
+    public static function currencySymbol(string $currency): string
+    {
+        return match (strtoupper($currency)) {
+            'SAR'   => 'ر.س',
+            'USD'   => '$',
+            default => 'ر.ي',
+        };
     }
 
     // --- helpers ---

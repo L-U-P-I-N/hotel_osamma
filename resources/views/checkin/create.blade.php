@@ -255,7 +255,7 @@
         <div>
             <div class="font-semibold text-primary-800" x-text="roomSelectionLabel()"></div>
             <div class="text-sm text-primary-600" x-text="selectedRoom?.room_type_name + ' - الطابق ' + selectedRoom?.floor"></div>
-            <div class="text-sm font-medium text-primary-700 mt-0.5" x-text="formatNumber(effectiveRoomPrice()) + ' ر.ي / ليلة'"></div>
+            <div class="text-sm font-medium text-primary-700 mt-0.5" x-text="formatNumber(effectiveRoomPrice()) + ' ' + currencySymbol() + ' / ليلة'"></div>
         </div>
         <button type="button" @click="clearRoomSelection()" class="mr-auto text-primary-400 hover:text-primary-600 text-xs">تغيير</button>
     </div>
@@ -312,6 +312,7 @@
                 'room_number'    => $room->room_number,
                 'floor'          => $room->floor,
                 'base_price'     => (float)$room->roomType->base_price,
+                'prices'         => $room->pricesArray(),
                 'room_type_name' => $room->roomType->name,
                 'sub_type'       => $room->room_sub_type,
             ];
@@ -331,6 +332,7 @@
                 'room_number'    => $info['linked_number'],
                 'floor'          => $room->floor,
                 'base_price'     => (float)$room->roomType->base_price,
+                'prices'         => $room->pricesArray(),
                 'room_type_name' => $room->roomType->name,
                 'sub_type'       => 'suite_b',
             ] : null;
@@ -449,6 +451,26 @@
                    class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
         </div>
 
+        <!-- Currency selector — drives the room price shown below -->
+        <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-2">عملة الحجز والدفع <span class="text-red-500">*</span></label>
+            <div class="grid grid-cols-3 gap-3">
+                <template x-for="cur in ['YER','SAR','USD']" :key="cur">
+                    <label class="relative cursor-pointer">
+                        <input type="radio" name="currency" :value="cur" x-model="currency"
+                               @change="onCurrencyChange()" class="peer sr-only">
+                        <div class="border-2 border-gray-200 peer-checked:border-primary-600 peer-checked:bg-primary-50 rounded-xl p-3 text-center transition-all">
+                            <div class="font-semibold text-sm text-gray-700 peer-checked:text-primary-800" x-text="currencyName(cur)"></div>
+                            <div class="text-xs text-gray-400 mt-0.5" x-text="formatNumber(roomBasePriceFor(cur)) + ' ' + currencySymbolFor(cur)"></div>
+                        </div>
+                    </label>
+                </template>
+            </div>
+            <p x-show="selectedRoom && roomBasePriceFor(currency) <= 0" class="text-xs text-red-500 mt-1.5">
+                لا يوجد سعر محدد لهذه الغرفة بالعملة المختارة — أدخل السعر يدوياً عبر "تعديل السعر" أدناه.
+            </p>
+        </div>
+
         <!-- Summary box -->
         <div x-show="nights > 0" class="md:col-span-2 space-y-3">
             <div class="grid grid-cols-3 gap-3">
@@ -458,34 +480,34 @@
                 </div>
                 <div class="bg-green-50 rounded-xl p-3 text-center relative">
                     <div class="text-2xl font-bold text-green-700" x-text="formatNumber(effectiveRoomPrice())"></div>
-                    <div class="text-xs text-green-500 mt-0.5">ر.ي / ليلة</div>
+                    <div class="text-xs text-green-500 mt-0.5"><span x-text="currencySymbol()"></span> / ليلة</div>
                     <div x-show="customPrice !== null" class="text-xs text-amber-600 mt-0.5">(معدَّل)</div>
                 </div>
                 <div class="bg-primary-50 rounded-xl p-3 text-center">
                     <div class="text-2xl font-bold text-primary-700" x-text="formatNumber(totalAmount)"></div>
-                    <div class="text-xs text-primary-500 mt-0.5">إجمالي ر.ي</div>
+                    <div class="text-xs text-primary-500 mt-0.5">الإجمالي <span x-text="currencySymbol()"></span></div>
                 </div>
             </div>
 
-            <!-- Price override -->
+            <!-- Price override (per selected currency) -->
             <div class="border border-amber-200 bg-amber-50 rounded-xl p-4">
                 <div class="flex items-center justify-between mb-2">
-                    <label class="text-sm font-medium text-amber-800">تعديل سعر الليلة (تفاوض)</label>
+                    <label class="text-sm font-medium text-amber-800">تعديل سعر الليلة (تفاوض) — <span x-text="currencyName(currency)"></span></label>
                     <button type="button" x-show="customPrice !== null"
                             @click="customPrice = null; calcTotal()"
                             class="text-xs text-gray-400 hover:text-red-500 underline">
-                        استعادة السعر الأصلي (<span x-text="formatNumber(selectedRoom?.base_price || 0)"></span> ر.ي)
+                        استعادة السعر الأصلي (<span x-text="formatNumber(roomBasePriceFor(currency))"></span> <span x-text="currencySymbol()"></span>)
                     </button>
                 </div>
                 <div class="flex items-center gap-3">
                     <input type="number" min="0" step="100"
-                           :placeholder="'السعر الأصلي: ' + formatNumber(selectedRoom?.base_price || 0)"
+                           :placeholder="'السعر الأصلي: ' + formatNumber(roomBasePriceFor(currency))"
                            x-model.number="customPrice"
                            @input="calcTotal()"
                            class="flex-1 border border-amber-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-amber-400 outline-none bg-white">
-                    <span class="text-sm text-amber-700 font-medium whitespace-nowrap">ر.ي / ليلة</span>
+                    <span class="text-sm text-amber-700 font-medium whitespace-nowrap"><span x-text="currencySymbol()"></span> / ليلة</span>
                 </div>
-                <p class="text-xs text-amber-600 mt-1.5">اتركه فارغاً لاستخدام السعر الأصلي للغرفة</p>
+                <p class="text-xs text-amber-600 mt-1.5">اتركه فارغاً لاستخدام السعر الأصلي للغرفة بهذه العملة</p>
             </div>
         </div>
 
@@ -514,12 +536,17 @@
         </div>
 
         @if($mode === 'reserve')
-        <!-- Reserve: minimum 1,000 YER deposit warning -->
+        <!-- Reserve: deposit warning (min 1,000 only for YER) -->
         <div class="md:col-span-2"
-             x-show="paymentStatus === 'unpaid' || (paymentStatus === 'partial' && effectivePaid < 1000)">
+             x-show="paymentStatus === 'unpaid' || (paymentStatus === 'partial' && currency === 'YER' && effectivePaid < 1000) || (paymentStatus === 'partial' && currency !== 'YER' && effectivePaid <= 0)">
             <div class="p-3 bg-amber-50 border border-amber-300 rounded-xl flex items-start gap-2 text-sm text-amber-800">
                 <svg class="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-                <span>الحجز المسبق يتطلب دفع عربون لا يقل عن <strong>1,000 ريال يمني</strong></span>
+                <template x-if="currency === 'YER'">
+                    <span>الحجز المسبق يتطلب دفع عربون لا يقل عن <strong>1,000 ريال يمني</strong></span>
+                </template>
+                <template x-if="currency !== 'YER'">
+                    <span>الحجز المسبق يتطلب دفع عربون</span>
+                </template>
             </div>
         </div>
         @endif
@@ -527,7 +554,7 @@
         <!-- Payment Details (paid or partial) -->
         <div x-show="paymentStatus === 'paid' || paymentStatus === 'partial'" class="md:col-span-2 space-y-4">
             <div x-show="paymentStatus === 'partial'">
-                <label class="block text-sm font-medium text-gray-700 mb-1.5">المبلغ المدفوع <span class="text-red-500">*</span></label>
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">المبلغ المدفوع (<span x-text="currencySymbol()"></span>) <span class="text-red-500">*</span></label>
                 <input type="number" name="paid_amount" x-model="paidAmount" step="0.01" min="0"
                        :max="totalAmount" placeholder="0.00"
                        class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
@@ -574,14 +601,6 @@
                 </div>
             </div>
 
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1.5">العملة</label>
-                <select name="currency" class="w-48 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
-                    <option value="YER">ريال يمني (YER)</option>
-                    <option value="SAR">ريال سعودي (SAR)</option>
-                    <option value="USD">دولار أمريكي (USD)</option>
-                </select>
-            </div>
         </div>
 
     </div>
@@ -638,9 +657,9 @@
         <div class="bg-primary-50 rounded-xl p-4 border border-primary-200">
             <h3 class="font-semibold text-primary-800 text-sm mb-3">ملخص المدفوعات</h3>
             <div class="space-y-1.5 text-sm">
-                <div class="flex justify-between"><span class="text-gray-600">الإجمالي:</span><span class="font-bold text-primary-800" x-text="formatNumber(totalAmount) + ' ر.ي'"></span></div>
-                <div class="flex justify-between"><span class="text-gray-600">المدفوع:</span><span class="font-medium" x-text="formatNumber(effectivePaid) + ' ر.ي'"></span></div>
-                <div class="flex justify-between border-t border-primary-200 pt-1.5 mt-1.5"><span class="text-gray-600">المتبقي:</span><span class="font-bold" :class="totalAmount - effectivePaid > 0 ? 'text-red-600' : 'text-green-600'" x-text="formatNumber(totalAmount - effectivePaid) + ' ر.ي'"></span></div>
+                <div class="flex justify-between"><span class="text-gray-600">الإجمالي:</span><span class="font-bold text-primary-800" x-text="formatNumber(totalAmount) + ' ' + currencySymbol()"></span></div>
+                <div class="flex justify-between"><span class="text-gray-600">المدفوع:</span><span class="font-medium" x-text="formatNumber(effectivePaid) + ' ' + currencySymbol()"></span></div>
+                <div class="flex justify-between border-t border-primary-200 pt-1.5 mt-1.5"><span class="text-gray-600">المتبقي:</span><span class="font-bold" :class="totalAmount - effectivePaid > 0 ? 'text-red-600' : 'text-green-600'" x-text="formatNumber(totalAmount - effectivePaid) + ' ' + currencySymbol()"></span></div>
             </div>
         </div>
     </div>
@@ -718,6 +737,7 @@ function checkInWizard() {
         nightsInput: 1,
         totalAmount: 0,
         customPrice: null,
+        currency: 'YER',
         paymentStatus: 'paid',
         paymentMethod: 'cash',
         paidAmount: 0,
@@ -774,6 +794,7 @@ function checkInWizard() {
                     paymentMethod:   this.paymentMethod,
                     paidAmount:      this.paidAmount,
                     customPrice:     this.customPrice,
+                    currency:        this.currency,
                 }));
             } catch(e) {}
         },
@@ -797,6 +818,7 @@ function checkInWizard() {
                 this.paymentMethod    = s.paymentMethod     ?? 'cash';
                 this.paidAmount       = s.paidAmount        ?? 0;
                 this.customPrice      = s.customPrice       ?? null;
+                this.currency         = s.currency          ?? 'YER';
                 this.currentStep      = s.currentStep       ?? 1;
                 this.$nextTick(() => this.calcTotal());
             } catch(e) {}
@@ -846,11 +868,40 @@ function checkInWizard() {
             this.saveToSession();
         },
 
+        // Room's configured price for a given currency (falls back to base_price for YER)
+        roomBasePriceFor(cur) {
+            if (!this.selectedRoom) return 0;
+            const prices = this.selectedRoom.prices || {};
+            let val = parseFloat(prices[cur]);
+            if ((isNaN(val) || val <= 0) && cur === 'YER') {
+                val = parseFloat(this.selectedRoom.base_price) || 0;
+            }
+            return isNaN(val) ? 0 : val;
+        },
+
         effectiveRoomPrice() {
             const base = (this.customPrice !== null && this.customPrice !== '')
                 ? parseFloat(this.customPrice) || 0
-                : (this.selectedRoom?.base_price || 0);
+                : this.roomBasePriceFor(this.currency);
             return this.suiteBookingType === 'both' ? base * 2 : base;
+        },
+
+        currencySymbol() { return this.currencySymbolFor(this.currency); },
+
+        currencySymbolFor(cur) {
+            return cur === 'SAR' ? 'ر.س' : cur === 'USD' ? '$' : 'ر.ي';
+        },
+
+        currencyName(cur) {
+            return cur === 'SAR' ? 'ريال سعودي' : cur === 'USD' ? 'دولار أمريكي' : 'ريال يمني';
+        },
+
+        // Switching currency clears any negotiated price (negotiation is per-currency)
+        onCurrencyChange() {
+            this.customPrice = null;
+            this.paidAmount = 0;
+            this.calcTotal();
+            if (this.stepError) this.stepError = '';
         },
 
         roomSelectionLabel() {
@@ -906,9 +957,11 @@ function checkInWizard() {
                 if (!this.checkInDate)              return 'تاريخ الدخول مطلوب';
                 if (!this.checkOutDate)             return 'تاريخ الخروج مطلوب';
                 if (this.nights <= 0)               return 'تاريخ الخروج يجب أن يكون بعد تاريخ الدخول';
+                if (this.effectiveRoomPrice() <= 0) return 'لا يوجد سعر للغرفة بالعملة المختارة — أدخل السعر يدوياً';
                 if (this.paymentStatus === 'partial' && (parseFloat(this.paidAmount) || 0) <= 0) return 'يرجى إدخال المبلغ المدفوع';
                 if (BOOKING_MODE === 'reserve' && this.paymentStatus === 'unpaid') return 'الحجز المسبق يتطلب دفع عربون';
-                if (BOOKING_MODE === 'reserve' && this.paymentStatus === 'partial' && this.effectivePaid < 1000) return 'العربون يجب أن لا يقل عن 1,000 ريال يمني';
+                if (BOOKING_MODE === 'reserve' && this.paymentStatus === 'partial' && this.currency === 'YER' && this.effectivePaid < 1000) return 'العربون يجب أن لا يقل عن 1,000 ريال يمني';
+                if (BOOKING_MODE === 'reserve' && this.paymentStatus === 'partial' && this.currency !== 'YER' && this.effectivePaid <= 0) return 'الحجز المسبق يتطلب دفع عربون';
                 return '';
             }
             return '';

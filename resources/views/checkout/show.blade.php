@@ -32,17 +32,17 @@
         <div class="bg-blue-50 rounded-lg p-3 text-center border border-blue-100">
             <div class="text-xs text-blue-500 mb-1">الإجمالي</div>
             <div class="font-bold text-blue-800">{{ number_format($reservation->total_amount, 2) }}</div>
-            <div class="text-xs text-blue-400">ر.ي</div>
+            <div class="text-xs text-blue-400">{{ $reservation->currency_symbol }}</div>
         </div>
         <div class="bg-green-50 rounded-lg p-3 text-center border border-green-100">
             <div class="text-xs text-green-500 mb-1">المدفوع</div>
             <div class="font-bold text-green-800">{{ number_format($reservation->paid_amount, 2) }}</div>
-            <div class="text-xs text-green-400">ر.ي</div>
+            <div class="text-xs text-green-400">{{ $reservation->currency_symbol }}</div>
         </div>
         <div class="rounded-lg p-3 text-center border {{ $reservation->balance > 0 ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100' }}">
             <div class="text-xs {{ $reservation->balance > 0 ? 'text-red-500' : 'text-gray-500' }} mb-1">المتبقي</div>
             <div class="font-bold {{ $reservation->balance > 0 ? 'text-red-800' : 'text-gray-800' }}">{{ number_format($reservation->balance, 2) }}</div>
-            <div class="text-xs {{ $reservation->balance > 0 ? 'text-red-400' : 'text-gray-400' }}">ر.ي</div>
+            <div class="text-xs {{ $reservation->balance > 0 ? 'text-red-400' : 'text-gray-400' }}">{{ $reservation->currency_symbol }}</div>
         </div>
     </div>
 </div>

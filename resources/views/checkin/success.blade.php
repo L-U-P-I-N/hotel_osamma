@@ -20,7 +20,7 @@
             <div><span class="text-gray-500">الدخول:</span> <span class="font-medium">{{ $reservation->check_in_date?->format('d/m/Y') ?? '—' }}</span></div>
             <div><span class="text-gray-500">الخروج:</span> <span class="font-medium">{{ $reservation->check_out_date?->format('d/m/Y') ?? '—' }}</span></div>
             <div><span class="text-gray-500">المرافقون:</span> <span class="font-medium">{{ $reservation->companions->count() }}</span></div>
-            <div><span class="text-gray-500">الإجمالي:</span> <span class="font-bold text-primary-800">{{ number_format($reservation->total_amount, 2) }} ر.ي</span></div>
+            <div><span class="text-gray-500">الإجمالي:</span> <span class="font-bold text-primary-800">{{ number_format($reservation->total_amount, 2) }} {{ $reservation->currency_symbol }}</span></div>
         </div>
     </div>
 

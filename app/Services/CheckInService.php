@@ -80,6 +80,7 @@ class CheckInService
                 'payment_status'     => $data['payment_status'],
                 'total_amount'       => $data['total_amount'],
                 'paid_amount'        => 0,
+                'currency'           => $data['currency'] ?? 'YER',
                 'admin_approval_id'  => $data['payment_status'] === 'deferred'
                                             ? ($data['admin_approval_id'] ?? null) : null,
             ]);

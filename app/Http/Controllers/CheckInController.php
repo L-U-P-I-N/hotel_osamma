@@ -75,6 +75,7 @@ class CheckInController extends Controller
             'check_in_time'   => 'nullable|regex:/^\d{2}:\d{2}$/',
             'check_out_date'  => 'required|date|after:check_in_date',
             'payment_status'  => 'required|in:unpaid,partial,paid',
+            'currency'        => 'nullable|in:YER,SAR,USD',
             'bank_receipt' => 'required_if:payment_method,bank_transfer|nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
             'companions.*.full_name' => 'required_with:companions.*.relationship|string',
             'companions.*.relationship' => 'nullable|in:wife,son,daughter,brother,sister,father,mother,other',
@@ -86,11 +87,16 @@ class CheckInController extends Controller
         if ($request->input('booking_mode') === 'reserve') {
             $payStatus = $request->input('payment_status');
             $paidAmt   = (float) $request->input('paid_amount', 0);
+            $currency  = $request->input('currency', 'YER');
             if ($payStatus === 'unpaid') {
                 return back()->withErrors(['payment_status' => 'الحجز المسبق يتطلب دفع عربون — لا يمكن تركه بدون دفعة'])->withInput();
             }
-            if ($payStatus === 'partial' && $paidAmt < 1000) {
+            // Minimum 1,000 deposit only enforced for YER; other currencies just require a deposit.
+            if ($payStatus === 'partial' && $currency === 'YER' && $paidAmt < 1000) {
                 return back()->withErrors(['paid_amount' => 'العربون يجب أن لا يقل عن 1,000 ريال يمني للحجز المسبق'])->withInput();
+            }
+            if ($payStatus === 'partial' && $currency !== 'YER' && $paidAmt <= 0) {
+                return back()->withErrors(['paid_amount' => 'الحجز المسبق يتطلب دفع عربون'])->withInput();
             }
         }
 

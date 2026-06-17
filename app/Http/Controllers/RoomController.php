@@ -36,7 +36,8 @@ class RoomController extends Controller
     public function create()
     {
         $roomTypes = RoomType::all();
-        return view('rooms.create', compact('roomTypes'));
+        $canPrice = auth()->user()->can('room.price.edit');
+        return view('rooms.create', compact('roomTypes', 'canPrice'));
     }
 
     public function store(Request $request)
@@ -48,6 +49,9 @@ class RoomController extends Controller
             'floor'          => 'required|integer|min:1|max:30',
             'room_type_id'   => 'required|exists:room_types,id',
             'room_sub_type'  => 'nullable|in:regular,double,suite_a,suite_b,hall,apartment',
+            'price_yer'      => 'nullable|numeric|min:0',
+            'price_sar'      => 'nullable|numeric|min:0',
+            'price_usd'      => 'nullable|numeric|min:0',
             'notes'          => 'nullable|string|max:500',
         ], [
             'room_number.required'  => 'رقم الغرفة مطلوب',
@@ -60,12 +64,15 @@ class RoomController extends Controller
             'room_type_id.required' => 'نوع الغرفة مطلوب',
             'room_type_id.exists'   => 'نوع الغرفة المحدد غير موجود',
             'room_sub_type.in'      => 'تصنيف الغرفة غير صالح',
+            'price_yer.numeric'     => 'السعر بالريال اليمني يجب أن يكون رقماً',
+            'price_sar.numeric'     => 'السعر بالريال السعودي يجب أن يكون رقماً',
+            'price_usd.numeric'     => 'السعر بالدولار يجب أن يكون رقماً',
             'notes.max'             => 'الملاحظات لا تتجاوز 500 حرف',
         ]);
 
         $hotel = Hotel::first();
 
-        $room = Room::create([
+        $attributes = [
             'hotel_id'      => $hotel->id,
             'room_type_id'  => $validated['room_type_id'],
             'room_number'   => $validated['room_number'],
@@ -73,7 +80,16 @@ class RoomController extends Controller
             'room_sub_type' => $validated['room_sub_type'] ?? 'regular',
             'status'        => 'available',
             'notes'         => $validated['notes'] ?? null,
-        ]);
+        ];
+
+        // Prices only saved by users with the pricing permission.
+        if (auth()->user()->can('room.price.edit')) {
+            $attributes['price_yer'] = $validated['price_yer'] ?? null;
+            $attributes['price_sar'] = $validated['price_sar'] ?? null;
+            $attributes['price_usd'] = $validated['price_usd'] ?? null;
+        }
+
+        $room = Room::create($attributes);
 
         AuditLogService::log('create', $room, [], $room->toArray(), auth()->user());
 
@@ -83,7 +99,8 @@ class RoomController extends Controller
     public function edit(Room $room)
     {
         $roomTypes = RoomType::all();
-        return view('rooms.edit', compact('room', 'roomTypes'));
+        $canPrice = auth()->user()->can('room.price.edit');
+        return view('rooms.edit', compact('room', 'roomTypes', 'canPrice'));
     }
 
     public function update(Request $request, Room $room)
@@ -95,6 +112,9 @@ class RoomController extends Controller
             'floor'          => 'required|integer|min:1|max:30',
             'room_type_id'   => 'required|exists:room_types,id',
             'room_sub_type'  => 'nullable|in:regular,double,suite_a,suite_b,hall,apartment',
+            'price_yer'      => 'nullable|numeric|min:0',
+            'price_sar'      => 'nullable|numeric|min:0',
+            'price_usd'      => 'nullable|numeric|min:0',
             'notes'          => 'nullable|string|max:500',
         ], [
             'room_number.required'  => 'رقم الغرفة مطلوب',
@@ -107,17 +127,29 @@ class RoomController extends Controller
             'room_type_id.required' => 'نوع الغرفة مطلوب',
             'room_type_id.exists'   => 'نوع الغرفة المحدد غير موجود',
             'room_sub_type.in'      => 'تصنيف الغرفة غير صالح',
+            'price_yer.numeric'     => 'السعر بالريال اليمني يجب أن يكون رقماً',
+            'price_sar.numeric'     => 'السعر بالريال السعودي يجب أن يكون رقماً',
+            'price_usd.numeric'     => 'السعر بالدولار يجب أن يكون رقماً',
             'notes.max'             => 'الملاحظات لا تتجاوز 500 حرف',
         ]);
 
         $old = $room->toArray();
-        $room->update([
+        $attributes = [
             'room_number'   => $validated['room_number'],
             'floor'         => $validated['floor'],
             'room_type_id'  => $validated['room_type_id'],
             'room_sub_type' => $validated['room_sub_type'] ?? $room->room_sub_type,
             'notes'         => $validated['notes'] ?? null,
-        ]);
+        ];
+
+        // Prices only updated by users with the pricing permission.
+        if (auth()->user()->can('room.price.edit')) {
+            $attributes['price_yer'] = $validated['price_yer'] ?? null;
+            $attributes['price_sar'] = $validated['price_sar'] ?? null;
+            $attributes['price_usd'] = $validated['price_usd'] ?? null;
+        }
+
+        $room->update($attributes);
         AuditLogService::log('update', $room, $old, $room->fresh()->toArray(), auth()->user());
 
         return redirect()->route('rooms.index')->with('success', 'تم تحديث بيانات الغرفة بنجاح');
