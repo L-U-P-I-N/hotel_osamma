@@ -22,6 +22,7 @@
 </div>
 @endif
 
+
 <form method="POST" action="{{ route('reservations.update', $reservation) }}" class="space-y-5">
     @csrf
     @method('PUT')
@@ -65,7 +66,8 @@
                 <label class="block text-xs font-medium text-gray-600 mb-1">رقم الهوية</label>
                 <input type="text" name="guest_id_number" maxlength="50"
                        value="{{ old('guest_id_number', $reservation->guest?->id_number) }}"
-                       class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none" dir="ltr">
+                       class="w-full border @error('guest_id_number') border-red-400 bg-red-50 @else border-gray-300 @enderror rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none" dir="ltr">
+                @error('guest_id_number')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             </div>
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1">جهة الإصدار</label>

@@ -171,10 +171,23 @@ class ReservationController extends Controller
 
             AuditLogService::log('update', $reservation, $old, $reservation->fresh()->toArray(), auth()->user());
 
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Map DB constraint errors to friendly field-level messages
+            $msg = $e->getMessage();
+            $fieldMap = [
+                'guests.id_number'   => ['guest_id_number',  'رقم الهوية لا يمكن أن يكون فارغاً'],
+                'guests.phone'       => ['guest_phone',       'رقم الهاتف لا يمكن أن يكون فارغاً'],
+                'guests.full_name'   => ['guest_full_name',   'الاسم الكامل لا يمكن أن يكون فارغاً'],
+                'companions.id_number' => ['companions.0.id_number', 'رقم هوية المرافق لا يمكن أن يكون فارغاً'],
+            ];
+            foreach ($fieldMap as $column => [$field, $label]) {
+                if (str_contains($msg, $column)) {
+                    return back()->withInput()->withErrors([$field => $label]);
+                }
+            }
+            return back()->withInput()->withErrors(['general' => 'خطأ في قاعدة البيانات: ' . $e->getMessage()]);
         } catch (\Exception $e) {
-            return back()
-                ->withInput()
-                ->with('error', 'حدث خطأ أثناء حفظ البيانات: ' . $e->getMessage());
+            return back()->withInput()->withErrors(['general' => 'حدث خطأ غير متوقع: ' . $e->getMessage()]);
         }
 
         return redirect()->route('reservations.show', $reservation)->with('success', 'تم تحديث الحجز بنجاح');
