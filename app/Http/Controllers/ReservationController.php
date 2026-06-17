@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Models\Companion;
 use App\Models\Reservation;
 use App\Models\Room;
 use App\Models\User;
@@ -59,12 +60,9 @@ class ReservationController extends Controller
             return back()->with('error', 'لا يمكن تعديل هذا الحجز في حالته الحالية');
         }
 
-        $reservation->load(['guest', 'room.roomType']);
-        $rooms = Room::with('roomType')
-            ->where(fn($q) => $q->available()->orWhere('id', $reservation->room_id))
-            ->orderBy('floor')->orderBy('room_number')->get();
+        $reservation->load(['guest', 'room.roomType', 'companions']);
 
-        return view('reservations.edit', compact('reservation', 'rooms'));
+        return view('reservations.edit', compact('reservation'));
     }
 
     public function update(Request $request, Reservation $reservation)
@@ -74,26 +72,85 @@ class ReservationController extends Controller
         }
 
         $validated = $request->validate([
-            'check_in_date'  => 'required|date',
-            'check_out_date' => 'required|date|after:check_in_date',
-            'purpose'        => 'nullable|string|max:255',
-            'origin'         => 'nullable|string|max:255',
-            'notes'          => 'nullable|string|max:1000',
+            'check_in_date'              => 'required|date',
+            'check_out_date'             => 'required|date|after:check_in_date',
+            'purpose'                    => 'nullable|string|max:255',
+            'origin'                     => 'nullable|string|max:255',
+            'notes'                      => 'nullable|string|max:1000',
+            // Guest fields
+            'guest_full_name'            => 'required|string|max:255',
+            'guest_nationality'          => 'nullable|string|max:100',
+            'guest_occupation'           => 'nullable|string|max:100',
+            'guest_id_type'              => 'nullable|string|max:50',
+            'guest_id_number'            => 'nullable|string|max:50',
+            'guest_id_issuer'            => 'nullable|string|max:100',
+            'guest_id_issue_date'        => 'nullable|date',
+            'guest_phone'                => 'nullable|string|max:30',
+            // Companions
+            'companions'                 => 'nullable|array',
+            'companions.*.id'            => 'nullable|integer',
+            'companions.*.full_name'     => 'required_with:companions|string|max:255',
+            'companions.*.nationality'   => 'nullable|string|max:100',
+            'companions.*.id_type'       => 'nullable|string|max:50',
+            'companions.*.id_number'     => 'nullable|string|max:50',
+            'companions.*.relationship'  => 'nullable|string|max:50',
+            'companions.*.delete'        => 'nullable|boolean',
         ], [
-            'check_in_date.required'   => 'تاريخ الدخول مطلوب',
-            'check_in_date.date'       => 'تاريخ الدخول غير صالح',
-            'check_out_date.required'  => 'تاريخ الخروج مطلوب',
-            'check_out_date.date'      => 'تاريخ الخروج غير صالح',
-            'check_out_date.after'     => 'تاريخ الخروج يجب أن يكون بعد تاريخ الدخول',
-            'purpose.max'              => 'الغرض لا يتجاوز 255 حرف',
-            'origin.max'               => 'جهة القدوم لا تتجاوز 255 حرف',
-            'notes.max'                => 'الملاحظات لا تتجاوز 1000 حرف',
+            'check_in_date.required'     => 'تاريخ الدخول مطلوب',
+            'check_in_date.date'         => 'تاريخ الدخول غير صالح',
+            'check_out_date.required'    => 'تاريخ الخروج مطلوب',
+            'check_out_date.date'        => 'تاريخ الخروج غير صالح',
+            'check_out_date.after'       => 'تاريخ الخروج يجب أن يكون بعد تاريخ الدخول',
+            'guest_full_name.required'   => 'اسم النزيل مطلوب',
         ]);
+
+        $old = $reservation->toArray();
+
+        // Update guest
+        if ($reservation->guest) {
+            $reservation->guest->update([
+                'full_name'     => $validated['guest_full_name'],
+                'nationality'   => $validated['guest_nationality'] ?? null,
+                'occupation'    => $validated['guest_occupation'] ?? null,
+                'id_type'       => $validated['guest_id_type'] ?? null,
+                'id_number'     => $validated['guest_id_number'] ?? null,
+                'id_issuer'     => $validated['guest_id_issuer'] ?? null,
+                'id_issue_date' => $validated['guest_id_issue_date'] ?? null,
+                'phone'         => $validated['guest_phone'] ?? null,
+            ]);
+        }
+
+        // Update companions
+        $submittedIds = [];
+        foreach ($request->input('companions', []) as $comp) {
+            if (!empty($comp['delete']) && !empty($comp['id'])) {
+                Companion::where('id', $comp['id'])->where('reservation_id', $reservation->id)->delete();
+                continue;
+            }
+            if (empty($comp['full_name'])) continue;
+
+            $data = [
+                'full_name'    => $comp['full_name'],
+                'nationality'  => $comp['nationality'] ?? null,
+                'id_type'      => $comp['id_type'] ?? null,
+                'id_number'    => $comp['id_number'] ?? null,
+                'relationship' => $comp['relationship'] ?? null,
+            ];
+
+            if (!empty($comp['id'])) {
+                $existing = Companion::where('id', $comp['id'])->where('reservation_id', $reservation->id)->first();
+                if ($existing) {
+                    $existing->update($data);
+                    $submittedIds[] = $existing->id;
+                }
+            } else {
+                $created = $reservation->companions()->create($data);
+                $submittedIds[] = $created->id;
+            }
+        }
 
         $nights = Carbon::parse($validated['check_in_date'])->diffInDays($validated['check_out_date']);
         $newTotal = $nights * $reservation->room->roomType->base_price;
-
-        $old = $reservation->toArray();
 
         $reservation->update([
             'check_in_date'  => $validated['check_in_date'],

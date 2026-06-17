@@ -3,130 +3,276 @@
 @section('page-title', 'تعديل الحجز #' . $reservation->id)
 
 @section('content')
-<div class="max-w-2xl mx-auto">
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-    <div class="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
-        <a href="{{ route('reservations.show', $reservation) }}" class="text-gray-400 hover:text-gray-600">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-        </a>
-        <h2 class="text-lg font-semibold text-gray-800">تعديل بيانات الحجز</h2>
-    </div>
+<div class="max-w-3xl mx-auto" x-data="editReservation()">
 
-    <!-- Guest Info (read-only) -->
-    <div class="mb-5 p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <div class="flex items-center justify-between flex-wrap gap-3 text-sm">
-            <div>
-                <span class="text-gray-500">النزيل:</span>
-                <span class="font-semibold text-gray-800 mr-2">{{ $reservation->guest?->full_name ?? '—' }}</span>
+@if($errors->any())
+<div class="mb-5 p-4 bg-red-50 border border-red-200 rounded-lg">
+    <p class="text-sm font-semibold text-red-700 mb-2">يرجى تصحيح الأخطاء التالية:</p>
+    <ul class="list-disc list-inside space-y-1">
+        @foreach($errors->all() as $error)
+        <li class="text-sm text-red-600">{{ $error }}</li>
+        @endforeach
+    </ul>
+</div>
+@endif
+
+<form method="POST" action="{{ route('reservations.update', $reservation) }}" class="space-y-5">
+    @csrf
+    @method('PUT')
+
+    <!-- Guest Data -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h3 class="font-semibold text-gray-700 mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-primary-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+            بيانات النزيل
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="md:col-span-2">
+                <label class="block text-xs font-medium text-gray-600 mb-1">الاسم الكامل <span class="text-red-500">*</span></label>
+                <input type="text" name="guest_full_name" required maxlength="255"
+                       value="{{ old('guest_full_name', $reservation->guest?->full_name) }}"
+                       class="w-full border @error('guest_full_name') border-red-400 bg-red-50 @else border-gray-300 @enderror rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
             </div>
             <div>
-                <span class="text-gray-500">الغرفة الحالية:</span>
-                <span class="font-semibold mr-2" style="color:#0F4C75;">{{ $reservation->room?->room_number ?? '—' }}</span>
-                <span class="text-gray-400 text-xs">({{ $reservation->room?->roomType?->name ?? '—' }})</span>
+                <label class="block text-xs font-medium text-gray-600 mb-1">الجنسية</label>
+                <input type="text" name="guest_nationality" maxlength="100"
+                       value="{{ old('guest_nationality', $reservation->guest?->nationality) }}"
+                       class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">المهنة</label>
+                <input type="text" name="guest_occupation" maxlength="100"
+                       value="{{ old('guest_occupation', $reservation->guest?->occupation) }}"
+                       class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">نوع الهوية</label>
+                <select name="guest_id_type" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                    <option value="">-- اختر --</option>
+                    <option value="national_id" {{ old('guest_id_type', $reservation->guest?->id_type) === 'national_id' ? 'selected' : '' }}>بطاقة هوية</option>
+                    <option value="passport" {{ old('guest_id_type', $reservation->guest?->id_type) === 'passport' ? 'selected' : '' }}>جواز سفر</option>
+                    <option value="residence" {{ old('guest_id_type', $reservation->guest?->id_type) === 'residence' ? 'selected' : '' }}>إقامة</option>
+                    <option value="other" {{ old('guest_id_type', $reservation->guest?->id_type) === 'other' ? 'selected' : '' }}>أخرى</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">رقم الهوية</label>
+                <input type="text" name="guest_id_number" maxlength="50"
+                       value="{{ old('guest_id_number', $reservation->guest?->id_number) }}"
+                       class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none" dir="ltr">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">جهة الإصدار</label>
+                <input type="text" name="guest_id_issuer" maxlength="100"
+                       value="{{ old('guest_id_issuer', $reservation->guest?->id_issuer) }}"
+                       class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">تاريخ الإصدار</label>
+                <input type="date" name="guest_id_issue_date"
+                       value="{{ old('guest_id_issue_date', $reservation->guest?->id_issue_date?->format('Y-m-d')) }}"
+                       class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">رقم الهاتف</label>
+                <input type="text" name="guest_phone" maxlength="30"
+                       value="{{ old('guest_phone', $reservation->guest?->phone) }}"
+                       class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none" dir="ltr">
             </div>
         </div>
     </div>
 
-    @if($errors->any())
-    <div class="mb-5 p-4 bg-red-50 border border-red-200 rounded-lg">
-        <p class="text-sm font-semibold text-red-700 mb-2">يرجى تصحيح الأخطاء التالية:</p>
-        <ul class="list-disc list-inside space-y-1">
-            @foreach($errors->all() as $error)
-            <li class="text-sm text-red-600">{{ $error }}</li>
-            @endforeach
-        </ul>
+    <!-- Companions -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold text-gray-700 flex items-center gap-2">
+                <svg class="w-5 h-5 text-primary-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                المرافقون
+            </h3>
+            <button type="button" @click="addCompanion()"
+                    class="flex items-center gap-1.5 text-sm px-3 py-1.5 bg-primary-50 text-primary-800 rounded-lg hover:bg-primary-100 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                إضافة مرافق
+            </button>
+        </div>
+
+        <div class="space-y-3">
+            <template x-for="(comp, idx) in companions" :key="comp._key">
+                <div class="border border-gray-200 rounded-lg p-4 relative" :class="comp.delete ? 'opacity-40 bg-red-50' : 'bg-gray-50'">
+                    <input type="hidden" :name="`companions[${idx}][id]`" :value="comp.id ?? ''">
+                    <input type="hidden" :name="`companions[${idx}][delete]`" :value="comp.delete ? '1' : '0'">
+
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        <div class="col-span-2 md:col-span-1">
+                            <label class="block text-xs text-gray-500 mb-1">الاسم <span class="text-red-500">*</span></label>
+                            <input type="text" :name="`companions[${idx}][full_name]`" x-model="comp.full_name"
+                                   :required="!comp.delete" :disabled="comp.delete"
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">الجنسية</label>
+                            <input type="text" :name="`companions[${idx}][nationality]`" x-model="comp.nationality"
+                                   :disabled="comp.delete"
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">صلة القرابة</label>
+                            <select :name="`companions[${idx}][relationship]`" x-model="comp.relationship"
+                                    :disabled="comp.delete"
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                                <option value="">-- اختر --</option>
+                                <option value="wife">زوجة</option>
+                                <option value="son">ابن</option>
+                                <option value="daughter">ابنة</option>
+                                <option value="brother">أخ</option>
+                                <option value="sister">أخت</option>
+                                <option value="father">أب</option>
+                                <option value="mother">أم</option>
+                                <option value="other">أخرى</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">نوع الهوية</label>
+                            <select :name="`companions[${idx}][id_type]`" x-model="comp.id_type"
+                                    :disabled="comp.delete"
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                                <option value="">-- اختر --</option>
+                                <option value="national_id">بطاقة هوية</option>
+                                <option value="passport">جواز سفر</option>
+                                <option value="residence">إقامة</option>
+                                <option value="other">أخرى</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">رقم الهوية</label>
+                            <input type="text" :name="`companions[${idx}][id_number]`" x-model="comp.id_number"
+                                   :disabled="comp.delete"
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" dir="ltr">
+                        </div>
+                    </div>
+
+                    <button type="button" @click="toggleDelete(idx)"
+                            class="absolute top-3 left-3 text-xs px-2 py-1 rounded transition"
+                            :class="comp.delete ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-100 text-red-700 hover:bg-red-200'">
+                        <span x-text="comp.delete ? 'استعادة' : 'حذف'"></span>
+                    </button>
+                </div>
+            </template>
+
+            <div x-show="companions.length === 0" class="text-center py-6 text-gray-400 text-sm">
+                لا يوجد مرافقون — اضغط "إضافة مرافق" لإضافة مرافق جديد
+            </div>
+        </div>
     </div>
-    @endif
 
-    <form method="POST" action="{{ route('reservations.update', $reservation) }}" class="space-y-5"
-          x-data="{
-            checkIn: '{{ old('check_in_date', $reservation->check_in_date?->format('Y-m-d') ?? '') }}',
-            checkOut: '{{ old('check_out_date', $reservation->check_out_date?->format('Y-m-d') ?? '') }}',
-            pricePerNight: {{ $reservation->room?->roomType?->base_price ?? 0 }},
-            get nights() {
-                if (!this.checkIn || !this.checkOut) return 0;
-                const d = (new Date(this.checkOut) - new Date(this.checkIn)) / 86400000;
-                return d > 0 ? d : 0;
-            },
-            get total() { return this.nights * this.pricePerNight; }
-          }">
-        @csrf
-        @method('PUT')
+    <!-- Booking Details -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h3 class="font-semibold text-gray-700 mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-primary-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            تفاصيل الحجز
+        </h3>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1.5">تاريخ الدخول <span class="text-red-500">*</span></label>
-                <input type="date" name="check_in_date" x-model="checkIn"
-                       value="{{ old('check_in_date', $reservation->check_in_date?->format('Y-m-d') ?? '') }}" required
-                       class="w-full border @error('check_in_date') border-red-400 bg-red-50 @else border-gray-300 @enderror rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none transition">
-                @error('check_in_date')
-                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                @enderror
+                <label class="block text-xs font-medium text-gray-600 mb-1">تاريخ الدخول <span class="text-red-500">*</span></label>
+                <input type="date" name="check_in_date" x-model="checkIn" required
+                       class="w-full border @error('check_in_date') border-red-400 bg-red-50 @else border-gray-300 @enderror rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                @error('check_in_date')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">تاريخ الخروج <span class="text-red-500">*</span></label>
+                <input type="date" name="check_out_date" x-model="checkOut" required
+                       class="w-full border @error('check_out_date') border-red-400 bg-red-50 @else border-gray-300 @enderror rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                @error('check_out_date')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             </div>
 
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1.5">تاريخ الخروج <span class="text-red-500">*</span></label>
-                <input type="date" name="check_out_date" x-model="checkOut"
-                       value="{{ old('check_out_date', $reservation->check_out_date?->format('Y-m-d') ?? '') }}" required
-                       class="w-full border @error('check_out_date') border-red-400 bg-red-50 @else border-gray-300 @enderror rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none transition">
-                @error('check_out_date')
-                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                @enderror
-            </div>
-
-            <!-- Live calculation -->
-            <div class="md:col-span-2 p-4 rounded-lg border" style="background:#f0f7ff; border-color:#c7dff7;">
-                <div class="flex items-center justify-between text-sm flex-wrap gap-2">
-                    <div class="flex items-center gap-4">
-                        <span class="text-gray-600">عدد الليالي: <strong x-text="nights" class="text-gray-900"></strong></span>
-                        <span class="text-gray-600">السعر/ليلة: <strong>{{ number_format($reservation->room?->roomType?->base_price ?? 0, 0) }} ر.ي</strong></span>
-                    </div>
-                    <div class="text-base font-bold" style="color:#0F4C75;">
-                        الإجمالي: <span x-text="total.toLocaleString('ar-SA')"></span> ر.ي
-                    </div>
+            <div class="md:col-span-2 p-3 rounded-lg bg-blue-50 border border-blue-100 text-sm">
+                <div class="flex items-center justify-between flex-wrap gap-2">
+                    <span class="text-gray-600">عدد الليالي: <strong x-text="nights" class="text-gray-900"></strong></span>
+                    <span class="font-bold text-primary-800">
+                        الإجمالي المحسوب: <span x-text="total.toLocaleString('ar-SA')"></span> ر.ي
+                    </span>
                 </div>
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1.5">الغرض من الزيارة</label>
-                <input type="text" name="purpose" value="{{ old('purpose', $reservation->purpose) }}" maxlength="255"
-                       class="w-full border @error('purpose') border-red-400 bg-red-50 @else border-gray-300 @enderror rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none transition">
-                @error('purpose')
-                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                @enderror
+                <label class="block text-xs font-medium text-gray-600 mb-1">الغرض من الزيارة</label>
+                <input type="text" name="purpose" maxlength="255"
+                       value="{{ old('purpose', $reservation->purpose) }}"
+                       class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
             </div>
-
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1.5">جهة القدوم</label>
-                <input type="text" name="origin" value="{{ old('origin', $reservation->origin) }}" maxlength="255"
-                       class="w-full border @error('origin') border-red-400 bg-red-50 @else border-gray-300 @enderror rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none transition">
-                @error('origin')
-                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                @enderror
+                <label class="block text-xs font-medium text-gray-600 mb-1">جهة القدوم</label>
+                <input type="text" name="origin" maxlength="255"
+                       value="{{ old('origin', $reservation->origin) }}"
+                       class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
             </div>
-
             <div class="md:col-span-2">
-                <label class="block text-sm font-medium text-gray-700 mb-1.5">ملاحظات</label>
+                <label class="block text-xs font-medium text-gray-600 mb-1">ملاحظات</label>
                 <textarea name="notes" rows="3" maxlength="1000"
-                          class="w-full border @error('notes') border-red-400 bg-red-50 @else border-gray-300 @enderror rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none transition resize-none">{{ old('notes', $reservation->notes) }}</textarea>
-                @error('notes')
-                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                @enderror
+                          class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none resize-none">{{ old('notes', $reservation->notes) }}</textarea>
             </div>
         </div>
+    </div>
 
-        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs text-yellow-800">
-            ملاحظة: سيتم إعادة حساب إجمالي الحجز تلقائياً بناءً على التواريخ الجديدة وسعر الغرفة.
-        </div>
-
-        <div class="flex gap-3 pt-2">
-            <button type="submit" class="flex items-center gap-2 px-6 py-2.5 text-white rounded-lg text-sm font-medium transition" style="background:#0F4C75;">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                حفظ التغييرات
-            </button>
-            <a href="{{ route('reservations.show', $reservation) }}" class="px-6 py-2.5 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition">إلغاء</a>
-        </div>
-    </form>
-</div>
+    <!-- Submit -->
+    <div class="flex gap-3">
+        <button type="submit" class="flex items-center gap-2 px-6 py-2.5 text-white rounded-lg text-sm font-medium transition" style="background:#0F4C75;">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            حفظ التغييرات
+        </button>
+        <a href="{{ route('reservations.show', $reservation) }}" class="px-6 py-2.5 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition">إلغاء</a>
+    </div>
+</form>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+function editReservation() {
+    return {
+        checkIn: '{{ old('check_in_date', $reservation->check_in_date?->format('Y-m-d') ?? '') }}',
+        checkOut: '{{ old('check_out_date', $reservation->check_out_date?->format('Y-m-d') ?? '') }}',
+        pricePerNight: {{ $reservation->room?->roomType?->base_price ?? 0 }},
+        companions: @json($reservation->companions->map(fn($c) => [
+            'id' => $c->id,
+            'full_name' => $c->full_name,
+            'nationality' => $c->nationality ?? '',
+            'id_type' => $c->id_type ?? '',
+            'id_number' => $c->id_number ?? '',
+            'relationship' => $c->relationship ?? '',
+            'delete' => false,
+            '_key' => $c->id,
+        ])),
+        _nextKey: {{ $reservation->companions->count() + 1 }},
+
+        get nights() {
+            if (!this.checkIn || !this.checkOut) return 0;
+            const d = (new Date(this.checkOut) - new Date(this.checkIn)) / 86400000;
+            return d > 0 ? d : 0;
+        },
+        get total() { return this.nights * this.pricePerNight; },
+
+        addCompanion() {
+            this.companions.push({
+                id: null,
+                full_name: '',
+                nationality: '',
+                id_type: '',
+                id_number: '',
+                relationship: '',
+                delete: false,
+                _key: 'new_' + (this._nextKey++),
+            });
+        },
+        toggleDelete(idx) {
+            if (this.companions[idx].id === null) {
+                this.companions.splice(idx, 1);
+            } else {
+                this.companions[idx].delete = !this.companions[idx].delete;
+            }
+        },
+    }
+}
+</script>
+@endpush
