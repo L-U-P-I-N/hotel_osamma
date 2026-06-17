@@ -91,7 +91,7 @@
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1.5">رقم الهوية <span class="text-red-500">*</span></label>
             <input type="text" name="id_number" x-model="guestData.id_number" required
-                   class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none"
+                   class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
         </div>
 
         <div>
