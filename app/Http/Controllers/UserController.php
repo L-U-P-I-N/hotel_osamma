@@ -62,6 +62,8 @@ class UserController extends Controller
             'role' => 'required|exists:roles,name',
         ]);
 
+        $plainCode = $this->generateBackupCode();
+
         $user = User::create([
             'name' => $request->name,
             'employee_id' => $request->employee_id,
@@ -69,12 +71,16 @@ class UserController extends Controller
             'password' => Hash::make($request->password),
             'phone' => $request->phone,
             'is_active' => true,
+            'backup_code' => Hash::make($plainCode),
         ]);
 
         $user->assignRole($request->role);
         AuditLogService::log('create', $user, null, $user->toArray());
 
-        return back()->with('success', 'تم إنشاء المستخدم بنجاح');
+        return back()
+            ->with('success', 'تم إنشاء المستخدم بنجاح')
+            ->with('new_backup_code', $plainCode)
+            ->with('new_backup_code_user', $user->name);
     }
 
     public function update(Request $request, User $user)
@@ -113,6 +119,19 @@ class UserController extends Controller
         return back()->with('success', 'تم تحديث حالة الحساب');
     }
 
+    public function regenerateBackupCode(User $user)
+    {
+        $plainCode = $this->generateBackupCode();
+        $user->update(['backup_code' => Hash::make($plainCode)]);
+
+        AuditLogService::log('update', $user, [], ['backup_code_regenerated' => true], auth()->user());
+
+        return back()
+            ->with('success', 'تم تجديد رمز الاسترداد بنجاح')
+            ->with('new_backup_code', $plainCode)
+            ->with('new_backup_code_user', $user->name);
+    }
+
     public function auditLog(Request $request)
     {
         $query = AuditLog::with('user')->latest();
@@ -125,5 +144,19 @@ class UserController extends Controller
         $logs = $query->paginate(25)->withQueryString();
         $users = User::select('id', 'name')->get();
         return view('users.audit-log', compact('logs', 'users'));
+    }
+
+    private function generateBackupCode(): string
+    {
+        $chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        $segments = [];
+        for ($i = 0; $i < 3; $i++) {
+            $segment = '';
+            for ($j = 0; $j < 4; $j++) {
+                $segment .= $chars[random_int(0, strlen($chars) - 1)];
+            }
+            $segments[] = $segment;
+        }
+        return implode('-', $segments);
     }
 }

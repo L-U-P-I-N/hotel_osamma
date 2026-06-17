@@ -22,10 +22,9 @@ Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 
-// Password Reset via WhatsApp
+// Password Reset via Backup Code
 Route::get('/forgot-password', [PasswordResetController::class, 'showRequest'])->name('password.request');
-Route::post('/forgot-password', [PasswordResetController::class, 'sendOtp'])->name('password.send-otp');
-Route::get('/verify-otp', [PasswordResetController::class, 'showVerify'])->name('password.verify');
+Route::post('/forgot-password', [PasswordResetController::class, 'resetWithBackupCode'])->name('password.reset-backup');
 Route::post('/reset-password', [PasswordResetController::class, 'resetPassword'])->name('password.reset');
 
 // Authenticated routes
@@ -136,6 +135,7 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('/users/{user}/toggle', [UserController::class, 'toggleActive'])->name('users.toggle');
         Route::get('/users/{user}/permissions', [UserController::class, 'permissions'])->name('users.permissions');
         Route::post('/users/{user}/permissions', [UserController::class, 'togglePermission'])->name('users.togglePermission');
+        Route::post('/users/{user}/regenerate-backup-code', [UserController::class, 'regenerateBackupCode'])->name('users.regenerateBackupCode');
     });
     Route::get('/audit-log', [UserController::class, 'auditLog'])
         ->name('audit.log')

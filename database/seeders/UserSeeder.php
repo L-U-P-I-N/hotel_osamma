@@ -17,6 +17,7 @@ class UserSeeder extends Seeder
                 'password' => Hash::make('Admin@1234'),
                 'phone' => '+967 1 000001',
                 'is_active' => true,
+                'backup_code' => Hash::make('AAAA-BBBB-CCCC'),
             ]
         );
         $admin->assignRole('admin');
@@ -29,6 +30,7 @@ class UserSeeder extends Seeder
                 'password' => Hash::make('Admin@1234'),
                 'phone' => '+967 1 000002',
                 'is_active' => true,
+                'backup_code' => Hash::make('DDDD-EEEE-FFFF'),
             ]
         );
         $receptionist->assignRole('receptionist');
@@ -41,6 +43,7 @@ class UserSeeder extends Seeder
                 'password' => Hash::make('Admin@1234'),
                 'phone' => '+967 1 000003',
                 'is_active' => true,
+                'backup_code' => Hash::make('GGGG-HHHH-JJJJ'),
             ]
         );
         $accountant->assignRole('accountant');
