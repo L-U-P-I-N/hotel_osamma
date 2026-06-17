@@ -48,55 +48,11 @@
 <div x-show="currentStep === 1" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
     <h2 class="text-lg font-semibold text-gray-800 mb-5 pb-3 border-b border-gray-100">بيانات النزيل</h2>
 
-    <!-- Returning Guest Alert -->
-    <div x-show="returningGuest" x-cloak class="mb-4 p-4 bg-green-50 border border-green-300 rounded-lg flex items-start gap-3">
-        <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-        <div>
-            <p class="font-semibold text-green-800 text-sm">نزيل سابق — تم تعبئة البيانات تلقائياً</p>
-            <p class="text-green-700 text-xs mt-0.5" x-text="'عدد الزيارات السابقة: ' + returningGuestVisits + (returningGuestLastVisit ? ' · آخر زيارة: ' + returningGuestLastVisit : '')"></p>
-        </div>
-    </div>
-
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="md:col-span-2 relative">
+        <div class="md:col-span-2">
             <label class="block text-sm font-medium text-gray-700 mb-1.5">الاسم الرباعي <span class="text-red-500">*</span></label>
             <input type="text" name="full_name" x-model="guestData.full_name" required
-                   autocomplete="off"
-                   @input.debounce.300ms="acSearch()"
-                   @keydown.arrow-down.prevent="acMoveDown()"
-                   @keydown.arrow-up.prevent="acMoveUp()"
-                   @keydown.enter.prevent="acSelectCurrent()"
-                   @keydown.escape="acClose()"
-                   @blur="acDelayClose()"
                    class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
-
-            <!-- Autocomplete Dropdown -->
-            <div x-show="acOpen && acResults.length > 0" x-transition
-                 class="absolute z-50 right-0 left-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden max-h-64 overflow-y-auto">
-                <template x-for="(guest, i) in acResults" :key="guest.id">
-                    <button type="button"
-                            @mousedown.prevent="acSelectGuest(guest)"
-                            :class="i === acActiveIndex ? 'bg-primary-50' : 'hover:bg-gray-50'"
-                            class="w-full text-right px-4 py-3 border-b border-gray-50 last:border-0 transition">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm font-medium text-gray-800" x-text="guest.full_name"></p>
-                                <p class="text-xs text-gray-500 mt-0.5">
-                                    <span x-text="guest.id_number"></span>
-                                    <span x-show="guest.nationality"> · <span x-text="guest.nationality"></span></span>
-                                </p>
-                            </div>
-                            <span class="text-xs text-primary-600 bg-primary-50 px-2 py-0.5 rounded-full mr-2">نزيل سابق</span>
-                        </div>
-                    </button>
-                </template>
-            </div>
-
-            <!-- Returning guest notice -->
-            <div x-show="returningGuest" class="mt-2 flex items-center gap-2 text-xs text-green-700 bg-green-50 rounded-lg px-3 py-1.5">
-                <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                نزيل مكرر — تم ملء بياناته الشخصية تلقائياً (المرافقون والغرفة تُضاف من جديد)
-            </div>
         </div>
 
         <div>
@@ -135,7 +91,6 @@
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1.5">رقم الهوية <span class="text-red-500">*</span></label>
             <input type="text" name="id_number" x-model="guestData.id_number" required
-                   @input.debounce.600ms="checkBlacklist()"
                    class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none"
         </div>
 
@@ -746,7 +701,6 @@
 const CHECKIN_SESSION_KEY = 'hotel_checkin_wizard';
 const HAS_BACKEND_ERRORS = {{ $errors->any() ? 'true' : 'false' }};
 const BOOKING_MODE = '{{ $mode }}';
-const GUEST_SEARCH_URL = '{{ route('guests.search') }}';
 
 function checkInWizard() {
     return {
@@ -769,55 +723,11 @@ function checkInWizard() {
         paidAmount: 0,
         idImagePreview: null,
         idImageName: '',
-        returningGuest: false,
-        returningGuestVisits: 0,
-        returningGuestLastVisit: '',
         floorFilter: 'all',
         typeFilter: 'all',
         idTypeLabel: { national_id:'هوية وطنية', passport:'جواز سفر', residence:'إقامة' },
         submitting: false,
         stepError: '',
-
-        // Guest autocomplete (merged from child component to avoid Alpine v3 scope issues)
-        acResults: [],
-        acOpen: false,
-        acActiveIndex: -1,
-        _acCloseTimer: null,
-
-        async acSearch() {
-            const q = this.guestData.full_name;
-            if (!q || q.length < 2) { this.acResults = []; this.acOpen = false; return; }
-            const res = await fetch(GUEST_SEARCH_URL + '?q=' + encodeURIComponent(q));
-            this.acResults = await res.json();
-            this.acOpen = this.acResults.length > 0;
-            this.acActiveIndex = -1;
-        },
-
-        acSelectGuest(guest) {
-            this.guestData.full_name     = guest.full_name;
-            this.guestData.nationality   = guest.nationality;
-            this.guestData.occupation    = guest.occupation;
-            this.guestData.id_type       = guest.id_type;
-            this.guestData.id_number     = guest.id_number;
-            this.guestData.id_issuer     = guest.id_issuer;
-            this.guestData.id_issue_date = guest.id_issue_date;
-            this.guestData.phone         = guest.phone;
-            this.returningGuest = true;
-            this.companions = [];  // never carry over previous companions
-            this.acClose();
-            this.saveToSession();
-        },
-
-        acSelectCurrent() {
-            if (this.acActiveIndex >= 0 && this.acResults[this.acActiveIndex]) {
-                this.acSelectGuest(this.acResults[this.acActiveIndex]);
-            }
-        },
-
-        acMoveDown() { if (this.acOpen) this.acActiveIndex = Math.min(this.acActiveIndex + 1, this.acResults.length - 1); },
-        acMoveUp()   { if (this.acOpen) this.acActiveIndex = Math.max(this.acActiveIndex - 1, 0); },
-        acClose()    { this.acOpen = false; this.acActiveIndex = -1; },
-        acDelayClose() { this._acCloseTimer = setTimeout(() => this.acClose(), 200); },
 
         init() {
             const today = new Date().toISOString().split('T')[0];
@@ -893,41 +803,6 @@ function checkInWizard() {
 
         today() {
             return new Date().toISOString().split('T')[0];
-        },
-
-        async checkBlacklist() {
-            if (!this.guestData.id_number || this.guestData.id_number.length < 3) {
-                this.returningGuest = false;
-                return;
-            }
-            try {
-                const res = await fetch(`/guests/lookup?id_number=${encodeURIComponent(this.guestData.id_number)}`, {
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                });
-                const data = await res.json();
-                if (data.found) {
-                    // Auto-fill guest data, but keep origin/purpose/notes (booking-specific)
-                    const origin  = this.guestData.origin;
-                    const purpose = this.guestData.purpose;
-                    const notes   = this.guestData.notes;
-                    this.guestData = {
-                        ...this.guestData,
-                        full_name:     data.full_name     || this.guestData.full_name,
-                        nationality:   data.nationality   || this.guestData.nationality,
-                        occupation:    data.occupation    || this.guestData.occupation,
-                        id_type:       data.id_type       || this.guestData.id_type,
-                        id_issuer:     data.id_issuer     || this.guestData.id_issuer,
-                        id_issue_date: data.id_issue_date || this.guestData.id_issue_date,
-                        phone:         data.phone         || this.guestData.phone,
-                        origin, purpose, notes,
-                    };
-                    this.returningGuest      = true;
-                    this.returningGuestVisits    = data.reservations_count || 0;
-                    this.returningGuestLastVisit = data.last_visit || '';
-                } else {
-                    this.returningGuest = false;
-                }
-            } catch(e) {}
         },
 
         addCompanion() {
