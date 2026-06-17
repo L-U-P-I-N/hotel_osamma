@@ -3,7 +3,13 @@
 @section('page-title', 'إدارة المستخدمين')
 
 @section('content')
-<div x-data="{ addModal: false, editModal: false, editUser: {} }">
+<div x-data="{ addModal: false, editModal: false, editUser: {}, backupCodeModal: false, backupCode: '', backupCodeUser: '' }" x-init="
+    @if(session('new_backup_code'))
+    backupCode = '{{ session('new_backup_code') }}';
+    backupCodeUser = '{{ session('new_backup_code_user') }}';
+    backupCodeModal = true;
+    @endif
+">
 
 <div class="flex justify-between items-center mb-5">
     <p class="text-sm text-gray-500">إجمالي المستخدمين: {{ $users->total() }}</p>
@@ -62,6 +68,13 @@
                             @if(!$user->isAdmin())
                             <a href="{{ route('users.permissions', $user) }}" class="text-xs font-medium text-purple-600 hover:text-purple-800">صلاحيات</a>
                             @endif
+                            <form method="POST" action="{{ route('users.regenerateBackupCode', $user) }}">
+                                @csrf
+                                <button type="submit" class="text-xs font-medium text-amber-600 hover:text-amber-800"
+                                        onclick="return confirm('تجديد رمز الاسترداد لـ {{ $user->name }}؟')">
+                                    رمز الاسترداد
+                                </button>
+                            </form>
                             @if($user->id !== auth()->id())
                             <form method="POST" action="{{ route('users.toggle', $user) }}">
                                 @csrf @method('PATCH')
@@ -82,6 +95,26 @@
     @if($users->hasPages())
     <div class="px-6 py-4 border-t border-gray-100">{{ $users->links() }}</div>
     @endif
+</div>
+
+<!-- Backup Code Modal -->
+<div x-show="backupCodeModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
+        <div class="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style="background:#e8f0f7;">
+            <svg class="w-7 h-7" style="color:#0F4C75;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+            </svg>
+        </div>
+        <h3 class="font-bold text-gray-800 text-lg mb-1">رمز الاسترداد</h3>
+        <p class="text-sm text-gray-500 mb-4">رمز الاسترداد الخاص بـ <span x-text="backupCodeUser" class="font-semibold text-gray-700"></span></p>
+        <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-4">
+            <p class="font-mono text-xl font-bold tracking-widest text-gray-800" x-text="backupCode"></p>
+        </div>
+        <p class="text-xs text-red-600 mb-5">احتفظ بهذا الرمز في مكان آمن. لن يُعرض مجدداً.</p>
+        <button @click="backupCodeModal=false" class="w-full text-white py-2.5 rounded-lg font-semibold text-sm" style="background:#0F4C75;">
+            حسناً، تم الحفظ
+        </button>
+    </div>
 </div>
 
 <!-- Add User Modal -->
