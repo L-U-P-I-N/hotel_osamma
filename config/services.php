@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'callmebot' => [
+        'api_key' => env('CALLMEBOT_API_KEY'),
+    ],
+
 ];

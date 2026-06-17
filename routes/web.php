@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\CheckInController;
@@ -20,6 +21,12 @@ Route::get('/', fn() => redirect()->route('login'));
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
+
+// Password Reset via WhatsApp
+Route::get('/forgot-password', [PasswordResetController::class, 'showRequest'])->name('password.request');
+Route::post('/forgot-password', [PasswordResetController::class, 'sendOtp'])->name('password.send-otp');
+Route::get('/verify-otp', [PasswordResetController::class, 'showVerify'])->name('password.verify');
+Route::post('/reset-password', [PasswordResetController::class, 'resetPassword'])->name('password.reset');
 
 // Authenticated routes
 Route::middleware(['auth'])->group(function () {

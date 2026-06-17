@@ -66,6 +66,11 @@
                         class="w-full bg-primary-800 text-white py-3 rounded-xl font-semibold hover:bg-primary-700 transition-colors duration-200 text-sm">
                     دخول
                 </button>
+                <div class="text-center">
+                    <a href="{{ route('password.request') }}" class="text-sm text-primary-700 hover:underline">
+                        نسيت كلمة المرور؟
+                    </a>
+                </div>
             </form>
         </div>
 
