@@ -5,6 +5,12 @@
 @section('content')
 <div class="max-w-3xl mx-auto" x-data="editReservation()">
 
+@if(session('error'))
+<div class="mb-5 p-4 bg-red-50 border border-red-200 rounded-lg">
+    <p class="text-sm font-semibold text-red-700">{{ session('error') }}</p>
+</div>
+@endif
+
 @if($errors->any())
 <div class="mb-5 p-4 bg-red-50 border border-red-200 rounded-lg">
     <p class="text-sm font-semibold text-red-700 mb-2">يرجى تصحيح الأخطاء التالية:</p>

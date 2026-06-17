@@ -117,62 +117,65 @@ class ReservationController extends Controller
 
         $old = $reservation->toArray();
 
-        // Update guest
-        if ($reservation->guest) {
-            $reservation->guest->update([
-                'full_name'     => $validated['guest_full_name'],
-                'nationality'   => $validated['guest_nationality'] ?? null,
-                'occupation'    => $validated['guest_occupation'] ?? null,
-                'id_type'       => $validated['guest_id_type'] ?? null,
-                'id_number'     => $validated['guest_id_number'] ?? null,
-                'id_issuer'     => $validated['guest_id_issuer'] ?? null,
-                'id_issue_date' => $validated['guest_id_issue_date'] ?? null,
-                'phone'         => $validated['guest_phone'] ?? null,
-            ]);
-        }
-
-        // Update companions
-        $submittedIds = [];
-        foreach ($request->input('companions', []) as $comp) {
-            if (!empty($comp['delete']) && !empty($comp['id'])) {
-                Companion::where('id', $comp['id'])->where('reservation_id', $reservation->id)->delete();
-                continue;
+        try {
+            // Update guest
+            if ($reservation->guest) {
+                $reservation->guest->update([
+                    'full_name'     => $validated['guest_full_name'],
+                    'nationality'   => $this->nullIfEmpty($validated['guest_nationality'] ?? null),
+                    'occupation'    => $this->nullIfEmpty($validated['guest_occupation'] ?? null),
+                    'id_type'       => $this->nullIfEmpty($validated['guest_id_type'] ?? null),
+                    'id_number'     => $this->nullIfEmpty($validated['guest_id_number'] ?? null),
+                    'id_issuer'     => $this->nullIfEmpty($validated['guest_id_issuer'] ?? null),
+                    'id_issue_date' => $this->nullIfEmpty($validated['guest_id_issue_date'] ?? null),
+                    'phone'         => $this->nullIfEmpty($validated['guest_phone'] ?? null),
+                ]);
             }
-            if (empty($comp['full_name'])) continue;
 
-            $data = [
-                'full_name'    => $comp['full_name'],
-                'nationality'  => $comp['nationality'] ?? null,
-                'id_type'      => $comp['id_type'] ?? null,
-                'id_number'    => $comp['id_number'] ?? null,
-                'relationship' => $comp['relationship'] ?? null,
-            ];
-
-            if (!empty($comp['id'])) {
-                $existing = Companion::where('id', $comp['id'])->where('reservation_id', $reservation->id)->first();
-                if ($existing) {
-                    $existing->update($data);
-                    $submittedIds[] = $existing->id;
+            // Update companions
+            foreach ($request->input('companions', []) as $comp) {
+                if (($comp['delete'] ?? '0') === '1' && !empty($comp['id'])) {
+                    Companion::where('id', $comp['id'])->where('reservation_id', $reservation->id)->delete();
+                    continue;
                 }
-            } else {
-                $created = $reservation->companions()->create($data);
-                $submittedIds[] = $created->id;
+                if (empty($comp['full_name'])) continue;
+
+                $data = [
+                    'full_name'    => $comp['full_name'],
+                    'nationality'  => $this->nullIfEmpty($comp['nationality'] ?? null),
+                    'id_type'      => $this->nullIfEmpty($comp['id_type'] ?? null),
+                    'id_number'    => $this->nullIfEmpty($comp['id_number'] ?? null),
+                    'relationship' => $this->nullIfEmpty($comp['relationship'] ?? null),
+                ];
+
+                if (!empty($comp['id'])) {
+                    $existing = Companion::where('id', $comp['id'])->where('reservation_id', $reservation->id)->first();
+                    $existing?->update($data);
+                } else {
+                    $reservation->companions()->create($data);
+                }
             }
+
+            $nights = Carbon::parse($validated['check_in_date'])->diffInDays($validated['check_out_date']);
+            $pricePerNight = $reservation->room?->roomType?->base_price ?? $reservation->total_amount / max($nights, 1);
+            $newTotal = $nights * $pricePerNight;
+
+            $reservation->update([
+                'check_in_date'  => $validated['check_in_date'],
+                'check_out_date' => $validated['check_out_date'],
+                'purpose'        => $this->nullIfEmpty($validated['purpose'] ?? null),
+                'origin'         => $this->nullIfEmpty($validated['origin'] ?? null),
+                'notes'          => $this->nullIfEmpty($validated['notes'] ?? null),
+                'total_amount'   => $newTotal,
+            ]);
+
+            AuditLogService::log('update', $reservation, $old, $reservation->fresh()->toArray(), auth()->user());
+
+        } catch (\Exception $e) {
+            return back()
+                ->withInput()
+                ->with('error', 'حدث خطأ أثناء حفظ البيانات: ' . $e->getMessage());
         }
-
-        $nights = Carbon::parse($validated['check_in_date'])->diffInDays($validated['check_out_date']);
-        $newTotal = $nights * $reservation->room->roomType->base_price;
-
-        $reservation->update([
-            'check_in_date'  => $validated['check_in_date'],
-            'check_out_date' => $validated['check_out_date'],
-            'purpose'        => $validated['purpose'] ?? null,
-            'origin'         => $validated['origin'] ?? null,
-            'notes'          => $validated['notes'] ?? null,
-            'total_amount'   => $newTotal,
-        ]);
-
-        AuditLogService::log('update', $reservation, $old, $reservation->fresh()->toArray(), auth()->user());
 
         return redirect()->route('reservations.show', $reservation)->with('success', 'تم تحديث الحجز بنجاح');
     }
@@ -315,5 +318,10 @@ class ReservationController extends Controller
         AuditLogService::log('update', $reservation, $old, ['status' => 'cancelled'], auth()->user());
 
         return redirect()->route('reservations.show', $reservation)->with('success', 'تم إلغاء الحجز بنجاح');
+    }
+
+    private function nullIfEmpty(mixed $value): mixed
+    {
+        return ($value === '' || $value === null) ? null : $value;
     }
 }
