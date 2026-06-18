@@ -62,8 +62,8 @@
         </div>
 
         <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1.5">المهنة <span class="text-red-500">*</span></label>
-            <input type="text" name="occupation" x-model="guestData.occupation" required
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">المهنة</label>
+            <input type="text" name="occupation" x-model="guestData.occupation"
                    class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
         </div>
 
@@ -194,8 +194,8 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">الجنسية</label>
-                        <input type="text" :name="`companions[${idx}][nationality]`" x-model="comp.nationality"
+                        <label class="block text-xs font-medium text-gray-600 mb-1">الجنسية <span class="text-red-500">*</span></label>
+                        <input type="text" :name="`companions[${idx}][nationality]`" x-model="comp.nationality" required
                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
                     </div>
                     <div>
@@ -225,8 +225,8 @@
 
                     <!-- ID Image -->
                     <div class="md:col-span-2">
-                        <label class="block text-xs font-medium text-gray-600 mb-1">صورة الهوية</label>
-                        <input type="file" :name="`companions[${idx}][id_image]`" accept="image/*,.pdf"
+                        <label class="block text-xs font-medium text-gray-600 mb-1">صورة الهوية <span class="text-red-500">*</span></label>
+                        <input type="file" :name="`companions[${idx}][id_image]`" accept="image/*,.pdf" required
                                @change="handleCompanionIdImage($event, idx)"
                                class="w-full text-sm text-gray-600 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100">
                         <img x-show="comp.id_preview" :src="comp.id_preview" class="mt-2 h-16 rounded object-cover">
@@ -507,7 +507,7 @@
                            class="flex-1 border border-amber-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-amber-400 outline-none bg-white">
                     <span class="text-sm text-amber-700 font-medium whitespace-nowrap"><span x-text="currencySymbol()"></span> / ليلة</span>
                 </div>
-                <p class="text-xs text-amber-600 mt-1.5">اتركه فارغاً لاستخدام السعر الأصلي للغرفة بهذه العملة</p>
+                <p class="text-xs text-amber-600 mt-1.5">اتركه فارغاً لاستخدام السعر الأصلي للغرفة بعملة <span class="font-semibold" x-text="currencyName(currency)"></span></p>
             </div>
         </div>
 
@@ -559,7 +559,9 @@
                        :max="totalAmount" placeholder="0.00"
                        class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
             </div>
-            <input x-show="paymentStatus === 'paid'" type="hidden" name="paid_amount" :value="totalAmount">
+            <template x-if="paymentStatus === 'paid'">
+                <input type="hidden" name="paid_amount" :value="totalAmount">
+            </template>
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1.5">طريقة الدفع</label>

@@ -62,7 +62,7 @@ class CheckInController extends Controller
     {
         $request->validate([
             'full_name'   => 'required|string|max:255',
-            'occupation'  => 'required|string|max:255',
+            'occupation'  => 'nullable|string|max:255',
             'phone'       => 'required|string|max:30',
             'id_type'     => 'required|in:passport,national_id,residence',
             'id_number'   => 'required|string',
@@ -79,6 +79,8 @@ class CheckInController extends Controller
             'bank_receipt' => 'required_if:payment_method,bank_transfer|nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
             'companions.*.full_name' => 'required_with:companions.*.relationship|string',
             'companions.*.relationship' => 'nullable|in:wife,son,daughter,brother,sister,father,mother,other',
+            'companions.*.nationality' => 'required_with:companions.*.full_name|nullable|string|max:100',
+            'companions.*.id_image'    => 'required_with:companions.*.full_name|nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
             'companions.*.marriage_doc' => 'required_if:companions.*.relationship,wife|nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
             'suite_booking_type'        => 'nullable|in:a_only,b_only,both',
             'booking_mode'              => 'nullable|in:checkin,reserve',
