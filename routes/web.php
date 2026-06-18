@@ -16,9 +16,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\DailyReportController;
 use App\Http\Controllers\FloorController;
 use App\Http\Controllers\EmployeeController;
-use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\SalaryController;
-use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\ExpenseController;
 
@@ -167,14 +165,6 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/employees/{employee}', [EmployeeController::class, 'destroy'])->name('employees.destroy');
     });
 
-    // Attendance
-    Route::middleware('permission:hr.view')->group(function () {
-        Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
-    });
-    Route::post('/attendance', [AttendanceController::class, 'store'])
-        ->name('attendance.store')
-        ->middleware('permission:hr.manage');
-
     // Salaries
     Route::middleware('permission:hr.view')->group(function () {
         Route::get('/salaries', [SalaryController::class, 'index'])->name('salaries.index');
@@ -183,16 +173,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/salaries/create', [SalaryController::class, 'create'])->name('salaries.create');
         Route::post('/salaries', [SalaryController::class, 'store'])->name('salaries.store');
         Route::patch('/salaries/{salary}/mark-paid', [SalaryController::class, 'markPaid'])->name('salaries.markPaid');
-    });
-
-    // Leaves
-    Route::middleware('permission:hr.view')->group(function () {
-        Route::get('/leaves', [LeaveController::class, 'index'])->name('leaves.index');
-    });
-    Route::middleware('permission:hr.manage')->group(function () {
-        Route::get('/leaves/create', [LeaveController::class, 'create'])->name('leaves.create');
-        Route::post('/leaves', [LeaveController::class, 'store'])->name('leaves.store');
-        Route::patch('/leaves/{leave}', [LeaveController::class, 'update'])->name('leaves.update');
     });
 
     // ===== Expense Module =====
