@@ -102,6 +102,9 @@
             <span class="inline-block mt-1 px-1.5 py-0.5 rounded text-xs font-medium {{ $subBadge['cls'] }}">{{ $subBadge['label'] }}</span>
             @endif
             @endif
+            @if(($room->beds_count ?? 1) > 1)
+            <div class="mt-1 text-[11px] text-gray-500">{{ $room->beds_count }} أسرة</div>
+            @endif
             <div class="mt-1 text-xs font-medium text-gray-700">{{ number_format($room->priceFor('YER'), 0) }} ر.ي</div>
             @if($room->price_sar > 0 || $room->price_usd > 0)
             <div class="mt-0.5 text-[11px] text-gray-400 flex flex-wrap gap-x-2">

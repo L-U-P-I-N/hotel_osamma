@@ -11,7 +11,7 @@ class Room extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'hotel_id','room_type_id','room_number','floor',
+        'hotel_id','room_type_id','room_number','floor','beds_count',
         'price_yer','price_sar','price_usd',
         'room_sub_type','linked_room_id','is_always_linked',
         'status','notes',

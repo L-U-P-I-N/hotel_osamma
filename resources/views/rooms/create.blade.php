@@ -150,6 +150,13 @@
                 @enderror
             </div>
 
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">عدد الأسرة <span class="text-red-500">*</span></label>
+                <input type="number" name="beds_count" value="{{ old('beds_count', 1) }}" min="1" max="20" required
+                       class="w-full border @error('beds_count') border-red-400 bg-red-50 @else border-gray-300 @enderror rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                @error('beds_count')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            </div>
+
             @if($canPrice)
             <div class="md:col-span-2">
                 <div class="border border-amber-200 bg-amber-50 rounded-xl p-4">

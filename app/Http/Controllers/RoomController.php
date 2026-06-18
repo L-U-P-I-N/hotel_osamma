@@ -51,6 +51,7 @@ class RoomController extends Controller
             'floor'          => 'required|integer|min:1|max:50',
             'room_type_id'   => 'required|exists:room_types,id',
             'room_sub_type'  => 'nullable|in:regular,double,suite,suite_a,suite_b,hall,apartment',
+            'beds_count'     => 'nullable|integer|min:1|max:20',
             'price_yer'      => 'nullable|numeric|min:0',
             'price_sar'      => 'nullable|numeric|min:0',
             'price_usd'      => 'nullable|numeric|min:0',
@@ -87,6 +88,7 @@ class RoomController extends Controller
             'hotel_id'     => $hotel->id,
             'room_type_id' => $validated['room_type_id'],
             'floor'        => $validated['floor'],
+            'beds_count'   => $validated['beds_count'] ?? 1,
             'status'       => 'available',
             'notes'        => $validated['notes'] ?? null,
         ];
@@ -142,6 +144,7 @@ class RoomController extends Controller
             'floor'          => 'required|integer|min:1|max:50',
             'room_type_id'   => 'required|exists:room_types,id',
             'room_sub_type'  => 'nullable|in:regular,double,suite,suite_a,suite_b,hall,apartment',
+            'beds_count'     => 'nullable|integer|min:1|max:20',
             'price_yer'      => 'nullable|numeric|min:0',
             'price_sar'      => 'nullable|numeric|min:0',
             'price_usd'      => 'nullable|numeric|min:0',
@@ -174,6 +177,7 @@ class RoomController extends Controller
         $attributes = [
             'room_number'   => $validated['room_number'],
             'floor'         => $validated['floor'],
+            'beds_count'    => $validated['beds_count'] ?? $room->beds_count,
             'room_type_id'  => $validated['room_type_id'],
             'room_sub_type' => $validated['room_sub_type'] ?? $room->room_sub_type,
             'notes'         => $validated['notes'] ?? null,
