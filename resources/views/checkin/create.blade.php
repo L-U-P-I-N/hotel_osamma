@@ -40,7 +40,7 @@
 </div>
 
 <form id="checkInForm" method="POST" action="{{ route('checkin.store') }}" enctype="multipart/form-data"
-      @submit="handleSubmit($event)">
+      autocomplete="off" @submit="handleSubmit($event)">
 @csrf
 <input type="hidden" name="booking_mode" value="{{ $mode }}">
 
@@ -229,7 +229,8 @@
                         <input type="file" :name="`companions[${idx}][id_image]`" accept="image/*,.pdf" required
                                @change="handleCompanionIdImage($event, idx)"
                                class="w-full text-sm text-gray-600 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100">
-                        <img x-show="comp.id_preview" :src="comp.id_preview" class="mt-2 h-16 rounded object-cover">
+                        <img x-show="comp.id_preview && comp.id_preview !== '__pdf__'" :src="comp.id_preview" class="mt-2 h-16 rounded object-cover">
+                        <p x-show="comp.id_preview === '__pdf__'" class="mt-1 text-xs text-green-600">تم اختيار ملف PDF</p>
                     </div>
 
                     <!-- Marriage Doc (wife only) -->
@@ -945,10 +946,20 @@ function checkInWizard() {
         getStepError() {
             if (this.currentStep === 1) {
                 if (!this.guestData.full_name)   return 'الاسم الرباعي مطلوب';
-                if (!this.guestData.occupation)  return 'المهنة مطلوبة';
                 if (!this.guestData.id_number)   return 'رقم الهوية مطلوب';
                 if (!this.guestData.phone)        return 'رقم الجوال مطلوب';
                 if (!this.idImagePreview && !this.idImageName) return 'صورة الهوية مطلوبة';
+                return '';
+            }
+            if (this.currentStep === 2) {
+                for (let i = 0; i < this.companions.length; i++) {
+                    const c = this.companions[i];
+                    const n = i + 1;
+                    if (!c.full_name || !c.full_name.trim())   return `مرافق ${n}: الاسم مطلوب`;
+                    if (!c.nationality || !c.nationality.trim()) return `مرافق ${n}: الجنسية مطلوبة`;
+                    if (!c.relationship)                        return `مرافق ${n}: صلة القرابة مطلوبة`;
+                    if (!c.id_preview)                          return `مرافق ${n}: صورة الهوية مطلوبة`;
+                }
                 return '';
             }
             if (this.currentStep === 3) {
@@ -1025,10 +1036,15 @@ function checkInWizard() {
 
         handleCompanionIdImage(e, idx) {
             const file = e.target.files[0];
-            if (file && file.type.startsWith('image/')) {
+            if (!file) return;
+            this.companions[idx].id_file_selected = true;
+            if (file.type.startsWith('image/')) {
                 const reader = new FileReader();
                 reader.onload = (ev) => this.companions[idx].id_preview = ev.target.result;
                 reader.readAsDataURL(file);
+            } else {
+                // PDF — no preview but mark as selected
+                this.companions[idx].id_preview = '__pdf__';
             }
         },
     }
