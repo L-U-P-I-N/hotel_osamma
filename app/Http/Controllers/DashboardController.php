@@ -20,7 +20,10 @@ class DashboardController extends Controller
             ->whereIn('status', ['checked_in', 'checked_out'])
             ->count();
 
-        $todayRevenue = Payment::whereDate('payment_date', today())->sum('amount');
+        $todayRevenue   = Payment::whereDate('payment_date', today())->sum('amount');
+        $weeklyRevenue  = Payment::whereBetween('payment_date', [now()->startOfWeek(), now()->endOfWeek()])->sum('amount');
+        $monthlyRevenue = Payment::whereMonth('payment_date', now()->month)->whereYear('payment_date', now()->year)->sum('amount');
+        $yearlyRevenue  = Payment::whereYear('payment_date', now()->year)->sum('amount');
 
         $recentReservations = Reservation::with(['guest', 'room.roomType', 'createdBy'])
             ->latest()
@@ -35,6 +38,7 @@ class DashboardController extends Controller
         return view('dashboard.index', compact(
             'totalRooms', 'occupiedRooms', 'availableRooms', 'occupancyPercent',
             'todayArrivals', 'todayDepartures', 'todayRevenue',
+            'weeklyRevenue', 'monthlyRevenue', 'yearlyRevenue',
             'recentReservations', 'roomStatusCounts'
         ));
     }

@@ -32,14 +32,28 @@
     </div>
 
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between mb-3">
             <div>
-                <p class="text-xs text-gray-500 font-medium">إيرادات اليوم</p>
-                <p class="text-3xl font-bold text-accent-600 mt-1">{{ number_format($todayRevenue, 0) }}</p>
-                <p class="text-xs text-gray-400 mt-1">ريال يمني</p>
+                <p class="text-xs text-gray-500 font-medium">الإيرادات</p>
+                <p class="text-2xl font-bold text-amber-600 mt-1">{{ number_format($monthlyRevenue, 0) }}</p>
+                <p class="text-xs text-gray-400 mt-0.5">هذا الشهر · ريال يمني</p>
             </div>
-            <div class="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center">
+            <div class="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center flex-shrink-0">
                 <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+        </div>
+        <div class="grid grid-cols-3 gap-2 pt-2 border-t border-gray-50 text-center">
+            <div>
+                <p class="text-xs text-gray-400">اليوم</p>
+                <p class="text-sm font-semibold text-gray-700">{{ number_format($todayRevenue, 0) }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-400">الأسبوع</p>
+                <p class="text-sm font-semibold text-gray-700">{{ number_format($weeklyRevenue, 0) }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-400">السنة</p>
+                <p class="text-sm font-semibold text-gray-700">{{ number_format($yearlyRevenue, 0) }}</p>
             </div>
         </div>
     </div>
@@ -136,31 +150,72 @@
         </div>
     </div>
 
-    <!-- Today Summary -->
+    <!-- Room Status Notifications -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <h3 class="font-semibold text-gray-700 mb-4">ملخص اليوم</h3>
-        <div class="space-y-4">
-            <div class="flex justify-between items-center py-2 border-b border-gray-50">
-                <span class="text-sm text-gray-600">إجمالي الغرف</span>
-                <span class="font-bold text-gray-800">{{ $totalRooms }}</span>
-            </div>
-            <div class="flex justify-between items-center py-2 border-b border-gray-50">
-                <span class="text-sm text-gray-600">مشغولة</span>
-                <span class="font-bold text-red-600">{{ $roomStatusCounts['occupied'] ?? 0 }}</span>
-            </div>
-            <div class="flex justify-between items-center py-2 border-b border-gray-50">
-                <span class="text-sm text-gray-600">متاحة</span>
-                <span class="font-bold text-green-600">{{ $roomStatusCounts['available'] ?? 0 }}</span>
-            </div>
-            <div class="flex justify-between items-center py-2 border-b border-gray-50">
-                <span class="text-sm text-gray-600">صيانة</span>
-                <span class="font-bold text-gray-600">{{ $roomStatusCounts['maintenance'] ?? 0 }}</span>
-            </div>
-            <div class="flex justify-between items-center py-2">
-                <span class="text-sm text-gray-600">تحت الفحص</span>
-                <span class="font-bold text-yellow-600">{{ $roomStatusCounts['under_inspection'] ?? 0 }}</span>
-            </div>
+        <h3 class="font-semibold text-gray-700 mb-4">حالة الغرف</h3>
+        @can('rooms.view')
+        <div class="space-y-2">
+            <a href="{{ route('rooms.index') }}" class="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors group">
+                <div class="flex items-center gap-3">
+                    <div class="w-2 h-2 rounded-full bg-gray-400"></div>
+                    <span class="text-sm text-gray-600 group-hover:text-gray-800">إجمالي الغرف</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="font-bold text-gray-800">{{ $totalRooms }}</span>
+                    <svg class="w-4 h-4 text-gray-400 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </div>
+            </a>
+            <a href="{{ route('rooms.index', ['status' => 'occupied']) }}" class="flex items-center justify-between p-3 rounded-lg bg-red-50 hover:bg-red-100 transition-colors group">
+                <div class="flex items-center gap-3">
+                    <div class="w-2 h-2 rounded-full bg-red-500"></div>
+                    <span class="text-sm text-red-700 group-hover:text-red-800">مشغولة</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="font-bold text-red-700">{{ $roomStatusCounts['occupied'] ?? 0 }}</span>
+                    <svg class="w-4 h-4 text-red-400 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </div>
+            </a>
+            <a href="{{ route('rooms.index', ['status' => 'available']) }}" class="flex items-center justify-between p-3 rounded-lg bg-green-50 hover:bg-green-100 transition-colors group">
+                <div class="flex items-center gap-3">
+                    <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                    <span class="text-sm text-green-700 group-hover:text-green-800">متاحة</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="font-bold text-green-700">{{ $roomStatusCounts['available'] ?? 0 }}</span>
+                    <svg class="w-4 h-4 text-green-400 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </div>
+            </a>
+            <a href="{{ route('rooms.index', ['status' => 'maintenance']) }}" class="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors group">
+                <div class="flex items-center gap-3">
+                    <div class="w-2 h-2 rounded-full bg-gray-500"></div>
+                    <span class="text-sm text-gray-600 group-hover:text-gray-800">صيانة</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="font-bold text-gray-700">{{ $roomStatusCounts['maintenance'] ?? 0 }}</span>
+                    <svg class="w-4 h-4 text-gray-400 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </div>
+            </a>
+            <a href="{{ route('rooms.index', ['status' => 'under_inspection']) }}" class="flex items-center justify-between p-3 rounded-lg bg-amber-50 hover:bg-amber-100 transition-colors group">
+                <div class="flex items-center gap-3">
+                    <div class="w-2 h-2 rounded-full bg-amber-500"></div>
+                    <span class="text-sm text-amber-700 group-hover:text-amber-800">تحت الفحص</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="font-bold text-amber-700">{{ $roomStatusCounts['under_inspection'] ?? 0 }}</span>
+                    <svg class="w-4 h-4 text-amber-400 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </div>
+            </a>
         </div>
+        @else
+        <div class="space-y-2">
+            @foreach(['إجمالي الغرف' => ['count' => $totalRooms, 'color' => 'gray'], 'مشغولة' => ['count' => $roomStatusCounts['occupied'] ?? 0, 'color' => 'red'], 'متاحة' => ['count' => $roomStatusCounts['available'] ?? 0, 'color' => 'green'], 'صيانة' => ['count' => $roomStatusCounts['maintenance'] ?? 0, 'color' => 'gray'], 'تحت الفحص' => ['count' => $roomStatusCounts['under_inspection'] ?? 0, 'color' => 'amber']] as $label => $info)
+            <div class="flex items-center justify-between p-3 rounded-lg bg-gray-50">
+                <span class="text-sm text-gray-600">{{ $label }}</span>
+                <span class="font-bold text-gray-800">{{ $info['count'] }}</span>
+            </div>
+            @endforeach
+        </div>
+        @endcan
     </div>
 </div>
 
