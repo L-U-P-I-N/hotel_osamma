@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Models\Expense;
 use App\Services\CashSettlementService;
 use Illuminate\Http\Request;
 
@@ -13,7 +14,26 @@ class SettlementController extends Controller
         $settlement = $this->service->getOrCreateTodaySettlement(auth()->user());
         $settlement->load(['withdrawals', 'user', 'lockedBy']);
         $perCurrency = $this->service->getPerCurrencyTotals($settlement);
-        return view('settlement.index', compact('settlement', 'perCurrency'));
+
+        // Fetch module expenses for today (linked to active shift or by date)
+        $activeShift = \App\Models\Shift::where('is_closed', false)->latest()->first();
+        $moduleExpenses = Expense::with('supplier')
+            ->where(function ($q) use ($activeShift) {
+                if ($activeShift) {
+                    $q->where('shift_id', $activeShift->id)
+                      ->orWhereDate('expense_date', today());
+                } else {
+                    $q->whereDate('expense_date', today());
+                }
+            })
+            ->orderBy('expense_date', 'desc')
+            ->get();
+
+        // Totals per currency for module expenses
+        $moduleExpenseTotals = $moduleExpenses->groupBy('currency')
+            ->map(fn($g) => $g->sum('amount'));
+
+        return view('settlement.index', compact('settlement', 'perCurrency', 'moduleExpenses', 'moduleExpenseTotals'));
     }
 
     public function addWithdrawal(Request $request)

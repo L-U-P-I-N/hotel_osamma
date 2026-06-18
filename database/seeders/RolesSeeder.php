@@ -34,6 +34,12 @@ class RolesSeeder extends Seeder
             'audit_log.view',
             'government.export',
             'deferred.approve',
+            // HR Module
+            'hr.view',
+            'hr.manage',
+            // Expense Module
+            'expenses.view',
+            'expenses.manage',
         ];
 
         foreach ($permissions as $permission) {
@@ -46,6 +52,7 @@ class RolesSeeder extends Seeder
                 'dashboard.view', 'rooms.view', 'payments.create', 'payments.view',
                 'payments.bank_receipt', 'settlement.view', 'settlement.manage',
                 'settlement.lock', 'reports.view',
+                'hr.view', 'hr.manage', 'expenses.view', 'expenses.manage',
             ],
             'receptionist' => [
                 'dashboard.view', 'rooms.view', 'rooms.manage', 'checkin.create',

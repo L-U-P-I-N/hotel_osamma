@@ -43,6 +43,12 @@ class PermissionService
         'government.export'     => ['label' => 'التصدير للجهات الحكومية',    'default' => false],
         'report.monthly'        => ['label' => 'التقرير الشهري',              'default' => false],
         'rooms.maintenance'     => ['label' => 'تغيير حالة الغرفة (صيانة/فحص/متاحة)', 'default' => true],
+        // HR Module
+        'hr.view'               => ['label' => 'عرض الموارد البشرية (موظفون، رواتب، إجازات)', 'default' => false],
+        'hr.manage'             => ['label' => 'إدارة الموارد البشرية (إضافة وتعديل)',          'default' => false],
+        // Expense Module
+        'expenses.view'         => ['label' => 'عرض المصروفات والموردين',                        'default' => false],
+        'expenses.manage'       => ['label' => 'إدارة المصروفات (إضافة وتعديل وحذف)',            'default' => false],
     ];
 
     public static function userCan(User $user, string $permission): bool

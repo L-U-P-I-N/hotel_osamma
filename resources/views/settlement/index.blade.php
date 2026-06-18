@@ -157,6 +157,64 @@ $currencyLabels = ['YER' => 'ريال يمني', 'SAR' => 'ريال سعودي',
     </div>
 </div>
 
+<!-- Module Expenses Section -->
+@if($moduleExpenses->isNotEmpty())
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-5">
+    <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+        <h3 class="font-semibold text-gray-700">مصروفات اليوم (من وحدة المصروفات)</h3>
+        @can('expenses.view')
+        <a href="{{ route('expenses.index') }}" class="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition">
+            عرض الكل
+        </a>
+        @endcan
+    </div>
+    <!-- Per-currency totals for module expenses -->
+    @php $currencyLabels = ['YER' => 'ريال يمني', 'SAR' => 'ريال سعودي', 'USD' => 'دولار أمريكي']; @endphp
+    @if($moduleExpenseTotals->isNotEmpty())
+    <div class="px-6 py-3 flex flex-wrap gap-4 border-b border-gray-50 bg-red-50">
+        @foreach($moduleExpenseTotals as $cur => $total)
+        <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-500">{{ $currencyLabels[$cur] ?? $cur }}:</span>
+            <span class="text-sm font-bold text-red-600">{{ number_format($total, 2) }}</span>
+        </div>
+        @endforeach
+    </div>
+    @endif
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm" dir="rtl">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">التاريخ</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الفئة</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المبلغ</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">العملة</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المورد</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الوصف</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+                @foreach($moduleExpenses as $me)
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 text-gray-600">{{ $me->expense_date->format('d/m/Y') }}</td>
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                            {{ \App\Models\Expense::categoryLabel($me->category) }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 font-bold text-red-600">{{ number_format($me->amount, 2) }}</td>
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-0.5 rounded text-xs font-medium" style="background:#e8f0f7; color:#0F4C75;">{{ $me->currency }}</span>
+                    </td>
+                    <td class="px-4 py-3 text-gray-600">{{ $me->supplier?->name ?? '-' }}</td>
+                    <td class="px-4 py-3 text-gray-500">{{ $me->description ?? '-' }}</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+</div>
+@endif
+
 <!-- Currency Exchange Section -->
 @if($perCurrency['exchanges']->isNotEmpty())
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-5">

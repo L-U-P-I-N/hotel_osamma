@@ -15,6 +15,12 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\DailyReportController;
 use App\Http\Controllers\FloorController;
+use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\SalaryController;
+use App\Http\Controllers\LeaveController;
+use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\ExpenseController;
 
 Route::get('/', fn() => redirect()->route('login'));
 
@@ -147,4 +153,71 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/audit-log', [UserController::class, 'auditLog'])
         ->name('audit.log')
         ->middleware('permission:audit_log.view');
+
+    // ===== HR Module =====
+    // Employees
+    Route::middleware('permission:hr.view')->group(function () {
+        Route::get('/employees', [EmployeeController::class, 'index'])->name('employees.index');
+    });
+    Route::middleware('permission:hr.manage')->group(function () {
+        Route::get('/employees/create', [EmployeeController::class, 'create'])->name('employees.create');
+        Route::post('/employees', [EmployeeController::class, 'store'])->name('employees.store');
+        Route::get('/employees/{employee}/edit', [EmployeeController::class, 'edit'])->name('employees.edit');
+        Route::put('/employees/{employee}', [EmployeeController::class, 'update'])->name('employees.update');
+        Route::delete('/employees/{employee}', [EmployeeController::class, 'destroy'])->name('employees.destroy');
+    });
+
+    // Attendance
+    Route::middleware('permission:hr.view')->group(function () {
+        Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
+    });
+    Route::post('/attendance', [AttendanceController::class, 'store'])
+        ->name('attendance.store')
+        ->middleware('permission:hr.manage');
+
+    // Salaries
+    Route::middleware('permission:hr.view')->group(function () {
+        Route::get('/salaries', [SalaryController::class, 'index'])->name('salaries.index');
+    });
+    Route::middleware('permission:hr.manage')->group(function () {
+        Route::get('/salaries/create', [SalaryController::class, 'create'])->name('salaries.create');
+        Route::post('/salaries', [SalaryController::class, 'store'])->name('salaries.store');
+        Route::patch('/salaries/{salary}/mark-paid', [SalaryController::class, 'markPaid'])->name('salaries.markPaid');
+    });
+
+    // Leaves
+    Route::middleware('permission:hr.view')->group(function () {
+        Route::get('/leaves', [LeaveController::class, 'index'])->name('leaves.index');
+    });
+    Route::middleware('permission:hr.manage')->group(function () {
+        Route::get('/leaves/create', [LeaveController::class, 'create'])->name('leaves.create');
+        Route::post('/leaves', [LeaveController::class, 'store'])->name('leaves.store');
+        Route::patch('/leaves/{leave}', [LeaveController::class, 'update'])->name('leaves.update');
+    });
+
+    // ===== Expense Module =====
+    // Suppliers
+    Route::middleware('permission:expenses.view')->group(function () {
+        Route::get('/suppliers', [SupplierController::class, 'index'])->name('suppliers.index');
+    });
+    Route::middleware('permission:expenses.manage')->group(function () {
+        Route::get('/suppliers/create', [SupplierController::class, 'create'])->name('suppliers.create');
+        Route::post('/suppliers', [SupplierController::class, 'store'])->name('suppliers.store');
+        Route::get('/suppliers/{supplier}/edit', [SupplierController::class, 'edit'])->name('suppliers.edit');
+        Route::put('/suppliers/{supplier}', [SupplierController::class, 'update'])->name('suppliers.update');
+        Route::delete('/suppliers/{supplier}', [SupplierController::class, 'destroy'])->name('suppliers.destroy');
+    });
+
+    // Expenses
+    Route::middleware('permission:expenses.view')->group(function () {
+        Route::get('/expenses', [ExpenseController::class, 'index'])->name('expenses.index');
+        Route::get('/expenses/report', [ExpenseController::class, 'report'])->name('expenses.report');
+    });
+    Route::middleware('permission:expenses.manage')->group(function () {
+        Route::get('/expenses/create', [ExpenseController::class, 'create'])->name('expenses.create');
+        Route::post('/expenses', [ExpenseController::class, 'store'])->name('expenses.store');
+        Route::get('/expenses/{expense}/edit', [ExpenseController::class, 'edit'])->name('expenses.edit');
+        Route::put('/expenses/{expense}', [ExpenseController::class, 'update'])->name('expenses.update');
+        Route::delete('/expenses/{expense}', [ExpenseController::class, 'destroy'])->name('expenses.destroy');
+    });
 });
