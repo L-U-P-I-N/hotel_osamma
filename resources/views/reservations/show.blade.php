@@ -79,6 +79,8 @@
             <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">تاريخ الدخول</span><span>{{ $reservation->check_in_date?->format('d/m/Y') ?? '—' }}</span></div>
             <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">تاريخ الخروج</span><span>{{ $reservation->check_out_date?->format('d/m/Y') ?? '—' }}</span></div>
             <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">عدد الليالي</span><span class="font-medium">{{ $reservation->nights }}</span></div>
+            @php $pricePerNight = $reservation->nights > 0 ? round($reservation->total_amount / $reservation->nights, 2) : 0; @endphp
+            <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">سعر الليلة</span><span class="font-medium text-amber-700">{{ number_format($pricePerNight, 0) }} {{ $reservation->currency_symbol }}</span></div>
             <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">الإجمالي</span><span class="font-bold">{{ number_format($reservation->total_amount, 2) }} {{ $reservation->currency_symbol }}</span></div>
             <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">المدفوع</span><span class="font-medium text-green-600">{{ number_format($reservation->paid_amount, 2) }} {{ $reservation->currency_symbol }}</span></div>
             <div class="flex justify-between py-1.5"><span class="text-gray-500">المتبقي</span><span class="font-bold {{ $reservation->balance > 0 ? 'text-red-600' : 'text-green-600' }}">{{ number_format($reservation->balance, 2) }} {{ $reservation->currency_symbol }}</span></div>

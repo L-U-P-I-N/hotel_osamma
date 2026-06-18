@@ -128,8 +128,11 @@ class CheckInController extends Controller
 
             $reservation = $this->checkInService->createCheckIn($data, auth()->user());
 
-            return redirect()->route('checkin.success', $reservation->id)
-                ->with('success', 'تم تسجيل الدخول بنجاح');
+            $isReserve = ($request->input('booking_mode') === 'reserve');
+            $message = $isReserve ? 'تم إنشاء الحجز المسبق بنجاح' : 'تم تسجيل الدخول بنجاح';
+
+            return redirect()->route('reservations.show', $reservation->id)
+                ->with('success', $message);
         } catch (BlacklistedException $e) {
             return back()->withErrors(['id_number' => $e->getMessage()])->withInput();
         } catch (\Exception $e) {
