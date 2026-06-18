@@ -31,7 +31,7 @@
             </select>
         </div>
         <div class="flex-1 min-w-36">
-            <label class="block text-xs font-medium text-gray-600 mb-1">نوع الغرفة</label>
+            <label class="block text-xs font-medium text-gray-600 mb-1">الفئة</label>
             <select name="type" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
                 <option value="">جميع الأنواع</option>
                 @foreach($roomTypes as $type)
@@ -40,7 +40,7 @@
             </select>
         </div>
         <div class="flex-1 min-w-36">
-            <label class="block text-xs font-medium text-gray-600 mb-1">التصنيف</label>
+            <label class="block text-xs font-medium text-gray-600 mb-1">نوع الغرفة</label>
             <select name="sub_type" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
                 <option value="">جميع التصنيفات</option>
                 <option value="regular"   {{ request('sub_type')==='regular'   ? 'selected' : '' }}>عادية</option>
