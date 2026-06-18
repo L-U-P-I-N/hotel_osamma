@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل الدخول - فندق أسامة</title>
+    <title>تسجيل الدخول - الفندق السعودي</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>tailwind.config={theme:{extend:{fontFamily:{cairo:['Cairo','sans-serif']},colors:{primary:{DEFAULT:'#0F4C75',800:'#0F4C75',700:'#1e578f',600:'#2d6aab',100:'#c5d8ea'},accent:{DEFAULT:'#D4A574'}}}}}</script>
@@ -14,9 +14,9 @@
         <!-- Logo Card -->
         <div class="text-center mb-8">
             <div class="inline-flex items-center justify-center w-20 h-20 bg-accent rounded-2xl mb-4 shadow-lg">
-                <span class="text-primary-900 font-bold text-4xl">ف</span>
+                <span class="text-primary-900 font-bold text-4xl">س</span>
             </div>
-            <h1 class="text-white text-2xl font-bold">فندق أسامة</h1>
+            <h1 class="text-white text-2xl font-bold">الفندق السعودي</h1>
             <p class="text-primary-200 text-sm mt-1">نظام إدارة الفندق</p>
         </div>
 
@@ -74,7 +74,7 @@
             </form>
         </div>
 
-        <p class="text-center text-primary-300 text-xs mt-6">© {{ date('Y') }} فندق أسامة - جميع الحقوق محفوظة</p>
+        <p class="text-center text-primary-300 text-xs mt-6">© {{ date('Y') }} الفندق السعودي - جميع الحقوق محفوظة</p>
     </div>
 <script>
 function togglePassword() {

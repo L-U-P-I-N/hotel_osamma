@@ -32,7 +32,7 @@
 <body>
 
 <div class="header">
-    <h1>{{ $hotel->name ?? 'فندق أسامة' }}</h1>
+    <h1>{{ $hotel->name ?? 'الفندق السعودي' }}</h1>
     <p>{{ $hotel->address ?? '' }}{{ $hotel->phone ? ' | ' . $hotel->phone : '' }}</p>
     <div class="doc-title">نموذج بيانات النزلاء للجهات الحكومية</div>
 </div>
@@ -140,7 +140,7 @@
         <div class="center-info">
             <p>صدر بواسطة: {{ auth()->user()?->name ?? $reservation->createdBy?->name ?? 'النظام' }}</p>
             <p style="margin-top:3px;">{{ now()->format('d/m/Y H:i:s') }}</p>
-            <div class="stamp">{{ $hotel->name ?? 'فندق أسامة' }} — نظام إدارة الفندق</div>
+            <div class="stamp">{{ $hotel->name ?? 'الفندق السعودي' }} — نظام إدارة الفندق</div>
         </div>
         <div class="sig-box">
             <div class="sig-line"></div>
