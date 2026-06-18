@@ -38,29 +38,48 @@ class ReportController extends Controller
 
     public function revenue(Request $request)
     {
-        $from = $request->input('from', now()->subDays(30)->toDateString());
-        $to = $request->input('to', now()->toDateString());
+        $from     = $request->input('from', now()->subDays(30)->toDateString());
+        $to       = $request->input('to', now()->toDateString());
+        $currency = in_array($request->input('currency'), ['YER', 'SAR', 'USD'])
+                    ? $request->input('currency')
+                    : 'YER';
+
+        $currencySymbols = ['YER' => 'ر.ي', 'SAR' => 'ر.س', 'USD' => '$'];
+        $currencySymbol  = $currencySymbols[$currency];
+
+        $baseQuery = fn() => Payment::whereDate('payment_date', '>=', $from)
+            ->whereDate('payment_date', '<=', $to)
+            ->where('currency', $currency);
 
         $revenueByType = Payment::join('reservations', 'payments.reservation_id', '=', 'reservations.id')
             ->join('rooms', 'reservations.room_id', '=', 'rooms.id')
             ->join('room_types', 'rooms.room_type_id', '=', 'room_types.id')
             ->whereDate('payments.payment_date', '>=', $from)
             ->whereDate('payments.payment_date', '<=', $to)
+            ->where('payments.currency', $currency)
             ->select('room_types.name', DB::raw('SUM(payments.amount) as total'))
             ->groupBy('room_types.name')
             ->get();
 
-        $revenueByMethod = Payment::whereDate('payment_date', '>=', $from)
-            ->whereDate('payment_date', '<=', $to)
+        $revenueByMethod = $baseQuery()
             ->select('method', DB::raw('SUM(amount) as total'))
             ->groupBy('method')
             ->get();
 
-        $totalRevenue = Payment::whereDate('payment_date', '>=', $from)
-            ->whereDate('payment_date', '<=', $to)
-            ->sum('amount');
+        $totalRevenue = $baseQuery()->sum('amount');
 
-        return view('reports.revenue', compact('revenueByType', 'revenueByMethod', 'totalRevenue', 'from', 'to'));
+        // Summary totals per currency for the tab switcher
+        $currencyTotals = Payment::whereDate('payment_date', '>=', $from)
+            ->whereDate('payment_date', '<=', $to)
+            ->select('currency', DB::raw('SUM(amount) as total'))
+            ->groupBy('currency')
+            ->pluck('total', 'currency')
+            ->toArray();
+
+        return view('reports.revenue', compact(
+            'revenueByType', 'revenueByMethod', 'totalRevenue',
+            'from', 'to', 'currency', 'currencySymbol', 'currencyTotals'
+        ));
     }
 
     public function staffPerformance(Request $request)

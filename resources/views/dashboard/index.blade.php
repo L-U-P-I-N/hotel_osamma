@@ -34,9 +34,9 @@
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
         <div class="flex items-center justify-between mb-3">
             <div>
-                <p class="text-xs text-gray-500 font-medium">الإيرادات</p>
+                <p class="text-xs text-gray-500 font-medium">الإيرادات · ريال يمني</p>
                 <p class="text-2xl font-bold text-amber-600 mt-1">{{ number_format($monthlyRevenue, 0) }}</p>
-                <p class="text-xs text-gray-400 mt-0.5">هذا الشهر · ريال يمني</p>
+                <p class="text-xs text-gray-400 mt-0.5">هذا الشهر</p>
             </div>
             <div class="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center flex-shrink-0">
                 <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -71,6 +71,60 @@
         </div>
     </div>
 </div>
+
+<!-- Revenue Cards: SAR + USD -->
+@if($monthlyRevenueSar > 0 || $monthlyRevenueUsd > 0)
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-6">
+    @if($monthlyRevenueSar > 0)
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <div class="flex items-center justify-between mb-3">
+            <div>
+                <p class="text-xs text-gray-500 font-medium">الإيرادات · ريال سعودي</p>
+                <p class="text-2xl font-bold text-green-600 mt-1">{{ number_format($monthlyRevenueSar, 2) }}</p>
+                <p class="text-xs text-gray-400 mt-0.5">هذا الشهر</p>
+            </div>
+            <div class="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                <span class="text-green-700 font-bold text-sm">ر.س</span>
+            </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2 pt-2 border-t border-gray-50 text-center">
+            <div>
+                <p class="text-xs text-gray-400">هذا الشهر</p>
+                <p class="text-sm font-semibold text-gray-700">{{ number_format($monthlyRevenueSar, 2) }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-400">هذه السنة</p>
+                <p class="text-sm font-semibold text-gray-700">{{ number_format($yearlyRevenueSar, 2) }}</p>
+            </div>
+        </div>
+    </div>
+    @endif
+    @if($monthlyRevenueUsd > 0)
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <div class="flex items-center justify-between mb-3">
+            <div>
+                <p class="text-xs text-gray-500 font-medium">الإيرادات · دولار أمريكي</p>
+                <p class="text-2xl font-bold text-indigo-600 mt-1">{{ number_format($monthlyRevenueUsd, 2) }}</p>
+                <p class="text-xs text-gray-400 mt-0.5">هذا الشهر</p>
+            </div>
+            <div class="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                <span class="text-indigo-700 font-bold text-sm">$</span>
+            </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2 pt-2 border-t border-gray-50 text-center">
+            <div>
+                <p class="text-xs text-gray-400">هذا الشهر</p>
+                <p class="text-sm font-semibold text-gray-700">{{ number_format($monthlyRevenueUsd, 2) }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-400">هذه السنة</p>
+                <p class="text-sm font-semibold text-gray-700">{{ number_format($yearlyRevenueUsd, 2) }}</p>
+            </div>
+        </div>
+    </div>
+    @endif
+</div>
+@endif
 
 <!-- Charts + Quick Actions -->
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
@@ -218,6 +272,46 @@
         @endcan
     </div>
 </div>
+
+<!-- Overdue Guests -->
+@if($overdueGuests->isNotEmpty())
+<div class="bg-white rounded-xl shadow-sm border border-red-200 mb-6">
+    <div class="px-6 py-4 border-b border-red-100 flex items-center justify-between bg-red-50 rounded-t-xl">
+        <div class="flex items-center gap-2">
+            <div class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></div>
+            <h3 class="font-semibold text-red-800">نزلاء تجاوزوا موعد المغادرة</h3>
+        </div>
+        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-500 text-white text-xs font-bold">{{ $overdueGuests->count() }}</span>
+    </div>
+    <div class="divide-y divide-red-50">
+        @foreach($overdueGuests as $res)
+        <a href="{{ route('reservations.show', $res->id) }}"
+           class="flex items-center justify-between px-6 py-3 hover:bg-red-50 transition-colors group">
+            <div class="flex items-center gap-4">
+                <div class="w-9 h-9 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                </div>
+                <div>
+                    <div class="font-medium text-gray-800 text-sm group-hover:text-red-800">{{ $res->guest?->full_name ?? '—' }}</div>
+                    <div class="text-xs text-gray-500">غرفة {{ $res->room?->room_number ?? '—' }}</div>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="text-right">
+                    <div class="text-xs text-red-600 font-medium">موعد الخروج</div>
+                    <div class="text-sm font-semibold text-red-700">{{ $res->check_out_date?->format('d/m/Y') }}</div>
+                </div>
+                @php $overdueDays = $res->check_out_date?->diffInDays(today()); @endphp
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                    تأخر {{ $overdueDays }} {{ $overdueDays == 1 ? 'يوم' : 'أيام' }}
+                </span>
+                <svg class="w-4 h-4 text-red-400 rotate-180 group-hover:text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </div>
+        </a>
+        @endforeach
+    </div>
+</div>
+@endif
 
 <!-- Recent Reservations -->
 <div class="bg-white rounded-xl shadow-sm border border-gray-100">
