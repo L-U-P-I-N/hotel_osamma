@@ -109,6 +109,7 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware('permission:checkout.process')->group(function () {
         Route::get('/checkout/{reservation}', [CheckOutController::class, 'show'])->name('checkout.show');
         Route::post('/checkout/{reservation}', [CheckOutController::class, 'process'])->name('checkout.process');
+        Route::get('/checkout/{reservation}/done', [CheckOutController::class, 'done'])->name('checkout.done');
     });
 
     // Payments

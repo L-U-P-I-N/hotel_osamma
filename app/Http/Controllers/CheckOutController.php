@@ -15,6 +15,12 @@ class CheckOutController extends Controller
         return view('checkout.show', compact('reservation'));
     }
 
+    public function done(Reservation $reservation)
+    {
+        $reservation->load(['guest', 'room.roomType', 'payments', 'roomInspections', 'companions', 'extraCharges']);
+        return view('checkout.done', compact('reservation'));
+    }
+
     public function process(Request $request, Reservation $reservation)
     {
         $request->validate([
@@ -43,8 +49,7 @@ class CheckOutController extends Controller
 
             $reservation = $this->checkOutService->processCheckOut($reservation, $data, auth()->user());
 
-            return redirect()->route('reservations.show', $reservation->id)
-                ->with('success', 'تم تسجيل الخروج بنجاح');
+            return redirect()->route('checkout.done', $reservation->id);
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()]);
         }

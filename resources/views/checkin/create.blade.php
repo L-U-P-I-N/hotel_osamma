@@ -972,6 +972,7 @@ function checkInWizard() {
                 if (this.nights <= 0)               return 'تاريخ الخروج يجب أن يكون بعد تاريخ الدخول';
                 if (this.effectiveRoomPrice() <= 0) return 'لا يوجد سعر للغرفة بالعملة المختارة — أدخل السعر يدوياً';
                 if (this.paymentStatus === 'partial' && (parseFloat(this.paidAmount) || 0) <= 0) return 'يرجى إدخال المبلغ المدفوع';
+                if (this.paymentStatus === 'partial' && (parseFloat(this.paidAmount) || 0) > this.totalAmount) return `المبلغ المدفوع يتجاوز إجمالي الحجز (${this.totalAmount.toLocaleString('ar-SA')} ${this.currency})`;
                 if (BOOKING_MODE === 'reserve' && this.paymentStatus === 'unpaid') return 'الحجز المسبق يتطلب دفع عربون';
                 if (BOOKING_MODE === 'reserve' && this.paymentStatus === 'partial' && this.currency === 'YER' && this.effectivePaid < 1000) return 'العربون يجب أن لا يقل عن 1,000 ريال يمني';
                 if (BOOKING_MODE === 'reserve' && this.paymentStatus === 'partial' && this.currency !== 'YER' && this.effectivePaid <= 0) return 'الحجز المسبق يتطلب دفع عربون';

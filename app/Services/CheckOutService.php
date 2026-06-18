@@ -1,6 +1,7 @@
 <?php
 namespace App\Services;
 
+use App\Models\Expense;
 use App\Models\ExtraCharge;
 use App\Models\InspectionImage;
 use App\Models\Payment;
@@ -42,11 +43,22 @@ class CheckOutService
                 if ($compensationAmount > 0) {
                     ExtraCharge::create([
                         'reservation_id' => $reservation->id,
-                        'added_by' => $user->id,
-                        'type' => 'damage',
-                        'description' => $data['damage_description'] ?? 'تعويض أضرار',
-                        'amount' => $compensationAmount,
-                        'charge_date' => now(),
+                        'added_by'       => $user->id,
+                        'type'           => 'damage',
+                        'description'    => $data['damage_description'] ?? 'تعويض أضرار',
+                        'amount'         => $compensationAmount,
+                        'charge_date'    => now(),
+                    ]);
+
+                    // تسجيل الأضرار تلقائياً في المصروفات
+                    Expense::create([
+                        'amount'       => $compensationAmount,
+                        'currency'     => $data['currency'] ?? 'YER',
+                        'category'     => 'maintenance',
+                        'description'  => 'أضرار غرفة ' . ($reservation->room->room_number ?? '') . ' — ' . ($data['damage_description'] ?? 'تعويض أضرار'),
+                        'expense_date' => now()->toDateString(),
+                        'paid_by'      => $user->id,
+                        'shift_id'     => null,
                     ]);
 
                     $reservation->increment('total_amount', $compensationAmount);

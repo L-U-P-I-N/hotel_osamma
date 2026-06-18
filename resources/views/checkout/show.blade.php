@@ -3,7 +3,8 @@
 @section('page-title', 'تسجيل الخروج')
 
 @section('content')
-<div x-data="checkoutForm()" class="max-w-3xl mx-auto space-y-5">
+<div x-data="checkoutForm()" class="max-w-3xl mx-auto space-y-5"
+     x-init="balance = {{ $reservation->balance }}">
 
 <!-- Guest Summary -->
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
@@ -108,37 +109,48 @@
 
     <!-- Remaining Balance Payment -->
     @if($reservation->balance > 0)
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <h3 class="font-semibold text-gray-700 mb-4">تسوية الرصيد المتبقي</h3>
-        <div class="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 text-sm text-red-800">
-            المبلغ المتبقي: <strong>{{ number_format($reservation->balance, 2) }} ر.ي</strong>
+    <div class="bg-white rounded-xl shadow-sm border border-red-200 p-5">
+        <div class="flex items-center gap-2 mb-4">
+            <div class="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
+                <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            </div>
+            <h3 class="font-semibold text-red-700">تسوية الرصيد المتبقي — مطلوب قبل الخروج</h3>
+        </div>
+        <div class="bg-red-50 border border-red-200 rounded-xl p-4 mb-4 flex items-center justify-between">
+            <span class="text-sm text-red-800 font-medium">المبلغ المتبقي</span>
+            <span class="text-xl font-bold text-red-700">{{ number_format($reservation->balance, 2) }} {{ $reservation->currency_symbol }}</span>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">المبلغ</label>
-                <input type="number" name="remaining_payment" step="0.01" min="0"
+                <label class="block text-xs font-medium text-gray-600 mb-1.5">المبلغ المدفوع <span class="text-red-500">*</span></label>
+                <input type="number" name="remaining_payment" x-model.number="remainingPayment"
+                       step="0.01" min="0" max="{{ $reservation->balance }}"
                        value="{{ $reservation->balance }}"
-                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                       class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                <p x-show="remainingPayment > 0 && remainingPayment < balance"
+                   class="text-xs text-amber-600 mt-1">
+                    سيتم تسجيل الخروج مع رصيد معلق: <span x-text="(balance - remainingPayment).toLocaleString('ar-SA')"></span> {{ $reservation->currency_symbol }}
+                </p>
             </div>
             <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">طريقة الدفع</label>
+                <label class="block text-xs font-medium text-gray-600 mb-1.5">طريقة الدفع</label>
                 <select name="remaining_method" x-model="remainingMethod"
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                        class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
                     <option value="cash">نقدي</option>
                     <option value="pos">POS</option>
                     <option value="bank_transfer">تحويل بنكي</option>
                 </select>
             </div>
             <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">العملة</label>
-                <select name="currency" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                <label class="block text-xs font-medium text-gray-600 mb-1.5">العملة</label>
+                <select name="currency" class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
                     <option value="YER">ريال يمني</option>
                     <option value="SAR">ريال سعودي</option>
                     <option value="USD">دولار أمريكي</option>
                 </select>
             </div>
             <div x-show="remainingMethod === 'bank_transfer'" class="md:col-span-3">
-                <label class="block text-xs font-medium text-gray-600 mb-1">سند التحويل *</label>
+                <label class="block text-xs font-medium text-gray-600 mb-1.5">سند التحويل <span class="text-red-500">*</span></label>
                 <input type="file" name="remaining_bank_receipt" accept="image/*,.pdf"
                        class="w-full text-sm text-gray-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
             </div>
@@ -148,16 +160,25 @@
 
     <!-- Submit -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4 text-sm text-yellow-800">
+        {{-- Block checkout if balance > 0 and no payment entered --}}
+        @if($reservation->balance > 0)
+        <div x-show="remainingPayment <= 0"
+             class="bg-red-50 border border-red-200 rounded-xl p-4 mb-4 flex items-center gap-3 text-sm text-red-800">
+            <svg class="w-5 h-5 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+            لا يمكن تسجيل الخروج — يوجد رصيد متبقي بلغ <strong class="mx-1">{{ number_format($reservation->balance, 2) }} {{ $reservation->currency_symbol }}</strong> يجب تسويته أولاً
+        </div>
+        @endif
+        <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-4 text-sm text-yellow-800">
             <strong>تحذير:</strong> بعد إتمام تسجيل الخروج لا يمكن التراجع عنه.
         </div>
         <div class="flex gap-3">
             <button type="submit"
-                    class="flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition">
+                    @if($reservation->balance > 0) :disabled="remainingPayment <= 0" @endif
+                    class="flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition disabled:opacity-40 disabled:cursor-not-allowed">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
                 إتمام تسجيل الخروج
             </button>
-            <a href="{{ route('reservations.show', $reservation) }}" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition text-sm">إلغاء</a>
+            <a href="{{ route('reservations.show', $reservation) }}" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition text-sm">إلغاء</a>
         </div>
     </div>
 </form>
@@ -171,6 +192,8 @@ function checkoutForm() {
         hasDamage: false,
         compensationAmount: 0,
         remainingMethod: 'cash',
+        remainingPayment: {{ $reservation->balance > 0 ? $reservation->balance : 0 }},
+        balance: {{ $reservation->balance }},
     }
 }
 </script>
