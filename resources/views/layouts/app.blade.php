@@ -67,6 +67,12 @@
                 الغرف
             </a>
             @endcan
+            @can('rooms.manage')
+            <a href="{{ route('floors.index') }}" class="sidebar-link {{ request()->routeIs('floors.*') ? 'active' : 'text-primary-200' }}">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M10 4v16M14 4v16"/></svg>
+                إدارة الطوابق
+            </a>
+            @endcan
 
             @can('rooms.manage')
             <a href="{{ route('floors.index') }}" class="sidebar-link {{ request()->routeIs('floors.*') ? 'active' : 'text-primary-200' }}">

@@ -7,7 +7,12 @@ class Floor extends Model
 {
     protected $fillable = ['floor_number', 'door_count', 'name'];
 
-    public function roomNumbers(): array
+    public function rooms()
+    {
+        return $this->hasMany(Room::class, 'floor', 'floor_number');
+    }
+
+    public function validRoomNumbers(): array
     {
         $numbers = [];
         for ($i = 1; $i <= $this->door_count; $i++) {
@@ -16,8 +21,21 @@ class Floor extends Model
         return $numbers;
     }
 
-    public function rooms()
+    public function isValidRoomNumber(string $roomNumber): bool
     {
-        return $this->hasMany(Room::class, 'floor', 'floor_number');
+        $doorNumber = (int)$roomNumber - ($this->floor_number * 100);
+        return $doorNumber >= 1 && $doorNumber <= $this->door_count;
+    }
+
+    public function getDisplayNameAttribute(): string
+    {
+        return $this->name ?? 'الطابق ' . $this->floor_number;
+    }
+
+    public function getRangeAttribute(): string
+    {
+        $min = $this->floor_number * 100 + 1;
+        $max = $this->floor_number * 100 + $this->door_count;
+        return $min . ' - ' . $max;
     }
 }

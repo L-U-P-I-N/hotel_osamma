@@ -23,25 +23,83 @@
     </div>
     @endif
 
-    <form method="POST" action="{{ route('rooms.store') }}" class="space-y-5" x-data="floorSelector({{ $floors->toJson() }}, '{{ old('floor') }}', '{{ old('room_number') }}')">
+    <form method="POST" action="{{ route('rooms.store') }}" class="space-y-5"
+          x-data="{
+            floorNumbers: {{ $floors->pluck('floor_number', 'id')->toJson() }},
+            floorData: {{ $floors->keyBy('floor_number')->toJson() }},
+            selectedFloor: '{{ old('floor', $floors->first()?->floor_number ?? '') }}',
+            roomNumbers: [],
+            selectedRoom: '{{ old('room_number') }}',
+            hasFloors: {{ $floors->isNotEmpty() ? 'true' : 'false' }},
+            loadingRooms: false,
+            async fetchRooms() {
+                if (!this.selectedFloor || !this.hasFloors) return;
+                const floor = this.floorData[this.selectedFloor];
+                if (!floor) return;
+                this.loadingRooms = true;
+                try {
+                    const res = await fetch('/floors/' + floor.id + '/room-numbers');
+                    const data = await res.json();
+                    this.roomNumbers = data.available;
+                    if (!this.roomNumbers.includes(this.selectedRoom)) this.selectedRoom = this.roomNumbers[0] || '';
+                } catch(e) {}
+                this.loadingRooms = false;
+            },
+            init() { if (this.hasFloors) this.fetchRooms(); }
+          }"
+          @change.capture="if ($event.target.name === 'floor') { selectedFloor = $event.target.value; fetchRooms(); }">
         @csrf
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1.5">رقم الغرفة <span class="text-red-500">*</span></label>
-                <input type="text" name="room_number" value="{{ old('room_number') }}" required
-                       placeholder="مثال: 101"
-                       class="w-full border @error('room_number') border-red-400 bg-red-50 @else border-gray-300 @enderror rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition">
-                @error('room_number')
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">رقم الطابق <span class="text-red-500">*</span></label>
+                @if($floors->isNotEmpty())
+                <select name="floor" x-model="selectedFloor" required
+                        class="w-full border @error('floor') border-red-400 bg-red-50 @else border-gray-300 @enderror rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition">
+                    <option value="">-- اختر الطابق --</option>
+                    @foreach($floors as $floor)
+                    <option value="{{ $floor->floor_number }}" {{ old('floor') == $floor->floor_number ? 'selected' : '' }}>
+                        {{ $floor->display_name }} ({{ $floor->door_count }} أبواب)
+                    </option>
+                    @endforeach
+                </select>
+                @else
+                <input type="number" name="floor" value="{{ old('floor', 1) }}" required min="1" max="50"
+                       class="w-full border @error('floor') border-red-400 bg-red-50 @else border-gray-300 @enderror rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition"
+                       placeholder="رقم الطابق">
+                <p class="mt-1 text-xs text-amber-600">لم يتم تعريف طوابق بعد. <a href="{{ route('floors.index') }}" class="underline">إدارة الطوابق</a></p>
+                @endif
+                @error('floor')
                 <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                 @enderror
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1.5">رقم الطابق <span class="text-red-500">*</span></label>
-                <input type="number" name="floor" value="{{ old('floor', 1) }}" required min="1" max="30"
-                       class="w-full border @error('floor') border-red-400 bg-red-50 @else border-gray-300 @enderror rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition">
-                @error('floor')
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">رقم الغرفة <span class="text-red-500">*</span></label>
+                @if($floors->isNotEmpty())
+                <template x-if="roomNumbers.length > 0">
+                    <select name="room_number" x-model="selectedRoom" required
+                            class="w-full border @error('room_number') border-red-400 bg-red-50 @else border-gray-300 @enderror rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition">
+                        <template x-for="num in roomNumbers" :key="num">
+                            <option :value="num" x-text="num"></option>
+                        </template>
+                    </select>
+                </template>
+                <template x-if="roomNumbers.length === 0 && !loadingRooms && selectedFloor">
+                    <div class="w-full border border-amber-300 bg-amber-50 rounded-lg px-4 py-2.5 text-sm text-amber-700">جميع أبواب هذا الطابق محجوزة</div>
+                </template>
+                <template x-if="loadingRooms">
+                    <div class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-400">جاري التحميل...</div>
+                </template>
+                <template x-if="!selectedFloor">
+                    <div class="w-full border border-gray-200 bg-gray-50 rounded-lg px-4 py-2.5 text-sm text-gray-400">اختر الطابق أولاً</div>
+                </template>
+                @else
+                <input type="text" name="room_number" value="{{ old('room_number') }}" required
+                       placeholder="مثال: 101"
+                       class="w-full border @error('room_number') border-red-400 bg-red-50 @else border-gray-300 @enderror rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition">
+                @endif
+                @error('room_number')
                 <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                 @enderror
             </div>
@@ -141,40 +199,6 @@
 </div>
 @push('scripts')
 <script>
-function floorSelector(floors, oldFloor, oldRoom) {
-    return {
-        floors: floors,
-        selectedFloor: oldFloor || '',
-        selectedRoomNumber: oldRoom || '',
-        availableNumbers: [],
-        init() {
-            if (this.selectedFloor) {
-                this.loadRoomNumbers();
-            }
-        },
-        loadRoomNumbers() {
-            if (!this.selectedFloor) {
-                this.availableNumbers = [];
-                return;
-            }
-            var floor = this.floors.find(f => f.floor_number == this.selectedFloor);
-            if (!floor) {
-                this.availableNumbers = [];
-                return;
-            }
-            fetch('/floors/' + floor.id + '/rooms', {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            })
-            .then(r => r.json())
-            .then(data => {
-                this.availableNumbers = data;
-                if (this.selectedRoomNumber && !data.includes(this.selectedRoomNumber)) {
-                    this.selectedRoomNumber = '';
-                }
-            });
-        }
-    };
-}
 (function() {
     var map = {'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9',
                '۰':'0','۱':'1','۲':'2','۳':'3','۴':'4','۵':'5','۶':'6','۷':'7','۸':'8','۹':'9'};

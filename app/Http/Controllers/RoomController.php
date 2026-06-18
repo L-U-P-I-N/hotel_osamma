@@ -1,9 +1,9 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Models\Floor;
 use App\Models\Hotel;
 use App\Models\Room;
-use App\Models\Floor;
 use App\Models\RoomType;
 use App\Services\AuditLogService;
 use Illuminate\Http\Request;
@@ -37,8 +37,8 @@ class RoomController extends Controller
     public function create()
     {
         $roomTypes = RoomType::all();
-        $canPrice = auth()->user()->can('room.price.edit');
-        $floors = Floor::orderBy('floor_number')->get();
+        $canPrice  = auth()->user()->can('room.price.edit');
+        $floors    = Floor::orderBy('floor_number')->get();
         return view('rooms.create', compact('roomTypes', 'canPrice', 'floors'));
     }
 
@@ -48,7 +48,7 @@ class RoomController extends Controller
 
         $validated = $request->validate([
             'room_number'    => 'required|string|max:10|unique:rooms,room_number',
-            'floor'          => 'required|integer|min:1|max:30',
+            'floor'          => 'required|integer|min:1|max:50',
             'room_type_id'   => 'required|exists:room_types,id',
             'room_sub_type'  => 'nullable|in:regular,double,suite_a,suite_b,hall,apartment',
             'price_yer'      => 'nullable|numeric|min:0',
@@ -62,7 +62,7 @@ class RoomController extends Controller
             'floor.required'        => 'رقم الطابق مطلوب',
             'floor.integer'         => 'رقم الطابق يجب أن يكون رقماً صحيحاً',
             'floor.min'             => 'رقم الطابق يجب أن يكون 1 على الأقل',
-            'floor.max'             => 'رقم الطابق لا يتجاوز 30',
+            'floor.max'             => 'رقم الطابق لا يتجاوز 50',
             'room_type_id.required' => 'نوع الغرفة مطلوب',
             'room_type_id.exists'   => 'نوع الغرفة المحدد غير موجود',
             'room_sub_type.in'      => 'تصنيف الغرفة غير صالح',
@@ -72,14 +72,11 @@ class RoomController extends Controller
             'notes.max'             => 'الملاحظات لا تتجاوز 500 حرف',
         ]);
 
-        $floorModel = Floor::where('floor_number', $validated['floor'])->first();
-        if ($floorModel) {
-            $doorNumber = (int)$validated['room_number'] - ($validated['floor'] * 100);
-            if ($doorNumber < 1 || $doorNumber > $floorModel->door_count) {
-                $min = $validated['floor'] * 100 + 1;
-                $max = $validated['floor'] * 100 + $floorModel->door_count;
-                return back()->withErrors(['room_number' => "رقم الغرفة {$validated['room_number']} لا ينتمي للطابق {$validated['floor']} الذي يحتوي على {$floorModel->door_count} أبواب فقط (من {$min} إلى {$max})"])->withInput();
-            }
+        $floor = Floor::where('floor_number', $validated['floor'])->first();
+        if ($floor && !$floor->isValidRoomNumber($validated['room_number'])) {
+            return back()->withInput()->withErrors([
+                'room_number' => 'رقم الغرفة ' . $validated['room_number'] . ' لا ينتمي للطابق ' . $validated['floor'] . ' الذي يحتوي على ' . $floor->door_count . ' أبواب فقط (من ' . ($floor->floor_number * 100 + 1) . ' إلى ' . ($floor->floor_number * 100 + $floor->door_count) . ')',
+            ]);
         }
 
         $hotel = Hotel::first();
@@ -94,7 +91,6 @@ class RoomController extends Controller
             'notes'         => $validated['notes'] ?? null,
         ];
 
-        // Prices only saved by users with the pricing permission.
         if (auth()->user()->can('room.price.edit')) {
             $attributes['price_yer'] = $validated['price_yer'] ?? null;
             $attributes['price_sar'] = $validated['price_sar'] ?? null;
@@ -111,8 +107,8 @@ class RoomController extends Controller
     public function edit(Room $room)
     {
         $roomTypes = RoomType::all();
-        $canPrice = auth()->user()->can('room.price.edit');
-        $floors = Floor::orderBy('floor_number')->get();
+        $canPrice  = auth()->user()->can('room.price.edit');
+        $floors    = Floor::orderBy('floor_number')->get();
         return view('rooms.edit', compact('room', 'roomTypes', 'canPrice', 'floors'));
     }
 
@@ -122,7 +118,7 @@ class RoomController extends Controller
 
         $validated = $request->validate([
             'room_number'    => 'required|string|max:10|unique:rooms,room_number,' . $room->id,
-            'floor'          => 'required|integer|min:1|max:30',
+            'floor'          => 'required|integer|min:1|max:50',
             'room_type_id'   => 'required|exists:room_types,id',
             'room_sub_type'  => 'nullable|in:regular,double,suite_a,suite_b,hall,apartment',
             'price_yer'      => 'nullable|numeric|min:0',
@@ -136,7 +132,7 @@ class RoomController extends Controller
             'floor.required'        => 'رقم الطابق مطلوب',
             'floor.integer'         => 'رقم الطابق يجب أن يكون رقماً صحيحاً',
             'floor.min'             => 'رقم الطابق يجب أن يكون 1 على الأقل',
-            'floor.max'             => 'رقم الطابق لا يتجاوز 30',
+            'floor.max'             => 'رقم الطابق لا يتجاوز 50',
             'room_type_id.required' => 'نوع الغرفة مطلوب',
             'room_type_id.exists'   => 'نوع الغرفة المحدد غير موجود',
             'room_sub_type.in'      => 'تصنيف الغرفة غير صالح',
@@ -146,14 +142,11 @@ class RoomController extends Controller
             'notes.max'             => 'الملاحظات لا تتجاوز 500 حرف',
         ]);
 
-        $floorModel = Floor::where('floor_number', $validated['floor'])->first();
-        if ($floorModel) {
-            $doorNumber = (int)$validated['room_number'] - ($validated['floor'] * 100);
-            if ($doorNumber < 1 || $doorNumber > $floorModel->door_count) {
-                $min = $validated['floor'] * 100 + 1;
-                $max = $validated['floor'] * 100 + $floorModel->door_count;
-                return back()->withErrors(['room_number' => "رقم الغرفة {$validated['room_number']} لا ينتمي للطابق {$validated['floor']} الذي يحتوي على {$floorModel->door_count} أبواب فقط (من {$min} إلى {$max})"])->withInput();
-            }
+        $floor = Floor::where('floor_number', $validated['floor'])->first();
+        if ($floor && !$floor->isValidRoomNumber($validated['room_number'])) {
+            return back()->withInput()->withErrors([
+                'room_number' => 'رقم الغرفة ' . $validated['room_number'] . ' لا ينتمي للطابق ' . $validated['floor'] . ' الذي يحتوي على ' . $floor->door_count . ' أبواب فقط (من ' . ($floor->floor_number * 100 + 1) . ' إلى ' . ($floor->floor_number * 100 + $floor->door_count) . ')',
+            ]);
         }
 
         $old = $room->toArray();
@@ -165,7 +158,6 @@ class RoomController extends Controller
             'notes'         => $validated['notes'] ?? null,
         ];
 
-        // Prices only updated by users with the pricing permission.
         if (auth()->user()->can('room.price.edit')) {
             $attributes['price_yer'] = $validated['price_yer'] ?? null;
             $attributes['price_sar'] = $validated['price_sar'] ?? null;
@@ -180,7 +172,6 @@ class RoomController extends Controller
 
     public function destroy(Room $room)
     {
-
         if ($room->reservations()->whereIn('status', ['confirmed', 'checked_in'])->exists()) {
             return back()->with('error', 'لا يمكن حذف الغرفة ' . $room->room_number . ' لوجود حجوزات نشطة عليها');
         }

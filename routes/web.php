@@ -52,6 +52,7 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/floors/{floor}', [FloorController::class, 'update'])->name('floors.update');
         Route::delete('/floors/{floor}', [FloorController::class, 'destroy'])->name('floors.destroy');
     });
+    Route::get('/floors/{floor}/room-numbers', [FloorController::class, 'availableRoomNumbers'])->name('floors.roomNumbers')->middleware('auth');
     Route::post('/rooms/{room}/status', [RoomController::class, 'updateStatus'])
         ->name('rooms.updateStatus')
         ->middleware('permission:rooms.manage|rooms.maintenance');
