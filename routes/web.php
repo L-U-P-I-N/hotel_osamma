@@ -72,6 +72,17 @@ Route::middleware(['auth'])->group(function () {
         ->name('checkin.exportGov')
         ->middleware('permission:government.export');
 
+    // Private ID images (secure serve)
+    Route::get('/guests/{guest}/id-image', [CheckInController::class, 'serveGuestIdImage'])
+        ->name('guests.idImage')
+        ->middleware('permission:guests.sensitive');
+    Route::get('/companions/{companion}/id-image', [CheckInController::class, 'serveCompanionIdImage'])
+        ->name('companions.idImage')
+        ->middleware('permission:guests.sensitive');
+    Route::get('/companions/{companion}/marriage-doc', [CheckInController::class, 'serveMarriageDoc'])
+        ->name('companions.marriageDoc')
+        ->middleware('permission:guests.sensitive');
+
     // Guest name autocomplete (AJAX)
     Route::get('/guests/search', [CheckInController::class, 'guestSearch'])
         ->name('guests.search')

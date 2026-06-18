@@ -24,6 +24,16 @@ class Companion extends Model
         return $this->belongsTo(Reservation::class);
     }
 
+    public function getIdTypeLabel(): string
+    {
+        return match($this->id_type) {
+            'passport'    => 'جواز سفر',
+            'national_id' => 'هوية وطنية',
+            'residence'   => 'إقامة',
+            default       => $this->id_type ?? '—',
+        };
+    }
+
     public function getRelationshipLabel(): string
     {
         return match($this->relationship) {

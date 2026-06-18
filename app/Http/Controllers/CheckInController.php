@@ -214,6 +214,30 @@ class CheckInController extends Controller
         ]);
     }
 
+    public function serveGuestIdImage(\App\Models\Guest $guest)
+    {
+        if (!$guest->id_image_path || !Storage::disk('private')->exists($guest->id_image_path)) {
+            abort(404);
+        }
+        return response()->file(Storage::disk('private')->path($guest->id_image_path));
+    }
+
+    public function serveCompanionIdImage(\App\Models\Companion $companion)
+    {
+        if (!$companion->id_image_path || !Storage::disk('private')->exists($companion->id_image_path)) {
+            abort(404);
+        }
+        return response()->file(Storage::disk('private')->path($companion->id_image_path));
+    }
+
+    public function serveMarriageDoc(\App\Models\Companion $companion)
+    {
+        if (!$companion->marriage_doc_path || !Storage::disk('private')->exists($companion->marriage_doc_path)) {
+            abort(404);
+        }
+        return response()->file(Storage::disk('private')->path($companion->marriage_doc_path));
+    }
+
     private function getNationalities(): array
     {
         return [
