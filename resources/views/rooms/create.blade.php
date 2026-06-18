@@ -32,6 +32,7 @@
             selectedRoom: '{{ old('room_number') }}',
             hasFloors: {{ $floors->isNotEmpty() ? 'true' : 'false' }},
             loadingRooms: false,
+            isSuite: {{ old('room_sub_type') === 'suite' ? 'true' : 'false' }},
             async fetchRooms() {
                 if (!this.selectedFloor || !this.hasFloors) return;
                 const floor = this.floorData[this.selectedFloor];
@@ -122,14 +123,13 @@
 
             <div class="md:col-span-2">
                 <label class="block text-sm font-medium text-gray-700 mb-1.5">تصنيف الغرفة <span class="text-red-500">*</span></label>
-                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" x-on:change="$nextTick(() => { isSuite = document.querySelector('input[name=room_sub_type]:checked')?.value === 'suite' })">
                     @foreach([
-                        'regular'   => ['label' => 'عادية',   'icon' => '🛏️',  'color' => 'gray'],
-                        'double'    => ['label' => 'زوجية',   'icon' => '👫',  'color' => 'pink'],
-                        'suite_a'   => ['label' => 'جناح A',  'icon' => '🏨',  'color' => 'blue'],
-                        'suite_b'   => ['label' => 'جناح B',  'icon' => '🏨',  'color' => 'purple'],
-                        'hall'      => ['label' => 'صالة',    'icon' => '🏛️',  'color' => 'yellow'],
-                        'apartment' => ['label' => 'شقة',     'icon' => '🏠',  'color' => 'green'],
+                        'regular'   => ['label' => 'عادية',   'icon' => '🛏️'],
+                        'double'    => ['label' => 'زوجية',   'icon' => '👫'],
+                        'suite'     => ['label' => 'جناح',    'icon' => '🏨'],
+                        'hall'      => ['label' => 'صالة',    'icon' => '🏛️'],
+                        'apartment' => ['label' => 'شقة',     'icon' => '🏠'],
                     ] as $value => $opt)
                     <label class="cursor-pointer">
                         <input type="radio" name="room_sub_type" value="{{ $value }}"
@@ -141,6 +141,9 @@
                         </div>
                     </label>
                     @endforeach
+                </div>
+                <div x-show="isSuite" x-cloak class="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
+                    سيتم إنشاء غرفتين تلقائياً: <span class="font-mono font-bold" x-text="selectedRoom ? selectedRoom + 'A  +  ' + selectedRoom + 'B' : '...A  +  ...B'"></span>
                 </div>
                 @error('room_sub_type')
                 <p class="mt-1 text-xs text-red-600">{{ $message }}</p>

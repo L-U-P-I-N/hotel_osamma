@@ -50,7 +50,7 @@ class RoomController extends Controller
             'room_number'    => 'required|string|max:10|unique:rooms,room_number',
             'floor'          => 'required|integer|min:1|max:50',
             'room_type_id'   => 'required|exists:room_types,id',
-            'room_sub_type'  => 'nullable|in:regular,double,suite_a,suite_b,hall,apartment',
+            'room_sub_type'  => 'nullable|in:regular,double,suite,suite_a,suite_b,hall,apartment',
             'price_yer'      => 'nullable|numeric|min:0',
             'price_sar'      => 'nullable|numeric|min:0',
             'price_usd'      => 'nullable|numeric|min:0',
@@ -79,25 +79,46 @@ class RoomController extends Controller
             ]);
         }
 
-        $hotel = Hotel::first();
+        $hotel    = Hotel::first();
+        $subType  = $validated['room_sub_type'] ?? 'regular';
+        $isSuite  = $subType === 'suite';
 
-        $attributes = [
-            'hotel_id'      => $hotel->id,
-            'room_type_id'  => $validated['room_type_id'],
-            'room_number'   => $validated['room_number'],
-            'floor'         => $validated['floor'],
-            'room_sub_type' => $validated['room_sub_type'] ?? 'regular',
-            'status'        => 'available',
-            'notes'         => $validated['notes'] ?? null,
+        $baseAttributes = [
+            'hotel_id'     => $hotel->id,
+            'room_type_id' => $validated['room_type_id'],
+            'floor'        => $validated['floor'],
+            'status'       => 'available',
+            'notes'        => $validated['notes'] ?? null,
         ];
 
         if (auth()->user()->can('room.price.edit')) {
-            $attributes['price_yer'] = $validated['price_yer'] ?? null;
-            $attributes['price_sar'] = $validated['price_sar'] ?? null;
-            $attributes['price_usd'] = $validated['price_usd'] ?? null;
+            $baseAttributes['price_yer'] = $validated['price_yer'] ?? null;
+            $baseAttributes['price_sar'] = $validated['price_sar'] ?? null;
+            $baseAttributes['price_usd'] = $validated['price_usd'] ?? null;
         }
 
-        $room = Room::create($attributes);
+        if ($isSuite) {
+            $numA = $validated['room_number'] . 'A';
+            $numB = $validated['room_number'] . 'B';
+
+            if (Room::whereIn('room_number', [$numA, $numB])->exists()) {
+                return back()->withInput()->withErrors(['room_number' => 'رقم الجناح ' . $validated['room_number'] . ' موجود مسبقاً']);
+            }
+
+            $roomA = Room::create(array_merge($baseAttributes, ['room_number' => $numA, 'room_sub_type' => 'suite_a']));
+            $roomB = Room::create(array_merge($baseAttributes, ['room_number' => $numB, 'room_sub_type' => 'suite_b', 'linked_room_id' => $roomA->id]));
+            $roomA->update(['linked_room_id' => $roomB->id]);
+
+            AuditLogService::log('create', $roomA, [], $roomA->toArray(), auth()->user());
+            AuditLogService::log('create', $roomB, [], $roomB->toArray(), auth()->user());
+
+            return redirect()->route('rooms.index')->with('success', 'تم إنشاء الجناح بنجاح: ' . $numA . ' و ' . $numB);
+        }
+
+        $room = Room::create(array_merge($baseAttributes, [
+            'room_number'   => $validated['room_number'],
+            'room_sub_type' => $subType,
+        ]));
 
         AuditLogService::log('create', $room, [], $room->toArray(), auth()->user());
 
@@ -120,7 +141,7 @@ class RoomController extends Controller
             'room_number'    => 'required|string|max:10|unique:rooms,room_number,' . $room->id,
             'floor'          => 'required|integer|min:1|max:50',
             'room_type_id'   => 'required|exists:room_types,id',
-            'room_sub_type'  => 'nullable|in:regular,double,suite_a,suite_b,hall,apartment',
+            'room_sub_type'  => 'nullable|in:regular,double,suite,suite_a,suite_b,hall,apartment',
             'price_yer'      => 'nullable|numeric|min:0',
             'price_sar'      => 'nullable|numeric|min:0',
             'price_usd'      => 'nullable|numeric|min:0',
