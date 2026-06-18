@@ -92,15 +92,7 @@
             </a>
             @endcan
 
-            @can('checkin.create')
-            <a href="{{ route('checkin.create') }}"
-               class="nav-link {{ request()->routeIs('checkin.*') ? 'active' : '' }}">
-                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
-                تسجيل دخول / حجز
-            </a>
-            @endcan
-
-            @can('checkin.view')
+@can('checkin.view')
             <a href="{{ route('reservations.index') }}"
                class="nav-link {{ request()->routeIs('reservations.*') ? 'active' : '' }}">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
