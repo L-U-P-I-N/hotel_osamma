@@ -107,7 +107,7 @@ class ReservationController extends Controller
             // Companions
             'companions'                 => 'nullable|array',
             'companions.*.id'            => 'nullable|integer',
-            'companions.*.full_name'     => 'required_with:companions|string|max:255',
+            'companions.*.full_name'     => 'nullable|string|max:255',
             'companions.*.nationality'   => 'nullable|string|max:100',
             'companions.*.id_type'       => 'nullable|string|max:50',
             'companions.*.id_number'     => 'nullable|string|max:50',
