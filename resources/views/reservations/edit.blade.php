@@ -198,9 +198,31 @@
                 <div class="flex items-center justify-between flex-wrap gap-2">
                     <span class="text-gray-600">عدد الليالي: <strong x-text="nights" class="text-gray-900"></strong></span>
                     <span class="font-bold text-primary-800">
-                        الإجمالي المحسوب: <span x-text="total.toLocaleString('ar-SA')"></span> ر.ي
+                        الإجمالي المحسوب: <span x-text="total.toLocaleString('ar-SA')"></span> {{ $reservation->currency ?? 'ر.ي' }}
                     </span>
                 </div>
+            </div>
+
+            <!-- Price override -->
+            <div class="md:col-span-2 border border-amber-200 bg-amber-50 rounded-xl p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <label class="text-sm font-medium text-amber-800">
+                        تعديل سعر الليلة (تفاوض) — {{ $reservation->currency ?? 'YER' }}
+                    </label>
+                    <button type="button" x-show="customPrice != basePrice"
+                            @click="customPrice = basePrice"
+                            class="text-xs text-gray-400 hover:text-red-500 underline">
+                        استعادة السعر الأصلي (<span x-text="basePrice.toLocaleString('ar-SA')"></span>)
+                    </button>
+                </div>
+                <div class="flex items-center gap-3">
+                    <input type="number" name="price_per_night" min="0" step="100"
+                           x-model.number="customPrice"
+                           class="flex-1 border border-amber-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-amber-400 outline-none bg-white">
+                    <span class="text-sm text-amber-700 font-medium whitespace-nowrap">{{ $reservation->currency ?? 'ر.ي' }} / ليلة</span>
+                </div>
+                <p class="text-xs text-amber-600 mt-1.5">اتركه فارغاً لاستخدام السعر الأصلي للغرفة بعملة <span class="font-semibold">{{ $reservation->currency ?? 'YER' }}</span></p>
+                @error('price_per_night')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             </div>
 
             <div>
@@ -241,7 +263,8 @@ function editReservation() {
     return {
         checkIn: '{{ old('check_in_date', $reservation->check_in_date?->format('Y-m-d') ?? '') }}',
         checkOut: '{{ old('check_out_date', $reservation->check_out_date?->format('Y-m-d') ?? '') }}',
-        pricePerNight: {{ $reservation->room?->roomType?->base_price ?? 0 }},
+        basePrice: {{ $reservation->room?->roomType?->base_price ?? 0 }},
+        customPrice: {{ old('price_per_night', $currentPricePerNight) }},
         companions: @json($companionsData),
         _nextKey: {{ $reservation->companions->count() + 1 }},
 
@@ -250,7 +273,7 @@ function editReservation() {
             const d = (new Date(this.checkOut) - new Date(this.checkIn)) / 86400000;
             return d > 0 ? d : 0;
         },
-        get total() { return this.nights * this.pricePerNight; },
+        get total() { return this.nights * (this.customPrice > 0 ? this.customPrice : this.basePrice); },
 
         addCompanion() {
             this.companions.push({

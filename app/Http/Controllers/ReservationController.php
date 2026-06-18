@@ -73,7 +73,14 @@ class ReservationController extends Controller
             '_key'         => $c->id,
         ])->values()->toArray();
 
-        return view('reservations.edit', compact('reservation', 'companionsData'));
+        $nights = ($reservation->check_in_date && $reservation->check_out_date)
+            ? $reservation->check_in_date->diffInDays($reservation->check_out_date)
+            : 0;
+        $currentPricePerNight = $nights > 0
+            ? round($reservation->total_amount / $nights, 2)
+            : ($reservation->room?->roomType?->base_price ?? 0);
+
+        return view('reservations.edit', compact('reservation', 'companionsData', 'currentPricePerNight'));
     }
 
     public function update(Request $request, Reservation $reservation)
@@ -106,6 +113,7 @@ class ReservationController extends Controller
             'companions.*.id_number'     => 'nullable|string|max:50',
             'companions.*.relationship'  => 'nullable|string|max:50',
             'companions.*.delete'        => 'nullable|boolean',
+            'price_per_night'            => 'nullable|numeric|min:0',
         ], [
             'check_in_date.required'     => 'تاريخ الدخول مطلوب',
             'check_in_date.date'         => 'تاريخ الدخول غير صالح',
@@ -157,7 +165,10 @@ class ReservationController extends Controller
             }
 
             $nights = Carbon::parse($validated['check_in_date'])->diffInDays($validated['check_out_date']);
-            $pricePerNight = $reservation->room?->roomType?->base_price ?? $reservation->total_amount / max($nights, 1);
+            $submittedPrice = isset($validated['price_per_night']) && $validated['price_per_night'] > 0
+                ? (float) $validated['price_per_night']
+                : null;
+            $pricePerNight = $submittedPrice ?? $reservation->room?->roomType?->base_price ?? $reservation->total_amount / max($nights, 1);
             $newTotal = $nights * $pricePerNight;
 
             $reservation->update([
