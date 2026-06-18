@@ -23,7 +23,7 @@
 @endif
 
 
-<form method="POST" action="{{ route('reservations.update', $reservation) }}" class="space-y-5">
+<form method="POST" action="{{ route('reservations.update', $reservation) }}" enctype="multipart/form-data" class="space-y-5">
     @csrf
     @method('PUT')
 
@@ -96,78 +96,170 @@
             <h3 class="font-semibold text-gray-700 flex items-center gap-2">
                 <svg class="w-5 h-5 text-primary-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                 المرافقون
+                <span x-show="companions.filter(c=>!c.delete).length > 0"
+                      class="px-2 py-0.5 bg-violet-100 text-violet-700 text-xs font-semibold rounded-full"
+                      x-text="companions.filter(c=>!c.delete).length"></span>
             </h3>
             <button type="button" @click="addCompanion()"
-                    class="flex items-center gap-1.5 text-sm px-3 py-1.5 bg-primary-50 text-primary-800 rounded-lg hover:bg-primary-100 transition">
+                    class="flex items-center gap-1.5 text-sm px-3 py-1.5 bg-primary-50 text-primary-800 rounded-lg hover:bg-primary-100 transition font-medium">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 إضافة مرافق
             </button>
         </div>
 
-        <div class="space-y-3">
+        <div class="space-y-4">
             <template x-for="(comp, idx) in companions" :key="comp._key">
-                <div class="border border-gray-200 rounded-lg p-4 relative" :class="comp.delete ? 'opacity-40 bg-red-50' : 'bg-gray-50'">
+                <div class="border rounded-xl p-4 relative transition"
+                     :class="comp.delete ? 'opacity-50 bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200'">
+
                     <input type="hidden" :name="`companions[${idx}][id]`" :value="comp.id ?? ''">
                     <input type="hidden" :name="`companions[${idx}][delete]`" :value="comp.delete ? '1' : '0'">
 
-                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        <div class="col-span-2 md:col-span-1">
-                            <label class="block text-xs text-gray-500 mb-1">الاسم <span class="text-red-500">*</span></label>
-                            <input type="text" :name="`companions[${idx}][full_name]`" x-model="comp.full_name"
-                                   :required="!comp.delete" :disabled="comp.delete"
-                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-gray-500 mb-1">الجنسية</label>
-                            <input type="text" :name="`companions[${idx}][nationality]`" x-model="comp.nationality"
-                                   :disabled="comp.delete"
-                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-gray-500 mb-1">صلة القرابة</label>
-                            <select :name="`companions[${idx}][relationship]`" x-model="comp.relationship"
-                                    :disabled="comp.delete"
-                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
-                                <option value="">-- اختر --</option>
-                                <option value="wife">زوجة</option>
-                                <option value="son">ابن</option>
-                                <option value="daughter">ابنة</option>
-                                <option value="brother">أخ</option>
-                                <option value="sister">أخت</option>
-                                <option value="father">أب</option>
-                                <option value="mother">أم</option>
-                                <option value="other">أخرى</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs text-gray-500 mb-1">نوع الهوية</label>
-                            <select :name="`companions[${idx}][id_type]`" x-model="comp.id_type"
-                                    :disabled="comp.delete"
-                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
-                                <option value="">-- اختر --</option>
-                                <option value="national_id">بطاقة هوية</option>
-                                <option value="passport">جواز سفر</option>
-                                <option value="residence">إقامة</option>
-                                <option value="other">أخرى</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs text-gray-500 mb-1">رقم الهوية</label>
-                            <input type="text" :name="`companions[${idx}][id_number]`" x-model="comp.id_number"
-                                   :disabled="comp.delete"
-                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none" dir="ltr">
-                        </div>
+                    {{-- Header row --}}
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-full bg-violet-100 text-violet-700 text-xs font-bold flex items-center justify-center"
+                                  x-text="idx + 1"></span>
+                            <span class="text-sm font-medium text-gray-700"
+                                  x-text="comp.full_name || 'مرافق جديد'"></span>
+                            <span x-show="!comp.id" class="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded">جديد</span>
+                        </span>
+                        <button type="button" @click="toggleDelete(idx)"
+                                class="text-xs px-2.5 py-1 rounded-lg transition font-medium"
+                                :class="comp.delete ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-100 text-red-700 hover:bg-red-200'">
+                            <span x-text="comp.delete ? 'استعادة' : 'حذف'"></span>
+                        </button>
                     </div>
 
-                    <button type="button" @click="toggleDelete(idx)"
-                            class="absolute top-3 left-3 text-xs px-2 py-1 rounded transition"
-                            :class="comp.delete ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-100 text-red-700 hover:bg-red-200'">
-                        <span x-text="comp.delete ? 'استعادة' : 'حذف'"></span>
-                    </button>
+                    <div :class="comp.delete ? 'pointer-events-none' : ''">
+                        {{-- Row 1: name, nationality, relationship --}}
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                            <div>
+                                <label class="block text-xs text-gray-500 mb-1">الاسم الكامل <span class="text-red-500">*</span></label>
+                                <input type="text" :name="`companions[${idx}][full_name]`" x-model="comp.full_name"
+                                       :required="!comp.delete" :disabled="comp.delete"
+                                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-500 mb-1">الجنسية</label>
+                                <input type="text" :name="`companions[${idx}][nationality]`" x-model="comp.nationality"
+                                       :disabled="comp.delete"
+                                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-500 mb-1">صلة القرابة <span class="text-red-500">*</span></label>
+                                <select :name="`companions[${idx}][relationship]`" x-model="comp.relationship"
+                                        :disabled="comp.delete"
+                                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none bg-white">
+                                    <option value="">-- اختر --</option>
+                                    <option value="wife">زوجة</option>
+                                    <option value="son">ابن</option>
+                                    <option value="daughter">ابنة</option>
+                                    <option value="brother">أخ</option>
+                                    <option value="sister">أخت</option>
+                                    <option value="father">أب</option>
+                                    <option value="mother">أم</option>
+                                    <option value="other">أخرى</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        {{-- Row 2: id type, id number, issuer, issue_date --}}
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+                            <div>
+                                <label class="block text-xs text-gray-500 mb-1">نوع الهوية</label>
+                                <select :name="`companions[${idx}][id_type]`" x-model="comp.id_type"
+                                        :disabled="comp.delete"
+                                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none bg-white">
+                                    <option value="">-- اختر --</option>
+                                    <option value="national_id">هوية وطنية</option>
+                                    <option value="passport">جواز سفر</option>
+                                    <option value="residence">إقامة</option>
+                                    <option value="other">أخرى</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-500 mb-1">رقم الهوية</label>
+                                <input type="text" :name="`companions[${idx}][id_number]`" x-model="comp.id_number"
+                                       :disabled="comp.delete"
+                                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none bg-white" dir="ltr">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-500 mb-1">جهة الإصدار</label>
+                                <input type="text" :name="`companions[${idx}][id_issuer]`" x-model="comp.id_issuer"
+                                       :disabled="comp.delete"
+                                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-500 mb-1">تاريخ الإصدار</label>
+                                <input type="date" :name="`companions[${idx}][id_issue_date]`" x-model="comp.id_issue_date"
+                                       :disabled="comp.delete"
+                                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none bg-white">
+                            </div>
+                        </div>
+
+                        {{-- Row 3: file uploads --}}
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {{-- ID Image --}}
+                            <div class="border border-dashed border-gray-300 rounded-xl p-3 bg-white">
+                                <p class="text-xs text-gray-500 mb-2 font-medium">صورة الهوية</p>
+                                <template x-if="comp.has_image && !comp.new_id_image">
+                                    <p class="text-xs text-green-600 mb-1.5 flex items-center gap-1">
+                                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg>
+                                        صورة محفوظة — اختر جديدة للاستبدال
+                                    </p>
+                                </template>
+                                <template x-if="comp.new_id_image">
+                                    <div class="mb-1.5">
+                                        <template x-if="comp.new_id_image !== '__pdf__'">
+                                            <img :src="comp.new_id_image" class="h-16 rounded-lg object-cover border border-gray-200">
+                                        </template>
+                                        <template x-if="comp.new_id_image === '__pdf__'">
+                                            <span class="text-xs text-red-600 font-medium">📄 ملف PDF محدد</span>
+                                        </template>
+                                    </div>
+                                </template>
+                                <input type="file" :name="`companions[${idx}][id_image]`"
+                                       accept="image/*,.pdf" :disabled="comp.delete"
+                                       @change="handleIdImage($event, idx)"
+                                       class="w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:bg-primary-50 file:text-primary-700 file:font-medium hover:file:bg-primary-100">
+                            </div>
+
+                            {{-- Marriage Doc (only for wife) --}}
+                            <div x-show="comp.relationship === 'wife'"
+                                 class="border border-dashed border-pink-200 rounded-xl p-3 bg-pink-50">
+                                <p class="text-xs text-pink-700 mb-2 font-medium">وثيقة الزواج</p>
+                                <template x-if="comp.has_marriage && !comp.new_marriage_doc">
+                                    <p class="text-xs text-green-600 mb-1.5 flex items-center gap-1">
+                                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg>
+                                        وثيقة محفوظة — اختر جديدة للاستبدال
+                                    </p>
+                                </template>
+                                <template x-if="comp.new_marriage_doc">
+                                    <div class="mb-1.5">
+                                        <template x-if="comp.new_marriage_doc !== '__pdf__'">
+                                            <img :src="comp.new_marriage_doc" class="h-16 rounded-lg object-cover border border-pink-200">
+                                        </template>
+                                        <template x-if="comp.new_marriage_doc === '__pdf__'">
+                                            <span class="text-xs text-red-600 font-medium">📄 ملف PDF محدد</span>
+                                        </template>
+                                    </div>
+                                </template>
+                                <input type="file" :name="`companions[${idx}][marriage_doc]`"
+                                       accept="image/*,.pdf" :disabled="comp.delete"
+                                       @change="handleMarriageDoc($event, idx)"
+                                       class="w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:bg-pink-100 file:text-pink-700 file:font-medium hover:file:bg-pink-200">
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </template>
 
-            <div x-show="companions.length === 0" class="text-center py-6 text-gray-400 text-sm">
+            <div x-show="companions.length === 0"
+                 class="text-center py-10 text-gray-400 text-sm border-2 border-dashed border-gray-200 rounded-xl">
+                <svg class="w-10 h-10 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
                 لا يوجد مرافقون — اضغط "إضافة مرافق" لإضافة مرافق جديد
             </div>
         </div>
@@ -282,7 +374,13 @@ function editReservation() {
                 nationality: '',
                 id_type: '',
                 id_number: '',
+                id_issuer: '',
+                id_issue_date: '',
                 relationship: '',
+                has_image: false,
+                has_marriage: false,
+                new_id_image: null,
+                new_marriage_doc: null,
                 delete: false,
                 _key: 'new_' + (this._nextKey++),
             });
@@ -292,6 +390,28 @@ function editReservation() {
                 this.companions.splice(idx, 1);
             } else {
                 this.companions[idx].delete = !this.companions[idx].delete;
+            }
+        },
+        handleIdImage(e, idx) {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (ev) => { this.companions[idx].new_id_image = ev.target.result; };
+                reader.readAsDataURL(file);
+            } else {
+                this.companions[idx].new_id_image = '__pdf__';
+            }
+        },
+        handleMarriageDoc(e, idx) {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (ev) => { this.companions[idx].new_marriage_doc = ev.target.result; };
+                reader.readAsDataURL(file);
+            } else {
+                this.companions[idx].new_marriage_doc = '__pdf__';
             }
         },
     }

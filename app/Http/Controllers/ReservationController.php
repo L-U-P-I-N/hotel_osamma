@@ -63,14 +63,18 @@ class ReservationController extends Controller
         $reservation->load(['guest', 'room.roomType', 'companions']);
 
         $companionsData = $reservation->companions->map(fn($c) => [
-            'id'           => $c->id,
-            'full_name'    => $c->full_name,
-            'nationality'  => $c->nationality ?? '',
-            'id_type'      => $c->id_type ?? '',
-            'id_number'    => $c->id_number ?? '',
-            'relationship' => $c->relationship ?? '',
-            'delete'       => false,
-            '_key'         => $c->id,
+            'id'             => $c->id,
+            'full_name'      => $c->full_name,
+            'nationality'    => $c->nationality ?? '',
+            'id_type'        => $c->id_type ?? '',
+            'id_number'      => $c->id_number ?? '',
+            'id_issuer'      => $c->id_issuer ?? '',
+            'id_issue_date'  => $c->id_issue_date?->format('Y-m-d') ?? '',
+            'relationship'   => $c->relationship ?? '',
+            'has_image'      => (bool) $c->id_image_path,
+            'has_marriage'   => (bool) $c->marriage_doc_path,
+            'delete'         => false,
+            '_key'           => $c->id,
         ])->values()->toArray();
 
         $nights = ($reservation->check_in_date && $reservation->check_out_date)
@@ -90,30 +94,34 @@ class ReservationController extends Controller
         }
 
         $validated = $request->validate([
-            'check_in_date'              => 'required|date',
-            'check_out_date'             => 'required|date|after:check_in_date',
-            'purpose'                    => 'nullable|string|max:255',
-            'origin'                     => 'nullable|string|max:255',
-            'notes'                      => 'nullable|string|max:1000',
+            'check_in_date'                 => 'required|date',
+            'check_out_date'                => 'required|date|after:check_in_date',
+            'purpose'                       => 'nullable|string|max:255',
+            'origin'                        => 'nullable|string|max:255',
+            'notes'                         => 'nullable|string|max:1000',
             // Guest fields
-            'guest_full_name'            => 'required|string|max:255',
-            'guest_nationality'          => 'nullable|string|max:100',
-            'guest_occupation'           => 'nullable|string|max:100',
-            'guest_id_type'              => 'nullable|string|max:50',
-            'guest_id_number'            => 'nullable|string|max:50',
-            'guest_id_issuer'            => 'nullable|string|max:100',
-            'guest_id_issue_date'        => 'nullable|date',
-            'guest_phone'                => 'nullable|string|max:30',
+            'guest_full_name'               => 'required|string|max:255',
+            'guest_nationality'             => 'nullable|string|max:100',
+            'guest_occupation'              => 'nullable|string|max:100',
+            'guest_id_type'                 => 'nullable|string|max:50',
+            'guest_id_number'               => 'nullable|string|max:50',
+            'guest_id_issuer'               => 'nullable|string|max:100',
+            'guest_id_issue_date'           => 'nullable|date',
+            'guest_phone'                   => 'nullable|string|max:30',
             // Companions
-            'companions'                 => 'nullable|array',
-            'companions.*.id'            => 'nullable|integer',
-            'companions.*.full_name'     => 'nullable|string|max:255',
-            'companions.*.nationality'   => 'nullable|string|max:100',
-            'companions.*.id_type'       => 'nullable|string|max:50',
-            'companions.*.id_number'     => 'nullable|string|max:50',
-            'companions.*.relationship'  => 'nullable|string|max:50',
-            'companions.*.delete'        => 'nullable|boolean',
-            'price_per_night'            => 'nullable|numeric|min:0',
+            'companions'                    => 'nullable|array',
+            'companions.*.id'               => 'nullable|integer',
+            'companions.*.full_name'        => 'nullable|string|max:255',
+            'companions.*.nationality'      => 'nullable|string|max:100',
+            'companions.*.id_type'          => 'nullable|string|max:50',
+            'companions.*.id_number'        => 'nullable|string|max:50',
+            'companions.*.id_issuer'        => 'nullable|string|max:100',
+            'companions.*.id_issue_date'    => 'nullable|date',
+            'companions.*.relationship'     => 'nullable|string|max:50',
+            'companions.*.delete'           => 'nullable|boolean',
+            'companions.*.id_image'         => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'companions.*.marriage_doc'     => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'price_per_night'               => 'nullable|numeric|min:0',
         ], [
             'check_in_date.required'     => 'تاريخ الدخول مطلوب',
             'check_in_date.date'         => 'تاريخ الدخول غير صالح',
@@ -141,7 +149,8 @@ class ReservationController extends Controller
             }
 
             // Update companions
-            foreach ($request->input('companions', []) as $comp) {
+            $compFiles = $request->file('companions', []);
+            foreach ($request->input('companions', []) as $idx => $comp) {
                 if (($comp['delete'] ?? '0') === '1' && !empty($comp['id'])) {
                     Companion::where('id', $comp['id'])->where('reservation_id', $reservation->id)->delete();
                     continue;
@@ -149,18 +158,30 @@ class ReservationController extends Controller
                 if (empty($comp['full_name'])) continue;
 
                 $data = [
-                    'full_name'    => $comp['full_name'],
-                    'nationality'  => $this->nullIfEmpty($comp['nationality'] ?? null),
-                    'id_type'      => $this->nullIfEmpty($comp['id_type'] ?? null),
-                    'id_number'    => $this->nullIfEmpty($comp['id_number'] ?? null),
-                    'relationship' => $this->nullIfEmpty($comp['relationship'] ?? null),
+                    'full_name'      => $comp['full_name'],
+                    'nationality'    => $this->nullIfEmpty($comp['nationality'] ?? null),
+                    'id_type'        => $this->nullIfEmpty($comp['id_type'] ?? null),
+                    'id_number'      => $this->nullIfEmpty($comp['id_number'] ?? null),
+                    'id_issuer'      => $this->nullIfEmpty($comp['id_issuer'] ?? null),
+                    'id_issue_date'  => $this->nullIfEmpty($comp['id_issue_date'] ?? null),
+                    'relationship'   => $this->nullIfEmpty($comp['relationship'] ?? null),
                 ];
+
+                // Handle ID image upload
+                if (!empty($compFiles[$idx]['id_image'])) {
+                    $data['id_image_path'] = $compFiles[$idx]['id_image']->store('id_images/companions', 'private');
+                }
+
+                // Handle marriage doc upload (for wife)
+                if (($comp['relationship'] ?? '') === 'wife' && !empty($compFiles[$idx]['marriage_doc'])) {
+                    $data['marriage_doc_path'] = $compFiles[$idx]['marriage_doc']->store('marriage_docs', 'private');
+                }
 
                 if (!empty($comp['id'])) {
                     $existing = Companion::where('id', $comp['id'])->where('reservation_id', $reservation->id)->first();
                     $existing?->update($data);
                 } else {
-                    $reservation->companions()->create($data);
+                    $reservation->companions()->create(array_merge($data, ['reservation_id' => $reservation->id]));
                 }
             }
 
