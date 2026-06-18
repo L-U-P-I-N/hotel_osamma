@@ -43,7 +43,7 @@
         </div>
         @endif
 
-        <form method="POST" action="{{ route('rooms.update', $room) }}" class="space-y-5">
+        <form method="POST" action="{{ route('rooms.update', $room) }}" class="space-y-5" x-data="floorSelector({{ $floors->toJson() }}, '{{ old('floor', $room->floor) }}', '{{ old('room_number', $room->room_number) }}')">
             @csrf
             @method('PUT')
 
@@ -189,6 +189,41 @@
 </div>
 @push('scripts')
 <script>
+function floorSelector(floors, oldFloor, oldRoom) {
+    return {
+        floors: floors,
+        selectedFloor: oldFloor ? String(oldFloor) : '',
+        selectedRoomNumber: oldRoom || '',
+        availableNumbers: [],
+        init() {
+            if (this.selectedFloor) {
+                this.loadRoomNumbers();
+            }
+        },
+        loadRoomNumbers() {
+            if (!this.selectedFloor) {
+                this.availableNumbers = [];
+                return;
+            }
+            var floor = this.floors.find(f => String(f.floor_number) === String(this.selectedFloor));
+            if (!floor) {
+                this.availableNumbers = [];
+                return;
+            }
+            fetch('/floors/' + floor.id + '/rooms', {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(r => r.json())
+            .then(data => {
+                var current = this.selectedRoomNumber;
+                if (current && !data.includes(current)) {
+                    data.unshift(current);
+                }
+                this.availableNumbers = data;
+            });
+        }
+    };
+}
 (function() {
     var map = {'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9',
                '۰':'0','۱':'1','۲':'2','۳':'3','۴':'4','۵':'5','۶':'6','۷':'7','۸':'8','۹':'9'};

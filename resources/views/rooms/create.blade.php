@@ -23,7 +23,7 @@
     </div>
     @endif
 
-    <form method="POST" action="{{ route('rooms.store') }}" class="space-y-5">
+    <form method="POST" action="{{ route('rooms.store') }}" class="space-y-5" x-data="floorSelector({{ $floors->toJson() }}, '{{ old('floor') }}', '{{ old('room_number') }}')">
         @csrf
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -141,6 +141,40 @@
 </div>
 @push('scripts')
 <script>
+function floorSelector(floors, oldFloor, oldRoom) {
+    return {
+        floors: floors,
+        selectedFloor: oldFloor || '',
+        selectedRoomNumber: oldRoom || '',
+        availableNumbers: [],
+        init() {
+            if (this.selectedFloor) {
+                this.loadRoomNumbers();
+            }
+        },
+        loadRoomNumbers() {
+            if (!this.selectedFloor) {
+                this.availableNumbers = [];
+                return;
+            }
+            var floor = this.floors.find(f => f.floor_number == this.selectedFloor);
+            if (!floor) {
+                this.availableNumbers = [];
+                return;
+            }
+            fetch('/floors/' + floor.id + '/rooms', {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(r => r.json())
+            .then(data => {
+                this.availableNumbers = data;
+                if (this.selectedRoomNumber && !data.includes(this.selectedRoomNumber)) {
+                    this.selectedRoomNumber = '';
+                }
+            });
+        }
+    };
+}
 (function() {
     var map = {'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9',
                '۰':'0','۱':'1','۲':'2','۳':'3','۴':'4','۵':'5','۶':'6','۷':'7','۸':'8','۹':'9'};

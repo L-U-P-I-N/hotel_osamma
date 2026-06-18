@@ -14,6 +14,7 @@ use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\DailyReportController;
+use App\Http\Controllers\FloorController;
 
 Route::get('/', fn() => redirect()->route('login'));
 
@@ -46,10 +47,15 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/rooms/{room}/edit', [RoomController::class, 'edit'])->name('rooms.edit');
         Route::put('/rooms/{room}', [RoomController::class, 'update'])->name('rooms.update');
         Route::delete('/rooms/{room}', [RoomController::class, 'destroy'])->name('rooms.destroy');
+        Route::get('/floors', [FloorController::class, 'index'])->name('floors.index');
+        Route::post('/floors', [FloorController::class, 'store'])->name('floors.store');
+        Route::put('/floors/{floor}', [FloorController::class, 'update'])->name('floors.update');
+        Route::delete('/floors/{floor}', [FloorController::class, 'destroy'])->name('floors.destroy');
     });
     Route::post('/rooms/{room}/status', [RoomController::class, 'updateStatus'])
         ->name('rooms.updateStatus')
         ->middleware('permission:rooms.manage|rooms.maintenance');
+    Route::get('/floors/{floor}/rooms', [FloorController::class, 'availableRoomNumbers'])->name('floors.roomNumbers')->middleware('auth');
 
     // Check-in
     Route::middleware('permission:checkin.create')->group(function () {

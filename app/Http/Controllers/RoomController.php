@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Hotel;
 use App\Models\Room;
+use App\Models\Floor;
 use App\Models\RoomType;
 use App\Services\AuditLogService;
 use Illuminate\Http\Request;
@@ -37,7 +38,8 @@ class RoomController extends Controller
     {
         $roomTypes = RoomType::all();
         $canPrice = auth()->user()->can('room.price.edit');
-        return view('rooms.create', compact('roomTypes', 'canPrice'));
+        $floors = Floor::orderBy('floor_number')->get();
+        return view('rooms.create', compact('roomTypes', 'canPrice', 'floors'));
     }
 
     public function store(Request $request)
@@ -70,6 +72,16 @@ class RoomController extends Controller
             'notes.max'             => 'الملاحظات لا تتجاوز 500 حرف',
         ]);
 
+        $floorModel = Floor::where('floor_number', $validated['floor'])->first();
+        if ($floorModel) {
+            $doorNumber = (int)$validated['room_number'] - ($validated['floor'] * 100);
+            if ($doorNumber < 1 || $doorNumber > $floorModel->door_count) {
+                $min = $validated['floor'] * 100 + 1;
+                $max = $validated['floor'] * 100 + $floorModel->door_count;
+                return back()->withErrors(['room_number' => "رقم الغرفة {$validated['room_number']} لا ينتمي للطابق {$validated['floor']} الذي يحتوي على {$floorModel->door_count} أبواب فقط (من {$min} إلى {$max})"])->withInput();
+            }
+        }
+
         $hotel = Hotel::first();
 
         $attributes = [
@@ -100,7 +112,8 @@ class RoomController extends Controller
     {
         $roomTypes = RoomType::all();
         $canPrice = auth()->user()->can('room.price.edit');
-        return view('rooms.edit', compact('room', 'roomTypes', 'canPrice'));
+        $floors = Floor::orderBy('floor_number')->get();
+        return view('rooms.edit', compact('room', 'roomTypes', 'canPrice', 'floors'));
     }
 
     public function update(Request $request, Room $room)
@@ -132,6 +145,16 @@ class RoomController extends Controller
             'price_usd.numeric'     => 'السعر بالدولار يجب أن يكون رقماً',
             'notes.max'             => 'الملاحظات لا تتجاوز 500 حرف',
         ]);
+
+        $floorModel = Floor::where('floor_number', $validated['floor'])->first();
+        if ($floorModel) {
+            $doorNumber = (int)$validated['room_number'] - ($validated['floor'] * 100);
+            if ($doorNumber < 1 || $doorNumber > $floorModel->door_count) {
+                $min = $validated['floor'] * 100 + 1;
+                $max = $validated['floor'] * 100 + $floorModel->door_count;
+                return back()->withErrors(['room_number' => "رقم الغرفة {$validated['room_number']} لا ينتمي للطابق {$validated['floor']} الذي يحتوي على {$floorModel->door_count} أبواب فقط (من {$min} إلى {$max})"])->withInput();
+            }
+        }
 
         $old = $room->toArray();
         $attributes = [
