@@ -105,8 +105,8 @@ class CheckOutService
             ]);
             $reservation->updatePaymentStatus();
 
-            // f. Update Room status — no damage → available immediately, damage → maintenance
-            $newRoomStatus = ($data['has_damage'] ?? false) ? 'maintenance' : 'available';
+            // f. Update Room status — always under_inspection after checkout; staff changes manually
+            $newRoomStatus = ($data['has_damage'] ?? false) ? 'maintenance' : 'under_inspection';
             $reservation->room->update(['status' => $newRoomStatus]);
 
             // Free the linked room too (suite B or apartment partner)
