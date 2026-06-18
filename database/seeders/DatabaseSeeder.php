@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             RoomSeeder::class,
             FloorSeeder::class,
             TestDataSeeder::class,
+            HrExpenseSeeder::class,
         ]);
     }
 }
