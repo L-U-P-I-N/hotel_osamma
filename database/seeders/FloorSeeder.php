@@ -11,45 +11,11 @@ class FloorSeeder extends Seeder
     {
         Floor::truncate();
 
-        $floorData = DB::table('rooms')
-            ->select('floor')
-            ->whereNotNull('floor')
-            ->groupBy('floor')
-            ->orderBy('floor')
-            ->get();
-
-        foreach ($floorData as $row) {
-            $floorNum = (int)$row->floor;
-
-            $roomNumbers = DB::table('rooms')
-                ->where('floor', $floorNum)
-                ->pluck('room_number')
-                ->toArray();
-
-            $maxDoor = 0;
-            foreach ($roomNumbers as $rn) {
-                $numeric = preg_replace('/[^0-9]/', '', $rn);
-                if ($numeric && strlen($numeric) > 1) {
-                    $prefix = (int)substr($numeric, 0, strlen((string)$floorNum));
-                    if ($prefix === $floorNum) {
-                        $door = (int)substr($numeric, strlen((string)$floorNum));
-                        if ($door > $maxDoor) {
-                            $maxDoor = $door;
-                        }
-                    }
-                }
-            }
-
-            $doorCount = $maxDoor > 0 ? $maxDoor : count($roomNumbers);
-            if ($doorCount < 1) {
-                $doorCount = 10;
-            }
-
-            Floor::create([
-                'floor_number' => $floorNum,
-                'door_count'   => $doorCount,
-                'name'         => null,
-            ]);
-        }
+        Floor::create(['floor_number' => 1, 'door_count' => 1,  'name' => 'الطابق الأول']);
+        Floor::create(['floor_number' => 2, 'door_count' => 8,  'name' => 'الطابق الثاني']);
+        Floor::create(['floor_number' => 3, 'door_count' => 8,  'name' => 'الطابق الثالث']);
+        Floor::create(['floor_number' => 4, 'door_count' => 8,  'name' => 'الطابق الرابع']);
+        Floor::create(['floor_number' => 5, 'door_count' => 8,  'name' => 'الطابق الخامس']);
+        Floor::create(['floor_number' => 6, 'door_count' => 8,  'name' => 'الطابق السادس']);
     }
 }
