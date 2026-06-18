@@ -85,7 +85,7 @@
                         </td>
                         <td class="px-6 py-4">
                             <span class="inline-flex items-center gap-1">
-                                <span class="font-semibold text-gray-800">{{ $floor->rooms_count }}</span>
+                                <span class="font-semibold text-gray-800">{{ $floor->used_doors }}</span>
                                 <span class="text-gray-400">/ {{ $floor->door_count }}</span>
                             </span>
                         </td>

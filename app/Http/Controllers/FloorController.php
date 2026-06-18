@@ -9,7 +9,16 @@ class FloorController extends Controller
 {
     public function index()
     {
-        $floors = Floor::orderBy('floor_number')->withCount('rooms')->get();
+        $floors = Floor::orderBy('floor_number')->with('rooms')->get();
+
+        $floors->each(function ($floor) {
+            $floor->used_doors = $floor->rooms
+                ->pluck('room_number')
+                ->map(fn($rn) => preg_replace('/[^0-9]/', '', $rn))
+                ->unique()
+                ->count();
+        });
+
         return view('floors.index', compact('floors'));
     }
 

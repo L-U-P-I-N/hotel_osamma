@@ -12,6 +12,16 @@ class Floor extends Model
         return $this->hasMany(Room::class, 'floor', 'floor_number');
     }
 
+    public function getUsedDoorsCountAttribute(): int
+    {
+        return $this->rooms()
+            ->selectRaw('REGEXP_REPLACE(room_number, "[^0-9]", "") as door_num')
+            ->get()
+            ->pluck('door_num')
+            ->unique()
+            ->count();
+    }
+
     public function validRoomNumbers(): array
     {
         $numbers = [];
