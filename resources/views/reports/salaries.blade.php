@@ -1,0 +1,115 @@
+@extends('layouts.app')
+@section('title', 'تقرير الرواتب')
+@section('page-title', 'تقرير الرواتب')
+
+@section('content')
+<div class="space-y-5">
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+    <form method="GET" class="flex flex-wrap gap-3 items-end">
+        <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">السنة</label>
+            <select name="year" class="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none">
+                @foreach($years as $y)
+                <option value="{{ $y }}" {{ $y == $year ? 'selected' : '' }}>{{ $y }}</option>
+                @endforeach
+                @if($years->isEmpty())
+                <option value="{{ now()->year }}" selected>{{ now()->year }}</option>
+                @endif
+            </select>
+        </div>
+        <button type="submit" class="px-4 py-2 text-white rounded-lg text-sm transition" style="background:#0F4C75;">عرض</button>
+    </form>
+</div>
+
+<div class="rounded-xl p-5 border" style="background:#e8f0f7; border-color:#9fbedd;">
+    <div class="text-xs" style="color:#0F4C75;">إجمالي صافي الرواتب — {{ $year }}</div>
+    <div class="text-3xl font-bold mt-1" style="color:#0F4C75;">{{ number_format($totalNet, 0) }} <span class="text-lg font-normal">ر.ي</span></div>
+</div>
+
+@php
+    $monthNames = [1=>'يناير',2=>'فبراير',3=>'مارس',4=>'أبريل',5=>'مايو',6=>'يونيو',7=>'يوليو',8=>'أغسطس',9=>'سبتمبر',10=>'أكتوبر',11=>'نوفمبر',12=>'ديسمبر'];
+@endphp
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-100">
+    <div class="px-6 py-4 border-b border-gray-100">
+        <h3 class="font-semibold text-gray-700">ملخص شهري — {{ $year }}</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الشهر</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">عدد الموظفين</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">إجمالي الأساسي</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المكافآت</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الخصومات</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الصافي</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">مدفوع / معلق</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+                @forelse($byMonth as $month => $data)
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 font-medium text-gray-800">{{ $monthNames[$month] ?? $month }}</td>
+                    <td class="px-4 py-3 text-gray-600">{{ $data['count'] }}</td>
+                    <td class="px-4 py-3 text-gray-700">{{ number_format($data['total_base'], 0) }}</td>
+                    <td class="px-4 py-3 text-green-600">{{ number_format($data['total_bonus'], 0) }}</td>
+                    <td class="px-4 py-3 text-red-500">{{ number_format($data['total_ded'], 0) }}</td>
+                    <td class="px-4 py-3 font-bold" style="color:#0F4C75;">{{ number_format($data['total_net'], 0) }}</td>
+                    <td class="px-4 py-3 text-xs">
+                        <span class="text-green-600">{{ $data['paid'] }} مدفوع</span>
+                        @if($data['pending'] > 0) / <span class="text-amber-600">{{ $data['pending'] }} معلق</span>@endif
+                    </td>
+                </tr>
+                @empty
+                <tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">لا توجد رواتب مسجلة لهذه السنة</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@if($salaries->isNotEmpty())
+<div class="bg-white rounded-xl shadow-sm border border-gray-100">
+    <div class="px-6 py-4 border-b border-gray-100">
+        <h3 class="font-semibold text-gray-700">تفاصيل الرواتب</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الموظف</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الشهر</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الأساسي</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">مكافآت</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">خصومات</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الصافي</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الحالة</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+                @foreach($salaries as $sal)
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 font-medium text-gray-800">{{ $sal->employee->full_name ?? '—' }}</td>
+                    <td class="px-4 py-3 text-gray-600">{{ $monthNames[$sal->month] ?? $sal->month }} {{ $sal->year }}</td>
+                    <td class="px-4 py-3 text-gray-700">{{ number_format($sal->base_salary, 0) }}</td>
+                    <td class="px-4 py-3 text-green-600">{{ number_format($sal->bonuses, 0) }}</td>
+                    <td class="px-4 py-3 text-red-500">{{ number_format($sal->deductions, 0) }}</td>
+                    <td class="px-4 py-3 font-bold" style="color:#0F4C75;">{{ number_format($sal->net_salary, 0) }}</td>
+                    <td class="px-4 py-3">
+                        @if($sal->status === 'paid')
+                        <span class="px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700">مدفوع</span>
+                        @else
+                        <span class="px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-700">معلق</span>
+                        @endif
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+</div>
+@endif
+</div>
+@endsection

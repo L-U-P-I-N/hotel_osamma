@@ -154,6 +154,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/reports/daily/excel', [DailyReportController::class, 'exportExcel'])->name('reports.daily.excel');
         Route::get('/reports/reservations', [ReportController::class, 'reservations'])->name('reports.reservations');
         Route::get('/reports/shifts', [ReportController::class, 'shifts'])->name('reports.shifts');
+        Route::get('/reports/rooms', [ReportController::class, 'rooms'])->name('reports.rooms');
+        Route::get('/reports/guests', [ReportController::class, 'guests'])->name('reports.guests');
+        Route::get('/reports/debts', [ReportController::class, 'debts'])->name('reports.debts');
+        Route::get('/reports/salaries', [ReportController::class, 'salaries'])->name('reports.salaries');
     });
 
     // Users
