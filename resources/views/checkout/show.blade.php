@@ -86,51 +86,54 @@
                        class="w-full md:w-64 border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
             </div>
 
-            <div x-show="compensationAmount > 0" class="bg-orange-50 border border-orange-200 rounded-lg p-4 space-y-3">
-                <h4 class="font-medium text-orange-800 text-sm">دفع التعويض</h4>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs text-gray-600 mb-1">طريقة الدفع</label>
-                        <select name="compensation_method" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
-                            <option value="cash">نقدي</option>
-                            <option value="pos">POS</option>
-                            <option value="bank_transfer">تحويل</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-600 mb-1">المبلغ المدفوع</label>
-                        <input type="number" name="compensation_paid" step="0.01" min="0" :max="compensationAmount"
-                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
-                    </div>
-                </div>
+            <div x-show="compensationAmount > 0" class="bg-orange-50 border border-orange-200 rounded-lg p-3 text-sm text-orange-800">
+                سيُضاف مبلغ التعويض إلى الإجمالي المطلوب في قسم الدفع أدناه.
             </div>
         </div>
     </div>
 
-    <!-- Remaining Balance Payment -->
-    @if($reservation->balance > 0)
-    <div class="bg-white rounded-xl shadow-sm border border-red-200 p-5">
+    <!-- Payment Section (balance + damage combined) -->
+    <div x-show="totalRequired > 0" class="bg-white rounded-xl shadow-sm border border-red-200 p-5">
         <div class="flex items-center gap-2 mb-4">
             <div class="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
                 <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
             </div>
-            <h3 class="font-semibold text-red-700">تسوية الرصيد المتبقي — مطلوب قبل الخروج</h3>
+            <h3 class="font-semibold text-red-700">تسوية المبالغ المستحقة — مطلوب قبل الخروج</h3>
         </div>
-        <div class="bg-red-50 border border-red-200 rounded-xl p-4 mb-4 flex items-center justify-between">
+
+        {{-- Breakdown when damage exists --}}
+        <div x-show="hasDamage && compensationAmount > 0" class="mb-4 space-y-2 bg-gray-50 rounded-xl p-4 border border-gray-200 text-sm">
+            <div class="flex justify-between">
+                <span class="text-gray-600">رصيد الحجز</span>
+                <span class="font-medium text-gray-800">{{ number_format($reservation->balance, 2) }} {{ $reservation->currency_symbol }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-600">تعويض الأضرار</span>
+                <span class="font-medium text-red-700" x-text="parseFloat(compensationAmount || 0).toLocaleString('ar-SA', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' {{ $reservation->currency_symbol }}'"></span>
+            </div>
+            <div class="flex justify-between border-t border-gray-300 pt-2 font-semibold">
+                <span class="text-gray-800">الإجمالي المطلوب</span>
+                <span class="text-red-700" x-text="totalRequired.toLocaleString('ar-SA', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' {{ $reservation->currency_symbol }}'"></span>
+            </div>
+        </div>
+
+        {{-- Simple total when no damage --}}
+        <div x-show="!(hasDamage && compensationAmount > 0)" class="bg-red-50 border border-red-200 rounded-xl p-4 mb-4 flex items-center justify-between">
             <span class="text-sm text-red-800 font-medium">المبلغ المتبقي</span>
             <span class="text-xl font-bold text-red-700">{{ number_format($reservation->balance, 2) }} {{ $reservation->currency_symbol }}</span>
         </div>
+
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1.5">المبلغ المدفوع <span class="text-red-500">*</span></label>
                 <input type="number" name="remaining_payment" x-model.number="remainingPayment"
                        step="0.01"
-                       min="{{ $reservation->balance }}" max="{{ $reservation->balance }}"
-                       placeholder="{{ number_format($reservation->balance, 2) }}"
+                       :min="totalRequired" :max="totalRequired"
+                       :placeholder="totalRequired.toFixed(2)"
                        class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
-                <p x-show="remainingPayment > 0 && remainingPayment != balance"
+                <p x-show="remainingPayment > 0 && remainingPayment != totalRequired"
                    class="text-xs text-red-600 mt-1 font-medium">
-                    يجب أن يكون المبلغ مساوياً للرصيد المطلوب تماماً (<span x-text="balance.toLocaleString('ar-SA')"></span> {{ $reservation->currency_symbol }})
+                    يجب أن يكون المبلغ مساوياً للإجمالي المطلوب تماماً (<span x-text="totalRequired.toLocaleString('ar-SA', {minimumFractionDigits:2, maximumFractionDigits:2})"></span> {{ $reservation->currency_symbol }})
                 </p>
             </div>
             <div>
@@ -157,29 +160,26 @@
             </div>
         </div>
     </div>
-    @endif
 
     <!-- Submit -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        {{-- Block checkout if balance > 0 and no payment entered --}}
-        @if($reservation->balance > 0)
-        <div x-show="remainingPayment <= 0"
+        {{-- Block checkout if total required > 0 and no payment entered --}}
+        <div x-show="totalRequired > 0 && remainingPayment <= 0"
              class="bg-red-50 border border-red-200 rounded-xl p-4 mb-4 flex items-center gap-3 text-sm text-red-800">
             <svg class="w-5 h-5 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
-            لا يمكن تسجيل الخروج — يوجد رصيد متبقي بلغ <strong class="mx-1">{{ number_format($reservation->balance, 2) }} {{ $reservation->currency_symbol }}</strong> يجب تسويته أولاً
+            لا يمكن تسجيل الخروج — يوجد مبالغ مستحقة بلغت <strong class="mx-1" x-text="totalRequired.toLocaleString('ar-SA', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' {{ $reservation->currency_symbol }}'"></strong> يجب تسويتها أولاً
         </div>
-        <div x-show="remainingPayment > 0 && remainingPayment != balance"
+        <div x-show="totalRequired > 0 && remainingPayment > 0 && remainingPayment != totalRequired"
              class="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4 flex items-center gap-3 text-sm text-orange-800">
             <svg class="w-5 h-5 text-orange-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-            المبلغ المدخل لا يساوي الرصيد المطلوب (<span x-text="balance.toLocaleString('ar-SA')"></span> {{ $reservation->currency_symbol }})
+            المبلغ المدخل لا يساوي الإجمالي المطلوب (<span x-text="totalRequired.toLocaleString('ar-SA', {minimumFractionDigits:2, maximumFractionDigits:2})"></span> {{ $reservation->currency_symbol }})
         </div>
-        @endif
         <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-4 text-sm text-yellow-800">
             <strong>تحذير:</strong> بعد إتمام تسجيل الخروج لا يمكن التراجع عنه.
         </div>
         <div class="flex gap-3">
             <button type="submit"
-                    @if($reservation->balance > 0) :disabled="remainingPayment <= 0 || remainingPayment != balance" @endif
+                    :disabled="totalRequired > 0 && (remainingPayment <= 0 || remainingPayment != totalRequired)"
                     class="flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition disabled:opacity-40 disabled:cursor-not-allowed">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
                 إتمام تسجيل الخروج
@@ -200,6 +200,10 @@ function checkoutForm() {
         remainingMethod: 'cash',
         remainingPayment: 0,
         balance: {{ $reservation->balance }},
+        get totalRequired() {
+            const comp = this.hasDamage ? (parseFloat(this.compensationAmount) || 0) : 0;
+            return this.balance + comp;
+        },
     }
 }
 </script>

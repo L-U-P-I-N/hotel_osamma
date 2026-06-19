@@ -37,58 +37,35 @@ class CheckOutService
                 }
             }
 
-            // c. Handle damage
-            if ($data['has_damage'] ?? false) {
-                $compensationAmount = $data['compensation_amount'] ?? 0;
-                if ($compensationAmount > 0) {
-                    ExtraCharge::create([
-                        'reservation_id' => $reservation->id,
-                        'added_by'       => $user->id,
-                        'type'           => 'damage',
-                        'description'    => $data['damage_description'] ?? 'تعويض أضرار',
-                        'amount'         => $compensationAmount,
-                        'charge_date'    => now(),
-                    ]);
+            // c. Handle damage — add to total_amount, mark compensation pending until payment below
+            $hasDamage = $data['has_damage'] ?? false;
+            $compensationAmount = $hasDamage ? ($data['compensation_amount'] ?? 0) : 0;
 
-                    // تسجيل الأضرار تلقائياً في المصروفات
-                    Expense::create([
-                        'amount'       => $compensationAmount,
-                        'currency'     => $data['currency'] ?? 'YER',
-                        'category'     => 'maintenance',
-                        'description'  => 'أضرار غرفة ' . ($reservation->room->room_number ?? '') . ' — ' . ($data['damage_description'] ?? 'تعويض أضرار'),
-                        'expense_date' => now()->toDateString(),
-                        'paid_by'      => $user->id,
-                        'shift_id'     => null,
-                    ]);
+            if ($hasDamage && $compensationAmount > 0) {
+                ExtraCharge::create([
+                    'reservation_id' => $reservation->id,
+                    'added_by'       => $user->id,
+                    'type'           => 'damage',
+                    'description'    => $data['damage_description'] ?? 'تعويض أضرار',
+                    'amount'         => $compensationAmount,
+                    'charge_date'    => now(),
+                ]);
 
-                    $reservation->increment('total_amount', $compensationAmount);
+                Expense::create([
+                    'amount'       => $compensationAmount,
+                    'currency'     => $data['currency'] ?? 'YER',
+                    'category'     => 'maintenance',
+                    'description'  => 'أضرار غرفة ' . ($reservation->room->room_number ?? '') . ' — ' . ($data['damage_description'] ?? 'تعويض أضرار'),
+                    'expense_date' => now()->toDateString(),
+                    'paid_by'      => $user->id,
+                    'shift_id'     => null,
+                ]);
 
-                    if (!empty($data['compensation_paid']) && $data['compensation_paid'] > 0) {
-                        $bankReceiptPath = null;
-                        if (!empty($data['compensation_bank_receipt'])) {
-                            $bankReceiptPath = $data['compensation_bank_receipt']->store('bank_receipts', 'private');
-                        }
-
-                        Payment::create([
-                            'reservation_id' => $reservation->id,
-                            'received_by' => $user->id,
-                            'amount' => $data['compensation_paid'],
-                            'currency' => $data['currency'] ?? 'YER',
-                            'method' => $data['compensation_method'] ?? 'cash',
-                            'bank_receipt_path' => $bankReceiptPath,
-                            'payment_date' => now(),
-                            'type' => 'compensation',
-                        ]);
-
-                        $reservation->increment('paid_amount', $data['compensation_paid']);
-                        $inspection->update(['compensation_status' => 'paid']);
-                    } else {
-                        $inspection->update(['compensation_status' => 'pending']);
-                    }
-                }
+                $reservation->increment('total_amount', $compensationAmount);
+                $inspection->update(['compensation_status' => 'pending']);
             }
 
-            // d. Settle remaining balance
+            // d. Settle combined balance (reservation balance + damage compensation in one payment)
             if (!empty($data['remaining_payment']) && $data['remaining_payment'] > 0) {
                 $bankReceiptPath = null;
                 if (!empty($data['remaining_bank_receipt'])) {
@@ -107,6 +84,11 @@ class CheckOutService
                 ]);
 
                 $reservation->increment('paid_amount', $data['remaining_payment']);
+
+                // Mark compensation as paid if damage was included in this combined payment
+                if ($hasDamage && $compensationAmount > 0) {
+                    $inspection->update(['compensation_status' => 'paid']);
+                }
             }
 
             // e. Update Reservation
