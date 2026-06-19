@@ -14,7 +14,7 @@ class RolesSeeder extends Seeder
         $permissions = [
             'dashboard.view',
             'rooms.view',
-            'rooms.manage',
+            'rooms.create', 'rooms.edit', 'rooms.delete',
             'rooms.maintenance',
             'checkin.create',
             'checkin.view',
@@ -36,7 +36,7 @@ class RolesSeeder extends Seeder
             'deferred.approve',
             // HR Module
             'hr.view',
-            'hr.manage',
+            'hr.create', 'hr.edit', 'hr.delete',
             // Expense Module
             'expenses.view',
             'expenses.create', 'expenses.edit', 'expenses.delete',
@@ -52,10 +52,10 @@ class RolesSeeder extends Seeder
                 'dashboard.view', 'rooms.view', 'payments.create', 'payments.view',
                 'payments.bank_receipt', 'settlement.view', 'settlement.manage',
                 'settlement.lock', 'reports.view',
-                'hr.view', 'hr.manage', 'expenses.view', 'expenses.create', 'expenses.edit', 'expenses.delete',
+                'hr.view', 'hr.create', 'hr.edit', 'hr.delete', 'expenses.view', 'expenses.create', 'expenses.edit', 'expenses.delete',
             ],
             'receptionist' => [
-                'dashboard.view', 'rooms.view', 'rooms.manage', 'checkin.create',
+                'dashboard.view', 'rooms.view', 'checkin.create',
                 'checkin.view', 'checkout.process', 'guests.view', 'guests.sensitive',
                 'companions.manage', 'payments.create', 'payments.bank_receipt',
                 'extra_charges.manage', 'government.export',

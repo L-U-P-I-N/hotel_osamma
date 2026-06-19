@@ -8,7 +8,7 @@
 <!-- Header -->
 <div class="flex items-center justify-between mb-5">
     <p class="text-sm text-gray-500">إجمالي الغرف: {{ $rooms->count() }}</p>
-    @can('rooms.manage')
+    @can('rooms.create')
     <a href="{{ route('rooms.create') }}" class="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm transition" style="background:#0F4C75;">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
         إضافة غرفة
@@ -107,13 +107,17 @@
             @endif
             <div class="mt-1 text-xs font-medium text-gray-700">{{ number_format($room->priceFor('YER'), 0) }} ر.ي</div>
         </div>
-        @can('rooms.manage')
+        @canany(['rooms.edit','rooms.delete'])
         <div class="flex border-t border-gray-200 divide-x divide-x-reverse divide-gray-200">
+            @can('rooms.edit')
             <a href="{{ route('rooms.edit', $room) }}" class="flex-1 text-center py-1.5 text-xs font-medium hover:bg-white transition" style="color:#0F4C75;">تعديل</a>
+            @endcan
+            @can('rooms.delete')
             <button @click.stop="confirmDelete({{ $room->id }}, '{{ $room->room_number }}')"
                     class="flex-1 text-center py-1.5 text-xs font-medium text-red-500 hover:bg-white transition">حذف</button>
+            @endcan
         </div>
-        @endcan
+        @endcanany
     </div>
     @empty
     <div class="col-span-full text-center py-12 text-gray-400">لا توجد غرف مطابقة للتصفية</div>
@@ -121,7 +125,7 @@
 </div>
 
 <!-- Delete Confirm Modal -->
-@can('rooms.manage')
+@can('rooms.delete')
 <div x-show="deleteModal" x-cloak
      class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
      @click.self="deleteModal=false">
@@ -139,7 +143,7 @@
         </form>
     </div>
 </div>
-@endcan
+@endcan {{-- rooms.delete --}}
 
 <!-- Room Detail Modal -->
 <div x-show="modalOpen" x-cloak
@@ -187,7 +191,7 @@
                       }"
                       x-text="statusLabels[selectedRoom.status] || selectedRoom.status"></span>
             </div>
-            @canany(['rooms.manage','rooms.maintenance'])
+            @canany(['rooms.edit','rooms.maintenance'])
             <form :action="`/rooms/${selectedRoom.id}/status`" method="POST" class="border-t border-gray-100 pt-3 mt-3">
                 @csrf
                 <label class="block text-sm font-medium text-gray-700 mb-1.5">تغيير الحالة</label>

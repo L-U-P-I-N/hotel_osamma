@@ -220,45 +220,76 @@
     </div>
 </div>
 
-<!-- Overdue Guests -->
-@if($overdueGuests->isNotEmpty())
-<div class="bg-white rounded-xl shadow-sm border border-red-200 mb-6">
-    <div class="px-6 py-4 border-b border-red-100 flex items-center justify-between bg-red-50 rounded-t-xl">
+<!-- Expiring Guests Card -->
+@can('checkin.view')
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-6">
+    <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
         <div class="flex items-center gap-2">
-            <div class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></div>
-            <h3 class="font-semibold text-red-800">نزلاء تجاوزوا موعد المغادرة</h3>
+            <div class="w-2 h-2 rounded-full bg-orange-500"></div>
+            <h3 class="font-semibold text-gray-700">النزلاء الأقرب للمغادرة</h3>
+            <span class="text-xs text-gray-400">(مسجلو الدخول)</span>
         </div>
-        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-500 text-white text-xs font-bold">{{ $overdueGuests->count() }}</span>
+        <a href="{{ route('reservations.expiring') }}" class="text-sm text-primary-600 hover:text-primary-800 font-medium">عرض الكل</a>
     </div>
-    <div class="divide-y divide-red-50">
-        @foreach($overdueGuests as $res)
-        <a href="{{ route('reservations.show', $res->id) }}"
-           class="flex items-center justify-between px-6 py-3 hover:bg-red-50 transition-colors group">
-            <div class="flex items-center gap-4">
-                <div class="w-9 h-9 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
-                    <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                </div>
-                <div>
-                    <div class="font-medium text-gray-800 text-sm group-hover:text-red-800">{{ $res->guest?->full_name ?? '—' }}</div>
-                    <div class="text-xs text-gray-500">غرفة {{ $res->room?->room_number ?? '—' }}</div>
-                </div>
-            </div>
-            <div class="flex items-center gap-4">
-                <div class="text-right">
-                    <div class="text-xs text-red-600 font-medium">موعد الخروج</div>
-                    <div class="text-sm font-semibold text-red-700">{{ $res->check_out_date?->format('d/m/Y') }}</div>
-                </div>
-                @php $overdueDays = $res->check_out_date?->diffInDays(today()); @endphp
-                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
-                    تأخر {{ $overdueDays }} {{ $overdueDays == 1 ? 'يوم' : 'أيام' }}
-                </span>
-                <svg class="w-4 h-4 text-red-400 rotate-180 group-hover:text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-            </div>
-        </a>
-        @endforeach
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm" dir="rtl">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">النزيل</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الغرفة</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">تاريخ الخروج</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الحالة</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">إجراءات</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+                @forelse($expiringGuests as $res)
+                @php
+                    $daysLeft = (int) now()->startOfDay()->diffInDays($res->check_out_date->startOfDay(), false);
+                    if ($daysLeft < 0) {
+                        $badge = 'bg-red-100 text-red-700';
+                        $label = 'متأخر ' . abs($daysLeft) . ' ' . (abs($daysLeft) === 1 ? 'يوم' : 'أيام');
+                    } elseif ($daysLeft === 0) {
+                        $badge = 'bg-orange-100 text-orange-700';
+                        $label = 'اليوم';
+                    } elseif ($daysLeft === 1) {
+                        $badge = 'bg-yellow-100 text-yellow-700';
+                        $label = 'غداً';
+                    } else {
+                        $badge = 'bg-blue-50 text-blue-600';
+                        $label = $daysLeft . ' أيام';
+                    }
+                @endphp
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 font-medium text-gray-800">
+                        <a href="{{ route('reservations.show', $res) }}" class="hover:text-primary-700">{{ $res->guest?->full_name ?? '—' }}</a>
+                    </td>
+                    <td class="px-4 py-3 text-gray-600">{{ $res->room?->room_number ?? '—' }}</td>
+                    <td class="px-4 py-3 text-gray-600">{{ $res->check_out_date->format('d/m/Y') }}</td>
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-0.5 rounded-full text-xs font-medium {{ $badge }}">{{ $label }}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-2">
+                            @can('checkout.process')
+                            <a href="{{ route('checkout.show', $res) }}"
+                               class="text-xs px-3 py-1.5 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition font-medium">خروج</a>
+                            @endcan
+                            @can('checkin.create')
+                            <a href="{{ route('reservations.show', $res) }}#renew"
+                               class="text-xs px-3 py-1.5 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition font-medium">تجديد</a>
+                            @endcan
+                        </div>
+                    </td>
+                </tr>
+                @empty
+                <tr><td colspan="5" class="px-4 py-6 text-center text-gray-400 text-sm">لا يوجد نزلاء مسجلون حالياً</td></tr>
+                @endforelse
+            </tbody>
+        </table>
     </div>
 </div>
-@endif
+@endcan
 
 <!-- Recent Reservations -->
 <div class="bg-white rounded-xl shadow-sm border border-gray-100">

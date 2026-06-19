@@ -44,21 +44,25 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/rooms', [RoomController::class, 'index'])->name('rooms.index');
         Route::get('/rooms/available', [RoomController::class, 'available'])->name('rooms.available');
     });
-    Route::middleware('permission:rooms.manage')->group(function () {
+    Route::middleware('permission:rooms.create')->group(function () {
         Route::get('/rooms/create', [RoomController::class, 'create'])->name('rooms.create');
         Route::post('/rooms', [RoomController::class, 'store'])->name('rooms.store');
-        Route::get('/rooms/{room}/edit', [RoomController::class, 'edit'])->name('rooms.edit');
-        Route::put('/rooms/{room}', [RoomController::class, 'update'])->name('rooms.update');
-        Route::delete('/rooms/{room}', [RoomController::class, 'destroy'])->name('rooms.destroy');
         Route::get('/floors', [FloorController::class, 'index'])->name('floors.index');
         Route::post('/floors', [FloorController::class, 'store'])->name('floors.store');
+    });
+    Route::middleware('permission:rooms.edit')->group(function () {
+        Route::get('/rooms/{room}/edit', [RoomController::class, 'edit'])->name('rooms.edit');
+        Route::put('/rooms/{room}', [RoomController::class, 'update'])->name('rooms.update');
         Route::put('/floors/{floor}', [FloorController::class, 'update'])->name('floors.update');
+    });
+    Route::middleware('permission:rooms.delete')->group(function () {
+        Route::delete('/rooms/{room}', [RoomController::class, 'destroy'])->name('rooms.destroy');
         Route::delete('/floors/{floor}', [FloorController::class, 'destroy'])->name('floors.destroy');
     });
     Route::get('/floors/{floor}/room-numbers', [FloorController::class, 'availableRoomNumbers'])->name('floors.roomNumbers')->middleware('auth');
     Route::post('/rooms/{room}/status', [RoomController::class, 'updateStatus'])
         ->name('rooms.updateStatus')
-        ->middleware('permission:rooms.manage|rooms.maintenance');
+        ->middleware('permission:rooms.edit|rooms.maintenance');
     Route::get('/floors/{floor}/rooms', [FloorController::class, 'availableRoomNumbers'])->name('floors.roomNumbers')->middleware('auth');
 
     // Check-in
@@ -95,6 +99,7 @@ Route::middleware(['auth'])->group(function () {
     // Reservations
     Route::middleware('permission:checkin.view')->group(function () {
         Route::get('/reservations', [ReservationController::class, 'index'])->name('reservations.index');
+        Route::get('/reservations-expiring', [ReservationController::class, 'expiring'])->name('reservations.expiring');
         Route::get('/reservations/{reservation}', [ReservationController::class, 'show'])->name('reservations.show');
         Route::get('/reservations/{reservation}/edit', [ReservationController::class, 'edit'])->name('reservations.edit');
         Route::put('/reservations/{reservation}', [ReservationController::class, 'update'])->name('reservations.update');
@@ -170,11 +175,15 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware('permission:hr.view')->group(function () {
         Route::get('/employees', [EmployeeController::class, 'index'])->name('employees.index');
     });
-    Route::middleware('permission:hr.manage')->group(function () {
+    Route::middleware('permission:hr.create')->group(function () {
         Route::get('/employees/create', [EmployeeController::class, 'create'])->name('employees.create');
         Route::post('/employees', [EmployeeController::class, 'store'])->name('employees.store');
+    });
+    Route::middleware('permission:hr.edit')->group(function () {
         Route::get('/employees/{employee}/edit', [EmployeeController::class, 'edit'])->name('employees.edit');
         Route::put('/employees/{employee}', [EmployeeController::class, 'update'])->name('employees.update');
+    });
+    Route::middleware('permission:hr.delete')->group(function () {
         Route::delete('/employees/{employee}', [EmployeeController::class, 'destroy'])->name('employees.destroy');
     });
 
@@ -182,9 +191,11 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware('permission:hr.view')->group(function () {
         Route::get('/salaries', [SalaryController::class, 'index'])->name('salaries.index');
     });
-    Route::middleware('permission:hr.manage')->group(function () {
+    Route::middleware('permission:hr.create')->group(function () {
         Route::get('/salaries/create', [SalaryController::class, 'create'])->name('salaries.create');
         Route::post('/salaries', [SalaryController::class, 'store'])->name('salaries.store');
+    });
+    Route::middleware('permission:hr.edit')->group(function () {
         Route::patch('/salaries/{salary}/mark-paid', [SalaryController::class, 'markPaid'])->name('salaries.markPaid');
     });
 

@@ -20,25 +20,15 @@ class DashboardController extends Controller
             ->whereIn('status', ['checked_in', 'checked_out'])
             ->count();
 
-        // YER revenue (default currency)
-        $todayRevenue   = Payment::whereDate('payment_date', today())->where('currency', 'YER')->sum('amount');
-        $weeklyRevenue  = Payment::whereBetween('payment_date', [now()->startOfWeek(), now()->endOfWeek()])->where('currency', 'YER')->sum('amount');
-        $monthlyRevenue = Payment::whereMonth('payment_date', now()->month)->whereYear('payment_date', now()->year)->where('currency', 'YER')->sum('amount');
-        $yearlyRevenue  = Payment::whereYear('payment_date', now()->year)->where('currency', 'YER')->sum('amount');
+        $todayRevenue   = Payment::whereDate('payment_date', today())->sum('amount');
+        $weeklyRevenue  = Payment::whereBetween('payment_date', [now()->startOfWeek(), now()->endOfWeek()])->sum('amount');
+        $monthlyRevenue = Payment::whereMonth('payment_date', now()->month)->whereYear('payment_date', now()->year)->sum('amount');
+        $yearlyRevenue  = Payment::whereYear('payment_date', now()->year)->sum('amount');
 
-        // SAR revenue
-        $monthlyRevenueSar = Payment::whereMonth('payment_date', now()->month)->whereYear('payment_date', now()->year)->where('currency', 'SAR')->sum('amount');
-        $yearlyRevenueSar  = Payment::whereYear('payment_date', now()->year)->where('currency', 'SAR')->sum('amount');
-
-        // USD revenue
-        $monthlyRevenueUsd = Payment::whereMonth('payment_date', now()->month)->whereYear('payment_date', now()->year)->where('currency', 'USD')->sum('amount');
-        $yearlyRevenueUsd  = Payment::whereYear('payment_date', now()->year)->where('currency', 'USD')->sum('amount');
-
-        // Overdue guests: checked_in but checkout date has passed
-        $overdueGuests = Reservation::with(['guest', 'room'])
+        $expiringGuests = Reservation::with(['guest', 'room.roomType'])
             ->where('status', 'checked_in')
-            ->whereDate('check_out_date', '<', today())
-            ->orderBy('check_out_date')
+            ->orderBy('check_out_date', 'asc')
+            ->take(5)
             ->get();
 
         $recentReservations = Reservation::with(['guest', 'room.roomType', 'createdBy'])
@@ -55,9 +45,7 @@ class DashboardController extends Controller
             'totalRooms', 'occupiedRooms', 'availableRooms', 'occupancyPercent',
             'todayArrivals', 'todayDepartures', 'todayRevenue',
             'weeklyRevenue', 'monthlyRevenue', 'yearlyRevenue',
-            'monthlyRevenueSar', 'yearlyRevenueSar',
-            'monthlyRevenueUsd', 'yearlyRevenueUsd',
-            'overdueGuests', 'recentReservations', 'roomStatusCounts'
+            'expiringGuests', 'recentReservations', 'roomStatusCounts'
         ));
     }
 }
