@@ -19,7 +19,8 @@ class PaymentController extends Controller
             'reservation_id' => 'required|exists:reservations,id',
             'amount'         => ['required', 'numeric', 'min:0.01', 'max:' . $reservation->balance],
             'method'         => 'required|in:cash,bank_transfer,pos',
-            'currency'       => 'required|in:YER,SAR,USD',
+            'currency'       => 'nullable|in:YER',
+            'notes'          => 'nullable|string|max:500',
             'bank_receipt'   => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
             'bank_transfer_ref' => 'nullable|string|max:100',
         ], [
@@ -38,6 +39,7 @@ class PaymentController extends Controller
         }
 
         $data = $request->except(['_token', 'reservation_id']);
+        $data['currency'] = 'YER';
         if ($request->hasFile('bank_receipt')) {
             $data['bank_receipt'] = $request->file('bank_receipt');
         }

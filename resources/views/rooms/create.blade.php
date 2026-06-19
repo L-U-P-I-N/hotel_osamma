@@ -160,27 +160,12 @@
             @if($canPrice)
             <div class="md:col-span-2">
                 <div class="border border-amber-200 bg-amber-50 rounded-xl p-4">
-                    <label class="block text-sm font-semibold text-amber-800 mb-1">أسعار الغرفة حسب العملة</label>
-                    <p class="text-xs text-amber-600 mb-3">حدد سعر الليلة لكل عملة بشكل مستقل. اتركه فارغاً إذا لم تكن العملة مستخدمة لهذه الغرفة.</p>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600 mb-1">ريال يمني (YER)</label>
-                            <input type="number" name="price_yer" value="{{ old('price_yer') }}" min="0" step="0.01"
-                                   placeholder="0.00"
-                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-400 outline-none bg-white">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600 mb-1">ريال سعودي (SAR)</label>
-                            <input type="number" name="price_sar" value="{{ old('price_sar') }}" min="0" step="0.01"
-                                   placeholder="0.00"
-                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-400 outline-none bg-white">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600 mb-1">دولار أمريكي (USD)</label>
-                            <input type="number" name="price_usd" value="{{ old('price_usd') }}" min="0" step="0.01"
-                                   placeholder="0.00"
-                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-400 outline-none bg-white">
-                        </div>
+                    <label class="block text-sm font-semibold text-amber-800 mb-1">سعر الغرفة (ر.ي)</label>
+                    <div class="mt-2">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">سعر الليلة بالريال اليمني</label>
+                        <input type="number" name="price_yer" value="{{ old('price_yer') }}" min="0" step="0.01"
+                               placeholder="0.00"
+                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-400 outline-none bg-white">
                     </div>
                 </div>
             </div>

@@ -53,8 +53,6 @@ class RoomController extends Controller
             'room_sub_type'  => 'nullable|in:regular,double,suite,suite_a,suite_b,hall,apartment',
             'beds_count'     => 'nullable|integer|min:1|max:20',
             'price_yer'      => 'nullable|numeric|min:0',
-            'price_sar'      => 'nullable|numeric|min:0',
-            'price_usd'      => 'nullable|numeric|min:0',
             'notes'          => 'nullable|string|max:500',
         ], [
             'room_number.required'  => 'رقم الغرفة مطلوب',
@@ -68,8 +66,6 @@ class RoomController extends Controller
             'room_type_id.exists'   => 'نوع الغرفة المحدد غير موجود',
             'room_sub_type.in'      => 'تصنيف الغرفة غير صالح',
             'price_yer.numeric'     => 'السعر بالريال اليمني يجب أن يكون رقماً',
-            'price_sar.numeric'     => 'السعر بالريال السعودي يجب أن يكون رقماً',
-            'price_usd.numeric'     => 'السعر بالدولار يجب أن يكون رقماً',
             'notes.max'             => 'الملاحظات لا تتجاوز 500 حرف',
         ]);
 
@@ -95,8 +91,6 @@ class RoomController extends Controller
 
         if (auth()->user()->can('room.price.edit')) {
             $baseAttributes['price_yer'] = $validated['price_yer'] ?? null;
-            $baseAttributes['price_sar'] = $validated['price_sar'] ?? null;
-            $baseAttributes['price_usd'] = $validated['price_usd'] ?? null;
         }
 
         if ($isSuite) {
@@ -146,8 +140,6 @@ class RoomController extends Controller
             'room_sub_type'  => 'nullable|in:regular,double,suite,suite_a,suite_b,hall,apartment',
             'beds_count'     => 'nullable|integer|min:1|max:20',
             'price_yer'      => 'nullable|numeric|min:0',
-            'price_sar'      => 'nullable|numeric|min:0',
-            'price_usd'      => 'nullable|numeric|min:0',
             'notes'          => 'nullable|string|max:500',
         ], [
             'room_number.required'  => 'رقم الغرفة مطلوب',
@@ -161,8 +153,6 @@ class RoomController extends Controller
             'room_type_id.exists'   => 'نوع الغرفة المحدد غير موجود',
             'room_sub_type.in'      => 'تصنيف الغرفة غير صالح',
             'price_yer.numeric'     => 'السعر بالريال اليمني يجب أن يكون رقماً',
-            'price_sar.numeric'     => 'السعر بالريال السعودي يجب أن يكون رقماً',
-            'price_usd.numeric'     => 'السعر بالدولار يجب أن يكون رقماً',
             'notes.max'             => 'الملاحظات لا تتجاوز 500 حرف',
         ]);
 
@@ -185,8 +175,6 @@ class RoomController extends Controller
 
         if (auth()->user()->can('room.price.edit')) {
             $attributes['price_yer'] = $validated['price_yer'] ?? null;
-            $attributes['price_sar'] = $validated['price_sar'] ?? null;
-            $attributes['price_usd'] = $validated['price_usd'] ?? null;
         }
 
         $room->update($attributes);

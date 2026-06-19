@@ -123,7 +123,8 @@
             <span class="text-xl font-bold text-red-700">{{ number_format($reservation->balance, 2) }} {{ $reservation->currency_symbol }}</span>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <input type="hidden" name="currency" value="YER">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1.5">المبلغ المدفوع <span class="text-red-500">*</span></label>
                 <input type="number" name="remaining_payment" x-model.number="remainingPayment"
@@ -145,15 +146,13 @@
                     <option value="bank_transfer">تحويل بنكي</option>
                 </select>
             </div>
-            <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1.5">العملة</label>
-                <select name="currency" class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
-                    <option value="YER">ريال يمني</option>
-                    <option value="SAR">ريال سعودي</option>
-                    <option value="USD">دولار أمريكي</option>
-                </select>
+            <div class="md:col-span-2">
+                <label class="block text-xs font-medium text-gray-600 mb-1.5">ملاحظة (اختياري)</label>
+                <input type="text" name="payment_notes"
+                       placeholder="مثال: دفع 100 ر.س بسعر صرف 400 = 40,000 ر.ي"
+                       class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
             </div>
-            <div x-show="remainingMethod === 'bank_transfer'" class="md:col-span-3">
+            <div x-show="remainingMethod === 'bank_transfer'" class="md:col-span-2">
                 <label class="block text-xs font-medium text-gray-600 mb-1.5">سند التحويل <span class="text-red-500">*</span></label>
                 <input type="file" name="remaining_bank_receipt" accept="image/*,.pdf"
                        class="w-full text-sm text-gray-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">

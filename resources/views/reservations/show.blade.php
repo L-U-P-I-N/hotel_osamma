@@ -642,7 +642,8 @@
             </div>
             @endif
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <input type="hidden" name="currency" value="YER">
+            <div class="grid grid-cols-1 gap-4">
                 <div>
                     <label class="block text-xs font-medium text-gray-600 mb-1.5">المبلغ <span class="text-red-500">*</span></label>
                     <input type="number" name="amount" step="0.01" min="0.01"
@@ -653,12 +654,10 @@
                     <p class="text-xs text-gray-400 mt-1">الحد الأقصى: {{ number_format($reservation->balance, 2) }} {{ $reservation->currency_symbol }}</p>
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1.5">العملة</label>
-                    <select name="currency" class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
-                        <option value="YER" {{ old('currency','YER')==='YER'?'selected':'' }}>ريال يمني</option>
-                        <option value="SAR" {{ old('currency')==='SAR'?'selected':'' }}>ريال سعودي</option>
-                        <option value="USD" {{ old('currency')==='USD'?'selected':'' }}>دولار أمريكي</option>
-                    </select>
+                    <label class="block text-xs font-medium text-gray-600 mb-1.5">ملاحظة (اختياري)</label>
+                    <input type="text" name="notes" value="{{ old('notes') }}"
+                           placeholder="مثال: دفع 100 ر.س بسعر صرف 400 = 40,000 ر.ي"
+                           class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
                 </div>
             </div>
 
