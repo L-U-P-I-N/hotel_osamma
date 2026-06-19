@@ -76,9 +76,10 @@ class CheckOutService
                     'reservation_id' => $reservation->id,
                     'received_by' => $user->id,
                     'amount' => $data['remaining_payment'],
-                    'currency' => $data['currency'] ?? 'YER',
+                    'currency' => 'YER',
                     'method' => $data['remaining_method'] ?? 'cash',
                     'bank_receipt_path' => $bankReceiptPath,
+                    'notes' => $data['payment_notes'] ?? null,
                     'payment_date' => now(),
                     'type' => 'reservation',
                 ]);

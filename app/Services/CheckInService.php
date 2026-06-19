@@ -132,10 +132,11 @@ class CheckInService
                     'shift_id'          => $shift?->id,
                     'received_by'       => $user->id,
                     'amount'            => $data['paid_amount'],
-                    'currency'          => $data['currency'] ?? 'YER',
+                    'currency'          => 'YER',
                     'method'            => $data['payment_method'] ?? 'cash',
                     'bank_receipt_path' => $bankReceiptPath,
                     'bank_transfer_ref' => $data['bank_transfer_ref'] ?? null,
+                    'notes'             => $data['payment_notes'] ?? null,
                     'payment_date'      => now(),
                     'type'              => 'reservation',
                 ]);
