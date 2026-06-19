@@ -368,6 +368,16 @@ class ReservationController extends Controller
         return redirect()->route('reservations.show', $reservation)->with('success', 'تم إلغاء الحجز بنجاح');
     }
 
+    public function expiring()
+    {
+        $reservations = \App\Models\Reservation::with(['guest', 'room.roomType'])
+            ->where('status', 'checked_in')
+            ->orderBy('check_out_date', 'asc')
+            ->get();
+
+        return view('reservations.expiring', compact('reservations'));
+    }
+
     private function nullIfEmpty(mixed $value): mixed
     {
         return ($value === '' || $value === null) ? null : $value;

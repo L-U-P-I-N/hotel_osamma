@@ -1,0 +1,144 @@
+@extends('layouts.app')
+@section('title', 'النزلاء المسجلون - ترتيب حسب الخروج')
+@section('page-title', 'النزلاء المسجلون')
+
+@section('content')
+<div dir="rtl">
+
+<!-- Header -->
+<div class="flex items-center justify-between mb-5">
+    <div>
+        <p class="text-sm text-gray-500">
+            إجمالي المسجلين: <strong>{{ $reservations->count() }}</strong>
+            @php
+                $overdueCount = $reservations->filter(fn($r) => $r->check_out_date->startOfDay()->lt(now()->startOfDay()))->count();
+                $todayCount   = $reservations->filter(fn($r) => $r->check_out_date->isToday())->count();
+            @endphp
+            @if($overdueCount > 0)
+            — <span class="text-red-600 font-semibold">{{ $overdueCount }} متأخر</span>
+            @endif
+            @if($todayCount > 0)
+            — <span class="text-orange-600 font-semibold">{{ $todayCount }} خروجهم اليوم</span>
+            @endif
+        </p>
+    </div>
+    <a href="{{ route('dashboard') }}" class="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+        لوحة التحكم
+    </a>
+</div>
+
+<!-- Table -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-100">
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm" dir="rtl">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">#</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">النزيل</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الغرفة</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">تاريخ الدخول</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">تاريخ الخروج</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المدة المتبقية</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المبلغ المتبقي</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">إجراءات</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                @forelse($reservations as $res)
+                @php
+                    $daysLeft = (int) now()->startOfDay()->diffInDays($res->check_out_date->copy()->startOfDay(), false);
+                    if ($daysLeft < 0) {
+                        $badgeCls = 'bg-red-100 text-red-700 border border-red-200';
+                        $badgeLabel = 'متأخر ' . abs($daysLeft) . ' ' . (abs($daysLeft) === 1 ? 'يوم' : 'أيام');
+                        $rowCls = 'bg-red-50 hover:bg-red-100';
+                    } elseif ($daysLeft === 0) {
+                        $badgeCls = 'bg-orange-100 text-orange-700 border border-orange-200';
+                        $badgeLabel = 'اليوم';
+                        $rowCls = 'bg-orange-50 hover:bg-orange-100';
+                    } elseif ($daysLeft === 1) {
+                        $badgeCls = 'bg-yellow-100 text-yellow-700 border border-yellow-200';
+                        $badgeLabel = 'غداً';
+                        $rowCls = 'bg-yellow-50 hover:bg-yellow-100';
+                    } elseif ($daysLeft <= 3) {
+                        $badgeCls = 'bg-amber-100 text-amber-700 border border-amber-200';
+                        $badgeLabel = $daysLeft . ' أيام';
+                        $rowCls = 'hover:bg-gray-50';
+                    } else {
+                        $badgeCls = 'bg-blue-50 text-blue-600 border border-blue-100';
+                        $badgeLabel = $daysLeft . ' أيام';
+                        $rowCls = 'hover:bg-gray-50';
+                    }
+                    $balance = (float)$res->total_amount - (float)$res->paid_amount;
+                @endphp
+                <tr class="{{ $rowCls }} transition-colors">
+                    <td class="px-4 py-3 text-gray-500 font-mono text-xs">#{{ $res->id }}</td>
+                    <td class="px-4 py-3">
+                        <a href="{{ route('reservations.show', $res) }}" class="font-semibold text-gray-800 hover:text-primary-700 transition">
+                            {{ $res->guest?->full_name ?? '—' }}
+                        </a>
+                        @if($res->guest?->phone)
+                        <div class="text-xs text-gray-400 mt-0.5">{{ $res->guest->phone }}</div>
+                        @endif
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="font-medium text-gray-800">{{ $res->room?->room_number ?? '—' }}</span>
+                        @if($res->room?->roomType)
+                        <div class="text-xs text-gray-400">{{ $res->room->roomType->name }}</div>
+                        @endif
+                    </td>
+                    <td class="px-4 py-3 text-gray-600 text-sm">{{ $res->check_in_date->format('d/m/Y') }}</td>
+                    <td class="px-4 py-3 text-gray-600 text-sm font-medium">{{ $res->check_out_date->format('d/m/Y') }}</td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold {{ $badgeCls }}">
+                            @if($daysLeft < 0)
+                            <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                            @endif
+                            {{ $badgeLabel }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3">
+                        @if($balance > 0)
+                        <span class="text-red-600 font-semibold text-sm">{{ number_format($balance, 0) }} ر.ي</span>
+                        @else
+                        <span class="text-green-600 text-xs">مسدد</span>
+                        @endif
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            @can('checkout.process')
+                            <a href="{{ route('checkout.show', $res) }}"
+                               class="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition font-medium">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                                خروج
+                            </a>
+                            @endcan
+                            @can('checkin.create')
+                            <a href="{{ route('reservations.show', $res) }}#renew"
+                               class="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700 transition font-medium">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                تجديد
+                            </a>
+                            @endcan
+                            <a href="{{ route('reservations.show', $res) }}"
+                               class="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition">
+                                تفاصيل
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="8" class="px-4 py-12 text-center text-gray-400">
+                        <svg class="w-10 h-10 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                        لا يوجد نزلاء مسجلون حالياً
+                    </td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+</div>
+
+</div>
+@endsection
