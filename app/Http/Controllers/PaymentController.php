@@ -17,16 +17,25 @@ class PaymentController extends Controller
 
         $request->validate([
             'reservation_id' => 'required|exists:reservations,id',
-            'amount' => ['required', 'numeric', 'min:0.01', 'max:' . $reservation->balance],
-            'method' => 'required|in:cash,bank_transfer,pos',
-            'currency' => 'required|in:YER,SAR,USD',
-            'bank_receipt' => 'required_if:method,bank_transfer|nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
-            'bank_transfer_ref' => 'required_if:method,bank_transfer|nullable|string',
+            'amount'         => ['required', 'numeric', 'min:0.01', 'max:' . $reservation->balance],
+            'method'         => 'required|in:cash,bank_transfer,pos',
+            'currency'       => 'required|in:YER,SAR,USD',
+            'bank_receipt'   => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
+            'bank_transfer_ref' => 'nullable|string|max:100',
         ], [
-            'amount.max' => 'المبلغ المدخل يتجاوز الرصيد المتبقي (' . number_format($reservation->balance, 2) . ')',
-            'amount.min' => 'يجب أن يكون المبلغ أكبر من صفر',
+            'amount.max'      => 'المبلغ المدخل يتجاوز الرصيد المتبقي (' . number_format($reservation->balance, 2) . ')',
+            'amount.min'      => 'يجب أن يكون المبلغ أكبر من صفر',
             'amount.required' => 'حقل المبلغ مطلوب',
         ]);
+
+        // For bank transfer: at least one of receipt image or reference number is required
+        if ($request->method === 'bank_transfer'
+            && !$request->hasFile('bank_receipt')
+            && empty($request->bank_transfer_ref)) {
+            return back()
+                ->withInput()
+                ->withErrors(['bank_transfer' => 'عند اختيار التحويل البنكي يجب إرفاق صورة السند أو إدخال رقم المرجع على الأقل']);
+        }
 
         $data = $request->except(['_token', 'reservation_id']);
         if ($request->hasFile('bank_receipt')) {

@@ -71,7 +71,7 @@
             @endcan
             @endif
             @can('payments.create')
-            @if($reservation->balance > 0 && in_array($reservation->status, ['confirmed', 'checked_in']))
+            @if($reservation->balance > 0 && in_array($reservation->status, ['confirmed', 'checked_in', 'checked_out']))
             <button onclick="document.getElementById('paymentPanel').classList.toggle('hidden')"
                     class="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm rounded-xl hover:bg-green-700 transition font-medium">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
@@ -621,7 +621,8 @@
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
     </div>
-    <form method="POST" action="{{ route('payments.store') }}" enctype="multipart/form-data" class="p-5">
+    <form method="POST" action="{{ route('payments.store') }}" enctype="multipart/form-data" class="p-5"
+          x-data="{ payMethod: '{{ old('method', 'cash') }}' }">
         @csrf
         <input type="hidden" name="reservation_id" value="{{ $reservation->id }}">
         @if($errors->any())
@@ -631,7 +632,7 @@
             @endforeach
         </div>
         @endif
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1.5">المبلغ <span class="text-red-500">*</span></label>
                 <input type="number" name="amount" step="0.01" min="0.01"
@@ -643,7 +644,8 @@
             </div>
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1.5">طريقة الدفع</label>
-                <select name="method" class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                <select name="method" x-model="payMethod"
+                        class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
                     <option value="cash">نقدي</option>
                     <option value="pos">شبكة POS</option>
                     <option value="bank_transfer">تحويل بنكي</option>
@@ -652,17 +654,31 @@
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1.5">العملة</label>
                 <select name="currency" class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
-                    <option value="YER">ريال يمني</option>
-                    <option value="SAR">ريال سعودي</option>
-                    <option value="USD">دولار أمريكي</option>
+                    <option value="YER" {{ old('currency','YER')==='YER'?'selected':'' }}>ريال يمني</option>
+                    <option value="SAR" {{ old('currency')==='SAR'?'selected':'' }}>ريال سعودي</option>
+                    <option value="USD" {{ old('currency')==='USD'?'selected':'' }}>دولار أمريكي</option>
                 </select>
             </div>
-            <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1.5">سند التحويل</label>
-                <input type="file" name="bank_receipt" accept="image/*,.pdf"
-                       class="w-full text-sm text-gray-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-primary-50 file:text-primary-700 file:font-medium hover:file:bg-primary-100">
+        </div>
+
+        {{-- Bank transfer fields: either receipt OR reference required --}}
+        <div x-show="payMethod === 'bank_transfer'" class="mt-4 bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
+            <p class="text-xs text-blue-700 font-medium">يجب تقديم واحد على الأقل: صورة السند أو رقم المرجع</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1.5">صورة سند التحويل</label>
+                    <input type="file" name="bank_receipt" accept="image/*,.pdf"
+                           class="w-full text-sm text-gray-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 {{ $errors->has('bank_transfer') ? 'border-red-400' : '' }}">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1.5">رقم مرجع التحويل</label>
+                    <input type="text" name="bank_transfer_ref" value="{{ old('bank_transfer_ref') }}"
+                           placeholder="مثال: TRF-20240101-001"
+                           class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none {{ $errors->has('bank_transfer') ? 'border-red-400' : '' }}">
+                </div>
             </div>
         </div>
+
         <div class="mt-4 flex justify-end">
             <button type="submit"
                     class="px-6 py-2.5 bg-green-600 text-white rounded-xl text-sm font-semibold hover:bg-green-700 transition">
