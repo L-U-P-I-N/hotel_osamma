@@ -235,8 +235,8 @@ class ReservationController extends Controller
             'new_check_out_date' => 'required|date|after:' . $reservation->check_out_date->format('Y-m-d'),
             'advance_payment'    => 'nullable|numeric|min:0',
             'payment_method'     => 'nullable|in:cash,pos,bank_transfer',
-            'currency'           => 'nullable|in:YER,SAR,USD',
             'notes'              => 'nullable|string|max:500',
+            'payment_notes'      => 'nullable|string|max:500',
         ], [
             'new_check_out_date.required' => 'تاريخ الخروج الجديد مطلوب',
             'new_check_out_date.after'    => 'يجب أن يكون تاريخ الخروج الجديد بعد التاريخ الحالي',
@@ -263,10 +263,11 @@ class ReservationController extends Controller
                 'reservation_id' => $reservation->id,
                 'received_by'    => auth()->id(),
                 'amount'         => $validated['advance_payment'],
-                'currency'       => $validated['currency'] ?? 'YER',
+                'currency'       => 'YER',
                 'method'         => $validated['payment_method'] ?? 'cash',
                 'payment_date'   => now(),
-                'type'           => 'reservation',
+                'type'           => 'renewal',
+                'notes'          => $validated['payment_notes'] ?? null,
             ]);
             $reservation->increment('paid_amount', $validated['advance_payment']);
             $reservation->refresh()->updatePaymentStatus();

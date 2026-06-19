@@ -355,18 +355,28 @@
                             <th class="px-4 py-3 text-right">التاريخ</th>
                             <th class="px-4 py-3 text-right">المبلغ</th>
                             <th class="px-4 py-3 text-right">الطريقة</th>
-                            <th class="px-4 py-3 text-right">النوع</th>
+                            <th class="px-4 py-3 text-right">سبب الدفع</th>
+                            <th class="px-4 py-3 text-right">ملاحظة</th>
                             <th class="px-4 py-3 text-right">استلم بواسطة</th>
                             <th class="px-4 py-3 text-right">السند</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-50">
                         @foreach($reservation->payments as $p)
+                        @php
+                            $typeLabel = match($p->type) {
+                                'reservation'  => ['label' => 'دفعة حجز',   'class' => 'bg-blue-50 text-blue-700'],
+                                'renewal'      => ['label' => 'دفعة تجديد', 'class' => 'bg-amber-50 text-amber-700'],
+                                'compensation' => ['label' => 'تعويض أضرار','class' => 'bg-red-50 text-red-700'],
+                                'extra_service'=> ['label' => 'خدمة إضافية','class' => 'bg-purple-50 text-purple-700'],
+                                default        => ['label' => $p->type,      'class' => 'bg-gray-50 text-gray-600'],
+                            };
+                        @endphp
                         <tr class="hover:bg-gray-50 transition">
                             <td class="px-4 py-3 text-gray-600 whitespace-nowrap">{{ $p->payment_date->format('d/m/Y H:i') }}</td>
                             <td class="px-4 py-3 font-bold text-green-700 whitespace-nowrap">
                                 {{ number_format($p->amount, 2) }}
-                                <span class="text-xs font-normal text-gray-400">{{ $p->currency }}</span>
+                                <span class="text-xs font-normal text-gray-400">ر.ي</span>
                             </td>
                             <td class="px-4 py-3">
                                 <span class="px-2 py-0.5 rounded-full text-xs font-medium
@@ -374,8 +384,13 @@
                                     {{ match($p->method) { 'cash'=>'نقدي', 'pos'=>'POS', 'bank_transfer'=>'تحويل', default=>$p->method } }}
                                 </span>
                             </td>
-                            <td class="px-4 py-3 text-gray-600">
-                                {{ match($p->type) { 'reservation'=>'حجز', 'compensation'=>'تعويض', 'extra_service'=>'خدمة', default=>$p->type } }}
+                            <td class="px-4 py-3">
+                                <span class="px-2 py-0.5 rounded-full text-xs font-medium {{ $typeLabel['class'] }}">
+                                    {{ $typeLabel['label'] }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-gray-500 text-xs max-w-[160px]">
+                                {{ $p->notes ?? '—' }}
                             </td>
                             <td class="px-4 py-3 text-gray-600">{{ $p->receivedBy?->name ?? '—' }}</td>
                             <td class="px-4 py-3">
