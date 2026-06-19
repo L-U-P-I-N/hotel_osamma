@@ -72,7 +72,7 @@
             @endif
             @can('payments.create')
             @if($reservation->balance > 0 && in_array($reservation->status, ['confirmed', 'checked_in', 'checked_out']))
-            <button onclick="document.getElementById('paymentPanel').classList.toggle('hidden')"
+            <button onclick="document.getElementById('paymentModal').classList.remove('hidden')"
                     class="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm rounded-xl hover:bg-green-700 transition font-medium">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
                 إضافة دفعة
@@ -603,45 +603,65 @@
     </div>
 </div>
 
-{{-- ===== ADD PAYMENT PANEL ===== --}}
+{{-- ===== ADD PAYMENT MODAL ===== --}}
 @can('payments.create')
 @if($reservation->balance > 0)
-<div id="paymentPanel" class="{{ $errors->has('amount') || $errors->has('method') || $errors->has('currency') ? '' : 'hidden' }} bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-    <div class="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
-        <div class="flex items-center gap-2">
-            <div class="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
-                <svg class="w-4 h-4 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                </svg>
+<div id="paymentModal"
+     class="{{ $errors->any() ? '' : 'hidden' }} fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+     onclick="if(event.target===this) this.classList.add('hidden')">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg" onclick="event.stopPropagation()">
+        <div class="p-5 border-b border-gray-100 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                    </svg>
+                </div>
+                <h3 class="font-bold text-gray-800 text-lg">إضافة دفعة</h3>
             </div>
-            <h3 class="font-semibold text-gray-800">إضافة دفعة جديدة</h3>
+            <button onclick="document.getElementById('paymentModal').classList.add('hidden')"
+                    class="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
         </div>
-        <button onclick="document.getElementById('paymentPanel').classList.add('hidden')"
-                class="text-gray-400 hover:text-gray-600">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-        </button>
-    </div>
-    <form method="POST" action="{{ route('payments.store') }}" enctype="multipart/form-data" class="p-5"
-          x-data="{ payMethod: '{{ old('method', 'cash') }}' }">
-        @csrf
-        <input type="hidden" name="reservation_id" value="{{ $reservation->id }}">
-        @if($errors->any())
-        <div class="mb-4 bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">
-            @foreach($errors->all() as $error)
-                <p>{{ $error }}</p>
-            @endforeach
-        </div>
-        @endif
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1.5">المبلغ <span class="text-red-500">*</span></label>
-                <input type="number" name="amount" step="0.01" min="0.01"
-                       max="{{ $reservation->balance }}"
-                       value="{{ old('amount') }}"
-                       placeholder="{{ number_format($reservation->balance, 2) }}" required
-                       class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none {{ $errors->has('amount') ? 'border-red-400' : '' }}">
-                <p class="text-xs text-gray-400 mt-1">الحد الأقصى: {{ number_format($reservation->balance, 2) }} {{ $reservation->currency_symbol }}</p>
+
+        <form method="POST" action="{{ route('payments.store') }}" enctype="multipart/form-data"
+              class="p-5 space-y-4" x-data="{ payMethod: '{{ old('method', 'cash') }}' }">
+            @csrf
+            <input type="hidden" name="reservation_id" value="{{ $reservation->id }}">
+
+            {{-- Balance summary --}}
+            <div class="bg-red-50 border border-red-200 rounded-xl p-3 flex items-center justify-between text-sm">
+                <span class="text-red-700 font-medium">الرصيد المتبقي</span>
+                <span class="font-bold text-red-800 text-base">{{ number_format($reservation->balance, 2) }} {{ $reservation->currency_symbol }}</span>
             </div>
+
+            @if($errors->any())
+            <div class="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">
+                @foreach($errors->all() as $error)<p>{{ $error }}</p>@endforeach
+            </div>
+            @endif
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1.5">المبلغ <span class="text-red-500">*</span></label>
+                    <input type="number" name="amount" step="0.01" min="0.01"
+                           max="{{ $reservation->balance }}"
+                           value="{{ old('amount') }}"
+                           placeholder="{{ number_format($reservation->balance, 2) }}" required
+                           class="w-full border {{ $errors->has('amount') ? 'border-red-400' : 'border-gray-300' }} rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                    <p class="text-xs text-gray-400 mt-1">الحد الأقصى: {{ number_format($reservation->balance, 2) }} {{ $reservation->currency_symbol }}</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1.5">العملة</label>
+                    <select name="currency" class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                        <option value="YER" {{ old('currency','YER')==='YER'?'selected':'' }}>ريال يمني</option>
+                        <option value="SAR" {{ old('currency')==='SAR'?'selected':'' }}>ريال سعودي</option>
+                        <option value="USD" {{ old('currency')==='USD'?'selected':'' }}>دولار أمريكي</option>
+                    </select>
+                </div>
+            </div>
+
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1.5">طريقة الدفع</label>
                 <select name="method" x-model="payMethod"
@@ -651,41 +671,34 @@
                     <option value="bank_transfer">تحويل بنكي</option>
                 </select>
             </div>
-            <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1.5">العملة</label>
-                <select name="currency" class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
-                    <option value="YER" {{ old('currency','YER')==='YER'?'selected':'' }}>ريال يمني</option>
-                    <option value="SAR" {{ old('currency')==='SAR'?'selected':'' }}>ريال سعودي</option>
-                    <option value="USD" {{ old('currency')==='USD'?'selected':'' }}>دولار أمريكي</option>
-                </select>
-            </div>
-        </div>
 
-        {{-- Bank transfer fields: either receipt OR reference required --}}
-        <div x-show="payMethod === 'bank_transfer'" class="mt-4 bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
-            <p class="text-xs text-blue-700 font-medium">يجب تقديم واحد على الأقل: صورة السند أو رقم المرجع</p>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div x-show="payMethod === 'bank_transfer'" class="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
+                <p class="text-xs text-blue-700 font-medium">يجب تقديم واحد على الأقل: صورة السند أو رقم المرجع</p>
                 <div>
                     <label class="block text-xs font-medium text-gray-600 mb-1.5">صورة سند التحويل</label>
                     <input type="file" name="bank_receipt" accept="image/*,.pdf"
-                           class="w-full text-sm text-gray-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 {{ $errors->has('bank_transfer') ? 'border-red-400' : '' }}">
+                           class="w-full text-sm text-gray-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-600 mb-1.5">رقم مرجع التحويل</label>
                     <input type="text" name="bank_transfer_ref" value="{{ old('bank_transfer_ref') }}"
                            placeholder="مثال: TRF-20240101-001"
-                           class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none {{ $errors->has('bank_transfer') ? 'border-red-400' : '' }}">
+                           class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
                 </div>
             </div>
-        </div>
 
-        <div class="mt-4 flex justify-end">
-            <button type="submit"
-                    class="px-6 py-2.5 bg-green-600 text-white rounded-xl text-sm font-semibold hover:bg-green-700 transition">
-                تسجيل الدفعة
-            </button>
-        </div>
-    </form>
+            <div class="flex gap-3 pt-1">
+                <button type="submit"
+                        class="flex-1 py-2.5 bg-green-600 text-white rounded-xl font-semibold text-sm hover:bg-green-700 transition">
+                    تسجيل الدفعة
+                </button>
+                <button type="button" onclick="document.getElementById('paymentModal').classList.add('hidden')"
+                        class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-xl text-sm hover:bg-gray-50 transition">
+                    إلغاء
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
 @endif
 @endcan
