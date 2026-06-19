@@ -716,7 +716,7 @@
                        @change="calcExtra()" required
                        class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
             </div>
-            <div x-show="extraNights > 0" class="grid grid-cols-3 gap-3">
+            <div x-show="extraNights > 0" class="grid grid-cols-2 gap-3">
                 <div class="bg-blue-50 rounded-xl p-3 text-center">
                     <div class="text-xl font-bold text-blue-700" x-text="extraNights"></div>
                     <div class="text-xs text-blue-500 mt-0.5">ليالٍ إضافية</div>
@@ -724,10 +724,6 @@
                 <div class="bg-green-50 rounded-xl p-3 text-center">
                     <div class="text-lg font-bold text-green-700" x-text="formatNum(extraAmount)"></div>
                     <div class="text-xs text-green-500 mt-0.5">مبلغ إضافي</div>
-                </div>
-                <div class="bg-primary-50 rounded-xl p-3 text-center">
-                    <div class="text-lg font-bold text-primary-700" x-text="formatNum({{ $reservation->total_amount }} + extraAmount)"></div>
-                    <div class="text-xs text-primary-500 mt-0.5">الإجمالي الجديد</div>
                 </div>
             </div>
             <div>
