@@ -150,7 +150,7 @@
     </div>
 
     {{-- ───── تغيير الحالة ───── --}}
-    @canany(['rooms.manage', 'rooms.maintenance'])
+    @canany(['rooms.edit', 'rooms.maintenance'])
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <h3 class="text-base font-semibold text-gray-800 mb-4 pb-3 border-b border-gray-100">تغيير حالة الغرفة</h3>
 

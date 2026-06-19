@@ -10,7 +10,6 @@ class PermissionService
     const ADMIN_ONLY = [
         'users.manage',
         'audit_log.view',
-        'rooms.manage',
     ];
 
     // صلاحيات مفعّلة افتراضياً للموظف
@@ -43,9 +42,14 @@ class PermissionService
         'government.export'     => ['label' => 'التصدير للجهات الحكومية',    'default' => false],
         'report.monthly'        => ['label' => 'التقرير الشهري',              'default' => false],
         'rooms.maintenance'     => ['label' => 'تغيير حالة الغرفة (صيانة/فحص/متاحة)', 'default' => true],
+        'rooms.create'          => ['label' => 'إضافة غرفة جديدة',                    'default' => false],
+        'rooms.edit'            => ['label' => 'تعديل بيانات الغرفة',                 'default' => false],
+        'rooms.delete'          => ['label' => 'حذف الغرفة',                          'default' => false],
         // HR Module
-        'hr.view'               => ['label' => 'عرض الموارد البشرية (موظفون، رواتب، إجازات)', 'default' => false],
-        'hr.manage'             => ['label' => 'إدارة الموارد البشرية (إضافة وتعديل)',          'default' => false],
+        'hr.view'               => ['label' => 'عرض الموارد البشرية (موظفون، رواتب)', 'default' => false],
+        'hr.create'             => ['label' => 'إضافة موظف أو قسيمة راتب',            'default' => false],
+        'hr.edit'               => ['label' => 'تعديل بيانات الموظفين والرواتب',       'default' => false],
+        'hr.delete'             => ['label' => 'حذف الموظفين',                         'default' => false],
         // Expense Module
         'expenses.view'         => ['label' => 'عرض المصروفات',                 'default' => false],
         'expenses.create'       => ['label' => 'إضافة مصروف جديد',             'default' => false],

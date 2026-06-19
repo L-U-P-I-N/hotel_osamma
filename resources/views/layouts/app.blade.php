@@ -111,13 +111,13 @@
             </a>
             @endcan
 
-            @can('rooms.manage')
+            @canany(['rooms.create','rooms.edit','rooms.delete'])
             <a href="{{ route('floors.index') }}"
                class="nav-link {{ request()->routeIs('floors.*') ? 'active' : '' }}">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M10 4v16M14 4v16"/></svg>
                 الطوابق
             </a>
-            @endcan
+            @endcanany
 
             @can('shifts.view')
             <a href="{{ route('shifts.index') }}"
