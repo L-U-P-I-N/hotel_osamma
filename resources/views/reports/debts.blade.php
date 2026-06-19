@@ -22,7 +22,7 @@
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الإجمالي</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المدفوع</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المتبقي</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الخروج</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">تاريخ الخروج</th>
                     <th class="px-4 py-3"></th>
                 </tr>
             </thead>
