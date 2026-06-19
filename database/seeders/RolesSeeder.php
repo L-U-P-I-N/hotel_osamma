@@ -39,7 +39,7 @@ class RolesSeeder extends Seeder
             'hr.manage',
             // Expense Module
             'expenses.view',
-            'expenses.manage',
+            'expenses.create', 'expenses.edit', 'expenses.delete',
         ];
 
         foreach ($permissions as $permission) {
@@ -52,7 +52,7 @@ class RolesSeeder extends Seeder
                 'dashboard.view', 'rooms.view', 'payments.create', 'payments.view',
                 'payments.bank_receipt', 'settlement.view', 'settlement.manage',
                 'settlement.lock', 'reports.view',
-                'hr.view', 'hr.manage', 'expenses.view', 'expenses.manage',
+                'hr.view', 'hr.manage', 'expenses.view', 'expenses.create', 'expenses.edit', 'expenses.delete',
             ],
             'receptionist' => [
                 'dashboard.view', 'rooms.view', 'rooms.manage', 'checkin.create',

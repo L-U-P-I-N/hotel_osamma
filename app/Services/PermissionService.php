@@ -47,8 +47,10 @@ class PermissionService
         'hr.view'               => ['label' => 'عرض الموارد البشرية (موظفون، رواتب، إجازات)', 'default' => false],
         'hr.manage'             => ['label' => 'إدارة الموارد البشرية (إضافة وتعديل)',          'default' => false],
         // Expense Module
-        'expenses.view'         => ['label' => 'عرض المصروفات والموردين',                        'default' => false],
-        'expenses.manage'       => ['label' => 'إدارة المصروفات (إضافة وتعديل وحذف)',            'default' => false],
+        'expenses.view'         => ['label' => 'عرض المصروفات',                 'default' => false],
+        'expenses.create'       => ['label' => 'إضافة مصروف جديد',             'default' => false],
+        'expenses.edit'         => ['label' => 'تعديل المصروفات',               'default' => false],
+        'expenses.delete'       => ['label' => 'حذف المصروفات',                 'default' => false],
     ];
 
     public static function userCan(User $user, string $permission): bool

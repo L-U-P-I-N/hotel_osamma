@@ -14,7 +14,7 @@ class Expense extends Model
         'amount',
         'currency',
         'category',
-        'supplier_id',
+        'recipient_name',
         'description',
         'expense_date',
         'paid_by',
@@ -25,11 +25,6 @@ class Expense extends Model
         'amount'       => 'decimal:2',
         'expense_date' => 'date',
     ];
-
-    public function supplier()
-    {
-        return $this->belongsTo(Supplier::class);
-    }
 
     public function paidBy()
     {

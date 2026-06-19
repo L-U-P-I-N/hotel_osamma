@@ -25,35 +25,24 @@
                 @endforeach
             </select>
         </div>
-        <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">المورد</label>
-            <select name="supplier_id" class="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none">
-                <option value="">جميع الموردين</option>
-                @foreach($suppliers as $sup)
-                <option value="{{ $sup->id }}" {{ request('supplier_id')==$sup->id?'selected':'' }}>{{ $sup->name }}</option>
-                @endforeach
-            </select>
-        </div>
         <button type="submit" class="px-4 py-2 text-white rounded-lg text-sm transition" style="background:#0F4C75;">توليد التقرير</button>
+        <a href="{{ route('expenses.index') }}" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200 transition">← القائمة</a>
     </form>
 </div>
 
-<!-- Totals by Currency -->
-@if($totals->isNotEmpty())
-<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
-    @php $currencyLabels = ['YER'=>'ريال يمني','SAR'=>'ريال سعودي','USD'=>'دولار أمريكي']; @endphp
-    @foreach($totals as $currency => $total)
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <div class="flex items-center justify-between mb-2">
-            <span class="text-sm font-medium text-gray-600">{{ $currencyLabels[$currency] ?? $currency }}</span>
-            <span class="text-xs px-2 py-0.5 rounded font-mono" style="background:#e8f0f7; color:#0F4C75;">{{ $currency }}</span>
+<!-- Total Card -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-5">
+    <div class="flex items-center justify-between">
+        <div>
+            <p class="text-xs text-gray-500 font-medium">إجمالي المصروفات</p>
+            <p class="text-3xl font-bold text-red-600 mt-1">{{ number_format($total, 0) }} <span class="text-base font-normal text-gray-400">ر.ي</span></p>
+            <p class="text-xs text-gray-400 mt-1">{{ $expenses->count() }} عملية · من {{ $dateFrom }} إلى {{ $dateTo }}</p>
         </div>
-        <div class="text-2xl font-bold text-red-600">{{ number_format($total, 2) }}</div>
-        <div class="text-xs text-gray-400 mt-1">إجمالي المصروفات</div>
+        <div class="w-14 h-14 bg-red-50 rounded-xl flex items-center justify-center">
+            <svg class="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+        </div>
     </div>
-    @endforeach
 </div>
-@endif
 
 <!-- By Category -->
 @if($byCategory->isNotEmpty())
@@ -67,9 +56,8 @@
                 <tr>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الفئة</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">عدد العمليات</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المجموع (ريال يمني)</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المجموع (ريال سعودي)</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المجموع (دولار)</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الإجمالي (ر.ي)</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">النسبة</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-50">
@@ -81,9 +69,12 @@
                         </span>
                     </td>
                     <td class="px-4 py-3 text-gray-600">{{ $data['count'] }}</td>
-                    <td class="px-4 py-3 font-medium text-red-600">{{ number_format($data['totals']['YER'] ?? 0, 2) }}</td>
-                    <td class="px-4 py-3 font-medium text-red-600">{{ number_format($data['totals']['SAR'] ?? 0, 2) }}</td>
-                    <td class="px-4 py-3 font-medium text-red-600">{{ number_format($data['totals']['USD'] ?? 0, 2) }}</td>
+                    <td class="px-4 py-3 font-bold text-red-600">{{ number_format($data['total'], 0) }}</td>
+                    <td class="px-4 py-3 text-gray-500 text-xs">
+                        @if($total > 0)
+                        {{ number_format(($data['total'] / $total) * 100, 1) }}%
+                        @else—@endif
+                    </td>
                 </tr>
                 @endforeach
             </tbody>
@@ -95,7 +86,7 @@
 <!-- Detailed Table -->
 <div class="bg-white rounded-xl shadow-sm border border-gray-100">
     <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-        <h3 class="font-semibold text-gray-700">تفاصيل المصروفات ({{ $expenses->count() }} عملية)</h3>
+        <h3 class="font-semibold text-gray-700">تفاصيل المصروفات</h3>
         <span class="text-xs text-gray-400">{{ $dateFrom }} — {{ $dateTo }}</span>
     </div>
     <div class="overflow-x-auto">
@@ -104,27 +95,25 @@
                 <tr>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">التاريخ</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الفئة</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المبلغ</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">العملة</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المورد</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المبلغ (ر.ي)</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">اسم المستلم</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الوصف</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">سُجِّل بواسطة</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-50">
                 @forelse($expenses as $expense)
                 <tr class="hover:bg-gray-50">
-                    <td class="px-4 py-3 text-gray-600">{{ $expense->expense_date->format('d/m/Y') }}</td>
+                    <td class="px-4 py-3 text-gray-600 whitespace-nowrap">{{ $expense->expense_date->format('d/m/Y') }}</td>
                     <td class="px-4 py-3">
                         <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
                             {{ \App\Models\Expense::categoryLabel($expense->category) }}
                         </span>
                     </td>
-                    <td class="px-4 py-3 font-bold text-red-600">{{ number_format($expense->amount, 2) }}</td>
-                    <td class="px-4 py-3">
-                        <span class="px-2 py-0.5 rounded text-xs font-medium" style="background:#e8f0f7; color:#0F4C75;">{{ $expense->currency }}</span>
-                    </td>
-                    <td class="px-4 py-3 text-gray-600">{{ $expense->supplier?->name ?? '-' }}</td>
-                    <td class="px-4 py-3 text-gray-500 max-w-xs truncate">{{ $expense->description ?? '-' }}</td>
+                    <td class="px-4 py-3 font-bold text-red-600">{{ number_format($expense->amount, 0) }}</td>
+                    <td class="px-4 py-3 text-gray-700">{{ $expense->recipient_name ?? '—' }}</td>
+                    <td class="px-4 py-3 text-gray-500 max-w-xs truncate">{{ $expense->description ?? '—' }}</td>
+                    <td class="px-4 py-3 text-gray-500 whitespace-nowrap">{{ $expense->paidBy?->name ?? '—' }}</td>
                 </tr>
                 @empty
                 <tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">لا توجد مصروفات في هذه الفترة</td></tr>

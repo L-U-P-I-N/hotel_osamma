@@ -205,7 +205,7 @@ $currencyLabels = ['YER' => 'ريال يمني', 'SAR' => 'ريال سعودي',
                     <td class="px-4 py-3">
                         <span class="px-2 py-0.5 rounded text-xs font-medium" style="background:#e8f0f7; color:#0F4C75;">{{ $me->currency }}</span>
                     </td>
-                    <td class="px-4 py-3 text-gray-600">{{ $me->supplier?->name ?? '-' }}</td>
+                    <td class="px-4 py-3 text-gray-600">{{ $me->recipient_name ?? '-' }}</td>
                     <td class="px-4 py-3 text-gray-500">{{ $me->description ?? '-' }}</td>
                 </tr>
                 @endforeach

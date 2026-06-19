@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Expense;
-use App\Models\Supplier;
 use Illuminate\Http\Request;
 
 class ExpenseController extends Controller
@@ -19,16 +18,10 @@ class ExpenseController extends Controller
 
     public function index(Request $request)
     {
-        $query = Expense::with('supplier', 'paidBy')->orderBy('expense_date', 'desc')->orderBy('id', 'desc');
+        $query = Expense::with('paidBy')->orderBy('expense_date', 'desc')->orderBy('id', 'desc');
 
         if ($request->filled('category')) {
             $query->where('category', $request->input('category'));
-        }
-        if ($request->filled('currency')) {
-            $query->where('currency', $request->input('currency'));
-        }
-        if ($request->filled('supplier_id')) {
-            $query->where('supplier_id', $request->input('supplier_id'));
         }
         if ($request->filled('date_from')) {
             $query->whereDate('expense_date', '>=', $request->input('date_from'));
@@ -36,35 +29,38 @@ class ExpenseController extends Controller
         if ($request->filled('date_to')) {
             $query->whereDate('expense_date', '<=', $request->input('date_to'));
         }
+        if ($request->filled('search')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('recipient_name', 'like', '%' . $request->input('search') . '%')
+                  ->orWhere('description', 'like', '%' . $request->input('search') . '%');
+            });
+        }
 
-        $expenses  = $query->paginate(25)->withQueryString();
-        $suppliers = Supplier::where('is_active', true)->orderBy('name')->get();
+        $expenses   = $query->paginate(25)->withQueryString();
         $categories = $this->categories;
 
-        return view('expenses.index', compact('expenses', 'suppliers', 'categories'));
+        return view('expenses.index', compact('expenses', 'categories'));
     }
 
     public function create()
     {
-        $suppliers  = Supplier::where('is_active', true)->orderBy('name')->get();
         $categories = $this->categories;
-        return view('expenses.create', compact('suppliers', 'categories'));
+        return view('expenses.create', compact('categories'));
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
-            'amount'       => 'required|numeric|min:0.01',
-            'currency'     => 'required|in:YER,SAR,USD',
-            'category'     => 'required|in:maintenance,electricity,salary,cleaning,food,other',
-            'supplier_id'  => 'nullable|exists:suppliers,id',
-            'description'  => 'nullable|string',
-            'expense_date' => 'required|date',
+            'amount'         => 'required|numeric|min:0.01',
+            'category'       => 'required|in:maintenance,electricity,salary,cleaning,food,other',
+            'recipient_name' => 'nullable|string|max:255',
+            'description'    => 'nullable|string',
+            'expense_date'   => 'required|date',
         ]);
 
-        $data['paid_by'] = auth()->id();
+        $data['currency'] = 'YER';
+        $data['paid_by']  = auth()->id();
 
-        // Try to attach to an active shift if none provided
         $activeShift = \App\Models\Shift::where('is_closed', false)->latest()->first();
         if ($activeShift) {
             $data['shift_id'] = $activeShift->id;
@@ -77,22 +73,21 @@ class ExpenseController extends Controller
 
     public function edit(Expense $expense)
     {
-        $suppliers  = Supplier::where('is_active', true)->orderBy('name')->get();
         $categories = $this->categories;
-        return view('expenses.edit', compact('expense', 'suppliers', 'categories'));
+        return view('expenses.edit', compact('expense', 'categories'));
     }
 
     public function update(Request $request, Expense $expense)
     {
         $data = $request->validate([
-            'amount'       => 'required|numeric|min:0.01',
-            'currency'     => 'required|in:YER,SAR,USD',
-            'category'     => 'required|in:maintenance,electricity,salary,cleaning,food,other',
-            'supplier_id'  => 'nullable|exists:suppliers,id',
-            'description'  => 'nullable|string',
-            'expense_date' => 'required|date',
+            'amount'         => 'required|numeric|min:0.01',
+            'category'       => 'required|in:maintenance,electricity,salary,cleaning,food,other',
+            'recipient_name' => 'nullable|string|max:255',
+            'description'    => 'nullable|string',
+            'expense_date'   => 'required|date',
         ]);
 
+        $data['currency'] = 'YER';
         $expense->update($data);
 
         return redirect()->route('expenses.index')->with('success', 'تم تحديث المصروف بنجاح');
@@ -109,36 +104,27 @@ class ExpenseController extends Controller
         $dateFrom = $request->input('date_from', now()->startOfMonth()->toDateString());
         $dateTo   = $request->input('date_to', now()->toDateString());
 
-        $query = Expense::with('supplier')
+        $query = Expense::with('paidBy')
             ->whereDate('expense_date', '>=', $dateFrom)
             ->whereDate('expense_date', '<=', $dateTo);
 
         if ($request->filled('category')) {
             $query->where('category', $request->input('category'));
         }
-        if ($request->filled('currency')) {
-            $query->where('currency', $request->input('currency'));
-        }
-        if ($request->filled('supplier_id')) {
-            $query->where('supplier_id', $request->input('supplier_id'));
-        }
 
         $expenses = $query->orderBy('expense_date', 'desc')->get();
 
-        // Totals per currency
-        $totals = $expenses->groupBy('currency')->map(fn($g) => $g->sum('amount'));
+        $total = $expenses->sum('amount');
 
-        // By category
         $byCategory = $expenses->groupBy('category')->map(fn($g) => [
-            'count'  => $g->count(),
-            'totals' => $g->groupBy('currency')->map(fn($c) => $c->sum('amount')),
+            'count' => $g->count(),
+            'total' => $g->sum('amount'),
         ]);
 
-        $suppliers  = Supplier::where('is_active', true)->orderBy('name')->get();
         $categories = $this->categories;
 
         return view('expenses.report', compact(
-            'expenses', 'totals', 'byCategory', 'dateFrom', 'dateTo', 'suppliers', 'categories'
+            'expenses', 'total', 'byCategory', 'dateFrom', 'dateTo', 'categories'
         ));
     }
 }

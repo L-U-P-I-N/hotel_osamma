@@ -11,13 +11,25 @@
     <form method="POST" action="{{ route('expenses.update', $expense) }}" class="space-y-4">
         @csrf @method('PUT')
 
+        @if($errors->any())
+        <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+            <ul class="list-disc list-inside space-y-1">
+                @foreach($errors->all() as $err)<li>{{ $err }}</li>@endforeach
+            </ul>
+        </div>
+        @endif
+
         <div class="grid grid-cols-2 gap-4">
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1.5">المبلغ *</label>
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">المبلغ (ر.ي) *</label>
                 <input type="number" name="amount" value="{{ old('amount', $expense->amount) }}" step="0.01" min="0.01" required
+                       class="w-full border @error('amount') border-red-400 @else border-gray-300 @enderror rounded-lg px-4 py-2.5 text-sm outline-none focus:border-blue-400">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">التاريخ *</label>
+                <input type="date" name="expense_date" value="{{ old('expense_date', $expense->expense_date->toDateString()) }}" required
                        class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-blue-400">
             </div>
-            <input type="hidden" name="currency" value="YER">
         </div>
 
         <div>
@@ -30,18 +42,9 @@
         </div>
 
         <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1.5">المورد (اختياري)</label>
-            <select name="supplier_id" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-blue-400">
-                <option value="">-- بدون مورد --</option>
-                @foreach($suppliers as $sup)
-                <option value="{{ $sup->id }}" {{ old('supplier_id',$expense->supplier_id)==$sup->id?'selected':'' }}>{{ $sup->name }}</option>
-                @endforeach
-            </select>
-        </div>
-
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1.5">تاريخ المصروف *</label>
-            <input type="date" name="expense_date" value="{{ old('expense_date', $expense->expense_date->toDateString()) }}" required
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">اسم المستلم</label>
+            <input type="text" name="recipient_name" value="{{ old('recipient_name', $expense->recipient_name) }}"
+                   placeholder="اسم الشخص الذي صرف له المبلغ"
                    class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-blue-400">
         </div>
 
