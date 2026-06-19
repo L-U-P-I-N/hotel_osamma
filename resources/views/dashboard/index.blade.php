@@ -72,59 +72,6 @@
     </div>
 </div>
 
-<!-- Revenue Cards: SAR + USD -->
-@if($monthlyRevenueSar > 0 || $monthlyRevenueUsd > 0)
-<div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-6">
-    @if($monthlyRevenueSar > 0)
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <div class="flex items-center justify-between mb-3">
-            <div>
-                <p class="text-xs text-gray-500 font-medium">الإيرادات · ريال سعودي</p>
-                <p class="text-2xl font-bold text-green-600 mt-1">{{ number_format($monthlyRevenueSar, 2) }}</p>
-                <p class="text-xs text-gray-400 mt-0.5">هذا الشهر</p>
-            </div>
-            <div class="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                <span class="text-green-700 font-bold text-sm">ر.س</span>
-            </div>
-        </div>
-        <div class="grid grid-cols-2 gap-2 pt-2 border-t border-gray-50 text-center">
-            <div>
-                <p class="text-xs text-gray-400">هذا الشهر</p>
-                <p class="text-sm font-semibold text-gray-700">{{ number_format($monthlyRevenueSar, 2) }}</p>
-            </div>
-            <div>
-                <p class="text-xs text-gray-400">هذه السنة</p>
-                <p class="text-sm font-semibold text-gray-700">{{ number_format($yearlyRevenueSar, 2) }}</p>
-            </div>
-        </div>
-    </div>
-    @endif
-    @if($monthlyRevenueUsd > 0)
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <div class="flex items-center justify-between mb-3">
-            <div>
-                <p class="text-xs text-gray-500 font-medium">الإيرادات · دولار أمريكي</p>
-                <p class="text-2xl font-bold text-indigo-600 mt-1">{{ number_format($monthlyRevenueUsd, 2) }}</p>
-                <p class="text-xs text-gray-400 mt-0.5">هذا الشهر</p>
-            </div>
-            <div class="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                <span class="text-indigo-700 font-bold text-sm">$</span>
-            </div>
-        </div>
-        <div class="grid grid-cols-2 gap-2 pt-2 border-t border-gray-50 text-center">
-            <div>
-                <p class="text-xs text-gray-400">هذا الشهر</p>
-                <p class="text-sm font-semibold text-gray-700">{{ number_format($monthlyRevenueUsd, 2) }}</p>
-            </div>
-            <div>
-                <p class="text-xs text-gray-400">هذه السنة</p>
-                <p class="text-sm font-semibold text-gray-700">{{ number_format($yearlyRevenueUsd, 2) }}</p>
-            </div>
-        </div>
-    </div>
-    @endif
-</div>
-@endif
 
 <!-- Charts + Quick Actions -->
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">

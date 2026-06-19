@@ -340,8 +340,6 @@ $currencyLabels = ['YER' => 'ريال يمني', 'SAR' => 'ريال سعودي',
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">عملته</label>
                     <select name="currency" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none">
                         <option value="YER">ريال يمني</option>
-                        <option value="SAR">ريال سعودي</option>
-                        <option value="USD">دولار أمريكي</option>
                     </select>
                 </div>
             </div>
@@ -358,8 +356,6 @@ $currencyLabels = ['YER' => 'ريال يمني', 'SAR' => 'ريال سعودي',
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">عملته</label>
                     <select name="exchange_to_currency" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none bg-white">
                         <option value="YER">ريال يمني</option>
-                        <option value="SAR">ريال سعودي</option>
-                        <option value="USD">دولار أمريكي</option>
                     </select>
                 </div>
             </div>

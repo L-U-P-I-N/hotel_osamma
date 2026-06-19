@@ -767,7 +767,12 @@
                 </div>
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1.5">ملاحظات</label>
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">ملاحظة الدفع (اختياري)</label>
+                <input type="text" name="payment_notes" placeholder="مثال: دفع 100 ر.س بسعر صرف 400 = 40,000 ر.ي"
+                       class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">ملاحظات التجديد</label>
                 <input type="text" name="notes" placeholder="سبب التجديد..."
                        class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
             </div>

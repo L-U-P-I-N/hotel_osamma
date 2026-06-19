@@ -15,34 +15,11 @@
             <label class="block text-xs font-medium text-gray-600 mb-1">إلى تاريخ</label>
             <input type="date" name="to" value="{{ $to }}" class="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none">
         </div>
-        <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">العملة</label>
-            <select name="currency" class="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none">
-                @foreach(['YER' => 'ريال يمني (YER)', 'SAR' => 'ريال سعودي (SAR)', 'USD' => 'دولار أمريكي (USD)'] as $val => $label)
-                <option value="{{ $val }}" {{ $currency === $val ? 'selected' : '' }}>{{ $label }}</option>
-                @endforeach
-            </select>
-        </div>
+        <input type="hidden" name="currency" value="YER">
         <button type="submit" class="px-4 py-2 text-white rounded-lg text-sm transition" style="background:#0F4C75;">عرض</button>
     </form>
 </div>
 
-<!-- Currency tabs summary -->
-@if(count($currencyTotals) > 1)
-<div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-    @foreach(['YER' => ['label' => 'ريال يمني', 'symbol' => 'ر.ي', 'color' => 'amber'], 'SAR' => ['label' => 'ريال سعودي', 'symbol' => 'ر.س', 'color' => 'green'], 'USD' => ['label' => 'دولار أمريكي', 'symbol' => '$', 'color' => 'indigo']] as $cur => $info)
-    @if(isset($currencyTotals[$cur]) && $currencyTotals[$cur] > 0)
-    @php $isActive = $currency === $cur; @endphp
-    <a href="{{ request()->fullUrlWithQuery(['currency' => $cur]) }}"
-       class="rounded-xl p-4 border-2 transition-all {{ $isActive ? 'border-primary-500 bg-primary-50' : 'border-gray-200 bg-white hover:border-gray-300' }}">
-        <div class="text-xs {{ $isActive ? 'text-primary-600' : 'text-gray-500' }} font-medium">{{ $info['label'] }}</div>
-        <div class="text-xl font-bold {{ $isActive ? 'text-primary-800' : 'text-gray-700' }} mt-1">{{ number_format($currencyTotals[$cur], 2) }}</div>
-        <div class="text-xs {{ $isActive ? 'text-primary-500' : 'text-gray-400' }} mt-0.5">{{ $info['symbol'] }} · في الفترة المحددة</div>
-    </a>
-    @endif
-    @endforeach
-</div>
-@endif
 
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
     @php

@@ -17,14 +17,7 @@
                 <input type="number" name="amount" value="{{ old('amount') }}" step="0.01" min="0.01" required
                        class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-blue-400">
             </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1.5">العملة *</label>
-                <select name="currency" required class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-blue-400">
-                    <option value="YER" {{ old('currency','YER')=='YER'?'selected':'' }}>ريال يمني</option>
-                    <option value="SAR" {{ old('currency')=='SAR'?'selected':'' }}>ريال سعودي</option>
-                    <option value="USD" {{ old('currency')=='USD'?'selected':'' }}>دولار أمريكي</option>
-                </select>
-            </div>
+            <input type="hidden" name="currency" value="YER">
         </div>
 
         <div>

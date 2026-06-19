@@ -37,15 +37,6 @@
             </select>
         </div>
         <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">العملة</label>
-            <select name="currency" class="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none">
-                <option value="">جميع العملات</option>
-                <option value="YER" {{ request('currency')=='YER'?'selected':'' }}>ريال يمني</option>
-                <option value="SAR" {{ request('currency')=='SAR'?'selected':'' }}>ريال سعودي</option>
-                <option value="USD" {{ request('currency')=='USD'?'selected':'' }}>دولار أمريكي</option>
-            </select>
-        </div>
-        <div>
             <label class="block text-xs font-medium text-gray-600 mb-1">المورد</label>
             <select name="supplier_id" class="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none">
                 <option value="">جميع الموردين</option>

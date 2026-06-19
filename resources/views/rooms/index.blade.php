@@ -106,12 +106,6 @@
             <div class="mt-1 text-[11px] text-gray-500">{{ $room->beds_count }} أسرة</div>
             @endif
             <div class="mt-1 text-xs font-medium text-gray-700">{{ number_format($room->priceFor('YER'), 0) }} ر.ي</div>
-            @if($room->price_sar > 0 || $room->price_usd > 0)
-            <div class="mt-0.5 text-[11px] text-gray-400 flex flex-wrap gap-x-2">
-                @if($room->price_sar > 0)<span>{{ number_format($room->price_sar, 0) }} ر.س</span>@endif
-                @if($room->price_usd > 0)<span>{{ number_format($room->price_usd, 0) }} $</span>@endif
-            </div>
-            @endif
         </div>
         @can('rooms.manage')
         <div class="flex border-t border-gray-200 divide-x divide-x-reverse divide-gray-200">
