@@ -242,9 +242,11 @@ class ReservationController extends Controller
             'new_check_out_date.after'    => 'يجب أن يكون تاريخ الخروج الجديد بعد التاريخ الحالي',
         ]);
 
-        $extraNights = $reservation->check_out_date->diffInDays($validated['new_check_out_date']);
-        $pricePerNight = $reservation->room->roomType->base_price;
-        $extraAmount  = $extraNights * $pricePerNight;
+        $extraNights   = $reservation->check_out_date->diffInDays($validated['new_check_out_date']);
+        $pricePerNight = $reservation->nights > 0
+            ? round((float)$reservation->total_amount / $reservation->nights, 2)
+            : (float)($reservation->room->roomType->base_price ?? 0);
+        $extraAmount   = $extraNights * $pricePerNight;
 
         $old = $reservation->only(['check_out_date', 'total_amount']);
 

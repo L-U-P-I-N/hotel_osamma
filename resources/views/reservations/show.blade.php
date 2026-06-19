@@ -628,8 +628,10 @@
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1.5">المبلغ <span class="text-red-500">*</span></label>
                 <input type="number" name="amount" step="0.01" min="0.01"
-                       value="{{ $reservation->balance }}" required
+                       max="{{ $reservation->balance }}"
+                       placeholder="{{ number_format($reservation->balance, 2) }}" required
                        class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                <p class="text-xs text-gray-400 mt-1">الحد الأقصى: {{ number_format($reservation->balance, 2) }} {{ $reservation->currency_symbol }}</p>
             </div>
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1.5">طريقة الدفع</label>
@@ -696,7 +698,7 @@
             <div class="grid grid-cols-2 gap-3 bg-gray-50 rounded-xl p-4 text-sm">
                 <div><span class="text-gray-400 text-xs block mb-0.5">تاريخ الدخول</span><strong>{{ $reservation->check_in_date?->format('d/m/Y') ?? '—' }}</strong></div>
                 <div><span class="text-gray-400 text-xs block mb-0.5">الخروج الحالي</span><strong>{{ $reservation->check_out_date?->format('d/m/Y') ?? '—' }}</strong></div>
-                <div><span class="text-gray-400 text-xs block mb-0.5">سعر الليلة</span><strong>{{ number_format($reservation->room?->roomType?->base_price ?? 0, 0) }} ر.ي</strong></div>
+                <div><span class="text-gray-400 text-xs block mb-0.5">سعر الليلة</span><strong>{{ number_format($pricePerNight, 0) }} {{ $reservation->currency_symbol }}</strong></div>
                 <div><span class="text-gray-400 text-xs block mb-0.5">الرصيد المتبقي</span><strong class="{{ $reservation->balance > 0 ? 'text-red-600' : 'text-green-600' }}">{{ number_format($reservation->balance, 0) }} ر.ي</strong></div>
             </div>
             <div>
@@ -815,7 +817,7 @@ function renewForm() {
         newDate: '',
         extraNights: 0,
         extraAmount: 0,
-        pricePerNight: {{ $reservation->room?->roomType?->base_price ?? 0 }},
+        pricePerNight: {{ $pricePerNight }},
         currentOut: '{{ $reservation->check_out_date?->format('Y-m-d') ?? '' }}',
         calcExtra() {
             if (!this.newDate) return;
