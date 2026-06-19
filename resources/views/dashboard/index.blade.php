@@ -3,369 +3,248 @@
 @section('page-title', 'لوحة التحكم')
 
 @section('content')
-<!-- Stat Cards -->
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-xs text-gray-500 font-medium">نسبة الإشغال</p>
-                <p class="text-3xl font-bold text-primary-800 mt-1">{{ $occupancyPercent }}%</p>
-                <p class="text-xs text-gray-400 mt-1">{{ $occupiedRooms }} من {{ $totalRooms }} غرفة</p>
-            </div>
-            <div class="w-12 h-12 bg-primary-50 rounded-xl flex items-center justify-center">
-                <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-            </div>
+@php
+    $overdueCount = $expiringGuests->filter(fn($r) => $r->check_out_date->startOfDay()->lt(now()->startOfDay()))->count();
+    $todayCount   = $expiringGuests->filter(fn($r) => $r->check_out_date->isToday())->count();
+@endphp
+
+{{-- ── شريط الأرقام السريعة ── --}}
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+
+    @can('rooms.view')
+    <a href="{{ route('rooms.index', ['status' => 'available']) }}"
+       class="flex items-center gap-3 bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 hover:border-green-300 transition group">
+        <div class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <div>
+            <p class="text-2xl font-bold text-green-700 leading-none">{{ $availableRooms }}</p>
+            <p class="text-xs text-gray-500 mt-0.5">غرفة متاحة</p>
+        </div>
+    </a>
+    @endcan
+
+    @can('rooms.view')
+    <a href="{{ route('rooms.index', ['status' => 'occupied']) }}"
+       class="flex items-center gap-3 bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 hover:border-red-300 transition group">
+        <div class="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+        </div>
+        <div>
+            <p class="text-2xl font-bold text-red-700 leading-none">{{ $occupiedRooms }}</p>
+            <p class="text-xs text-gray-500 mt-0.5">غرفة مشغولة</p>
+        </div>
+    </a>
+    @endcan
+
+    <div class="flex items-center gap-3 bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3">
+        <div class="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        </div>
+        <div>
+            <p class="text-2xl font-bold text-orange-700 leading-none">{{ $todayDepartures }}</p>
+            <p class="text-xs text-gray-500 mt-0.5">مغادرة اليوم</p>
         </div>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-xs text-gray-500 font-medium">وصول اليوم</p>
-                <p class="text-3xl font-bold text-green-600 mt-1">{{ $todayArrivals }}</p>
-                <p class="text-xs text-gray-400 mt-1">مغادرة: {{ $todayDepartures }}</p>
-            </div>
-            <div class="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center">
-                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
-            </div>
+    @can('reports.view')
+    <div class="flex items-center gap-3 bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3">
+        <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <div>
+            <p class="text-lg font-bold text-amber-700 leading-none">{{ number_format($todayRevenue, 0) }}</p>
+            <p class="text-xs text-gray-500 mt-0.5">إيراد اليوم · ر.ي</p>
         </div>
     </div>
+    @endcan
 
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <div class="flex items-center justify-between mb-3">
-            <div>
-                <p class="text-xs text-gray-500 font-medium">الإيرادات · ريال يمني</p>
-                <p class="text-2xl font-bold text-amber-600 mt-1">{{ number_format($monthlyRevenue, 0) }}</p>
-                <p class="text-xs text-gray-400 mt-0.5">هذا الشهر</p>
-            </div>
-            <div class="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            </div>
-        </div>
-        <div class="grid grid-cols-3 gap-2 pt-2 border-t border-gray-50 text-center">
-            <div>
-                <p class="text-xs text-gray-400">اليوم</p>
-                <p class="text-sm font-semibold text-gray-700">{{ number_format($todayRevenue, 0) }}</p>
-            </div>
-            <div>
-                <p class="text-xs text-gray-400">الأسبوع</p>
-                <p class="text-sm font-semibold text-gray-700">{{ number_format($weeklyRevenue, 0) }}</p>
-            </div>
-            <div>
-                <p class="text-xs text-gray-400">السنة</p>
-                <p class="text-sm font-semibold text-gray-700">{{ number_format($yearlyRevenue, 0) }}</p>
-            </div>
-        </div>
-    </div>
-
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-xs text-gray-500 font-medium">غرف متاحة</p>
-                <p class="text-3xl font-bold text-blue-600 mt-1">{{ $availableRooms }}</p>
-                <p class="text-xs text-gray-400 mt-1">من {{ $totalRooms }} غرفة إجمالي</p>
-            </div>
-            <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
-                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            </div>
-        </div>
-    </div>
 </div>
 
+{{-- ── الأزرار السريعة ── --}}
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
 
-<!-- Charts + Quick Actions -->
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
-    <!-- Room Status Chart -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <h3 class="font-semibold text-gray-700 mb-4">توزيع حالات الغرف</h3>
-        <div class="relative h-48">
-            <canvas id="roomStatusChart"></canvas>
+    @can('checkin.create')
+    <a href="{{ route('checkin.create') }}"
+       class="flex items-center gap-3 rounded-xl p-4 text-white transition hover:opacity-90 shadow-sm"
+       style="background:#0F4C75;">
+        <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
         </div>
-        <div class="mt-4 space-y-2">
-            @php
-                $statusLabels = ['available'=>'متاحة','reserved'=>'محجوزة','occupied'=>'مشغولة','under_inspection'=>'تحت الفحص','maintenance'=>'صيانة'];
-                $statusColors = ['available'=>'#16a34a','reserved'=>'#2563eb','occupied'=>'#dc2626','under_inspection'=>'#d97706','maintenance'=>'#6b7280'];
-            @endphp
-            @foreach($roomStatusCounts as $status => $count)
-            <div class="flex items-center justify-between text-sm">
-                <div class="flex items-center gap-2">
-                    <div class="w-3 h-3 rounded-full" style="background:{{ $statusColors[$status] ?? '#999' }}"></div>
-                    <span class="text-gray-600">{{ $statusLabels[$status] ?? $status }}</span>
-                </div>
-                <span class="font-semibold text-gray-800">{{ $count }}</span>
-            </div>
-            @endforeach
+        <div>
+            <p class="font-bold text-sm">تسجيل دخول</p>
+            <p class="text-xs text-white/70">نزيل موجود الآن</p>
         </div>
-    </div>
+    </a>
+    @endcan
 
-    <!-- Quick Actions -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <h3 class="font-semibold text-gray-700 mb-4">إجراءات سريعة</h3>
-        <div class="space-y-3">
-            @can('checkin.create')
-            <a href="{{ route('checkin.create') }}"
-               class="flex items-center gap-3 p-3 bg-primary-50 hover:bg-primary-100 rounded-lg transition-colors">
-                <div class="w-9 h-9 bg-primary-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
-                </div>
-                <div>
-                    <div class="font-medium text-sm text-primary-800">تسجيل الدخول</div>
-                    <div class="text-xs text-primary-500">النزيل موجود الآن</div>
-                </div>
-            </a>
-            <a href="{{ route('checkin.create', ['mode' => 'reserve']) }}"
-               class="flex items-center gap-3 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
-                <div class="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                </div>
-                <div>
-                    <div class="font-medium text-sm text-blue-800">حجز لزبون</div>
-                    <div class="text-xs text-blue-500">النزيل سيصل لاحقاً</div>
-                </div>
-            </a>
-            @endcan
+    @can('checkin.create')
+    <a href="{{ route('checkin.create', ['mode' => 'reserve']) }}"
+       class="flex items-center gap-3 rounded-xl p-4 text-white transition hover:opacity-90 shadow-sm bg-blue-600">
+        <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        </div>
+        <div>
+            <p class="font-bold text-sm">حجز مسبق</p>
+            <p class="text-xs text-white/70">النزيل سيصل لاحقاً</p>
+        </div>
+    </a>
+    @endcan
+
+    @can('checkin.view')
+    <a href="{{ route('reservations.expiring') }}"
+       class="flex items-center gap-3 rounded-xl p-4 transition hover:opacity-90 shadow-sm
+              {{ $overdueCount > 0 ? 'bg-red-600 text-white' : 'bg-orange-500 text-white' }}">
+        <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <div>
+            <p class="font-bold text-sm">النزلاء المسجلون</p>
+            <p class="text-xs text-white/80">
+                {{ $expiringGuests->count() }} نزيل
+                @if($overdueCount > 0) — <span class="font-bold">{{ $overdueCount }} متأخر</span>@endif
+            </p>
+        </div>
+    </a>
+    @endcan
+
+    @can('settlement.view')
+    <a href="{{ route('settlement.index') }}"
+       class="flex items-center gap-3 rounded-xl p-4 text-white transition hover:opacity-90 shadow-sm bg-emerald-600">
+        <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+        </div>
+        <div>
+            <p class="font-bold text-sm">التسوية النقدية</p>
+            <p class="text-xs text-white/70">حساب الوردية</p>
+        </div>
+    </a>
+    @endcan
+
+</div>
+
+{{-- ── جدول النزلاء المسجلين (الأقرب للمغادرة) ── --}}
+@can('checkin.view')
+<div class="bg-white rounded-xl shadow-sm border border-gray-100">
+    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <h3 class="font-semibold text-gray-800">النزلاء المسجلون</h3>
+            @if($expiringGuests->count() > 0)
+            <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-700">{{ $expiringGuests->count() }}</span>
+            @endif
+            @if($overdueCount > 0)
+            <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">{{ $overdueCount }} متأخر</span>
+            @endif
+        </div>
+        <div class="flex items-center gap-3">
+            @if($todayRevenue > 0)
+            <span class="text-xs text-gray-400">الشهر: <strong class="text-gray-700">{{ number_format($monthlyRevenue, 0) }} ر.ي</strong></span>
+            @endif
             @can('rooms.view')
-            <a href="{{ route('rooms.index') }}"
-               class="flex items-center gap-3 p-3 bg-green-50 hover:bg-green-100 rounded-lg transition-colors">
-                <div class="w-9 h-9 bg-green-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16"/></svg>
-                </div>
-                <div>
-                    <div class="font-medium text-sm text-green-800">عرض الغرف</div>
-                    <div class="text-xs text-green-500">حالة جميع الغرف</div>
-                </div>
-            </a>
-            @endcan
-            @can('settlement.view')
-            <a href="{{ route('settlement.index') }}"
-               class="flex items-center gap-3 p-3 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors">
-                <div class="w-9 h-9 bg-amber-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-                </div>
-                <div>
-                    <div class="font-medium text-sm text-amber-800">التسوية النقدية</div>
-                    <div class="text-xs text-amber-500">حساب اليوم</div>
-                </div>
-            </a>
+            <a href="{{ route('rooms.index') }}" class="text-xs text-gray-400 hover:text-primary-600 transition">حالة الغرف</a>
             @endcan
         </div>
     </div>
 
-    <!-- Room Status Notifications -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <h3 class="font-semibold text-gray-700 mb-4">حالة الغرف</h3>
-        @can('rooms.view')
-        <div class="space-y-2">
-            <a href="{{ route('rooms.index') }}" class="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors group">
-                <div class="flex items-center gap-3">
-                    <div class="w-2 h-2 rounded-full bg-gray-400"></div>
-                    <span class="text-sm text-gray-600 group-hover:text-gray-800">إجمالي الغرف</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <span class="font-bold text-gray-800">{{ $totalRooms }}</span>
-                    <svg class="w-4 h-4 text-gray-400 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                </div>
-            </a>
-            <a href="{{ route('rooms.index', ['status' => 'occupied']) }}" class="flex items-center justify-between p-3 rounded-lg bg-red-50 hover:bg-red-100 transition-colors group">
-                <div class="flex items-center gap-3">
-                    <div class="w-2 h-2 rounded-full bg-red-500"></div>
-                    <span class="text-sm text-red-700 group-hover:text-red-800">مشغولة</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <span class="font-bold text-red-700">{{ $roomStatusCounts['occupied'] ?? 0 }}</span>
-                    <svg class="w-4 h-4 text-red-400 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                </div>
-            </a>
-            <a href="{{ route('rooms.index', ['status' => 'available']) }}" class="flex items-center justify-between p-3 rounded-lg bg-green-50 hover:bg-green-100 transition-colors group">
-                <div class="flex items-center gap-3">
-                    <div class="w-2 h-2 rounded-full bg-green-500"></div>
-                    <span class="text-sm text-green-700 group-hover:text-green-800">متاحة</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <span class="font-bold text-green-700">{{ $roomStatusCounts['available'] ?? 0 }}</span>
-                    <svg class="w-4 h-4 text-green-400 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                </div>
-            </a>
-            <a href="{{ route('rooms.index', ['status' => 'maintenance']) }}" class="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors group">
-                <div class="flex items-center gap-3">
-                    <div class="w-2 h-2 rounded-full bg-gray-500"></div>
-                    <span class="text-sm text-gray-600 group-hover:text-gray-800">صيانة</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <span class="font-bold text-gray-700">{{ $roomStatusCounts['maintenance'] ?? 0 }}</span>
-                    <svg class="w-4 h-4 text-gray-400 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                </div>
-            </a>
-            <a href="{{ route('rooms.index', ['status' => 'under_inspection']) }}" class="flex items-center justify-between p-3 rounded-lg bg-amber-50 hover:bg-amber-100 transition-colors group">
-                <div class="flex items-center gap-3">
-                    <div class="w-2 h-2 rounded-full bg-amber-500"></div>
-                    <span class="text-sm text-amber-700 group-hover:text-amber-800">تحت الفحص</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <span class="font-bold text-amber-700">{{ $roomStatusCounts['under_inspection'] ?? 0 }}</span>
-                    <svg class="w-4 h-4 text-amber-400 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                </div>
-            </a>
-        </div>
-        @else
-        <div class="space-y-2">
-            @foreach(['إجمالي الغرف' => ['count' => $totalRooms, 'color' => 'gray'], 'مشغولة' => ['count' => $roomStatusCounts['occupied'] ?? 0, 'color' => 'red'], 'متاحة' => ['count' => $roomStatusCounts['available'] ?? 0, 'color' => 'green'], 'صيانة' => ['count' => $roomStatusCounts['maintenance'] ?? 0, 'color' => 'gray'], 'تحت الفحص' => ['count' => $roomStatusCounts['under_inspection'] ?? 0, 'color' => 'amber']] as $label => $info)
-            <div class="flex items-center justify-between p-3 rounded-lg bg-gray-50">
-                <span class="text-sm text-gray-600">{{ $label }}</span>
-                <span class="font-bold text-gray-800">{{ $info['count'] }}</span>
-            </div>
-            @endforeach
-        </div>
+    @if($expiringGuests->isEmpty())
+    <div class="py-12 text-center text-gray-400">
+        <svg class="w-10 h-10 mx-auto mb-3 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+        <p class="text-sm">لا يوجد نزلاء مسجلون حالياً</p>
+        @can('checkin.create')
+        <a href="{{ route('checkin.create') }}" class="inline-block mt-3 text-sm text-primary-600 hover:underline">+ تسجيل دخول نزيل جديد</a>
         @endcan
     </div>
-</div>
-
-<!-- Expiring Guests Card -->
-@can('checkin.view')
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-6">
-    <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-        <div class="flex items-center gap-2">
-            <div class="w-2 h-2 rounded-full bg-orange-500"></div>
-            <h3 class="font-semibold text-gray-700">النزلاء الأقرب للمغادرة</h3>
-            <span class="text-xs text-gray-400">(مسجلو الدخول)</span>
-        </div>
-        <a href="{{ route('reservations.expiring') }}" class="text-sm text-primary-600 hover:text-primary-800 font-medium">عرض الكل</a>
-    </div>
+    @else
     <div class="overflow-x-auto">
         <table class="w-full text-sm" dir="rtl">
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">النزيل</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الغرفة</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">تاريخ الخروج</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الحالة</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الدخول</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الخروج</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المدة</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">إجراءات</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-50">
-                @forelse($expiringGuests as $res)
+                @foreach($expiringGuests as $res)
                 @php
-                    $daysLeft = (int) now()->startOfDay()->diffInDays($res->check_out_date->startOfDay(), false);
+                    $daysLeft = (int) now()->startOfDay()->diffInDays($res->check_out_date->copy()->startOfDay(), false);
                     if ($daysLeft < 0) {
-                        $badge = 'bg-red-100 text-red-700';
-                        $label = 'متأخر ' . abs($daysLeft) . ' ' . (abs($daysLeft) === 1 ? 'يوم' : 'أيام');
+                        $rowCls  = 'bg-red-50 hover:bg-red-100';
+                        $badgeCls = 'bg-red-100 text-red-700';
+                        $badgeTxt = 'متأخر ' . abs($daysLeft) . ' ' . (abs($daysLeft) === 1 ? 'يوم' : 'أيام');
                     } elseif ($daysLeft === 0) {
-                        $badge = 'bg-orange-100 text-orange-700';
-                        $label = 'اليوم';
+                        $rowCls  = 'bg-orange-50 hover:bg-orange-100';
+                        $badgeCls = 'bg-orange-100 text-orange-700';
+                        $badgeTxt = 'اليوم';
                     } elseif ($daysLeft === 1) {
-                        $badge = 'bg-yellow-100 text-yellow-700';
-                        $label = 'غداً';
+                        $rowCls  = 'bg-yellow-50 hover:bg-yellow-100';
+                        $badgeCls = 'bg-yellow-100 text-yellow-700';
+                        $badgeTxt = 'غداً';
                     } else {
-                        $badge = 'bg-blue-50 text-blue-600';
-                        $label = $daysLeft . ' أيام';
+                        $rowCls  = 'hover:bg-gray-50';
+                        $badgeCls = 'bg-gray-100 text-gray-600';
+                        $badgeTxt = $daysLeft . ' أيام';
                     }
                 @endphp
-                <tr class="hover:bg-gray-50">
-                    <td class="px-4 py-3 font-medium text-gray-800">
-                        <a href="{{ route('reservations.show', $res) }}" class="hover:text-primary-700">{{ $res->guest?->full_name ?? '—' }}</a>
-                    </td>
-                    <td class="px-4 py-3 text-gray-600">{{ $res->room?->room_number ?? '—' }}</td>
-                    <td class="px-4 py-3 text-gray-600">{{ $res->check_out_date->format('d/m/Y') }}</td>
+                <tr class="{{ $rowCls }} transition-colors">
                     <td class="px-4 py-3">
-                        <span class="px-2 py-0.5 rounded-full text-xs font-medium {{ $badge }}">{{ $label }}</span>
+                        <a href="{{ route('reservations.show', $res) }}" class="font-semibold text-gray-800 hover:text-primary-700 transition">
+                            {{ $res->guest?->full_name ?? '—' }}
+                        </a>
+                    </td>
+                    <td class="px-4 py-3 font-medium text-gray-700">{{ $res->room?->room_number ?? '—' }}</td>
+                    <td class="px-4 py-3 text-gray-500 text-xs">{{ $res->check_in_date->format('d/m/Y') }}</td>
+                    <td class="px-4 py-3 text-gray-600 font-medium text-xs">{{ $res->check_out_date->format('d/m/Y') }}</td>
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-1 rounded-full text-xs font-semibold {{ $badgeCls }}">{{ $badgeTxt }}</span>
                     </td>
                     <td class="px-4 py-3">
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-1.5">
                             @can('checkout.process')
                             <a href="{{ route('checkout.show', $res) }}"
-                               class="text-xs px-3 py-1.5 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition font-medium">خروج</a>
+                               class="text-xs px-2.5 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition font-medium whitespace-nowrap">خروج</a>
                             @endcan
                             @can('checkin.create')
                             <a href="{{ route('reservations.show', $res) }}#renew"
-                               class="text-xs px-3 py-1.5 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition font-medium">تجديد</a>
+                               class="text-xs px-2.5 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700 transition font-medium whitespace-nowrap">تجديد</a>
                             @endcan
+                            <a href="{{ route('reservations.show', $res) }}"
+                               class="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition whitespace-nowrap">تفاصيل</a>
                         </div>
                     </td>
                 </tr>
-                @empty
-                <tr><td colspan="5" class="px-4 py-6 text-center text-gray-400 text-sm">لا يوجد نزلاء مسجلون حالياً</td></tr>
-                @endforelse
+                @endforeach
             </tbody>
         </table>
     </div>
+    @endif
 </div>
 @endcan
 
-<!-- Recent Reservations -->
-<div class="bg-white rounded-xl shadow-sm border border-gray-100">
-    <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-        <h3 class="font-semibold text-gray-700">آخر الحجوزات</h3>
-        @can('checkin.view')
-        <a href="{{ route('reservations.index') }}" class="text-sm text-primary-600 hover:text-primary-800 font-medium">عرض الكل</a>
-        @endcan
-    </div>
-    <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50 border-b border-gray-100">
-                <tr>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">النزيل</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الغرفة</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">تاريخ الدخول</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">تاريخ الخروج</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الحالة</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">المبلغ</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-50">
-                @forelse($recentReservations as $res)
-                <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="px-6 py-3 text-gray-500">#{{ $res->id }}</td>
-                    <td class="px-6 py-3 font-medium text-gray-800">{{ $res->guest?->full_name ?? '—' }}</td>
-                    <td class="px-6 py-3 text-gray-600">{{ $res->room?->room_number ?? '—' }}</td>
-                    <td class="px-6 py-3 text-gray-600">{{ $res->check_in_date?->format('d/m/Y') ?? '—' }}</td>
-<td class="px-6 py-3 text-gray-600">{{ $res->check_out_date?->format('d/m/Y') ?? '—' }}</td>
-                    <td class="px-6 py-3">
-                        @php
-                            $sc = ['confirmed'=>'bg-blue-100 text-blue-800','checked_in'=>'bg-green-100 text-green-800','checked_out'=>'bg-gray-100 text-gray-800','cancelled'=>'bg-red-100 text-red-800'];
-                        @endphp
-                        <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium {{ $sc[$res->status] ?? 'bg-gray-100 text-gray-800' }}">
-                            {{ $res->status_label }}
-                        </span>
-                    </td>
-                    <td class="px-6 py-3 font-medium text-gray-800">{{ number_format($res->total_amount, 0) }}</td>
-                </tr>
-                @empty
-                <tr><td colspan="7" class="px-6 py-8 text-center text-gray-400">لا توجد حجوزات حتى الآن</td></tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
+{{-- ── شريط حالة الغرف السفلي (للمدير) ── --}}
+@can('rooms.view')
+<div class="mt-4 flex flex-wrap gap-2">
+    @php
+        $pills = [
+            ['label'=>'إجمالي', 'count'=>$totalRooms, 'color'=>'bg-gray-100 text-gray-700', 'url'=>route('rooms.index')],
+            ['label'=>'متاحة',  'count'=>$roomStatusCounts['available']??0,  'color'=>'bg-green-100 text-green-700', 'url'=>route('rooms.index',['status'=>'available'])],
+            ['label'=>'مشغولة', 'count'=>$roomStatusCounts['occupied']??0,   'color'=>'bg-red-100 text-red-700',   'url'=>route('rooms.index',['status'=>'occupied'])],
+            ['label'=>'محجوزة', 'count'=>$roomStatusCounts['reserved']??0,   'color'=>'bg-blue-100 text-blue-700', 'url'=>route('rooms.index',['status'=>'reserved'])],
+            ['label'=>'صيانة',  'count'=>$roomStatusCounts['maintenance']??0,'color'=>'bg-gray-200 text-gray-600', 'url'=>route('rooms.index',['status'=>'maintenance'])],
+            ['label'=>'فحص',    'count'=>$roomStatusCounts['under_inspection']??0,'color'=>'bg-amber-100 text-amber-700','url'=>route('rooms.index',['status'=>'under_inspection'])],
+        ];
+    @endphp
+    @foreach($pills as $pill)
+    <a href="{{ $pill['url'] }}"
+       class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium {{ $pill['color'] }} hover:opacity-80 transition">
+        {{ $pill['label'] }}
+        <span class="font-bold">{{ $pill['count'] }}</span>
+    </a>
+    @endforeach
 </div>
-@endsection
+@endcan
 
-@push('scripts')
-<script>
-const ctx = document.getElementById('roomStatusChart');
-if (ctx) {
-    new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['متاحة','محجوزة','مشغولة','تحت الفحص','صيانة'],
-            datasets: [{
-                data: [
-                    {{ $roomStatusCounts['available'] ?? 0 }},
-                    {{ $roomStatusCounts['reserved'] ?? 0 }},
-                    {{ $roomStatusCounts['occupied'] ?? 0 }},
-                    {{ $roomStatusCounts['under_inspection'] ?? 0 }},
-                    {{ $roomStatusCounts['maintenance'] ?? 0 }},
-                ],
-                backgroundColor: ['#16a34a','#2563eb','#dc2626','#d97706','#6b7280'],
-                borderWidth: 0,
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            cutout: '70%',
-        }
-    });
-}
-</script>
-@endpush
+@endsection
