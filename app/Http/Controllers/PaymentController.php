@@ -13,16 +13,20 @@ class PaymentController extends Controller
 
     public function store(Request $request)
     {
+        $reservation = Reservation::findOrFail($request->reservation_id);
+
         $request->validate([
             'reservation_id' => 'required|exists:reservations,id',
-            'amount' => 'required|numeric|min:0.01',
+            'amount' => ['required', 'numeric', 'min:0.01', 'max:' . $reservation->balance],
             'method' => 'required|in:cash,bank_transfer,pos',
             'currency' => 'required|in:YER,SAR,USD',
             'bank_receipt' => 'required_if:method,bank_transfer|nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
             'bank_transfer_ref' => 'required_if:method,bank_transfer|nullable|string',
+        ], [
+            'amount.max' => 'المبلغ المدخل يتجاوز الرصيد المتبقي (' . number_format($reservation->balance, 2) . ')',
+            'amount.min' => 'يجب أن يكون المبلغ أكبر من صفر',
+            'amount.required' => 'حقل المبلغ مطلوب',
         ]);
-
-        $reservation = Reservation::findOrFail($request->reservation_id);
 
         $data = $request->except(['_token', 'reservation_id']);
         if ($request->hasFile('bank_receipt')) {

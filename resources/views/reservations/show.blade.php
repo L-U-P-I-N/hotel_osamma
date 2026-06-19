@@ -71,7 +71,7 @@
             @endcan
             @endif
             @can('payments.create')
-            @if($reservation->balance > 0 && $reservation->status === 'checked_in')
+            @if($reservation->balance > 0 && in_array($reservation->status, ['confirmed', 'checked_in']))
             <button onclick="document.getElementById('paymentPanel').classList.toggle('hidden')"
                     class="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm rounded-xl hover:bg-green-700 transition font-medium">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
@@ -606,7 +606,7 @@
 {{-- ===== ADD PAYMENT PANEL ===== --}}
 @can('payments.create')
 @if($reservation->balance > 0)
-<div id="paymentPanel" class="hidden bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+<div id="paymentPanel" class="{{ $errors->has('amount') || $errors->has('method') || $errors->has('currency') ? '' : 'hidden' }} bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
     <div class="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
         <div class="flex items-center gap-2">
             <div class="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
@@ -624,13 +624,21 @@
     <form method="POST" action="{{ route('payments.store') }}" enctype="multipart/form-data" class="p-5">
         @csrf
         <input type="hidden" name="reservation_id" value="{{ $reservation->id }}">
+        @if($errors->any())
+        <div class="mb-4 bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">
+            @foreach($errors->all() as $error)
+                <p>{{ $error }}</p>
+            @endforeach
+        </div>
+        @endif
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1.5">المبلغ <span class="text-red-500">*</span></label>
                 <input type="number" name="amount" step="0.01" min="0.01"
                        max="{{ $reservation->balance }}"
+                       value="{{ old('amount') }}"
                        placeholder="{{ number_format($reservation->balance, 2) }}" required
-                       class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                       class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none {{ $errors->has('amount') ? 'border-red-400' : '' }}">
                 <p class="text-xs text-gray-400 mt-1">الحد الأقصى: {{ number_format($reservation->balance, 2) }} {{ $reservation->currency_symbol }}</p>
             </div>
             <div>
