@@ -101,7 +101,7 @@
         <div>
             <p class="font-bold text-sm">النزلاء المسجلون</p>
             <p class="text-xs text-white/80">
-                {{ $expiringGuests->count() }} نزيل
+                {{ $occupiedRooms }} غرفة مشغولة
                 @if($overdueCount > 0) — <span class="font-bold">{{ $overdueCount }} متأخر</span>@endif
             </p>
         </div>
@@ -129,8 +129,8 @@
     <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
         <div class="flex items-center gap-2">
             <h3 class="font-semibold text-gray-800">النزلاء المسجلون</h3>
-            @if($expiringGuests->count() > 0)
-            <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-700">{{ $expiringGuests->count() }}</span>
+            @if($occupiedRooms > 0)
+            <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-700">{{ $occupiedRooms }} غرفة</span>
             @endif
             @if($overdueCount > 0)
             <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">{{ $overdueCount }} متأخر</span>
