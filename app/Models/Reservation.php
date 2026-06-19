@@ -38,7 +38,7 @@ class Reservation extends Model
 
     public function guest()
     {
-        return $this->belongsTo(Guest::class);
+        return $this->belongsTo(Guest::class)->withTrashed();
     }
 
     public function room()       { return $this->belongsTo(Room::class); }

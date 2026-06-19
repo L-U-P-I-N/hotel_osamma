@@ -434,6 +434,66 @@
         </div>
         @endif
 
+        {{-- Room Inspection (shown after checkout) --}}
+        @if($reservation->status === 'checked_out' && $reservation->roomInspections->count() > 0)
+        @php $insp = $reservation->roomInspections->first(); @endphp
+        <div class="bg-white rounded-2xl shadow-sm border {{ $insp->has_damage ? 'border-red-200' : 'border-green-100' }} overflow-hidden">
+            <div class="px-5 py-4 border-b {{ $insp->has_damage ? 'border-red-100' : 'border-green-50' }} flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg {{ $insp->has_damage ? 'bg-red-100' : 'bg-green-100' }} flex items-center justify-center">
+                    @if($insp->has_damage)
+                    <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    @else
+                    <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    @endif
+                </div>
+                <h3 class="font-semibold text-gray-800">تقرير فحص الغرفة</h3>
+                <span class="mr-auto text-xs text-gray-400">{{ $insp->inspection_date?->format('d/m/Y H:i') }}</span>
+            </div>
+            <div class="p-5 space-y-3 text-sm">
+                @if($insp->has_damage)
+                <div class="flex items-center gap-2 text-red-700 font-medium">
+                    <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                    تم تسجيل أضرار في الغرفة
+                </div>
+                @if($insp->damage_description)
+                <p class="text-gray-600 bg-red-50 rounded-xl p-3 text-xs">{{ $insp->damage_description }}</p>
+                @endif
+                @if($insp->compensation_amount > 0)
+                <div class="flex justify-between items-center bg-orange-50 rounded-xl p-3">
+                    <span class="text-orange-800 text-xs font-medium">مبلغ التعويض</span>
+                    <span class="font-bold text-orange-700">{{ number_format($insp->compensation_amount, 0) }} {{ $reservation->currency_symbol }}</span>
+                </div>
+                <div class="flex items-center gap-1.5 text-xs">
+                    <span class="w-2 h-2 rounded-full {{ $insp->compensation_status === 'paid' ? 'bg-green-500' : 'bg-amber-500' }}"></span>
+                    <span class="{{ $insp->compensation_status === 'paid' ? 'text-green-700' : 'text-amber-700' }}">
+                        {{ $insp->compensation_status === 'paid' ? 'التعويض مدفوع' : 'التعويض معلق' }}
+                    </span>
+                </div>
+                @endif
+                @if($insp->images->count() > 0)
+                <div>
+                    <p class="text-xs text-gray-400 mb-2">صور الأضرار ({{ $insp->images->count() }})</p>
+                    <div class="flex flex-wrap gap-2">
+                        @foreach($insp->images as $img)
+                        <a href="{{ Storage::disk('private')->url($img->image_path) }}" target="_blank"
+                           class="w-16 h-16 rounded-lg overflow-hidden border border-gray-200 block">
+                            <img src="{{ asset('storage/' . $img->image_path) }}" alt="صورة ضرر"
+                                 class="w-full h-full object-cover" onerror="this.parentElement.style.display='none'">
+                        </a>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+                @else
+                <div class="flex items-center gap-2 text-green-700 font-medium">
+                    <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                    الغرفة بحالة جيدة — لا توجد أضرار
+                </div>
+                @endif
+            </div>
+        </div>
+        @endif
+
     </div>
 
     {{-- RIGHT: Reservation Details + Financial --}}
