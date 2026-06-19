@@ -78,6 +78,107 @@ class ReportController extends Controller
         ));
     }
 
+    public function rooms(Request $request)
+    {
+        $from = $request->input('from', now()->subDays(30)->toDateString());
+        $to   = $request->input('to', now()->toDateString());
+
+        $rooms = Room::with('roomType')
+            ->withCount(['reservations as total_reservations' => function ($q) use ($from, $to) {
+                $q->whereDate('check_in_date', '>=', $from)
+                  ->whereDate('check_in_date', '<=', $to)
+                  ->whereNotIn('status', ['cancelled']);
+            }])
+            ->withSum(['reservations as total_revenue' => function ($q) use ($from, $to) {
+                $q->whereDate('check_in_date', '>=', $from)
+                  ->whereDate('check_in_date', '<=', $to)
+                  ->whereNotIn('status', ['cancelled']);
+            }], 'total_amount')
+            ->orderByDesc('total_revenue')
+            ->get();
+
+        return view('reports.rooms', compact('rooms', 'from', 'to'));
+    }
+
+    public function guests(Request $request)
+    {
+        $from = $request->input('from', now()->subDays(30)->toDateString());
+        $to   = $request->input('to', now()->toDateString());
+
+        $totalGuests = \App\Models\Guest::count();
+
+        $newGuests = \App\Models\Guest::whereHas('reservations', function ($q) use ($from, $to) {
+            $q->whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to);
+        })->whereDoesntHave('reservations', function ($q) use ($from) {
+            $q->whereDate('check_in_date', '<', $from);
+        })->count();
+
+        $returningGuests = \App\Models\Guest::whereHas('reservations', function ($q) use ($from, $to) {
+            $q->whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to);
+        })->whereHas('reservations', function ($q) use ($from) {
+            $q->whereDate('check_in_date', '<', $from);
+        })->count();
+
+        $byNationality = \App\Models\Guest::select('nationality', DB::raw('count(*) as count'))
+            ->groupBy('nationality')
+            ->orderByDesc('count')
+            ->limit(10)
+            ->get();
+
+        $topGuests = \App\Models\Guest::withCount(['reservations as period_reservations' => function ($q) use ($from, $to) {
+            $q->whereDate('check_in_date', '>=', $from)
+              ->whereDate('check_in_date', '<=', $to)
+              ->whereNotIn('status', ['cancelled']);
+        }])
+        ->having('period_reservations', '>', 0)
+        ->orderByDesc('period_reservations')
+        ->limit(10)
+        ->get();
+
+        return view('reports.guests', compact(
+            'totalGuests', 'newGuests', 'returningGuests',
+            'byNationality', 'topGuests', 'from', 'to'
+        ));
+    }
+
+    public function debts(Request $request)
+    {
+        $reservations = Reservation::with(['guest', 'room.roomType'])
+            ->whereIn('status', ['checked_in', 'checked_out'])
+            ->whereRaw('paid_amount < total_amount')
+            ->orderByRaw('(total_amount - paid_amount) DESC')
+            ->get();
+
+        $totalDebt = $reservations->sum(fn($r) => $r->total_amount - $r->paid_amount);
+
+        return view('reports.debts', compact('reservations', 'totalDebt'));
+    }
+
+    public function salaries(Request $request)
+    {
+        $year = $request->input('year', now()->year);
+
+        $salaries = \App\Models\Salary::with('employee')
+            ->where('year', $year)
+            ->orderBy('month', 'desc')
+            ->get();
+
+        $byMonth = $salaries->groupBy('month')->map(fn($g) => [
+            'count'       => $g->count(),
+            'total_net'   => $g->sum('net_salary'),
+            'total_base'  => $g->sum('base_salary'),
+            'total_bonus' => $g->sum('bonuses'),
+            'total_ded'   => $g->sum('deductions'),
+            'paid'        => $g->where('status', 'paid')->count(),
+            'pending'     => $g->where('status', 'pending')->count(),
+        ]);
+
+        $years    = \App\Models\Salary::selectRaw('DISTINCT year')->orderByDesc('year')->pluck('year');
+        $totalNet = $salaries->sum('net_salary');
+
+        return view('reports.salaries', compact('salaries', 'byMonth', 'year', 'years', 'totalNet'));
+    }
+
     public function staffPerformance(Request $request)
     {
         $from = $request->input('from', now()->subDays(30)->toDateString());

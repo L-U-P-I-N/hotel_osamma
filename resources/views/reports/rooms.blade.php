@@ -30,7 +30,7 @@
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">رقم الغرفة</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">النوع</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الحالة</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الحجوزات</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">عدد الحجوزات</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الإيرادات (ر.ي)</th>
                 </tr>
             </thead>
@@ -54,7 +54,7 @@
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="5" class="px-4 py-6 text-center text-gray-400">لا توجد بيانات</td></tr>
+                <tr><td colspan="5" class="px-4 py-6 text-center text-gray-400">لا توجد غرف</td></tr>
                 @endforelse
             </tbody>
         </table>
