@@ -5,6 +5,7 @@ use App\Models\Payment;
 use App\Models\Reservation;
 use App\Models\Room;
 use App\Models\RoomType;
+use App\Models\Shift;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -101,5 +102,51 @@ class ReportController extends Controller
         ]);
 
         return view('reports.staff', compact('staffData', 'from', 'to'));
+    }
+
+    public function reservations(Request $request)
+    {
+        $preset = $request->input('preset', 'custom');
+        $from   = match($preset) {
+            'today'  => now()->toDateString(),
+            'week'   => now()->subDays(6)->toDateString(),
+            default  => $request->input('from', now()->subDays(30)->toDateString()),
+        };
+        $to = match($preset) {
+            'today'  => now()->toDateString(),
+            'week'   => now()->toDateString(),
+            default  => $request->input('to', now()->toDateString()),
+        };
+
+        $reservations = Reservation::with(['guest', 'room.roomType'])
+            ->whereDate('check_in_date', '>=', $from)
+            ->whereDate('check_in_date', '<=', $to)
+            ->whereNotIn('status', ['cancelled'])
+            ->orderBy('check_in_date', 'desc')
+            ->orderBy('id', 'desc')
+            ->paginate(50)
+            ->withQueryString();
+
+        $total   = $reservations->total();
+        $checkedIn  = Reservation::whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to)->where('status', 'checked_in')->count();
+        $checkedOut = Reservation::whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to)->where('status', 'checked_out')->count();
+
+        return view('reports.reservations', compact('reservations', 'from', 'to', 'preset', 'total', 'checkedIn', 'checkedOut'));
+    }
+
+    public function shifts(Request $request)
+    {
+        $from = $request->input('from', now()->subDays(30)->toDateString());
+        $to   = $request->input('to', now()->toDateString());
+
+        $shifts = Shift::with(['user', 'payments.reservation.room', 'withdrawals'])
+            ->whereDate('shift_date', '>=', $from)
+            ->whereDate('shift_date', '<=', $to)
+            ->orderBy('shift_date', 'desc')
+            ->orderBy('started_at', 'desc')
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('reports.shifts', compact('shifts', 'from', 'to'));
     }
 }
