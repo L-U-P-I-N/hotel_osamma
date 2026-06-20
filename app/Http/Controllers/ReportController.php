@@ -42,29 +42,63 @@ class ReportController extends Controller
         $from = $request->input('from', now()->subDays(30)->toDateString());
         $to   = $request->input('to', now()->toDateString());
 
+        $baseQuery = fn() => Payment::whereDate('payment_date', '>=', $from)
+            ->whereDate('payment_date', '<=', $to)
+            ->where('currency', 'YER');
+
+        $totalRevenue     = $baseQuery()->sum('amount');
+        $paymentCount     = $baseQuery()->count();
+        $reservationCount = $baseQuery()->distinct('reservation_id')->count('reservation_id');
+        $avgPayment       = $paymentCount > 0 ? $totalRevenue / $paymentCount : 0;
+
         $revenueByType = Payment::join('reservations', 'payments.reservation_id', '=', 'reservations.id')
             ->join('rooms', 'reservations.room_id', '=', 'rooms.id')
             ->join('room_types', 'rooms.room_type_id', '=', 'room_types.id')
             ->whereDate('payments.payment_date', '>=', $from)
             ->whereDate('payments.payment_date', '<=', $to)
             ->where('payments.currency', 'YER')
-            ->select('room_types.name', DB::raw('SUM(payments.amount) as total'))
+            ->select(
+                'room_types.name',
+                DB::raw('SUM(payments.amount) as total'),
+                DB::raw('COUNT(payments.id) as payment_count'),
+                DB::raw('COUNT(DISTINCT payments.reservation_id) as reservation_count')
+            )
             ->groupBy('room_types.name')
+            ->orderByDesc('total')
             ->get();
 
-        $revenueByMethod = Payment::whereDate('payment_date', '>=', $from)
-            ->whereDate('payment_date', '<=', $to)
-            ->where('currency', 'YER')
-            ->select('method', DB::raw('SUM(amount) as total'))
+        $revenueByMethod = $baseQuery()
+            ->select('method', DB::raw('SUM(amount) as total'), DB::raw('COUNT(*) as count'))
             ->groupBy('method')
             ->get();
 
-        $totalRevenue = Payment::whereDate('payment_date', '>=', $from)
-            ->whereDate('payment_date', '<=', $to)
-            ->where('currency', 'YER')
-            ->sum('amount');
+        $dailyRevenue = $baseQuery()
+            ->select(
+                DB::raw('DATE(payment_date) as date'),
+                DB::raw('SUM(amount) as total'),
+                DB::raw('COUNT(*) as count')
+            )
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get();
 
-        // Foreign currency payments (note only)
+        $topRooms = Payment::join('reservations', 'payments.reservation_id', '=', 'reservations.id')
+            ->join('rooms', 'reservations.room_id', '=', 'rooms.id')
+            ->join('room_types', 'rooms.room_type_id', '=', 'room_types.id')
+            ->whereDate('payments.payment_date', '>=', $from)
+            ->whereDate('payments.payment_date', '<=', $to)
+            ->where('payments.currency', 'YER')
+            ->select(
+                'rooms.room_number',
+                'room_types.name as type_name',
+                DB::raw('SUM(payments.amount) as total'),
+                DB::raw('COUNT(DISTINCT payments.reservation_id) as reservation_count')
+            )
+            ->groupBy('rooms.room_number', 'room_types.name')
+            ->orderByDesc('total')
+            ->limit(10)
+            ->get();
+
         $foreignPayments = Payment::whereDate('payment_date', '>=', $from)
             ->whereDate('payment_date', '<=', $to)
             ->whereIn('currency', ['SAR', 'USD'])
@@ -74,6 +108,8 @@ class ReportController extends Controller
 
         return view('reports.revenue', compact(
             'revenueByType', 'revenueByMethod', 'totalRevenue',
+            'paymentCount', 'reservationCount', 'avgPayment',
+            'dailyRevenue', 'topRooms',
             'from', 'to', 'foreignPayments'
         ));
     }
@@ -296,19 +332,43 @@ class ReportController extends Controller
     {
         $from = $request->input('from', now()->subDays(30)->toDateString());
         $to   = $request->input('to', now()->toDateString());
+
+        $baseQuery = fn() => Payment::whereDate('payment_date', '>=', $from)
+            ->whereDate('payment_date', '<=', $to)->where('currency', 'YER');
+
+        $totalRevenue     = $baseQuery()->sum('amount');
+        $paymentCount     = $baseQuery()->count();
+        $reservationCount = $baseQuery()->distinct('reservation_id')->count('reservation_id');
+        $avgPayment       = $paymentCount > 0 ? $totalRevenue / $paymentCount : 0;
+
         $revenueByType = Payment::join('reservations', 'payments.reservation_id', '=', 'reservations.id')
             ->join('rooms', 'reservations.room_id', '=', 'rooms.id')
             ->join('room_types', 'rooms.room_type_id', '=', 'room_types.id')
             ->whereDate('payments.payment_date', '>=', $from)->whereDate('payments.payment_date', '<=', $to)
             ->where('payments.currency', 'YER')
-            ->select('room_types.name', DB::raw('SUM(payments.amount) as total'))
-            ->groupBy('room_types.name')->get();
-        $revenueByMethod = Payment::whereDate('payment_date', '>=', $from)->whereDate('payment_date', '<=', $to)
-            ->where('currency', 'YER')->select('method', DB::raw('SUM(amount) as total'))->groupBy('method')->get();
-        $totalRevenue = Payment::whereDate('payment_date', '>=', $from)->whereDate('payment_date', '<=', $to)->where('currency', 'YER')->sum('amount');
+            ->select('room_types.name', DB::raw('SUM(payments.amount) as total'), DB::raw('COUNT(payments.id) as payment_count'), DB::raw('COUNT(DISTINCT payments.reservation_id) as reservation_count'))
+            ->groupBy('room_types.name')->orderByDesc('total')->get();
+
+        $revenueByMethod = $baseQuery()
+            ->select('method', DB::raw('SUM(amount) as total'), DB::raw('COUNT(*) as count'))
+            ->groupBy('method')->get();
+
+        $topRooms = Payment::join('reservations', 'payments.reservation_id', '=', 'reservations.id')
+            ->join('rooms', 'reservations.room_id', '=', 'rooms.id')
+            ->join('room_types', 'rooms.room_type_id', '=', 'room_types.id')
+            ->whereDate('payments.payment_date', '>=', $from)->whereDate('payments.payment_date', '<=', $to)
+            ->where('payments.currency', 'YER')
+            ->select('rooms.room_number', 'room_types.name as type_name', DB::raw('SUM(payments.amount) as total'), DB::raw('COUNT(DISTINCT payments.reservation_id) as reservation_count'))
+            ->groupBy('rooms.room_number', 'room_types.name')->orderByDesc('total')->limit(10)->get();
+
         $foreignPayments = Payment::whereDate('payment_date', '>=', $from)->whereDate('payment_date', '<=', $to)
             ->whereIn('currency', ['SAR', 'USD'])->select('currency', DB::raw('SUM(amount) as total'), DB::raw('COUNT(*) as count'))->groupBy('currency')->get();
-        $pdf = $this->pdfOptions(\Barryvdh\DomPDF\Facade\Pdf::loadView('reports.revenue_pdf', compact('revenueByType', 'revenueByMethod', 'totalRevenue', 'from', 'to', 'foreignPayments')));
+
+        $pdf = $this->pdfOptions(\Barryvdh\DomPDF\Facade\Pdf::loadView('reports.revenue_pdf', compact(
+            'revenueByType', 'revenueByMethod', 'totalRevenue',
+            'paymentCount', 'reservationCount', 'avgPayment',
+            'topRooms', 'from', 'to', 'foreignPayments'
+        )));
         $pdf->setPaper('a4', 'portrait');
         return $pdf->download('revenue-' . $from . '-' . $to . '.pdf');
     }
