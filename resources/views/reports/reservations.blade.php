@@ -139,7 +139,18 @@
                         @endphp
                         <span class="px-2 py-0.5 rounded-full text-xs font-medium {{ $psBg }}">{{ $psLabel }}</span>
                     </td>
-                    <td class="px-3 py-2.5 text-gray-500 max-w-[150px] truncate" title="{{ $r->notes }}">{{ $r->notes ?? '—' }}</td>
+                    <td class="px-3 py-2.5 max-w-[200px]">
+                        @php $payNote = $r->payments->first(fn($p) => $p->notes)?->notes; @endphp
+                        @if($r->notes)
+                        <div class="text-amber-700 text-xs bg-amber-50 rounded px-1.5 py-0.5 mb-0.5">{{ $r->notes }}</div>
+                        @endif
+                        @if($payNote)
+                        <div class="text-blue-700 text-xs bg-blue-50 rounded px-1.5 py-0.5">💱 {{ $payNote }}</div>
+                        @endif
+                        @if(!$r->notes && !$payNote)
+                        <span class="text-gray-300 text-xs">—</span>
+                        @endif
+                    </td>
                 </tr>
                 @endforeach
             </tbody>

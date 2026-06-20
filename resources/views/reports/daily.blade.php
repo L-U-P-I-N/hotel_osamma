@@ -86,6 +86,7 @@
                     <th class="px-3 py-2.5 text-right font-medium text-gray-500 whitespace-nowrap">المرافقون</th>
                     <th class="px-3 py-2.5 text-right font-medium text-gray-500 whitespace-nowrap">الدفع</th>
                     <th class="px-3 py-2.5 text-right font-medium text-gray-500 whitespace-nowrap">الجوال</th>
+                    <th class="px-3 py-2.5 text-right font-medium text-gray-500 whitespace-nowrap">ملاحظات</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-50">
@@ -127,6 +128,18 @@
                         <div class="text-gray-400 text-xs">{{ number_format($res->paid_amount, 0) }} / {{ number_format($res->total_amount, 0) }}</div>
                     </td>
                     <td class="px-3 py-2.5 text-gray-600 whitespace-nowrap font-mono">{{ $res->guest?->phone }}</td>
+                    <td class="px-3 py-2.5 max-w-[180px]">
+                        @php $payNote = $res->payments->first(fn($p) => $p->notes)?->notes; @endphp
+                        @if($res->notes)
+                        <div class="text-amber-700 text-xs bg-amber-50 rounded px-1.5 py-0.5 mb-0.5">{{ $res->notes }}</div>
+                        @endif
+                        @if($payNote)
+                        <div class="text-blue-700 text-xs bg-blue-50 rounded px-1.5 py-0.5">💱 {{ $payNote }}</div>
+                        @endif
+                        @if(!$res->notes && !$payNote)
+                        <span class="text-gray-300">—</span>
+                        @endif
+                    </td>
                 </tr>
                 @endforeach
             </tbody>

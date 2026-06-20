@@ -214,7 +214,7 @@ class ReportController extends Controller
             default  => $request->input('to', now()->toDateString()),
         };
 
-        $reservations = Reservation::with(['guest', 'room.roomType'])
+        $reservations = Reservation::with(['guest', 'room.roomType', 'payments'])
             ->whereDate('check_in_date', '>=', $from)
             ->whereDate('check_in_date', '<=', $to)
             ->whereNotIn('status', ['cancelled'])
