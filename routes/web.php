@@ -152,6 +152,18 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/reports/daily', [DailyReportController::class, 'index'])->name('reports.daily');
         Route::get('/reports/daily/pdf', [DailyReportController::class, 'exportPdf'])->name('reports.daily.pdf');
         Route::get('/reports/daily/excel', [DailyReportController::class, 'exportExcel'])->name('reports.daily.excel');
+        Route::get('/reports/reservations/pdf', [ReportController::class, 'reservationsPdf'])->name('reports.reservations.pdf');
+        Route::get('/reports/reservations/excel', [ReportController::class, 'reservationsExcel'])->name('reports.reservations.excel');
+        Route::get('/reports/revenue/pdf', [ReportController::class, 'revenuePdf'])->name('reports.revenue.pdf');
+        Route::get('/reports/revenue/excel', [ReportController::class, 'revenueExcel'])->name('reports.revenue.excel');
+        Route::get('/reports/rooms/pdf', [ReportController::class, 'roomsPdf'])->name('reports.rooms.pdf');
+        Route::get('/reports/rooms/excel', [ReportController::class, 'roomsExcel'])->name('reports.rooms.excel');
+        Route::get('/reports/guests/pdf', [ReportController::class, 'guestsPdf'])->name('reports.guests.pdf');
+        Route::get('/reports/guests/excel', [ReportController::class, 'guestsExcel'])->name('reports.guests.excel');
+        Route::get('/reports/debts/pdf', [ReportController::class, 'debtsPdf'])->name('reports.debts.pdf');
+        Route::get('/reports/debts/excel', [ReportController::class, 'debtsExcel'])->name('reports.debts.excel');
+        Route::get('/reports/salaries/pdf', [ReportController::class, 'salariesPdf'])->name('reports.salaries.pdf');
+        Route::get('/reports/salaries/excel', [ReportController::class, 'salariesExcel'])->name('reports.salaries.excel');
         Route::get('/reports/reservations', [ReportController::class, 'reservations'])->name('reports.reservations');
         Route::get('/reports/shifts', [ReportController::class, 'shifts'])->name('reports.shifts');
         Route::get('/reports/rooms', [ReportController::class, 'rooms'])->name('reports.rooms');

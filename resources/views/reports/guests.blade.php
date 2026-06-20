@@ -17,6 +17,18 @@
         </div>
         <button type="submit" class="px-4 py-2 text-white rounded-lg text-sm transition" style="background:#0F4C75;">عرض</button>
     </form>
+    <div class="mr-auto flex gap-2 mt-2">
+        <a href="{{ route('reports.guests.pdf', ['from' => $from, 'to' => $to]) }}"
+           class="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+            تصدير PDF
+        </a>
+        <a href="{{ route('reports.guests.excel', ['from' => $from, 'to' => $to]) }}"
+           class="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+            تصدير Excel
+        </a>
+    </div>
 </div>
 
 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">

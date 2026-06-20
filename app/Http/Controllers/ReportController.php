@@ -245,4 +245,156 @@ class ReportController extends Controller
 
         return view('reports.shifts', compact('shifts', 'from', 'to'));
     }
+
+    public function reservationsPdf(Request $request)
+    {
+        $preset = $request->input('preset', 'custom');
+        $from = match($preset) {
+            'today' => now()->toDateString(),
+            'week'  => now()->subDays(6)->toDateString(),
+            default => $request->input('from', now()->subDays(30)->toDateString()),
+        };
+        $to = match($preset) {
+            'today' => now()->toDateString(),
+            'week'  => now()->toDateString(),
+            default => $request->input('to', now()->toDateString()),
+        };
+        $reservations = Reservation::with(['guest', 'room', 'payments'])
+            ->whereDate('check_in_date', '>=', $from)
+            ->whereDate('check_in_date', '<=', $to)
+            ->whereNotIn('status', ['cancelled'])
+            ->orderBy('check_in_date', 'desc')
+            ->get();
+        $total = $reservations->count();
+        $checkedIn = $reservations->where('status', 'checked_in')->count();
+        $checkedOut = $reservations->where('status', 'checked_out')->count();
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.reservations_pdf', compact('reservations','from','to','total','checkedIn','checkedOut'));
+        $pdf->setPaper('a4', 'landscape');
+        $dompdf = $pdf->getDomPDF();
+        $options = $dompdf->getOptions();
+        $options->setFontDir(storage_path('fonts'));
+        $options->setFontCache(storage_path('fonts'));
+        $dompdf->setOptions($options);
+        return $pdf->download('reservations-' . $from . '-' . $to . '.pdf');
+    }
+
+    public function reservationsExcel(Request $request)
+    {
+        $from = $request->input('from', now()->subDays(30)->toDateString());
+        $to = $request->input('to', now()->toDateString());
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\ReservationsReportExport($from, $to), 'reservations-' . $from . '-' . $to . '.xlsx');
+    }
+
+    public function revenuePdf(Request $request)
+    {
+        $from = $request->input('from', now()->subDays(30)->toDateString());
+        $to = $request->input('to', now()->toDateString());
+        $revenueByType = Payment::join('reservations','payments.reservation_id','=','reservations.id')
+            ->join('rooms','reservations.room_id','=','rooms.id')
+            ->join('room_types','rooms.room_type_id','=','room_types.id')
+            ->whereDate('payments.payment_date','>=',$from)->whereDate('payments.payment_date','<=',$to)
+            ->where('payments.currency','YER')
+            ->select('room_types.name', DB::raw('SUM(payments.amount) as total'))
+            ->groupBy('room_types.name')->get();
+        $revenueByMethod = Payment::whereDate('payment_date','>=',$from)->whereDate('payment_date','<=',$to)->where('currency','YER')->select('method', DB::raw('SUM(amount) as total'))->groupBy('method')->get();
+        $totalRevenue = Payment::whereDate('payment_date','>=',$from)->whereDate('payment_date','<=',$to)->where('currency','YER')->sum('amount');
+        $foreignPayments = Payment::whereDate('payment_date','>=',$from)->whereDate('payment_date','<=',$to)->whereIn('currency',['SAR','USD'])->select('currency', DB::raw('SUM(amount) as total'), DB::raw('COUNT(*) as count'))->groupBy('currency')->get();
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.revenue_pdf', compact('revenueByType','revenueByMethod','totalRevenue','from','to','foreignPayments'));
+        $pdf->setPaper('a4', 'portrait');
+        $dompdf = $pdf->getDomPDF(); $options = $dompdf->getOptions();
+        $options->setFontDir(storage_path('fonts')); $options->setFontCache(storage_path('fonts'));
+        $dompdf->setOptions($options);
+        return $pdf->download('revenue-' . $from . '-' . $to . '.pdf');
+    }
+
+    public function revenueExcel(Request $request)
+    {
+        $from = $request->input('from', now()->subDays(30)->toDateString());
+        $to = $request->input('to', now()->toDateString());
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\RevenueReportExport($from, $to), 'revenue-' . $from . '-' . $to . '.xlsx');
+    }
+
+    public function roomsPdf(Request $request)
+    {
+        $from = $request->input('from', now()->subDays(30)->toDateString());
+        $to = $request->input('to', now()->toDateString());
+        $rooms = Room::with('roomType')
+            ->withCount(['reservations as total_reservations' => fn($q) => $q->whereDate('check_in_date','>=',$from)->whereDate('check_in_date','<=',$to)->whereNotIn('status',['cancelled'])])
+            ->withSum(['reservations as total_revenue' => fn($q) => $q->whereDate('check_in_date','>=',$from)->whereDate('check_in_date','<=',$to)->whereNotIn('status',['cancelled'])], 'total_amount')
+            ->orderByDesc('total_revenue')->get();
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.rooms_pdf', compact('rooms','from','to'));
+        $pdf->setPaper('a4','portrait');
+        $dompdf = $pdf->getDomPDF(); $options = $dompdf->getOptions();
+        $options->setFontDir(storage_path('fonts')); $options->setFontCache(storage_path('fonts'));
+        $dompdf->setOptions($options);
+        return $pdf->download('rooms-' . $from . '-' . $to . '.pdf');
+    }
+
+    public function roomsExcel(Request $request)
+    {
+        $from = $request->input('from', now()->subDays(30)->toDateString());
+        $to = $request->input('to', now()->toDateString());
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\RoomsReportExport($from, $to), 'rooms-' . $from . '-' . $to . '.xlsx');
+    }
+
+    public function guestsPdf(Request $request)
+    {
+        $from = $request->input('from', now()->subDays(30)->toDateString());
+        $to = $request->input('to', now()->toDateString());
+        $totalGuests = \App\Models\Guest::count();
+        $newGuests = \App\Models\Guest::whereHas('reservations', fn($q) => $q->whereDate('check_in_date','>=',$from)->whereDate('check_in_date','<=',$to))->whereDoesntHave('reservations', fn($q) => $q->whereDate('check_in_date','<',$from))->count();
+        $returningGuests = \App\Models\Guest::whereHas('reservations', fn($q) => $q->whereDate('check_in_date','>=',$from)->whereDate('check_in_date','<=',$to))->whereHas('reservations', fn($q) => $q->whereDate('check_in_date','<',$from))->count();
+        $byNationality = \App\Models\Guest::select('nationality', DB::raw('count(*) as count'))->groupBy('nationality')->orderByDesc('count')->limit(10)->get();
+        $topGuests = \App\Models\Guest::withCount(['reservations as period_reservations' => fn($q) => $q->whereDate('check_in_date','>=',$from)->whereDate('check_in_date','<=',$to)->whereNotIn('status',['cancelled'])])->having('period_reservations','>',0)->orderByDesc('period_reservations')->limit(10)->get();
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.guests_pdf', compact('totalGuests','newGuests','returningGuests','byNationality','topGuests','from','to'));
+        $pdf->setPaper('a4','portrait');
+        $dompdf = $pdf->getDomPDF(); $options = $dompdf->getOptions();
+        $options->setFontDir(storage_path('fonts')); $options->setFontCache(storage_path('fonts'));
+        $dompdf->setOptions($options);
+        return $pdf->download('guests-' . $from . '-' . $to . '.pdf');
+    }
+
+    public function guestsExcel(Request $request)
+    {
+        $from = $request->input('from', now()->subDays(30)->toDateString());
+        $to = $request->input('to', now()->toDateString());
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\GuestsReportExport($from, $to), 'guests-' . $from . '-' . $to . '.xlsx');
+    }
+
+    public function debtsPdf(Request $request)
+    {
+        $reservations = Reservation::with(['guest', 'room'])->whereIn('status',['checked_in','checked_out'])->whereRaw('paid_amount < total_amount')->orderByRaw('(total_amount - paid_amount) DESC')->get();
+        $totalDebt = $reservations->sum(fn($r) => $r->total_amount - $r->paid_amount);
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.debts_pdf', compact('reservations','totalDebt'));
+        $pdf->setPaper('a4','portrait');
+        $dompdf = $pdf->getDomPDF(); $options = $dompdf->getOptions();
+        $options->setFontDir(storage_path('fonts')); $options->setFontCache(storage_path('fonts'));
+        $dompdf->setOptions($options);
+        return $pdf->download('debts-' . now()->format('Y-m-d') . '.pdf');
+    }
+
+    public function debtsExcel(Request $request)
+    {
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\DebtsReportExport(), 'debts-' . now()->format('Y-m-d') . '.xlsx');
+    }
+
+    public function salariesPdf(Request $request)
+    {
+        $year = $request->input('year', now()->year);
+        $salaries = \App\Models\Salary::with('employee')->where('year',$year)->orderBy('month','desc')->get();
+        $byMonth = $salaries->groupBy('month')->map(fn($g) => ['count'=>$g->count(),'total_net'=>$g->sum('net_salary'),'total_base'=>$g->sum('base_salary'),'total_bonus'=>$g->sum('bonuses'),'total_ded'=>$g->sum('deductions'),'paid'=>$g->where('status','paid')->count(),'pending'=>$g->where('status','pending')->count()]);
+        $totalNet = $salaries->sum('net_salary');
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.salaries_pdf', compact('salaries','byMonth','year','totalNet'));
+        $pdf->setPaper('a4','portrait');
+        $dompdf = $pdf->getDomPDF(); $options = $dompdf->getOptions();
+        $options->setFontDir(storage_path('fonts')); $options->setFontCache(storage_path('fonts'));
+        $dompdf->setOptions($options);
+        return $pdf->download('salaries-' . $year . '.pdf');
+    }
+
+    public function salariesExcel(Request $request)
+    {
+        $year = $request->input('year', now()->year);
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\SalariesReportExport($year), 'salaries-' . $year . '.xlsx');
+    }
 }
