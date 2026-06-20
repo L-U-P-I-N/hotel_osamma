@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CashWithdrawal;
 use App\Models\Expense;
 use Illuminate\Http\Request;
 
@@ -36,10 +37,32 @@ class ExpenseController extends Controller
             });
         }
 
-        $expenses   = $query->paginate(25)->withQueryString();
-        $categories = $this->categories;
+        $expenses = $query->paginate(25)->withQueryString();
 
-        return view('expenses.index', compact('expenses', 'categories'));
+        // سحبيات الورديات (مصروف فقط، بدون صرف عملة)
+        $wQuery = CashWithdrawal::with('shift.user')
+            ->where(function ($q) {
+                $q->where('withdrawal_type', 'expense')->orWhereNull('withdrawal_type');
+            })
+            ->orderByDesc('withdrawal_date');
+
+        if ($request->filled('date_from')) {
+            $wQuery->whereDate('withdrawal_date', '>=', $request->input('date_from'));
+        }
+        if ($request->filled('date_to')) {
+            $wQuery->whereDate('withdrawal_date', '<=', $request->input('date_to'));
+        }
+        if ($request->filled('search')) {
+            $wQuery->where(function ($q) use ($request) {
+                $q->where('withdrawn_by_name', 'like', '%' . $request->input('search') . '%')
+                  ->orWhere('notes', 'like', '%' . $request->input('search') . '%');
+            });
+        }
+
+        $withdrawals = $wQuery->get();
+        $categories  = $this->categories;
+
+        return view('expenses.index', compact('expenses', 'categories', 'withdrawals'));
     }
 
     public function create()
@@ -113,18 +136,32 @@ class ExpenseController extends Controller
         }
 
         $expenses = $query->orderBy('expense_date', 'desc')->get();
-
-        $total = $expenses->sum('amount');
+        $total    = $expenses->sum('amount');
 
         $byCategory = $expenses->groupBy('category')->map(fn($g) => [
             'count' => $g->count(),
             'total' => $g->sum('amount'),
         ]);
 
+        // سحبيات الورديات في نفس الفترة (مصروف فقط)
+        $withdrawals = CashWithdrawal::with('shift.user')
+            ->where(function ($q) {
+                $q->where('withdrawal_type', 'expense')->orWhereNull('withdrawal_type');
+            })
+            ->whereDate('withdrawal_date', '>=', $dateFrom)
+            ->whereDate('withdrawal_date', '<=', $dateTo)
+            ->orderByDesc('withdrawal_date')
+            ->get();
+
+        $withdrawalsTotal = $withdrawals->sum('amount');
+        $grandTotal       = $total + $withdrawalsTotal;
+
         $categories = $this->categories;
 
         return view('expenses.report', compact(
-            'expenses', 'total', 'byCategory', 'dateFrom', 'dateTo', 'categories'
+            'expenses', 'total', 'byCategory',
+            'withdrawals', 'withdrawalsTotal', 'grandTotal',
+            'dateFrom', 'dateTo', 'categories'
         ));
     }
 }

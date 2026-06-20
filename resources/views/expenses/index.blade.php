@@ -3,7 +3,7 @@
 @section('page-title', 'إدارة المصروفات')
 
 @section('content')
-<div dir="rtl">
+<div dir="rtl" x-data="{ tab: '{{ request('tab', 'expenses') }}' }">
 
 <!-- Header -->
 <div class="flex items-center justify-between mb-5">
@@ -26,7 +26,7 @@
 <!-- Filters -->
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-5">
     <form method="GET" class="flex flex-wrap gap-3 items-end">
-        <div>
+        <div x-show="tab === 'expenses'">
             <label class="block text-xs font-medium text-gray-600 mb-1">الفئة</label>
             <select name="category" class="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none">
                 <option value="">جميع الفئات</option>
@@ -47,13 +47,30 @@
             <label class="block text-xs font-medium text-gray-600 mb-1">بحث (اسم / وصف)</label>
             <input type="text" name="search" value="{{ request('search') }}" placeholder="اسم المستلم أو الوصف..." class="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none w-48">
         </div>
+        <input type="hidden" name="tab" :value="tab">
         <button type="submit" class="px-4 py-2 text-white rounded-lg text-sm transition" style="background:#0F4C75;">تصفية</button>
         <a href="{{ route('expenses.index') }}" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200 transition">إعادة تعيين</a>
     </form>
 </div>
 
-<!-- Table -->
-<div class="bg-white rounded-xl shadow-sm border border-gray-100">
+<!-- Tabs -->
+<div class="flex gap-1 mb-0 border-b border-gray-200">
+    <button @click="tab='expenses'"
+            :class="tab==='expenses' ? 'border-b-2 text-blue-700 font-semibold' : 'text-gray-500 hover:text-gray-700'"
+            class="px-5 py-2.5 text-sm border-b-2 border-transparent transition -mb-px" style="border-color: tab==='expenses' ? '#0F4C75' : 'transparent'">
+        مصروفات مباشرة
+        <span class="mr-1.5 px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600">{{ $expenses->total() }}</span>
+    </button>
+    <button @click="tab='withdrawals'"
+            :class="tab==='withdrawals' ? 'border-b-2 text-orange-700 font-semibold' : 'text-gray-500 hover:text-gray-700'"
+            class="px-5 py-2.5 text-sm border-b-2 border-transparent transition -mb-px">
+        سحبيات الورديات
+        <span class="mr-1.5 px-2 py-0.5 rounded-full text-xs bg-orange-100 text-orange-700">{{ $withdrawals->count() }}</span>
+    </button>
+</div>
+
+<!-- Tab: مصروفات مباشرة -->
+<div x-show="tab==='expenses'" class="bg-white rounded-b-xl rounded-tl-xl shadow-sm border border-gray-100 border-t-0">
     <div class="overflow-x-auto">
         <table class="w-full text-sm" dir="rtl">
             <thead class="bg-gray-50">
@@ -109,6 +126,36 @@
         {{ $expenses->links() }}
     </div>
     @endif
+</div>
+
+<!-- Tab: سحبيات الورديات -->
+<div x-show="tab==='withdrawals'" class="bg-white rounded-b-xl rounded-tl-xl shadow-sm border border-gray-100 border-t-0">
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm" dir="rtl">
+            <thead class="bg-orange-50">
+                <tr>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">التاريخ</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المبلغ (ر.ي)</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المستلم</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">البيان / السبب</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">موظف الوردية</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+                @forelse($withdrawals as $w)
+                <tr class="hover:bg-orange-50/30">
+                    <td class="px-4 py-3 text-gray-600 whitespace-nowrap">{{ $w->withdrawal_date->format('d/m/Y H:i') }}</td>
+                    <td class="px-4 py-3 font-bold text-orange-600">{{ number_format($w->amount, 0) }}</td>
+                    <td class="px-4 py-3 text-gray-700">{{ $w->withdrawn_by_name }}</td>
+                    <td class="px-4 py-3 text-gray-500 max-w-xs truncate">{{ $w->notes ?? '—' }}</td>
+                    <td class="px-4 py-3 text-gray-500 text-xs">{{ $w->shift?->user?->name ?? '—' }}</td>
+                </tr>
+                @empty
+                <tr><td colspan="5" class="px-4 py-8 text-center text-gray-400">لا توجد سحبيات مسجّلة</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
 </div>
 
 </div>
