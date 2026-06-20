@@ -389,8 +389,12 @@
                                     {{ $typeLabel['label'] }}
                                 </span>
                             </td>
-                            <td class="px-4 py-3 text-gray-500 text-xs max-w-[160px]">
-                                {{ $p->notes ?? '—' }}
+                            <td class="px-4 py-3 max-w-[180px]">
+                                @if($p->notes)
+                                <span class="text-xs bg-blue-50 text-blue-700 rounded px-1.5 py-0.5">💱 {{ $p->notes }}</span>
+                                @else
+                                <span class="text-gray-300 text-xs">—</span>
+                                @endif
                             </td>
                             <td class="px-4 py-3 text-gray-600">{{ $p->receivedBy?->name ?? '—' }}</td>
                             <td class="px-4 py-3">
