@@ -39,7 +39,7 @@
     <div class="sub">الفترة: {{ \Carbon\Carbon::parse($from)->format('d/m/Y') }} — {{ \Carbon\Carbon::parse($to)->format('d/m/Y') }}</div>
 </div>
 
-<table class="data">
+<table class="data" dir="rtl">
     <thead>
         <tr>
             <th>رقم الغرفة</th>

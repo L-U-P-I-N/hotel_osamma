@@ -51,7 +51,7 @@
 </div>
 
 <h2>ملخص شهري</h2>
-<table class="data">
+<table class="data" dir="rtl">
     <thead>
         <tr>
             <th>الشهر</th>
@@ -96,7 +96,7 @@
 
 @if($salaries->isNotEmpty())
 <h2>تفاصيل الرواتب</h2>
-<table class="data">
+<table class="data" dir="rtl">
     <thead>
         <tr>
             <th>الموظف</th>

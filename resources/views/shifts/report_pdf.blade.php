@@ -136,7 +136,7 @@
 </div>
 
 {{-- Meta --}}
-<table class="meta-table">
+<table class="meta-table" dir="rtl">
     <tr>
         <td class="lbl">وقت الفتح:</td>
         <td class="val ltr">{{ $shift->started_at?->format('H:i') }}</td>
@@ -152,9 +152,9 @@
 {{-- Payments section --}}
 <h2>الإيرادات المستلمة</h2>
 @if($payments->isEmpty())
-<table class="data"><tbody><tr><td style="text-align:center;padding:8px;color:#999;">لا توجد مدفوعات</td></tr></tbody></table>
+<table class="data" dir="rtl"><tbody><tr><td style="text-align:center;padding:8px;color:#999;">لا توجد مدفوعات</td></tr></tbody></table>
 @else
-<table class="data">
+<table class="data" dir="rtl">
     <thead>
         <tr>
             <th>#</th>
@@ -196,9 +196,9 @@
 {{-- Withdrawals section --}}
 <h2>السحبيات</h2>
 @if($withdrawals->isEmpty())
-<table class="data"><tbody><tr><td style="text-align:center;padding:8px;color:#999;">لا توجد سحبيات</td></tr></tbody></table>
+<table class="data" dir="rtl"><tbody><tr><td style="text-align:center;padding:8px;color:#999;">لا توجد سحبيات</td></tr></tbody></table>
 @else
-<table class="data">
+<table class="data" dir="rtl">
     <thead>
         <tr>
             <th>#</th>
@@ -248,7 +248,7 @@
 {{-- Summary --}}
 <div class="summary-box">
     <h3>ملخص الوردية</h3>
-    <table style="width:100%;border-collapse:collapse;font-size:9.5px;direction:rtl;">
+    <table style="width:100%;border-collapse:collapse;font-size:9.5px;direction:rtl;" dir="rtl">
         <thead>
             <tr style="background:#e8f0f7;">
                 <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;">العملة</th>
@@ -297,7 +297,7 @@
 </div>
 
 {{-- Signatures --}}
-<table style="width:100%;margin-top:24px;direction:rtl;">
+<table style="width:100%;margin-top:24px;direction:rtl;" dir="rtl">
     <tr>
         <td style="width:50%;text-align:center;padding:0 20px;">
             <div style="border-top:1px dashed #aaa;padding-top:4px;font-size:9px;">

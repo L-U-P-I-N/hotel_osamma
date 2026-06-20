@@ -44,7 +44,7 @@
     <div class="sub">الفترة: {{ \Carbon\Carbon::parse($from)->format('d/m/Y') }} — {{ \Carbon\Carbon::parse($to)->format('d/m/Y') }}</div>
 </div>
 
-<table class="stats">
+<table class="stats" dir="rtl">
     <tr>
         <td><div class="num">{{ number_format($totalRevenue, 0) }} ر.ي</div><div class="lbl">إجمالي الإيرادات</div></td>
         <td><div class="num">{{ $paymentCount }}</div><div class="lbl">عدد الدفعات</div></td>
@@ -65,7 +65,7 @@
 <div class="two-col">
     <div class="col">
         <div class="section-title">حسب نوع الغرفة</div>
-        <table class="data">
+        <table class="data" dir="rtl">
             <thead><tr>
                 <th>نوع الغرفة</th><th>الحجوزات</th><th>الدفعات</th><th>الإجمالي (ر.ي)</th><th>النسبة</th>
             </tr></thead>
@@ -96,7 +96,7 @@
 
     <div class="col">
         <div class="section-title">حسب طريقة الدفع</div>
-        <table class="data">
+        <table class="data" dir="rtl">
             <thead><tr>
                 <th>الطريقة</th><th>عدد الدفعات</th><th>الإجمالي (ر.ي)</th><th>النسبة</th>
             </tr></thead>
@@ -126,7 +126,7 @@
 
 @if($topRooms->isNotEmpty())
 <div class="section-title">أعلى الغرف إيرادًا</div>
-<table class="data">
+<table class="data" dir="rtl">
     <thead><tr>
         <th>#</th><th>رقم الغرفة</th><th>نوع الغرفة</th><th>الحجوزات</th><th>الإيراد (ر.ي)</th><th>النسبة</th>
     </tr></thead>

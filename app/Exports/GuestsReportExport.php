@@ -50,6 +50,7 @@ class GuestsReportExport extends StringValueBinder implements
 
     public function styles(Worksheet $sheet): array
     {
+        $sheet->setRightToLeft(true);
         return [
             1 => ['font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']], 'fill' => ['fillType' => 'solid', 'color' => ['rgb' => '0F4C75']]],
         ];

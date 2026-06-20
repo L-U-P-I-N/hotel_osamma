@@ -40,6 +40,7 @@ class DebtsReportExport implements FromCollection, WithHeadings, WithMapping, Wi
 
     public function styles(Worksheet $sheet): array
     {
+        $sheet->setRightToLeft(true);
         return [
             1 => ['font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']], 'fill' => ['fillType' => 'solid', 'color' => ['rgb' => 'DC2626']]],
         ];

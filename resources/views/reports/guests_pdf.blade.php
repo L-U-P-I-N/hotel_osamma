@@ -53,7 +53,7 @@
 <div class="two-col">
     <div class="col-half">
         <h2>الجنسيات الأكثر (أعلى 10)</h2>
-        <table class="data">
+        <table class="data" dir="rtl">
             <thead><tr><th>الجنسية</th><th>العدد</th></tr></thead>
             <tbody>
                 @forelse($byNationality as $row)
@@ -69,7 +69,7 @@
     </div>
     <div class="col-half">
         <h2>أكثر النزلاء زيارة</h2>
-        <table class="data">
+        <table class="data" dir="rtl">
             <thead><tr><th>اسم النزيل</th><th>عدد الحجوزات</th></tr></thead>
             <tbody>
                 @forelse($topGuests as $guest)

@@ -45,6 +45,7 @@ class SalariesReportExport implements FromCollection, WithHeadings, WithMapping,
 
     public function styles(Worksheet $sheet): array
     {
+        $sheet->setRightToLeft(true);
         return [
             1 => ['font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']], 'fill' => ['fillType' => 'solid', 'color' => ['rgb' => '0F4C75']]],
         ];

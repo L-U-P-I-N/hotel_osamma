@@ -111,7 +111,7 @@
     </p>
 </div>
 
-<table class="summary-table">
+<table class="summary-table" dir="rtl">
     <tr>
         <td>
             <div class="num">{{ $reservations->count() }}</div>
@@ -135,7 +135,7 @@
 @if($reservations->isEmpty())
 <p style="text-align:center;color:#999;padding:20px;">لا يوجد نزلاء في هذا التاريخ</p>
 @else
-<table class="main">
+<table class="main" dir="rtl">
     <thead>
         <tr>
             <th>الغرفة</th>

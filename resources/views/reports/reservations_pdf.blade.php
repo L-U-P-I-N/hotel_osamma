@@ -47,7 +47,7 @@
     </div>
 </div>
 
-<table class="stats">
+<table class="stats" dir="rtl">
     <tr>
         <td><div class="num">{{ $total }}</div><div class="lbl">إجمالي الحجوزات</div></td>
         <td><div class="num-g">{{ $checkedIn }}</div><div class="lbl">مقيم حالياً</div></td>
@@ -58,7 +58,7 @@
 @if($reservations->isEmpty())
 <p style="text-align:center;color:#999;padding:20px;">لا توجد حجوزات في هذه الفترة</p>
 @else
-<table class="main">
+<table class="main" dir="rtl">
     <thead>
         <tr>
             <th>#</th>

@@ -46,7 +46,7 @@
 @if($reservations->isEmpty())
 <p style="text-align:center;color:#999;padding:20px;">لا توجد ديون مسجلة</p>
 @else
-<table class="data">
+<table class="data" dir="rtl">
     <thead>
         <tr>
             <th>النزيل</th>
