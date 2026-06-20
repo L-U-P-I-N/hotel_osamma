@@ -284,6 +284,76 @@ class ReportController extends Controller
         return view('reports.salaries', compact('salaries', 'byMonth', 'year', 'years', 'totalNet'));
     }
 
+    public function occupancyPdf(Request $request)
+    {
+        $from = $request->input('from', now()->subDays(30)->toDateString());
+        $to   = $request->input('to', now()->toDateString());
+        $totalRooms     = Room::count();
+        $dailyOccupancy = \App\Models\Reservation::select(
+                \Illuminate\Support\Facades\DB::raw('DATE(check_in_date) as date'),
+                \Illuminate\Support\Facades\DB::raw('COUNT(*) as count')
+            )
+            ->whereDate('check_in_date', '>=', $from)
+            ->whereDate('check_in_date', '<=', $to)
+            ->whereIn('status', ['checked_in', 'checked_out'])
+            ->groupBy('date')->orderBy('date')->get()
+            ->map(fn($r) => ['date' => $r->date, 'percent' => $totalRooms > 0 ? round(($r->count / $totalRooms) * 100) : 0]);
+        $pdf = $this->pdfOptions(\Barryvdh\DomPDF\Facade\Pdf::loadView('reports.occupancy_pdf', compact('dailyOccupancy', 'from', 'to', 'totalRooms')));
+        $pdf->setPaper('a4', 'portrait');
+        return $pdf->download('occupancy-' . $from . '-' . $to . '.pdf');
+    }
+
+    public function occupancyExcel(Request $request)
+    {
+        $from = $request->input('from', now()->subDays(30)->toDateString());
+        $to   = $request->input('to', now()->toDateString());
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\OccupancyReportExport($from, $to), 'occupancy-' . $from . '-' . $to . '.xlsx');
+    }
+
+    public function staffPdf(Request $request)
+    {
+        $from = $request->input('from', now()->subDays(30)->toDateString());
+        $to   = $request->input('to', now()->toDateString());
+        $staffData = User::with(['reservations' => function ($q) use ($from, $to) {
+            $q->whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to);
+        }])->where('is_active', true)->get()
+        ->map(fn($u) => [
+            'user'     => $u,
+            'checkins' => $u->reservations->count(),
+            'revenue'  => $u->payments()->whereDate('payment_date', '>=', $from)->whereDate('payment_date', '<=', $to)->sum('amount'),
+        ]);
+        $pdf = $this->pdfOptions(\Barryvdh\DomPDF\Facade\Pdf::loadView('reports.staff_pdf', compact('staffData', 'from', 'to')));
+        $pdf->setPaper('a4', 'portrait');
+        return $pdf->download('staff-' . $from . '-' . $to . '.pdf');
+    }
+
+    public function staffExcel(Request $request)
+    {
+        $from = $request->input('from', now()->subDays(30)->toDateString());
+        $to   = $request->input('to', now()->toDateString());
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\StaffReportExport($from, $to), 'staff-' . $from . '-' . $to . '.xlsx');
+    }
+
+    public function shiftsPdf(Request $request)
+    {
+        $from = $request->input('from', now()->subDays(30)->toDateString());
+        $to   = $request->input('to', now()->toDateString());
+        $shifts = \App\Models\Shift::with(['user', 'payments', 'withdrawals'])
+            ->whereDate('shift_date', '>=', $from)
+            ->whereDate('shift_date', '<=', $to)
+            ->orderBy('shift_date')->orderBy('started_at')->get();
+        $pdf = $this->pdfOptions(\Barryvdh\DomPDF\Facade\Pdf::loadView('reports.shifts_pdf', compact('shifts', 'from', 'to')));
+        $pdf->setPaper('a4', 'landscape');
+        return $pdf->download('shifts-' . $from . '-' . $to . '.pdf');
+    }
+
+    public function shiftsExcel(Request $request)
+    {
+        $from = $request->input('from', now()->subDays(30)->toDateString());
+        $to   = $request->input('to', now()->toDateString());
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\ShiftsReportExport($from, $to), 'shifts-' . $from . '-' . $to . '.xlsx');
+    }
+
     private function pdfOptions(\Barryvdh\DomPDF\PDF $pdf): \Barryvdh\DomPDF\PDF
     {
         $dompdf = $pdf->getDomPDF();
