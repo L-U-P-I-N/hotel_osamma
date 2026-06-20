@@ -76,7 +76,7 @@ class Reservation extends Model
 
     public function scopeActive(Builder $query): Builder
     {
-        return $query->whereNotIn('status', ['checked_out', 'cancelled']);
+        return $query->where('status', 'checked_in');
     }
 
     public function scopeToday(Builder $query): Builder
@@ -102,10 +102,8 @@ class Reservation extends Model
     public function getStatusLabelAttribute(): string
     {
         return match($this->status) {
-            'confirmed' => 'مؤكد',
             'checked_in' => 'مسجل دخول',
             'checked_out' => 'مسجل خروج',
-            'cancelled' => 'ملغي',
             default => $this->status,
         };
     }

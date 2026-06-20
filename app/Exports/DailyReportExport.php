@@ -21,7 +21,7 @@ class DailyReportExport extends StringValueBinder implements
         return Reservation::with(['guest', 'room', 'companions', 'payments'])
             ->whereDate('check_in_date', '<=', $this->date)
             ->whereDate('check_out_date', '>=', $this->date)
-            ->whereIn('status', ['checked_in', 'confirmed'])
+            ->where('status', 'checked_in')
             ->orderBy('room_id')
             ->get();
     }

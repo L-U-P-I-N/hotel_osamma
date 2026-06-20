@@ -14,7 +14,7 @@ class DailyReportController extends Controller
         return Reservation::with(['guest', 'room.roomType', 'companions', 'payments'])
             ->whereDate('check_in_date', '<=', $date)
             ->whereDate('check_out_date', '>=', $date)
-            ->whereIn('status', ['checked_in', 'confirmed'])
+            ->where('status', 'checked_in')
             ->orderBy('room_id')
             ->get();
     }

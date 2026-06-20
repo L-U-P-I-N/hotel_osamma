@@ -42,10 +42,6 @@
         <div class="text-xs text-gray-500 mt-0.5">مسجل دخول</div>
     </div>
     <div class="bg-white rounded-xl border border-gray-100 p-4 text-center">
-        <div class="text-2xl font-bold text-blue-600">{{ $reservations->where('status', 'confirmed')->count() }}</div>
-        <div class="text-xs text-gray-500 mt-0.5">حجز مؤكد</div>
-    </div>
-    <div class="bg-white rounded-xl border border-gray-100 p-4 text-center">
         <div class="text-2xl font-bold text-gray-700">{{ $reservations->sum(fn($r) => $r->companions->count()) }}</div>
         <div class="text-xs text-gray-500 mt-0.5">مرافق</div>
     </div>
@@ -99,9 +95,6 @@
                 <tr class="hover:bg-gray-50 transition-colors">
                     <td class="px-3 py-2.5 font-bold text-gray-800 whitespace-nowrap">
                         {{ $res->room?->room_number }}
-                        @if($res->status === 'confirmed')
-                        <span class="text-blue-500 text-xs">(محجوز)</span>
-                        @endif
                     </td>
                     <td class="px-3 py-2.5 font-medium text-gray-800 whitespace-nowrap">{{ $res->guest?->full_name }}</td>
                     <td class="px-3 py-2.5 text-gray-600 whitespace-nowrap">{{ $res->guest?->nationality }}</td>

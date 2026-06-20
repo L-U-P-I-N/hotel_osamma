@@ -5,12 +5,10 @@
 @section('content')
 @php
     $statusColors = [
-        'confirmed'   => ['bg' => 'bg-blue-500',  'light' => 'bg-blue-50 border-blue-200',  'text' => 'text-blue-700',  'badge' => 'bg-blue-100 text-blue-800'],
         'checked_in'  => ['bg' => 'bg-green-500', 'light' => 'bg-green-50 border-green-200', 'text' => 'text-green-700', 'badge' => 'bg-green-100 text-green-800'],
         'checked_out' => ['bg' => 'bg-gray-400',  'light' => 'bg-gray-50 border-gray-200',  'text' => 'text-gray-600',  'badge' => 'bg-gray-100 text-gray-700'],
-        'cancelled'   => ['bg' => 'bg-red-500',   'light' => 'bg-red-50 border-red-200',    'text' => 'text-red-700',   'badge' => 'bg-red-100 text-red-800'],
     ];
-    $sc = $statusColors[$reservation->status] ?? $statusColors['confirmed'];
+    $sc = $statusColors[$reservation->status] ?? $statusColors['checked_in'];
     $pc = ['unpaid'=>'bg-red-100 text-red-800','partial'=>'bg-amber-100 text-amber-800','paid'=>'bg-green-100 text-green-800','deferred'=>'bg-purple-100 text-purple-800'];
     $pricePerNight = $reservation->nights > 0 ? round($reservation->total_amount / $reservation->nights, 2) : 0;
 @endphp
@@ -43,7 +41,7 @@
         {{-- Action Buttons --}}
         <div class="flex items-center gap-2 flex-wrap">
             @can('checkin.view')
-            @if(in_array($reservation->status, ['confirmed','checked_in']))
+            @if($reservation->status === 'checked_in')
             <a href="{{ route('reservations.edit', $reservation) }}"
                class="inline-flex items-center gap-1.5 px-4 py-2 border border-primary-600 text-primary-700 text-sm rounded-xl hover:bg-primary-50 transition font-medium">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
@@ -71,7 +69,7 @@
             @endcan
             @endif
             @can('payments.create')
-            @if($reservation->balance > 0 && in_array($reservation->status, ['confirmed', 'checked_in', 'checked_out']))
+            @if($reservation->balance > 0 && in_array($reservation->status, ['checked_in', 'checked_out']))
             <button onclick="document.getElementById('paymentModal').classList.remove('hidden')"
                     class="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm rounded-xl hover:bg-green-700 transition font-medium">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
@@ -87,9 +85,9 @@
             </a>
             @endcan
             @can('checkin.view')
-            @if(!in_array($reservation->status, ['checked_out','cancelled']))
+            @if($reservation->status === 'checked_in')
             <form method="POST" action="{{ route('reservations.cancel', $reservation) }}"
-                  onsubmit="return confirm('هل أنت متأكد من إلغاء هذا الحجز؟')">
+                  onsubmit="return confirm('هل أنت متأكد من حذف هذا الحجز نهائياً؟')">
                 @csrf @method('PATCH')
                 <button type="submit"
                         class="inline-flex items-center gap-1.5 px-4 py-2 border border-red-300 text-red-600 text-sm rounded-xl hover:bg-red-50 transition font-medium">

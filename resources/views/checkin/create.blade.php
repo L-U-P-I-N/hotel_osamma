@@ -1,19 +1,12 @@
 @extends('layouts.app')
-@section('title', $mode === 'reserve' ? 'حجز لزبون' : 'تسجيل الدخول')
-@section('page-title', $mode === 'reserve' ? 'حجز لزبون' : 'تسجيل الدخول')
+@section('title', 'تسجيل الدخول')
+@section('page-title', 'تسجيل الدخول')
 
 @section('content')
-@if($mode === 'reserve')
-<div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center gap-3 text-sm text-blue-800">
-    <svg class="w-5 h-5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-    <span><strong>حجز مسبق</strong> — سيتم تحديد الغرفة كـ <strong>محجوزة</strong> وتبقى فارغة حتى وصول النزيل</span>
-</div>
-@else
 <div class="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3 text-sm text-green-800">
     <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
     <span><strong>تسجيل دخول فوري</strong> — النزيل موجود الآن، ستصبح الغرفة <strong>مشغولة</strong></span>
 </div>
-@endif
 <div x-data="checkInWizard()" x-init="init()">
 
 <!-- Step Indicator -->
@@ -42,7 +35,6 @@
 <form id="checkInForm" method="POST" action="{{ route('checkin.store') }}" enctype="multipart/form-data"
       autocomplete="off" @submit="handleSubmit($event)">
 @csrf
-<input type="hidden" name="booking_mode" value="{{ $mode }}">
 
 <!-- STEP 1: Guest Details -->
 <div x-show="currentStep === 1" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
@@ -518,17 +510,6 @@
             </div>
         </div>
 
-        @if($mode === 'reserve')
-        <!-- Reserve: deposit warning (min 1,000 YER) -->
-        <div class="md:col-span-2"
-             x-show="paymentStatus === 'unpaid' || (paymentStatus === 'partial' && effectivePaid < 1000)">
-            <div class="p-3 bg-amber-50 border border-amber-300 rounded-xl flex items-start gap-2 text-sm text-amber-800">
-                <svg class="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-                    <span>الحجز المسبق يتطلب دفع عربون لا يقل عن <strong>1,000 ريال يمني</strong></span>
-            </div>
-        </div>
-        @endif
-
         <!-- Payment Details (paid or partial) -->
         <div x-show="paymentStatus === 'paid' || paymentStatus === 'partial'" class="md:col-span-2 space-y-4">
             <div x-show="paymentStatus === 'partial'">
@@ -691,7 +672,7 @@
             <template x-if="submitting">
                 <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
             </template>
-            <span x-text="submitting ? 'جارٍ الحفظ...' : '{{ $mode === 'reserve' ? 'تأكيد الحجز المسبق' : 'تأكيد تسجيل الدخول' }}'"></span>
+            <span x-text="submitting ? 'جارٍ الحفظ...' : 'تأكيد تسجيل الدخول'"></span>
         </button>
     </div>
 </div>
@@ -938,8 +919,6 @@ function checkInWizard() {
                 if (this.effectiveRoomPrice() <= 0) return 'لا يوجد سعر للغرفة بالعملة المختارة — أدخل السعر يدوياً';
                 if (this.paymentStatus === 'partial' && (parseFloat(this.paidAmount) || 0) <= 0) return 'يرجى إدخال المبلغ المدفوع';
                 if (this.paymentStatus === 'partial' && (parseFloat(this.paidAmount) || 0) > this.totalAmount) return `المبلغ المدفوع يتجاوز إجمالي الحجز (${this.totalAmount.toLocaleString('ar-SA')} ر.ي)`;
-                if (BOOKING_MODE === 'reserve' && this.paymentStatus === 'unpaid') return 'الحجز المسبق يتطلب دفع عربون';
-                if (BOOKING_MODE === 'reserve' && this.paymentStatus === 'partial' && this.effectivePaid < 1000) return 'العربون يجب أن لا يقل عن 1,000 ريال يمني';
                 return '';
             }
             return '';

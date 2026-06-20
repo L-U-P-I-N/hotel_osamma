@@ -18,10 +18,8 @@
             <label class="block text-xs font-medium text-gray-600 mb-1">الحالة</label>
             <select name="status" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
                 <option value="">جميع الحالات</option>
-                <option value="confirmed" {{ request('status')=='confirmed'?'selected':'' }}>مؤكد</option>
                 <option value="checked_in" {{ request('status')=='checked_in'?'selected':'' }}>مسجل دخول</option>
                 <option value="checked_out" {{ request('status')=='checked_out'?'selected':'' }}>مسجل خروج</option>
-                <option value="cancelled" {{ request('status')=='cancelled'?'selected':'' }}>ملغي</option>
             </select>
         </div>
         <div>
@@ -58,11 +56,6 @@
         </h3>
         @can('checkin.create')
         <div class="flex items-center gap-2">
-            <a href="{{ route('checkin.create', ['mode' => 'reserve']) }}"
-               class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                حجز لزبون
-            </a>
             <a href="{{ route('checkin.create') }}"
                class="flex items-center gap-2 px-4 py-2 bg-primary-800 text-white rounded-lg text-sm hover:bg-primary-700 transition">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
@@ -90,7 +83,7 @@
             <tbody class="divide-y divide-gray-50">
                 @forelse($reservations as $res)
                 @php
-                    $statusColors = ['confirmed'=>'bg-blue-100 text-blue-800','checked_in'=>'bg-green-100 text-green-800','checked_out'=>'bg-gray-100 text-gray-800','cancelled'=>'bg-red-100 text-red-800'];
+                    $statusColors = ['checked_in'=>'bg-green-100 text-green-800','checked_out'=>'bg-gray-100 text-gray-800'];
                     $payColors = ['unpaid'=>'bg-red-100 text-red-800','partial'=>'bg-yellow-100 text-yellow-800','paid'=>'bg-green-100 text-green-800','deferred'=>'bg-purple-100 text-purple-800'];
                 @endphp
                 <tr class="hover:bg-gray-50 transition-colors">
@@ -117,23 +110,12 @@
                     <td class="px-4 py-3">
                         <div class="flex items-center gap-2 flex-wrap">
                             <a href="{{ route('reservations.show', $res) }}" class="text-xs font-medium" style="color:#0F4C75;">عرض</a>
-                            @can('checkin.create')
-                            @if($res->status === 'confirmed')
-                            <form method="POST" action="{{ route('reservations.arrive', $res) }}" onsubmit="return confirm('تسجيل وصول النزيل للحجز #{{ $res->id }}؟')">
-                                @csrf @method('PATCH')
-                                <button type="submit" class="text-xs font-medium text-green-600 hover:text-green-800 flex items-center gap-1">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                    تسجيل الوصول
-                                </button>
-                            </form>
-                            @endif
-                            @endcan
                             @can('checkin.view')
-                            @if(in_array($res->status, ['confirmed','checked_in']))
+                            @if($res->status === 'checked_in')
                             <a href="{{ route('reservations.edit', $res) }}" class="text-xs font-medium text-gray-600 hover:text-gray-800">تعديل</a>
                             @endif
-                            @if(!in_array($res->status, ['checked_out','cancelled']))
-                            <form method="POST" action="{{ route('reservations.cancel', $res) }}" onsubmit="return confirm('إلغاء الحجز #{{ $res->id }}؟')">
+                            @if($res->status === 'checked_in')
+                            <form method="POST" action="{{ route('reservations.cancel', $res) }}" onsubmit="return confirm('حذف الحجز #{{ $res->id }} نهائياً؟')">
                                 @csrf @method('PATCH')
                                 <button type="submit" class="text-xs font-medium text-red-500 hover:text-red-700">إلغاء</button>
                             </form>

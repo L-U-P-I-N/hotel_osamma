@@ -22,7 +22,7 @@ class CheckInController extends Controller
 
     public function create(Request $request)
     {
-        $mode = $request->input('mode', 'checkin'); // 'checkin' | 'reserve'
+        $mode = 'checkin';
 
         $availableRooms = Room::with('roomType', 'linkedRoom')
             ->available()
@@ -83,19 +83,7 @@ class CheckInController extends Controller
             'companions.*.id_image'    => 'required_with:companions.*.full_name|nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
             'companions.*.marriage_doc' => 'required_if:companions.*.relationship,wife|nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
             'suite_booking_type'        => 'nullable|in:a_only,b_only,both',
-            'booking_mode'              => 'nullable|in:checkin,reserve',
         ]);
-
-        if ($request->input('booking_mode') === 'reserve') {
-            $payStatus = $request->input('payment_status');
-            $paidAmt   = (float) $request->input('paid_amount', 0);
-            if ($payStatus === 'unpaid') {
-                return back()->withErrors(['payment_status' => 'الحجز المسبق يتطلب دفع عربون — لا يمكن تركه بدون دفعة'])->withInput();
-            }
-            if ($payStatus === 'partial' && $paidAmt < 1000) {
-                return back()->withErrors(['paid_amount' => 'العربون يجب أن لا يقل عن 1,000 ريال يمني للحجز المسبق'])->withInput();
-            }
-        }
 
         try {
             $data = $request->except(['_token']);
@@ -126,11 +114,8 @@ class CheckInController extends Controller
 
             $reservation = $this->checkInService->createCheckIn($data, auth()->user());
 
-            $isReserve = ($request->input('booking_mode') === 'reserve');
-            $message = $isReserve ? 'تم إنشاء الحجز المسبق بنجاح' : 'تم تسجيل الدخول بنجاح';
-
             return redirect()->route('reservations.show', $reservation->id)
-                ->with('success', $message);
+                ->with('success', 'تم تسجيل الدخول بنجاح');
         } catch (BlacklistedException $e) {
             return back()->withErrors(['id_number' => $e->getMessage()])->withInput();
         } catch (\Exception $e) {

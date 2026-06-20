@@ -185,7 +185,7 @@ class RoomController extends Controller
 
     public function destroy(Room $room)
     {
-        if ($room->reservations()->whereIn('status', ['confirmed', 'checked_in'])->exists()) {
+        if ($room->reservations()->where('status', 'checked_in')->exists()) {
             return back()->with('error', 'لا يمكن حذف الغرفة ' . $room->room_number . ' لوجود حجوزات نشطة عليها');
         }
 

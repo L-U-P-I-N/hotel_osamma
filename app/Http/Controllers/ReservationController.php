@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Companion;
+use App\Models\Payment;
 use App\Models\Reservation;
 use App\Models\Room;
 use App\Models\User;
@@ -56,7 +57,7 @@ class ReservationController extends Controller
 
     public function edit(Reservation $reservation)
     {
-        if (!in_array($reservation->status, ['confirmed', 'checked_in'])) {
+        if ($reservation->status !== 'checked_in') {
             return back()->with('error', 'لا يمكن تعديل هذا الحجز في حالته الحالية');
         }
 
@@ -89,7 +90,7 @@ class ReservationController extends Controller
 
     public function update(Request $request, Reservation $reservation)
     {
-        if (!in_array($reservation->status, ['confirmed', 'checked_in'])) {
+        if ($reservation->status !== 'checked_in') {
             return back()->with('error', 'لا يمكن تعديل هذا الحجز في حالته الحالية');
         }
 
@@ -283,27 +284,6 @@ class ReservationController extends Controller
             ->with('success', "تم تجديد الإقامة بنجاح — تمديد {$extraNights} ليلة إضافية");
     }
 
-    public function arrive(Reservation $reservation)
-    {
-        if ($reservation->status !== 'confirmed') {
-            return back()->with('error', 'لا يمكن تسجيل الوصول إلا للحجوزات المؤكدة');
-        }
-
-        $old = ['status' => $reservation->status];
-
-        $reservation->update(['status' => 'checked_in']);
-
-        $reservation->room?->update(['status' => 'occupied']);
-        if ($reservation->linkedRoom) {
-            $reservation->linkedRoom->update(['status' => 'occupied']);
-        }
-
-        AuditLogService::log('update', $reservation, $old, ['status' => 'checked_in'], auth()->user());
-
-        return redirect()->route('reservations.show', $reservation)
-            ->with('success', 'تم تسجيل وصول النزيل بنجاح — الغرفة أصبحت مشغولة');
-    }
-
     public function transferRoom(Request $request, Reservation $reservation)
     {
         if ($reservation->status !== 'checked_in') {
@@ -352,20 +332,23 @@ class ReservationController extends Controller
         if ($reservation->status === 'checked_out') {
             return back()->with('error', 'لا يمكن إلغاء حجز مكتمل (تسجيل الخروج تم)');
         }
-        if ($reservation->status === 'cancelled') {
-            return back()->with('error', 'الحجز ملغي مسبقاً');
-        }
 
-        $old = ['status' => $reservation->status];
-        $reservation->update(['status' => 'cancelled']);
-
-        if (in_array($reservation->room->status, ['occupied', 'reserved'])) {
+        // Free the room before deleting
+        if ($reservation->room && $reservation->room->status === 'occupied') {
             $reservation->room->update(['status' => 'available']);
         }
+        if ($reservation->linkedRoom && $reservation->linkedRoom->status === 'occupied') {
+            $reservation->linkedRoom->update(['status' => 'available']);
+        }
 
-        AuditLogService::log('update', $reservation, $old, ['status' => 'cancelled'], auth()->user());
+        AuditLogService::log('delete', $reservation, $reservation->toArray(), null, auth()->user());
 
-        return redirect()->route('reservations.show', $reservation)->with('success', 'تم إلغاء الحجز بنجاح');
+        // Hard delete: companions and payments are cascade-deleted by DB or manually
+        $reservation->companions()->delete();
+        $reservation->payments()->delete();
+        $reservation->forceDelete();
+
+        return redirect()->route('reservations.index')->with('success', 'تم حذف الحجز بنجاح');
     }
 
     public function expiring()

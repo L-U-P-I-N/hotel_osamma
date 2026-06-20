@@ -232,7 +232,6 @@
             ['label'=>'إجمالي', 'count'=>$totalRooms, 'color'=>'bg-gray-100 text-gray-700', 'url'=>route('rooms.index')],
             ['label'=>'متاحة',  'count'=>$roomStatusCounts['available']??0,  'color'=>'bg-green-100 text-green-700', 'url'=>route('rooms.index',['status'=>'available'])],
             ['label'=>'مشغولة', 'count'=>$roomStatusCounts['occupied']??0,   'color'=>'bg-red-100 text-red-700',   'url'=>route('rooms.index',['status'=>'occupied'])],
-            ['label'=>'محجوزة', 'count'=>$roomStatusCounts['reserved']??0,   'color'=>'bg-blue-100 text-blue-700', 'url'=>route('rooms.index',['status'=>'reserved'])],
             ['label'=>'صيانة',  'count'=>$roomStatusCounts['maintenance']??0,'color'=>'bg-gray-200 text-gray-600', 'url'=>route('rooms.index',['status'=>'maintenance'])],
             ['label'=>'فحص',    'count'=>$roomStatusCounts['under_inspection']??0,'color'=>'bg-amber-100 text-amber-700','url'=>route('rooms.index',['status'=>'under_inspection'])],
         ];
