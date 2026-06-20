@@ -85,7 +85,10 @@
         @php
             $g = $r->guest;
             $ps = $r->payment_status ?? 'pending';
-            $payNote = $r->payments->first(fn($p) => $p->notes)?->notes;
+            $payNote  = $r->payments->first(fn($p) => $p->notes)?->notes;
+            $strip    = fn($s) => $s ? preg_replace('/[^\x{0000}-\x{FFFF}]/u', '', $s) : null;
+            $rNote    = $strip($r->notes);
+            $payNote  = $strip($payNote);
         @endphp
         <tr>
             <td style="text-align:center;">{{ $r->id }}</td>
@@ -105,10 +108,10 @@
             <td style="text-align:center;">{{ $psLabels[$ps] ?? $ps }}</td>
             <td class="ltr">{{ number_format($r->paid_amount, 0) }} / {{ number_format($r->total_amount, 0) }}</td>
             <td>
-                @if($r->notes){{ $r->notes }}@endif
-                @if($r->notes && $payNote) — @endif
-                @if($payNote){{ $payNote }}@endif
-                @if(!$r->notes && !$payNote)—@endif
+                @if($rNote){{ $rNote }}@endif
+                @if($rNote && $payNote)<br/>@endif
+                @if($payNote)[دفع] {{ $payNote }}@endif
+                @if(!$rNote && !$payNote)—@endif
             </td>
         </tr>
         @endforeach

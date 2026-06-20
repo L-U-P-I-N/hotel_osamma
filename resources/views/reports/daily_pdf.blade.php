@@ -100,6 +100,8 @@
     $checkedIn  = $reservations->where('status', 'checked_in')->count();
     $confirmed  = $reservations->where('status', 'confirmed')->count();
     $companions = $reservations->sum(fn($r) => $r->companions->count());
+    // Strip characters outside the Basic Multilingual Plane (emoji, etc.) that DomPDF cannot render
+    $pdfText = fn($s) => $s ? preg_replace('/[^\x{0000}-\x{FFFF}]/u', '', $s) : null;
 @endphp
 
 <div class="header">
@@ -183,11 +185,15 @@
             <td class="ltr-val">{{ number_format($res->paid_amount, 0) }} / {{ number_format($res->total_amount, 0) }}</td>
             <td class="ltr-val">{{ $res->guest?->phone }}</td>
             <td>
-                @php $payNote = $res->payments->first(fn($p) => $p->notes)?->notes; @endphp
-                @if($res->notes){{ $res->notes }}@endif
-                @if($res->notes && $payNote) — @endif
-                @if($payNote){{ $payNote }}@endif
-                @if(!$res->notes && !$payNote)—@endif
+                @php
+                    $payNote   = $res->payments->first(fn($p) => $p->notes)?->notes;
+                    $resNote   = $pdfText($res->notes);
+                    $payNote   = $pdfText($payNote);
+                @endphp
+                @if($resNote){{ $resNote }}@endif
+                @if($resNote && $payNote)<br/>@endif
+                @if($payNote)[دفع] {{ $payNote }}@endif
+                @if(!$resNote && !$payNote)—@endif
             </td>
         </tr>
         @endforeach
