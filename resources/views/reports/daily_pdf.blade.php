@@ -1,20 +1,27 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
 <style>
+    @font-face {
+        font-family: 'NotoNaskhArabic';
+        font-style: normal;
+        font-weight: normal;
+        src: url("{{ storage_path('fonts') }}/NotoNaskhArabic.ttf") format('truetype');
+    }
+    @font-face {
+        font-family: 'NotoNaskhArabic';
+        font-style: normal;
+        font-weight: bold;
+        src: url("{{ storage_path('fonts') }}/NotoNaskhArabic-Bold.ttf") format('truetype');
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-        font-family: 'NotoNaskhArabic', 'DejaVu Sans', serif;
+        font-family: 'NotoNaskhArabic', sans-serif;
         font-size: 9px;
-        direction: ltr;
+        direction: rtl;
         color: #1a1a1a;
         background: #fff;
-    }
-    .rtl {
-        direction: ltr;
-        text-align: right;
-        unicode-bidi: bidi-override;
     }
     .header {
         text-align: center;
@@ -26,15 +33,11 @@
         font-size: 15px;
         color: #0F4C75;
         font-weight: bold;
-        direction: ltr;
-        text-align: center;
     }
     .header p {
         font-size: 9px;
         color: #555;
         margin-top: 3px;
-        direction: ltr;
-        text-align: center;
     }
     .summary-table {
         width: auto;
@@ -47,17 +50,17 @@
         text-align: center;
         min-width: 80px;
     }
-    .summary-table .num { font-size: 15px; font-weight: bold; color: #0F4C75; }
-    .summary-table .num-green { font-size: 15px; font-weight: bold; color: #16a34a; }
-    .summary-table .num-blue  { font-size: 15px; font-weight: bold; color: #2563eb; }
-    .summary-table .num-gray  { font-size: 15px; font-weight: bold; color: #374151; }
-    .summary-table .lbl { font-size: 7.5px; color: #666; }
+    .num       { font-size: 15px; font-weight: bold; color: #0F4C75; }
+    .num-green { font-size: 15px; font-weight: bold; color: #16a34a; }
+    .num-blue  { font-size: 15px; font-weight: bold; color: #2563eb; }
+    .num-gray  { font-size: 15px; font-weight: bold; color: #374151; }
+    .lbl { font-size: 7.5px; color: #666; }
 
     table.main {
         width: 100%;
         border-collapse: collapse;
         font-size: 7.5px;
-        direction: ltr;
+        direction: rtl;
     }
     table.main thead tr { background: #0F4C75; color: #fff; }
     table.main thead th {
@@ -80,7 +83,7 @@
     }
     .footer {
         margin-top: 10px;
-        text-align: left;
+        text-align: right;
         font-size: 7.5px;
         color: #aaa;
         border-top: 1px solid #eee;
@@ -100,11 +103,11 @@
 @endphp
 
 <div class="header">
-    <h1>{{ ar_pdf('القائمة اليومية للنزلاء') }}</h1>
+    <h1>القائمة اليومية للنزلاء</h1>
     <p>
-        {{ ar_pdf('تاريخ:') }} {{ \Carbon\Carbon::parse($date)->format('d/m/Y') }}
+        تاريخ: {{ \Carbon\Carbon::parse($date)->format('d/m/Y') }}
         &nbsp;&nbsp;|&nbsp;&nbsp;
-        {{ ar_pdf('عدد النزلاء:') }} {{ $reservations->count() }}
+        عدد النزلاء: {{ $reservations->count() }}
     </p>
 </div>
 
@@ -112,45 +115,45 @@
     <tr>
         <td>
             <div class="num">{{ $reservations->count() }}</div>
-            <div class="lbl">{{ ar_pdf('إجمالي النزلاء') }}</div>
+            <div class="lbl">إجمالي النزلاء</div>
         </td>
         <td>
             <div class="num-green">{{ $checkedIn }}</div>
-            <div class="lbl">{{ ar_pdf('مسجل دخول') }}</div>
+            <div class="lbl">مسجل دخول</div>
         </td>
         <td>
             <div class="num-blue">{{ $confirmed }}</div>
-            <div class="lbl">{{ ar_pdf('حجز مؤكد') }}</div>
+            <div class="lbl">حجز مؤكد</div>
         </td>
         <td>
             <div class="num-gray">{{ $companions }}</div>
-            <div class="lbl">{{ ar_pdf('مرافق') }}</div>
+            <div class="lbl">مرافق</div>
         </td>
     </tr>
 </table>
 
 @if($reservations->isEmpty())
-<p style="text-align:center;color:#999;padding:20px;">{{ ar_pdf('لا يوجد نزلاء في هذا التاريخ') }}</p>
+<p style="text-align:center;color:#999;padding:20px;">لا يوجد نزلاء في هذا التاريخ</p>
 @else
 <table class="main">
     <thead>
         <tr>
-            <th>{{ ar_pdf('الغرفة') }}</th>
-            <th>{{ ar_pdf('اسم النزيل') }}</th>
-            <th>{{ ar_pdf('الجنسية') }}</th>
-            <th>{{ ar_pdf('المهنة') }}</th>
-            <th>{{ ar_pdf('جهة القدوم') }}</th>
-            <th>{{ ar_pdf('تاريخ الدخول') }}</th>
-            <th>{{ ar_pdf('الوقت') }}</th>
-            <th>{{ ar_pdf('الغرض') }}</th>
-            <th>{{ ar_pdf('نوع الهوية') }}</th>
-            <th>{{ ar_pdf('رقم الهوية') }}</th>
-            <th>{{ ar_pdf('صادر من') }}</th>
-            <th>{{ ar_pdf('تاريخ الإصدار') }}</th>
-            <th>{{ ar_pdf('المرافقون') }}</th>
-            <th>{{ ar_pdf('الدفع') }}</th>
-            <th>{{ ar_pdf('المدفوع/الإجمالي') }}</th>
-            <th>{{ ar_pdf('الجوال') }}</th>
+            <th>الغرفة</th>
+            <th>اسم النزيل</th>
+            <th>الجنسية</th>
+            <th>المهنة</th>
+            <th>جهة القدوم</th>
+            <th>تاريخ الدخول</th>
+            <th>الوقت</th>
+            <th>الغرض</th>
+            <th>نوع الهوية</th>
+            <th>رقم الهوية</th>
+            <th>صادر من</th>
+            <th>تاريخ الإصدار</th>
+            <th>المرافقون</th>
+            <th>الدفع</th>
+            <th>المدفوع/الإجمالي</th>
+            <th>الجوال</th>
         </tr>
     </thead>
     <tbody>
@@ -160,22 +163,22 @@
             <td style="font-weight:bold;text-align:center;">
                 {{ $res->room?->room_number }}
                 @if($res->status === 'confirmed')
-                <span class="badge-confirmed">({{ ar_pdf('محجوز') }})</span>
+                <span class="badge-confirmed">(محجوز)</span>
                 @endif
             </td>
-            <td>{{ ar_pdf($res->guest?->full_name) }}</td>
-            <td>{{ ar_pdf($res->guest?->nationality) }}</td>
-            <td>{{ ar_pdf($res->guest?->occupation) }}</td>
-            <td>{{ ar_pdf($res->origin) }}</td>
+            <td>{{ $res->guest?->full_name }}</td>
+            <td>{{ $res->guest?->nationality }}</td>
+            <td>{{ $res->guest?->occupation }}</td>
+            <td>{{ $res->origin }}</td>
             <td class="ltr-val">{{ $res->check_in_date?->format('d/m/Y') }}</td>
             <td class="ltr-val">{{ $res->check_in_time ?? '—' }}</td>
-            <td>{{ ar_pdf($res->purpose) }}</td>
-            <td>{{ ar_pdf($idTypeMap[$res->guest?->id_type] ?? $res->guest?->id_type) }}</td>
+            <td>{{ $res->purpose }}</td>
+            <td>{{ $idTypeMap[$res->guest?->id_type] ?? $res->guest?->id_type }}</td>
             <td class="ltr-val">{{ $res->guest?->id_number }}</td>
-            <td>{{ ar_pdf($res->guest?->id_issuer) }}</td>
+            <td>{{ $res->guest?->id_issuer }}</td>
             <td class="ltr-val">{{ $res->guest?->id_issue_date?->format('Y/m/d') }}</td>
-            <td>{{ $cCount > 0 ? ar_pdf($cCount . ' مرافق') : ar_pdf('لوحده') }}</td>
-            <td>{{ ar_pdf($payLabels[$res->payment_status] ?? $res->payment_status) }}</td>
+            <td>{{ $cCount > 0 ? $cCount . ' مرافق' : 'لوحده' }}</td>
+            <td>{{ $payLabels[$res->payment_status] ?? $res->payment_status }}</td>
             <td class="ltr-val">{{ number_format($res->paid_amount, 0) }} / {{ number_format($res->total_amount, 0) }}</td>
             <td class="ltr-val">{{ $res->guest?->phone }}</td>
         </tr>
@@ -185,7 +188,7 @@
 @endif
 
 <div class="footer">
-    {{ ar_pdf('طُبع في:') }} {{ now()->format('d/m/Y H:i') }}
+    طُبع في: {{ now()->format('d/m/Y H:i') }}
 </div>
 
 </body>
