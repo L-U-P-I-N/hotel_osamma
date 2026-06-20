@@ -26,39 +26,47 @@ class ReservationsReportExport implements FromCollection, WithHeadings, WithMapp
     public function headings(): array
     {
         return [
-            'رقم الغرفة', 'اسم النزيل', 'الجنسية', 'المهنة',
-            'جهة القدوم', 'تاريخ الدخول', 'الوقت', 'الغرض',
+            '#', 'رقم الغرفة', 'اسم النزيل', 'الجنسية', 'المهنة',
+            'جهة القدوم', 'تاريخ الدخول', 'وقت الدخول', 'الغرض',
             'نوع الهوية', 'رقم الهوية', 'صادر من', 'تاريخ الإصدار',
-            'رقم الجوال', 'حالة الدفع', 'المدفوع', 'الإجمالي',
+            'رقم الجوال', 'حالة الدفع', 'المدفوع', 'الإجمالي', 'ملاحظات',
         ];
     }
 
-    public function map($res): array
+    public function map($r): array
     {
+        $idTypeMap = ['national_id' => 'بطاقة', 'passport' => 'جواز', 'residence' => 'إقامة'];
+        $psLabels  = ['paid' => 'مدفوع', 'partial' => 'جزئي', 'pending' => 'معلق'];
+        $g = $r->guest;
+        $payNote = $r->payments->first(fn($p) => $p->notes)?->notes;
+        $notes = collect([$r->notes, $payNote])->filter()->implode(' | ');
+
         return [
-            $res->room?->room_number,
-            $res->guest?->full_name,
-            $res->guest?->nationality,
-            $res->guest?->occupation,
-            $res->origin,
-            $res->check_in_date?->format('Y-m-d'),
-            $res->check_in_date?->format('H:i'),
-            $res->purpose,
-            $res->guest?->id_type,
-            $res->guest?->id_number,
-            $res->guest?->id_issuer,
-            $res->guest?->id_issue_date?->format('Y-m-d'),
-            $res->guest?->phone,
-            $res->payment_status,
-            $res->paid_amount,
-            $res->total_amount,
+            $r->id,
+            $r->room?->room_number ?? '',
+            $g?->full_name ?? '',
+            $g?->nationality ?? '',
+            $g?->occupation ?? '',
+            $r->origin ?? '',
+            $r->check_in_date?->format('Y/m/d') ?? '',
+            $r->check_in_time ?? '',
+            $r->purpose ?? '',
+            $idTypeMap[$g?->id_type] ?? $g?->id_type ?? '',
+            $g?->id_number ?? '',
+            $g?->id_issuer ?? '',
+            $g?->id_issue_date?->format('Y/m/d') ?? '',
+            $g?->phone ?? '',
+            $psLabels[$r->payment_status] ?? $r->payment_status ?? '',
+            number_format($r->paid_amount, 0),
+            number_format($r->total_amount, 0),
+            $notes,
         ];
     }
 
     public function styles(Worksheet $sheet): array
     {
         return [
-            1 => ['font' => ['color' => ['rgb' => 'FFFFFF'], 'bold' => true], 'fill' => ['fillType' => 'solid', 'color' => ['rgb' => '0F4C75']]],
+            1 => ['font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']], 'fill' => ['fillType' => 'solid', 'color' => ['rgb' => '0F4C75']]],
         ];
     }
 }

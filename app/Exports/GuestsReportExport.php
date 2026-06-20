@@ -15,33 +15,40 @@ class GuestsReportExport implements FromCollection, WithHeadings, WithMapping, W
 
     public function collection()
     {
-        return Guest::withCount(['reservations as period_reservations' => fn($q) => $q->whereDate('check_in_date', '>=', $this->from)->whereDate('check_in_date', '<=', $this->to)->whereNotIn('status', ['cancelled'])])
-            ->having('period_reservations', '>', 0)
-            ->orderByDesc('period_reservations')
-            ->get();
+        return Guest::withCount([
+            'reservations as total_reservations',
+            'reservations as period_reservations' => fn($q) =>
+                $q->whereDate('check_in_date', '>=', $this->from)
+                  ->whereDate('check_in_date', '<=', $this->to)
+                  ->whereNotIn('status', ['cancelled']),
+        ])
+        ->having('period_reservations', '>', 0)
+        ->orderByDesc('period_reservations')
+        ->get();
     }
 
     public function headings(): array
     {
-        return [
-            'الاسم', 'الجنسية', 'رقم الجوال', 'عدد الحجوزات',
-        ];
+        return ['اسم النزيل', 'الجنسية', 'المهنة', 'رقم الهوية', 'رقم الجوال', 'الحجوزات في الفترة', 'إجمالي الحجوزات'];
     }
 
     public function map($guest): array
     {
         return [
             $guest->full_name,
-            $guest->nationality,
-            $guest->phone,
-            $guest->period_reservations,
+            $guest->nationality ?? '',
+            $guest->occupation ?? '',
+            $guest->id_number ?? '',
+            $guest->phone ?? '',
+            $guest->period_reservations ?? 0,
+            $guest->total_reservations ?? 0,
         ];
     }
 
     public function styles(Worksheet $sheet): array
     {
         return [
-            1 => ['font' => ['color' => ['rgb' => 'FFFFFF'], 'bold' => true], 'fill' => ['fillType' => 'solid', 'color' => ['rgb' => '0F4C75']]],
+            1 => ['font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']], 'fill' => ['fillType' => 'solid', 'color' => ['rgb' => '0F4C75']]],
         ];
     }
 }

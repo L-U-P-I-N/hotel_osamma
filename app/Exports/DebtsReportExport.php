@@ -11,8 +11,6 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class DebtsReportExport implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize
 {
-    public function __construct() {}
-
     public function collection()
     {
         return Reservation::with(['guest', 'room'])
@@ -24,28 +22,26 @@ class DebtsReportExport implements FromCollection, WithHeadings, WithMapping, Wi
 
     public function headings(): array
     {
-        return [
-            'النزيل', 'الغرفة', 'الحالة', 'الإجمالي', 'المدفوع', 'المتبقي', 'تاريخ الخروج',
-        ];
+        return ['النزيل', 'رقم الغرفة', 'الحالة', 'الإجمالي (ر.ي)', 'المدفوع (ر.ي)', 'المتبقي (ر.ي)', 'تاريخ الخروج'];
     }
 
     public function map($res): array
     {
         return [
-            $res->guest?->full_name,
-            $res->room?->room_number,
-            $res->status,
-            $res->total_amount,
-            $res->paid_amount,
-            $res->total_amount - $res->paid_amount,
-            $res->check_out_date?->format('Y-m-d'),
+            $res->guest?->full_name ?? '',
+            $res->room?->room_number ?? '',
+            $res->status === 'checked_in' ? 'داخل' : 'خرج',
+            number_format($res->total_amount, 0),
+            number_format($res->paid_amount, 0),
+            number_format($res->total_amount - $res->paid_amount, 0),
+            $res->check_out_date?->format('Y/m/d') ?? '',
         ];
     }
 
     public function styles(Worksheet $sheet): array
     {
         return [
-            1 => ['font' => ['color' => ['rgb' => 'FFFFFF'], 'bold' => true], 'fill' => ['fillType' => 'solid', 'color' => ['rgb' => '0F4C75']]],
+            1 => ['font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']], 'fill' => ['fillType' => 'solid', 'color' => ['rgb' => 'DC2626']]],
         ];
     }
 }

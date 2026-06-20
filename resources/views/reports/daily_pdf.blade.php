@@ -154,6 +154,7 @@
             <th>الدفع</th>
             <th>المدفوع/الإجمالي</th>
             <th>الجوال</th>
+            <th>ملاحظات</th>
         </tr>
     </thead>
     <tbody>
@@ -181,6 +182,13 @@
             <td>{{ $payLabels[$res->payment_status] ?? $res->payment_status }}</td>
             <td class="ltr-val">{{ number_format($res->paid_amount, 0) }} / {{ number_format($res->total_amount, 0) }}</td>
             <td class="ltr-val">{{ $res->guest?->phone }}</td>
+            <td>
+                @php $payNote = $res->payments->first(fn($p) => $p->notes)?->notes; @endphp
+                @if($res->notes){{ $res->notes }}@endif
+                @if($res->notes && $payNote) — @endif
+                @if($payNote){{ $payNote }}@endif
+                @if(!$res->notes && !$payNote)—@endif
+            </td>
         </tr>
         @endforeach
     </tbody>

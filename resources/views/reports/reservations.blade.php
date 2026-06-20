@@ -46,20 +46,20 @@
         </div>
 
         {{-- Period Label --}}
-        <div class="mr-auto text-xs text-gray-400 self-end pb-1">
+        <div class="text-xs text-gray-400 self-end pb-1">
             {{ \Carbon\Carbon::parse($from)->format('d/m/Y') }} — {{ \Carbon\Carbon::parse($to)->format('d/m/Y') }}
         </div>
     </form>
-    <div class="mr-auto flex gap-2 mt-2">
+    <div class="mr-auto flex gap-2 items-end">
         <a href="{{ route('reports.reservations.pdf', ['from' => $from, 'to' => $to]) }}"
            class="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-            تصدير PDF
+            PDF
         </a>
         <a href="{{ route('reports.reservations.excel', ['from' => $from, 'to' => $to]) }}"
            class="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-            تصدير Excel
+            Excel
         </a>
     </div>
 </div>
@@ -151,18 +151,7 @@
                         @endphp
                         <span class="px-2 py-0.5 rounded-full text-xs font-medium {{ $psBg }}">{{ $psLabel }}</span>
                     </td>
-                    <td class="px-3 py-2.5 max-w-[200px]">
-                        @php $payNote = $r->payments->first(fn($p) => $p->notes)?->notes; @endphp
-                        @if($r->notes)
-                        <div class="text-amber-700 text-xs bg-amber-50 rounded px-1.5 py-0.5 mb-0.5">{{ $r->notes }}</div>
-                        @endif
-                        @if($payNote)
-                        <div class="text-blue-700 text-xs bg-blue-50 rounded px-1.5 py-0.5">💱 {{ $payNote }}</div>
-                        @endif
-                        @if(!$r->notes && !$payNote)
-                        <span class="text-gray-300 text-xs">—</span>
-                        @endif
-                    </td>
+                    <td class="px-3 py-2.5 text-gray-500 max-w-[150px] truncate" title="{{ $r->notes }}">{{ $r->notes ?? '—' }}</td>
                 </tr>
                 @endforeach
             </tbody>

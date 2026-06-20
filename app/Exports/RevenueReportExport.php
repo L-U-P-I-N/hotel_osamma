@@ -15,36 +15,38 @@ class RevenueReportExport implements FromCollection, WithHeadings, WithMapping, 
 
     public function collection()
     {
-        return Payment::with('reservation.room.roomType')
+        return Payment::with(['reservation.room.roomType', 'reservation.guest'])
             ->whereDate('payment_date', '>=', $this->from)
             ->whereDate('payment_date', '<=', $this->to)
             ->where('currency', 'YER')
+            ->orderBy('payment_date')
             ->get();
     }
 
     public function headings(): array
     {
-        return [
-            'التاريخ', 'الغرفة', 'نوع الغرفة', 'طريقة الدفع', 'المبلغ (ر.ي)', 'ملاحظات',
-        ];
+        return ['تاريخ الدفع', 'الغرفة', 'نوع الغرفة', 'النزيل', 'طريقة الدفع', 'المبلغ (ر.ي)', 'ملاحظات'];
     }
 
-    public function map($payment): array
+    public function map($p): array
     {
+        $methodLabels = ['cash' => 'نقدي', 'pos' => 'POS', 'bank_transfer' => 'تحويل بنكي'];
+
         return [
-            $payment->payment_date?->format('Y-m-d'),
-            $payment->reservation?->room?->room_number,
-            $payment->reservation?->room?->roomType?->name,
-            $payment->method,
-            $payment->amount,
-            $payment->notes,
+            $p->payment_date?->format('Y/m/d') ?? '',
+            $p->reservation?->room?->room_number ?? '',
+            $p->reservation?->room?->roomType?->name ?? '',
+            $p->reservation?->guest?->full_name ?? '',
+            $methodLabels[$p->method] ?? $p->method ?? '',
+            number_format($p->amount, 2),
+            $p->notes ?? '',
         ];
     }
 
     public function styles(Worksheet $sheet): array
     {
         return [
-            1 => ['font' => ['color' => ['rgb' => 'FFFFFF'], 'bold' => true], 'fill' => ['fillType' => 'solid', 'color' => ['rgb' => '0F4C75']]],
+            1 => ['font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']], 'fill' => ['fillType' => 'solid', 'color' => ['rgb' => '0F4C75']]],
         ];
     }
 }
