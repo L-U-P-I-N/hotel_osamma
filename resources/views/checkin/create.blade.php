@@ -475,14 +475,18 @@
                     </button>
                 </div>
                 <div class="flex items-center gap-3">
-                    <input type="number" min="0" step="100"
+                    <input type="number" min="3000" max="100000" step="100"
                            :placeholder="'السعر الأصلي: ' + formatNumber(roomBasePriceFor('YER'))"
                            x-model.number="customPrice"
                            @input="calcTotal()"
                            class="flex-1 border border-amber-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-amber-400 outline-none bg-white">
                     <span class="text-sm text-amber-700 font-medium whitespace-nowrap">ر.ي / ليلة</span>
                 </div>
-                <p class="text-xs text-amber-600 mt-1.5">اتركه فارغاً لاستخدام السعر الأصلي للغرفة بالريال اليمني</p>
+                <p class="text-xs text-amber-600 mt-1.5">اتركه فارغاً لاستخدام السعر الأصلي — النطاق المسموح: 3,000 إلى 100,000 ر.ي</p>
+                <p x-show="customPrice !== null && customPrice !== '' && (parseFloat(customPrice) < 3000 || parseFloat(customPrice) > 100000)"
+                   class="text-xs text-red-600 mt-1 font-medium">
+                    السعر خارج النطاق المسموح (3,000 — 100,000 ر.ي)
+                </p>
             </div>
         </div>
 
@@ -916,6 +920,11 @@ function checkInWizard() {
                 if (!this.checkInDate)              return 'تاريخ الدخول مطلوب';
                 if (!this.checkOutDate)             return 'تاريخ الخروج مطلوب';
                 if (this.nights <= 0)               return 'تاريخ الخروج يجب أن يكون بعد تاريخ الدخول';
+                if (this.customPrice !== null && this.customPrice !== '') {
+                    const cp = parseFloat(this.customPrice) || 0;
+                    if (cp < 3000)       return 'مبلغ التفاوض لا يمكن أن يقل عن 3,000 ر.ي';
+                    if (cp > 100000)     return 'مبلغ التفاوض لا يمكن أن يتجاوز 100,000 ر.ي';
+                }
                 if (this.effectiveRoomPrice() <= 0) return 'لا يوجد سعر للغرفة بالعملة المختارة — أدخل السعر يدوياً';
                 if (this.paymentStatus === 'partial' && (parseFloat(this.paidAmount) || 0) <= 0) return 'يرجى إدخال المبلغ المدفوع';
                 if (this.paymentStatus === 'partial' && (parseFloat(this.paidAmount) || 0) > this.totalAmount) return `المبلغ المدفوع يتجاوز إجمالي الحجز (${this.totalAmount.toLocaleString('ar-SA')} ر.ي)`;
