@@ -86,8 +86,8 @@
                     $statusColors = ['checked_in'=>'bg-green-100 text-green-800','checked_out'=>'bg-gray-100 text-gray-800'];
                     $payColors = ['unpaid'=>'bg-red-100 text-red-800','partial'=>'bg-yellow-100 text-yellow-800','paid'=>'bg-green-100 text-green-800','deferred'=>'bg-purple-100 text-purple-800'];
                 @endphp
-                <tr class="hover:bg-gray-50 transition-colors cursor-pointer"
-                    ondblclick="window.location='{{ route('reservations.show', $res) }}'">
+                <tr class="hover:bg-blue-50 transition-colors cursor-pointer"
+                    onclick="if(!event.target.closest('a,button,form')) window.location='{{ route('reservations.show', $res) }}'">
                     <td class="px-4 py-3 text-gray-400 text-xs">#{{ $res->id }}</td>
                     <td class="px-4 py-3">
                         <div class="font-medium text-gray-800">{{ $res->guest?->full_name ?? '—' }}</div>
