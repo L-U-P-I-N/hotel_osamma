@@ -40,7 +40,8 @@ class DailyReportExport extends StringValueBinder implements
     {
         $idTypeMap = ['national_id' => 'بطاقة', 'passport' => 'جواز', 'residence' => 'إقامة'];
         $companions = $res->companions->count();
-        $payNote    = $res->payments->first(fn($p) => $p->notes)?->notes;
+        $rawPayNote = $res->payments->first(fn($p) => $p->notes)?->notes;
+        $payNote    = $rawPayNote ? '💱 ' . $rawPayNote : null;
 
         return [
             $res->room?->room_number ?? '',
