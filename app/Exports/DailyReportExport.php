@@ -15,7 +15,7 @@ class DailyReportExport implements FromCollection, WithHeadings, WithMapping, Wi
 
     public function collection()
     {
-        return Reservation::with(['guest', 'room', 'companions'])
+        return Reservation::with(['guest', 'room', 'companions', 'payments'])
             ->whereDate('check_in_date', '<=', $this->date)
             ->whereDate('check_out_date', '>=', $this->date)
             ->whereIn('status', ['checked_in', 'confirmed'])
@@ -56,7 +56,10 @@ class DailyReportExport implements FromCollection, WithHeadings, WithMapping, Wi
             number_format($res->paid_amount, 0),
             number_format($res->total_amount, 0),
             $res->guest?->phone ?? '',
-            $res->notes ?? '',
+            collect(array_filter([
+                $res->notes,
+                $res->payments->first(fn($p) => $p->notes)?->notes,
+            ]))->implode(' | '),
         ];
     }
 
