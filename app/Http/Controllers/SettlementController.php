@@ -1,7 +1,6 @@
 <?php
 namespace App\Http\Controllers;
 
-use App\Models\Expense;
 use App\Services\CashSettlementService;
 use Illuminate\Http\Request;
 
@@ -12,28 +11,10 @@ class SettlementController extends Controller
     public function index()
     {
         $settlement = $this->service->getOrCreateTodaySettlement(auth()->user());
-        $settlement->load(['withdrawals', 'user', 'lockedBy']);
+        $settlement->load(['withdrawals.expense', 'user', 'lockedBy']);
         $perCurrency = $this->service->getPerCurrencyTotals($settlement);
 
-        // Fetch module expenses for today (linked to active shift or by date)
-        $activeShift = \App\Models\Shift::where('is_closed', false)->latest()->first();
-        $moduleExpenses = Expense::with('supplier')
-            ->where(function ($q) use ($activeShift) {
-                if ($activeShift) {
-                    $q->where('shift_id', $activeShift->id)
-                      ->orWhereDate('expense_date', today());
-                } else {
-                    $q->whereDate('expense_date', today());
-                }
-            })
-            ->orderBy('expense_date', 'desc')
-            ->get();
-
-        // Totals per currency for module expenses
-        $moduleExpenseTotals = $moduleExpenses->groupBy('currency')
-            ->map(fn($g) => $g->sum('amount'));
-
-        return view('settlement.index', compact('settlement', 'perCurrency', 'moduleExpenses', 'moduleExpenseTotals'));
+        return view('settlement.index', compact('settlement', 'perCurrency'));
     }
 
     public function addWithdrawal(Request $request)
@@ -45,22 +26,22 @@ class SettlementController extends Controller
             'withdrawn_by_name'    => 'required|string',
             'handed_by_name'       => 'required|string',
             'notes'                => 'nullable|string',
-            'withdrawal_type'      => 'required|in:expense,currency_exchange',
-            'exchange_to_currency' => 'nullable|required_if:withdrawal_type,currency_exchange|in:YER,SAR,USD',
-            'exchange_to_amount'   => 'nullable|required_if:withdrawal_type,currency_exchange|numeric|min:0.01',
+            'withdrawal_type'      => 'required|in:currency_exchange',
+            'exchange_to_currency' => 'required|in:YER,SAR,USD',
+            'exchange_to_amount'   => 'required|numeric|min:0.01',
         ]);
 
         $settlement = $this->service->getOrCreateTodaySettlement(auth()->user());
-        $withdrawal = $this->service->addWithdrawal($settlement, $request->all());
+        $this->service->addWithdrawal($settlement, $request->all());
 
-        return back()->with('success', 'تم إضافة السحب بنجاح');
+        return back()->with('success', 'تم تسجيل صرف العملة بنجاح');
     }
 
     public function saveSignatures(Request $request)
     {
         $request->validate([
             'employee_signature' => 'required|string',
-            'admin_signature' => 'required|string',
+            'admin_signature'    => 'required|string',
         ]);
 
         $settlement = $this->service->getOrCreateTodaySettlement(auth()->user());

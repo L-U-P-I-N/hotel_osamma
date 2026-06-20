@@ -1,9 +1,11 @@
 <?php
-
 namespace App\Http\Controllers;
 
+use App\Models\CashSettlement;
 use App\Models\CashWithdrawal;
 use App\Models\Expense;
+use App\Models\Shift;
+use App\Services\CashSettlementService;
 use Illuminate\Http\Request;
 
 class ExpenseController extends Controller
@@ -36,33 +38,14 @@ class ExpenseController extends Controller
                   ->orWhere('description', 'like', '%' . $request->input('search') . '%');
             });
         }
-
-        $expenses = $query->paginate(25)->withQueryString();
-
-        // سحبيات الورديات (مصروف فقط، بدون صرف عملة)
-        $wQuery = CashWithdrawal::with('shift.user')
-            ->where(function ($q) {
-                $q->where('withdrawal_type', 'expense')->orWhereNull('withdrawal_type');
-            })
-            ->orderByDesc('withdrawal_date');
-
-        if ($request->filled('date_from')) {
-            $wQuery->whereDate('withdrawal_date', '>=', $request->input('date_from'));
-        }
-        if ($request->filled('date_to')) {
-            $wQuery->whereDate('withdrawal_date', '<=', $request->input('date_to'));
-        }
-        if ($request->filled('search')) {
-            $wQuery->where(function ($q) use ($request) {
-                $q->where('withdrawn_by_name', 'like', '%' . $request->input('search') . '%')
-                  ->orWhere('notes', 'like', '%' . $request->input('search') . '%');
-            });
+        if ($request->filled('payment_method')) {
+            $query->where('payment_method', $request->input('payment_method'));
         }
 
-        $withdrawals = $wQuery->get();
-        $categories  = $this->categories;
+        $expenses   = $query->paginate(25)->withQueryString();
+        $categories = $this->categories;
 
-        return view('expenses.index', compact('expenses', 'categories', 'withdrawals'));
+        return view('expenses.index', compact('expenses', 'categories'));
     }
 
     public function create()
@@ -79,17 +62,23 @@ class ExpenseController extends Controller
             'recipient_name' => 'nullable|string|max:255',
             'description'    => 'nullable|string',
             'expense_date'   => 'required|date',
+            'payment_method' => 'required|in:cash,bank_transfer,later',
         ]);
 
-        $data['currency'] = 'YER';
-        $data['paid_by']  = auth()->id();
+        $data['currency']       = 'YER';
+        $data['paid_by']        = auth()->id();
+        $data['payment_method'] = $request->input('payment_method', 'cash');
 
-        $activeShift = \App\Models\Shift::where('is_closed', false)->latest()->first();
+        $activeShift = Shift::where('is_closed', false)->latest()->first();
         if ($activeShift) {
             $data['shift_id'] = $activeShift->id;
         }
 
-        Expense::create($data);
+        $expense = Expense::create($data);
+
+        if ($expense->isPaidFromCash()) {
+            $this->syncWithdrawal($expense, $activeShift);
+        }
 
         return redirect()->route('expenses.index')->with('success', 'تم تسجيل المصروف بنجاح');
     }
@@ -108,17 +97,31 @@ class ExpenseController extends Controller
             'recipient_name' => 'nullable|string|max:255',
             'description'    => 'nullable|string',
             'expense_date'   => 'required|date',
+            'payment_method' => 'required|in:cash,bank_transfer,later',
         ]);
 
         $data['currency'] = 'YER';
         $expense->update($data);
+        $expense->refresh();
+
+        if ($expense->isPaidFromCash()) {
+            $activeShift = Shift::where('is_closed', false)->latest()->first();
+            $this->syncWithdrawal($expense, $activeShift);
+        } else {
+            // طريقة الدفع تغيّرت → احذف السحب المرتبط
+            $expense->cashWithdrawal()?->delete();
+            $this->recomputeSettlement($expense);
+        }
 
         return redirect()->route('expenses.index')->with('success', 'تم تحديث المصروف بنجاح');
     }
 
     public function destroy(Expense $expense)
     {
+        $expense->cashWithdrawal()?->delete();
+        $this->recomputeSettlement($expense);
         $expense->delete();
+
         return redirect()->route('expenses.index')->with('success', 'تم حذف المصروف بنجاح');
     }
 
@@ -134,6 +137,9 @@ class ExpenseController extends Controller
         if ($request->filled('category')) {
             $query->where('category', $request->input('category'));
         }
+        if ($request->filled('payment_method')) {
+            $query->where('payment_method', $request->input('payment_method'));
+        }
 
         $expenses = $query->orderBy('expense_date', 'desc')->get();
         $total    = $expenses->sum('amount');
@@ -143,25 +149,68 @@ class ExpenseController extends Controller
             'total' => $g->sum('amount'),
         ]);
 
-        // سحبيات الورديات في نفس الفترة (مصروف فقط)
-        $withdrawals = CashWithdrawal::with('shift.user')
-            ->where(function ($q) {
-                $q->where('withdrawal_type', 'expense')->orWhereNull('withdrawal_type');
-            })
-            ->whereDate('withdrawal_date', '>=', $dateFrom)
-            ->whereDate('withdrawal_date', '<=', $dateTo)
-            ->orderByDesc('withdrawal_date')
-            ->get();
-
-        $withdrawalsTotal = $withdrawals->sum('amount');
-        $grandTotal       = $total + $withdrawalsTotal;
+        $byMethod = $expenses->groupBy('payment_method')->map(fn($g) => [
+            'count' => $g->count(),
+            'total' => $g->sum('amount'),
+        ]);
 
         $categories = $this->categories;
 
         return view('expenses.report', compact(
-            'expenses', 'total', 'byCategory',
-            'withdrawals', 'withdrawalsTotal', 'grandTotal',
+            'expenses', 'total', 'byCategory', 'byMethod',
             'dateFrom', 'dateTo', 'categories'
         ));
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────
+
+    private function syncWithdrawal(Expense $expense, ?Shift $shift): void
+    {
+        $settlement = $this->getOrCreateSettlement(auth()->user());
+        if (!$settlement) {
+            return;
+        }
+
+        $withdrawal = CashWithdrawal::where('expense_id', $expense->id)->first();
+
+        $payload = [
+            'cash_settlement_id' => $settlement->id,
+            'shift_id'           => $shift?->id,
+            'expense_id'         => $expense->id,
+            'amount'             => $expense->amount,
+            'currency'           => $expense->currency,
+            'withdrawal_date'    => now(),
+            'withdrawn_by_name'  => $expense->recipient_name ?? '—',
+            'handed_by_name'     => auth()->user()->name,
+            'notes'              => $expense->description ?? \App\Models\Expense::categoryLabel($expense->category),
+            'withdrawal_type'    => 'expense',
+        ];
+
+        if ($withdrawal) {
+            $withdrawal->update($payload);
+        } else {
+            CashWithdrawal::create($payload);
+        }
+
+        app(CashSettlementService::class)->computeTotals($settlement);
+    }
+
+    private function getOrCreateSettlement(\App\Models\User $user): ?CashSettlement
+    {
+        return CashSettlement::firstOrCreate(
+            ['user_id' => $user->id, 'shift_date' => today()],
+            ['status' => 'open', 'total_received' => 0, 'total_withdrawals' => 0, 'net_balance' => 0]
+        );
+    }
+
+    private function recomputeSettlement(Expense $expense): void
+    {
+        $settlement = CashSettlement::where('user_id', auth()->id())
+            ->where('shift_date', $expense->expense_date)
+            ->first();
+
+        if ($settlement) {
+            app(CashSettlementService::class)->computeTotals($settlement);
+        }
     }
 }

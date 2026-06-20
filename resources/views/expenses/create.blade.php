@@ -42,8 +42,25 @@
         </div>
 
         <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">طريقة الدفع *</label>
+            <div class="grid grid-cols-3 gap-2" x-data="{ method: '{{ old('payment_method', 'cash') }}' }">
+                @foreach(['cash' => ['label' => 'نقداً من الصندوق', 'color' => 'green'], 'bank_transfer' => ['label' => 'تحويل بنكي', 'color' => 'blue'], 'later' => ['label' => 'لاحقاً', 'color' => 'gray']] as $val => $opt)
+                <label class="relative cursor-pointer">
+                    <input type="radio" name="payment_method" value="{{ $val }}" x-model="method"
+                           class="sr-only peer" {{ old('payment_method', 'cash') === $val ? 'checked' : '' }}>
+                    <div class="rounded-lg border-2 px-3 py-2.5 text-center text-sm font-medium transition
+                                peer-checked:border-{{ $opt['color'] }}-500 peer-checked:bg-{{ $opt['color'] }}-50 peer-checked:text-{{ $opt['color'] }}-700
+                                border-gray-200 text-gray-500 hover:border-gray-300">
+                        {{ $opt['label'] }}
+                    </div>
+                </label>
+                @endforeach
+            </div>
+        </div>
+
+        <div>
             <label class="block text-sm font-medium text-gray-700 mb-1.5">اسم المستلم</label>
-            <input type="text" name="recipient_name" value="{{ old('recipient_name') }}" placeholder="اسم الشخص الذي صرف له المبلغ"
+            <input type="text" name="recipient_name" value="{{ old('recipient_name') }}" placeholder="اسم الشخص الذي صُرف له المبلغ"
                    class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-blue-400">
         </div>
 
@@ -51,6 +68,10 @@
             <label class="block text-sm font-medium text-gray-700 mb-1.5">الوصف / الملاحظات</label>
             <textarea name="description" rows="3" placeholder="وصف تفصيلي للمصروف..."
                       class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none resize-none focus:border-blue-400">{{ old('description') }}</textarea>
+        </div>
+
+        <div class="bg-green-50 border border-green-200 rounded-lg p-3 text-xs text-green-700" x-data="{ method: '{{ old('payment_method', 'cash') }}' }" x-show="method === 'cash'">
+            سيُخصم هذا المبلغ تلقائياً من صندوق التسوية النقدية اليوم.
         </div>
 
         <div class="flex gap-3 pt-2">

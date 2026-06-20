@@ -19,6 +19,7 @@ class Expense extends Model
         'expense_date',
         'paid_by',
         'shift_id',
+        'payment_method',
     ];
 
     protected $casts = [
@@ -34,6 +35,26 @@ class Expense extends Model
     public function shift()
     {
         return $this->belongsTo(\App\Models\Shift::class);
+    }
+
+    public function cashWithdrawal()
+    {
+        return $this->hasOne(CashWithdrawal::class);
+    }
+
+    public function isPaidFromCash(): bool
+    {
+        return $this->payment_method === 'cash';
+    }
+
+    public static function paymentMethodLabel(string $method): string
+    {
+        return match ($method) {
+            'cash'          => 'نقداً من الصندوق',
+            'bank_transfer' => 'تحويل بنكي',
+            'later'         => 'لاحقاً',
+            default         => $method,
+        };
     }
 
     public static function categoryLabel(string $category): string

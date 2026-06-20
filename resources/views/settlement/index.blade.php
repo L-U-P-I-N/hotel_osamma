@@ -2,9 +2,7 @@
 @section('title', 'التسوية النقدية')
 @section('page-title', 'التسوية النقدية اليومية')
 
-@php
-$currencyLabels = ['YER' => 'ريال يمني', 'SAR' => 'ريال سعودي', 'USD' => 'دولار أمريكي'];
-@endphp
+@php $currencyLabels = ['YER' => 'ريال يمني', 'SAR' => 'ريال سعودي', 'USD' => 'دولار أمريكي']; @endphp
 
 @section('content')
 <div x-data="settlementPage()" x-init="init()" dir="rtl">
@@ -87,14 +85,12 @@ $currencyLabels = ['YER' => 'ريال يمني', 'SAR' => 'ريال سعودي',
     </div>
     <div class="overflow-x-auto">
         <table class="w-full text-sm" dir="rtl">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">التاريخ</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الغرفة</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المبلغ</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">العملة</th>
-                </tr>
-            </thead>
+            <thead class="bg-gray-50"><tr>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">التاريخ</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الغرفة</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المبلغ</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">العملة</th>
+            </tr></thead>
             <tbody class="divide-y divide-gray-50">
                 @foreach($perCurrency['payment_details'] as $p)
                 <tr class="hover:bg-gray-50">
@@ -114,149 +110,107 @@ $currencyLabels = ['YER' => 'ريال يمني', 'SAR' => 'ريال سعودي',
 </div>
 @endif
 
-<!-- Expenses Table -->
-@php $expenses = $settlement->withdrawals->where('withdrawal_type', 'expense'); @endphp
+<!-- Cash Expenses (auto-synced from expense module) -->
+@php $cashExpenses = $settlement->withdrawals->where('withdrawal_type', 'expense'); @endphp
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-5">
     <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-        <h3 class="font-semibold text-gray-700">المصروفات والسحوبات</h3>
+        <div>
+            <h3 class="font-semibold text-gray-700">المصروفات النقدية من الصندوق</h3>
+            <p class="text-xs text-gray-400 mt-0.5">تُسجَّل من وحدة المصروفات وتُخصم تلقائياً</p>
+        </div>
         @if($settlement->status === 'open')
-        @can('settlement.manage')
-        <button @click="withdrawalModal=true"
-                class="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm transition" style="background:#0F4C75;">
+        @can('expenses.create')
+        <a href="{{ route('expenses.create') }}"
+           class="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm transition" style="background:#0F4C75;">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-            إضافة سحب / صرف
-        </button>
+            تسجيل مصروف
+        </a>
         @endcan
         @endif
     </div>
     <div class="overflow-x-auto">
         <table class="w-full text-sm" dir="rtl">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">التاريخ</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المبلغ</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المستلم</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المسلِّم</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">ملاحظات</th>
-                </tr>
-            </thead>
+            <thead class="bg-gray-50"><tr>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">التاريخ</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الفئة</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المبلغ</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المستلم</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">البيان</th>
+            </tr></thead>
             <tbody class="divide-y divide-gray-50">
-                @forelse($expenses as $w)
+                @forelse($cashExpenses as $w)
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 text-gray-600">{{ \Carbon\Carbon::parse($w->withdrawal_date)->format('d/m/Y H:i') }}</td>
+                    <td class="px-4 py-3">
+                        @if($w->expense)
+                        <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                            {{ \App\Models\Expense::categoryLabel($w->expense->category) }}
+                        </span>
+                        @else
+                        <span class="text-gray-400 text-xs">—</span>
+                        @endif
+                    </td>
                     <td class="px-4 py-3 font-bold text-red-600">{{ number_format($w->amount, 2) }} {{ $currencyLabels[$w->currency] ?? $w->currency }}</td>
                     <td class="px-4 py-3 text-gray-700">{{ $w->withdrawn_by_name }}</td>
-                    <td class="px-4 py-3 text-gray-700">{{ $w->handed_by_name }}</td>
-                    <td class="px-4 py-3 text-gray-500">{{ $w->notes ?: '-' }}</td>
+                    <td class="px-4 py-3 text-gray-500">{{ $w->notes ?: '—' }}</td>
                 </tr>
                 @empty
-                <tr><td colspan="5" class="px-4 py-6 text-center text-gray-400 text-sm">لا توجد مصروفات</td></tr>
+                <tr><td colspan="5" class="px-4 py-6 text-center text-gray-400 text-sm">لا توجد مصروفات نقدية — سجّل مصروفاً من وحدة المصروفات</td></tr>
                 @endforelse
             </tbody>
         </table>
     </div>
 </div>
 
-<!-- Module Expenses Section -->
-@if($moduleExpenses->isNotEmpty())
+<!-- Currency Exchange Section -->
+@php $exchanges = $perCurrency['exchanges']; @endphp
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-5">
     <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-        <h3 class="font-semibold text-gray-700">مصروفات اليوم (من وحدة المصروفات)</h3>
-        @can('expenses.view')
-        <a href="{{ route('expenses.index') }}" class="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition">
-            عرض الكل
-        </a>
-        @endcan
-    </div>
-    <!-- Per-currency totals for module expenses -->
-    @php $currencyLabels = ['YER' => 'ريال يمني', 'SAR' => 'ريال سعودي', 'USD' => 'دولار أمريكي']; @endphp
-    @if($moduleExpenseTotals->isNotEmpty())
-    <div class="px-6 py-3 flex flex-wrap gap-4 border-b border-gray-50 bg-red-50">
-        @foreach($moduleExpenseTotals as $cur => $total)
-        <div class="flex items-center gap-2">
-            <span class="text-xs text-gray-500">{{ $currencyLabels[$cur] ?? $cur }}:</span>
-            <span class="text-sm font-bold text-red-600">{{ number_format($total, 2) }}</span>
-        </div>
-        @endforeach
-    </div>
-    @endif
-    <div class="overflow-x-auto">
-        <table class="w-full text-sm" dir="rtl">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">التاريخ</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الفئة</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المبلغ</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">العملة</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المورد</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الوصف</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-50">
-                @foreach($moduleExpenses as $me)
-                <tr class="hover:bg-gray-50">
-                    <td class="px-4 py-3 text-gray-600">{{ $me->expense_date->format('d/m/Y') }}</td>
-                    <td class="px-4 py-3">
-                        <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                            {{ \App\Models\Expense::categoryLabel($me->category) }}
-                        </span>
-                    </td>
-                    <td class="px-4 py-3 font-bold text-red-600">{{ number_format($me->amount, 2) }}</td>
-                    <td class="px-4 py-3">
-                        <span class="px-2 py-0.5 rounded text-xs font-medium" style="background:#e8f0f7; color:#0F4C75;">{{ $me->currency }}</span>
-                    </td>
-                    <td class="px-4 py-3 text-gray-600">{{ $me->recipient_name ?? '-' }}</td>
-                    <td class="px-4 py-3 text-gray-500">{{ $me->description ?? '-' }}</td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </div>
-</div>
-@endif
-
-<!-- Currency Exchange Section -->
-@if($perCurrency['exchanges']->isNotEmpty())
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-5">
-    <div class="px-6 py-4 border-b border-gray-100">
         <h3 class="font-semibold text-gray-700">صرف العملات</h3>
+        @if($settlement->status === 'open')
+        @can('settlement.manage')
+        <button @click="withdrawalModal=true"
+                class="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg text-sm hover:bg-orange-600 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            إضافة صرف عملة
+        </button>
+        @endcan
+        @endif
     </div>
+    @if($exchanges->isNotEmpty())
     <div class="overflow-x-auto">
         <table class="w-full text-sm" dir="rtl">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">التاريخ</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">العملة المُعطاة</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">العملة المستلمة</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المستلم</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">ملاحظات</th>
-                </tr>
-            </thead>
+            <thead class="bg-gray-50"><tr>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">التاريخ</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المُعطى</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المستلم</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المستلم من</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">ملاحظات</th>
+            </tr></thead>
             <tbody class="divide-y divide-gray-50">
-                @foreach($perCurrency['exchanges'] as $ex)
-                <tr class="hover:bg-gray-50">
+                @foreach($exchanges as $ex)
+                <tr class="hover:bg-orange-50/30">
                     <td class="px-4 py-3 text-gray-600">{{ \Carbon\Carbon::parse($ex->withdrawal_date)->format('d/m/Y H:i') }}</td>
-                    <td class="px-4 py-3">
-                        <span class="font-bold text-red-600">{{ number_format($ex->amount, 2) }}</span>
-                        <span class="text-xs text-gray-500 mr-1">{{ $currencyLabels[$ex->currency] ?? $ex->currency }}</span>
+                    <td class="px-4 py-3 font-bold text-red-600">
+                        {{ number_format($ex->amount, 2) }} {{ $currencyLabels[$ex->currency] ?? $ex->currency }}
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 font-bold text-green-700">
                         @if($ex->exchange_to_amount)
-                        <span class="font-bold text-green-700">{{ number_format($ex->exchange_to_amount, 2) }}</span>
-                        <span class="text-xs text-gray-500 mr-1">{{ $currencyLabels[$ex->exchange_to_currency] ?? $ex->exchange_to_currency }}</span>
-                        @else
-                        <span class="text-gray-400">-</span>
+                        {{ number_format($ex->exchange_to_amount, 2) }} {{ $currencyLabels[$ex->exchange_to_currency] ?? $ex->exchange_to_currency }}
+                        @else —
                         @endif
                     </td>
                     <td class="px-4 py-3 text-gray-700">{{ $ex->withdrawn_by_name }}</td>
-                    <td class="px-4 py-3 text-gray-500">{{ $ex->notes ?: '-' }}</td>
+                    <td class="px-4 py-3 text-gray-500">{{ $ex->notes ?: '—' }}</td>
                 </tr>
                 @endforeach
             </tbody>
         </table>
     </div>
+    @else
+    <div class="px-4 py-6 text-center text-gray-400 text-sm">لا توجد عمليات صرف عملة اليوم</div>
+    @endif
 </div>
-@endif
 
 <!-- Signatures -->
 @can('settlement.manage')
@@ -309,28 +263,19 @@ $currencyLabels = ['YER' => 'ريال يمني', 'SAR' => 'ريال سعودي',
 @endif
 @endcan
 
-<!-- Withdrawal / Exchange Modal -->
+<!-- Currency Exchange Modal -->
 <div x-show="withdrawalModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="withdrawalModal=false">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-screen overflow-y-auto">
         <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h3 class="font-bold text-gray-800">إضافة سحب / صرف عملة</h3>
+            <h3 class="font-bold text-gray-800">صرف عملة</h3>
             <button @click="withdrawalModal=false" class="text-gray-400 hover:text-gray-600">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>
-        <form method="POST" action="{{ route('settlement.withdrawal') }}" class="p-6 space-y-4" x-data="{ txType: 'expense' }">
+        <form method="POST" action="{{ route('settlement.withdrawal') }}" class="p-6 space-y-4">
             @csrf
+            <input type="hidden" name="withdrawal_type" value="currency_exchange">
 
-            <!-- Transaction Type -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1.5">نوع المعاملة *</label>
-                <select name="withdrawal_type" x-model="txType" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none">
-                    <option value="expense">مصروف</option>
-                    <option value="currency_exchange">صرف عملة</option>
-                </select>
-            </div>
-
-            <!-- Amount & Currency (given / out) -->
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">المبلغ المُعطى *</label>
@@ -340,21 +285,22 @@ $currencyLabels = ['YER' => 'ريال يمني', 'SAR' => 'ريال سعودي',
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">عملته</label>
                     <select name="currency" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none">
                         <option value="YER">ريال يمني</option>
+                        <option value="SAR">ريال سعودي</option>
+                        <option value="USD">دولار أمريكي</option>
                     </select>
                 </div>
             </div>
 
-            <!-- Exchange fields (shown only when currency_exchange) -->
-            <div x-show="txType === 'currency_exchange'" class="grid grid-cols-2 gap-3 border border-orange-200 rounded-lg p-3 bg-orange-50">
+            <div class="grid grid-cols-2 gap-3 border border-orange-200 rounded-lg p-3 bg-orange-50">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">المبلغ المستلم *</label>
-                    <input type="number" name="exchange_to_amount" step="0.01" min="0.01"
-                           :required="txType === 'currency_exchange'"
-                           class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none bg-white">
+                    <input type="number" name="exchange_to_amount" step="0.01" min="0.01" required class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none bg-white">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">عملته</label>
                     <select name="exchange_to_currency" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none bg-white">
+                        <option value="SAR">ريال سعودي</option>
+                        <option value="USD">دولار أمريكي</option>
                         <option value="YER">ريال يمني</option>
                     </select>
                 </div>
@@ -377,8 +323,8 @@ $currencyLabels = ['YER' => 'ريال يمني', 'SAR' => 'ريال سعودي',
                 <label class="block text-sm font-medium text-gray-700 mb-1.5">ملاحظات</label>
                 <textarea name="notes" rows="2" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none resize-none"></textarea>
             </div>
-            <button type="submit" class="w-full text-white py-2.5 rounded-lg font-semibold transition text-sm" style="background:#0F4C75;">
-                حفظ
+            <button type="submit" class="w-full text-white py-2.5 rounded-lg font-semibold transition text-sm bg-orange-500 hover:bg-orange-600">
+                حفظ صرف العملة
             </button>
         </form>
     </div>
