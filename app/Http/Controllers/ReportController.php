@@ -121,15 +121,15 @@ class ReportController extends Controller
 
         $staffData = User::with(['reservations' => function ($q) use ($from, $to) {
             $q->whereDate('check_in_date', '>=', $from)
-              ->whereDate('check_in_date', '<=', $to);
+              ->whereDate('check_in_date', '<=', $to)
+              ->with(['room.roomType', 'guest', 'payments']);
         }])->where('is_active', true)->get()
         ->map(fn($u) => [
-            'user' => $u,
-            'checkins' => $u->reservations->count(),
-            'revenue' => $u->payments()
-                ->whereDate('payment_date', '>=', $from)
-                ->whereDate('payment_date', '<=', $to)
-                ->sum('amount'),
+            'user'         => $u,
+            'checkins'     => $u->reservations->count(),
+            'checked_out'  => $u->reservations->where('status', 'checked_out')->count(),
+            'revenue'      => $u->reservations->sum(fn($r) => $r->payments->sum('amount')),
+            'reservations' => $u->reservations,
         ]);
 
         return view('reports.staff', compact('staffData', 'from', 'to'));

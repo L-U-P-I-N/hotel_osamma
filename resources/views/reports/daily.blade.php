@@ -9,12 +9,12 @@
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
     <div class="flex flex-wrap items-end gap-3">
         <form method="GET" class="flex items-end gap-3 flex-wrap">
-            <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">التاريخ</label>
-                <input type="date" name="date" value="{{ $date }}"
-                       class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+            <div class="flex flex-col gap-1">
+                <label class="text-xs font-medium text-gray-500">التاريخ</label>
+                <input type="date" name="date" value="{{ $date }}" onchange="this.form.submit()"
+                       class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white">
             </div>
-            <button type="submit" class="px-4 py-2 text-white rounded-lg text-sm transition" style="background:#0F4C75;">عرض</button>
+            <button type="submit" class="sr-only">عرض</button>
         </form>
         <div class="mr-auto flex gap-2">
             <a href="{{ route('reports.daily.pdf', ['date' => $date]) }}"

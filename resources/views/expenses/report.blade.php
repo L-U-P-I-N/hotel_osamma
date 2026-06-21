@@ -8,34 +8,41 @@
 <!-- Filter Form -->
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-5">
     <form method="GET" class="flex flex-wrap gap-3 items-end">
-        <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">من تاريخ</label>
-            <input type="date" name="date_from" value="{{ $dateFrom }}" class="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none">
+        <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-500">من تاريخ</label>
+            <input type="date" name="date_from" value="{{ $dateFrom }}" onchange="this.form.submit()"
+                   class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white">
         </div>
-        <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">إلى تاريخ</label>
-            <input type="date" name="date_to" value="{{ $dateTo }}" class="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none">
+        <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-500">إلى تاريخ</label>
+            <input type="date" name="date_to" value="{{ $dateTo }}" onchange="this.form.submit()"
+                   class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white">
         </div>
-        <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">الفئة</label>
-            <select name="category" class="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none">
+        <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-500">الفئة</label>
+            <select name="category" onchange="this.form.submit()"
+                    class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white min-w-[140px]">
                 <option value="">جميع الفئات</option>
                 @foreach($categories as $key => $label)
                 <option value="{{ $key }}" {{ request('category')==$key?'selected':'' }}>{{ $label }}</option>
                 @endforeach
             </select>
         </div>
-        <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">طريقة الدفع</label>
-            <select name="payment_method" class="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none">
+        <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-500">طريقة الدفع</label>
+            <select name="payment_method" onchange="this.form.submit()"
+                    class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white min-w-[140px]">
                 <option value="">الكل</option>
                 <option value="cash" {{ request('payment_method')=='cash'?'selected':'' }}>نقداً من الصندوق</option>
                 <option value="bank_transfer" {{ request('payment_method')=='bank_transfer'?'selected':'' }}>تحويل بنكي</option>
                 <option value="later" {{ request('payment_method')=='later'?'selected':'' }}>لاحقاً</option>
             </select>
         </div>
-        <button type="submit" class="px-4 py-2 text-white rounded-lg text-sm transition" style="background:#0F4C75;">توليد التقرير</button>
-        <a href="{{ route('expenses.index') }}" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200 transition">← القائمة</a>
+        <button type="submit" class="sr-only">عرض</button>
+        <a href="{{ route('expenses.index') }}"
+           class="flex items-center gap-1.5 px-3 py-2 text-xs text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition self-end">
+            ← القائمة
+        </a>
     </form>
 </div>
 

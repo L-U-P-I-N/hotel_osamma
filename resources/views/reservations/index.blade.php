@@ -8,34 +8,36 @@
 <!-- Search & Filters -->
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-5">
     <form method="GET" class="flex flex-wrap gap-3 items-end">
-        <div class="flex-1 min-w-48">
-            <label class="block text-xs font-medium text-gray-600 mb-1">بحث</label>
+        <div class="flex flex-col gap-1 flex-1 min-w-48">
+            <label class="text-xs font-medium text-gray-500">بحث</label>
             <input type="text" name="search" value="{{ request('search') }}"
                    placeholder="اسم النزيل أو رقم الغرفة..."
-                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none">
+                   class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white">
         </div>
-        <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">الحالة</label>
-            <select name="status" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+        <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-500">الحالة</label>
+            <select name="status" onchange="this.form.submit()"
+                    class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white min-w-[140px]">
                 <option value="">جميع الحالات</option>
                 <option value="checked_in" {{ request('status')=='checked_in'?'selected':'' }}>مسجل دخول</option>
                 <option value="checked_out" {{ request('status')=='checked_out'?'selected':'' }}>مسجل خروج</option>
             </select>
         </div>
-        <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">من تاريخ</label>
-            <input type="date" name="from" value="{{ request('from') }}"
-                   class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+        <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-500">من تاريخ</label>
+            <input type="date" name="from" value="{{ request('from') }}" onchange="this.form.submit()"
+                   class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white">
         </div>
-        <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">إلى تاريخ</label>
-            <input type="date" name="to" value="{{ request('to') }}"
-                   class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+        <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-500">إلى تاريخ</label>
+            <input type="date" name="to" value="{{ request('to') }}" onchange="this.form.submit()"
+                   class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white">
         </div>
         @can('users.manage')
-        <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">الموظف</label>
-            <select name="created_by" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+        <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-500">الموظف</label>
+            <select name="created_by" onchange="this.form.submit()"
+                    class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white min-w-[140px]">
                 <option value="">جميع الموظفين</option>
                 @foreach($staff as $employee)
                 <option value="{{ $employee->id }}" {{ request('created_by')==$employee->id?'selected':'' }}>{{ $employee->name }}</option>
@@ -43,8 +45,14 @@
             </select>
         </div>
         @endcan
-        <button type="submit" class="px-4 py-2 bg-primary-800 text-white rounded-lg text-sm hover:bg-primary-700 transition">بحث</button>
-        <a href="{{ route('reservations.index') }}" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200 transition">إعادة تعيين</a>
+        <button type="submit" class="sr-only">بحث</button>
+        @if(request()->hasAny(['search','status','from','to','created_by']))
+        <a href="{{ route('reservations.index') }}"
+           class="flex items-center gap-1.5 px-3 py-2 text-xs text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition self-end">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            مسح
+        </a>
+        @endif
     </form>
 </div>
 

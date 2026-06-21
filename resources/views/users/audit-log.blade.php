@@ -7,18 +7,20 @@
 
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
     <form method="GET" class="flex flex-wrap gap-3 items-end">
-        <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">الموظف</label>
-            <select name="user_id" class="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none">
+        <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-500">الموظف</label>
+            <select name="user_id" onchange="this.form.submit()"
+                    class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white min-w-[160px]">
                 <option value="">جميع الموظفين</option>
                 @foreach($users as $u)
                 <option value="{{ $u->id }}" {{ request('user_id')==$u->id?'selected':'' }}>{{ $u->name }}</option>
                 @endforeach
             </select>
         </div>
-        <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">نوع الحدث</label>
-            <select name="action" class="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none">
+        <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-500">نوع الحدث</label>
+            <select name="action" onchange="this.form.submit()"
+                    class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white min-w-[160px]">
                 <option value="">جميع الأحداث</option>
                 <option value="create" {{ request('action')=='create'?'selected':'' }}>إنشاء</option>
                 <option value="update" {{ request('action')=='update'?'selected':'' }}>تحديث</option>
@@ -29,8 +31,14 @@
                 <option value="view_sensitive" {{ request('action')=='view_sensitive'?'selected':'' }}>بيانات حساسة</option>
             </select>
         </div>
-        <button type="submit" class="px-4 py-2 text-white rounded-lg text-sm transition" style="background:#0F4C75;">فلترة</button>
-        <a href="{{ route('audit.log') }}" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200 transition">إعادة تعيين</a>
+        <button type="submit" class="sr-only">فلترة</button>
+        @if(request()->hasAny(['user_id','action']))
+        <a href="{{ route('audit.log') }}"
+           class="flex items-center gap-1.5 px-3 py-2 text-xs text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition self-end">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            مسح
+        </a>
+        @endif
     </form>
 </div>
 

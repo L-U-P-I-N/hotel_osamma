@@ -25,38 +25,49 @@
 <!-- Filters -->
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-5">
     <form method="GET" class="flex flex-wrap gap-3 items-end">
-        <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">الفئة</label>
-            <select name="category" class="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none">
+        <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-500">الفئة</label>
+            <select name="category" onchange="this.form.submit()"
+                    class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white min-w-[140px]">
                 <option value="">جميع الفئات</option>
                 @foreach($categories as $key => $label)
                 <option value="{{ $key }}" {{ request('category')==$key?'selected':'' }}>{{ $label }}</option>
                 @endforeach
             </select>
         </div>
-        <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">طريقة الدفع</label>
-            <select name="payment_method" class="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none">
+        <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-500">طريقة الدفع</label>
+            <select name="payment_method" onchange="this.form.submit()"
+                    class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white min-w-[140px]">
                 <option value="">الكل</option>
                 <option value="cash" {{ request('payment_method')=='cash'?'selected':'' }}>نقداً من الصندوق</option>
                 <option value="bank_transfer" {{ request('payment_method')=='bank_transfer'?'selected':'' }}>تحويل بنكي</option>
                 <option value="later" {{ request('payment_method')=='later'?'selected':'' }}>لاحقاً</option>
             </select>
         </div>
-        <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">من تاريخ</label>
-            <input type="date" name="date_from" value="{{ request('date_from') }}" class="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none">
+        <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-500">من تاريخ</label>
+            <input type="date" name="date_from" value="{{ request('date_from') }}" onchange="this.form.submit()"
+                   class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white">
         </div>
-        <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">إلى تاريخ</label>
-            <input type="date" name="date_to" value="{{ request('date_to') }}" class="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none">
+        <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-500">إلى تاريخ</label>
+            <input type="date" name="date_to" value="{{ request('date_to') }}" onchange="this.form.submit()"
+                   class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white">
         </div>
-        <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">بحث</label>
-            <input type="text" name="search" value="{{ request('search') }}" placeholder="اسم المستلم أو الوصف..." class="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none w-48">
+        <div class="flex flex-col gap-1 flex-1 min-w-[180px]">
+            <label class="text-xs font-medium text-gray-500">بحث</label>
+            <input type="text" name="search" value="{{ request('search') }}" placeholder="اسم المستلم أو الوصف..."
+                   class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white">
         </div>
-        <button type="submit" class="px-4 py-2 text-white rounded-lg text-sm transition" style="background:#0F4C75;">تصفية</button>
-        <a href="{{ route('expenses.index') }}" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200 transition">إعادة تعيين</a>
+        <button type="submit" class="sr-only">بحث</button>
+        @if(request()->hasAny(['category','payment_method','date_from','date_to','search']))
+        <a href="{{ route('expenses.index') }}"
+           class="flex items-center gap-1.5 px-3 py-2 text-xs text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition self-end">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            مسح
+        </a>
+        @endif
     </form>
 </div>
 

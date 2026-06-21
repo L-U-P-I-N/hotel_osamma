@@ -8,15 +8,17 @@
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
     <div class="flex flex-wrap gap-3 items-end">
     <form method="GET" class="flex flex-wrap gap-3 items-end">
-        <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">من تاريخ</label>
-            <input type="date" name="from" value="{{ $from }}" class="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none">
+        <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-500">من تاريخ</label>
+            <input type="date" name="from" value="{{ $from }}" onchange="this.form.submit()"
+                   class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white">
         </div>
-        <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">إلى تاريخ</label>
-            <input type="date" name="to" value="{{ $to }}" class="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none">
+        <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-500">إلى تاريخ</label>
+            <input type="date" name="to" value="{{ $to }}" onchange="this.form.submit()"
+                   class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white">
         </div>
-        <button type="submit" class="px-4 py-2 text-white rounded-lg text-sm transition" style="background:#0F4C75;">عرض</button>
+        <button type="submit" class="sr-only">عرض</button>
     </form>
     <div class="mr-auto flex gap-2">
         <a href="{{ route('reports.rooms.pdf', ['from' => $from, 'to' => $to]) }}"
