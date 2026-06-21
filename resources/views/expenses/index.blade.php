@@ -55,13 +55,27 @@
             <input type="date" name="date_to" value="{{ request('date_to') }}" onchange="this.form.submit()"
                    class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white">
         </div>
+        <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-500">الوردية</label>
+            <select name="shift_id" onchange="this.form.submit()"
+                    class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white min-w-[180px]">
+                <option value="">جميع الورديات</option>
+                @foreach($availableShifts as $shift)
+                <option value="{{ $shift->id }}" {{ request('shift_id') == $shift->id ? 'selected' : '' }}>
+                    {{ $shift->shift_date->format('d/m/Y') }}
+                    @if(auth()->user()->isAdmin()) — {{ $shift->user->name }} @endif
+                    ({{ $shift->is_closed ? 'مقفلة' : 'مفتوحة' }})
+                </option>
+                @endforeach
+            </select>
+        </div>
         <div class="flex flex-col gap-1 flex-1 min-w-[180px]">
             <label class="text-xs font-medium text-gray-500">بحث</label>
             <input type="text" name="search" value="{{ request('search') }}" placeholder="اسم المستلم أو الوصف..."
                    class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white">
         </div>
         <button type="submit" class="sr-only">بحث</button>
-        @if(request()->hasAny(['category','payment_method','date_from','date_to','search']))
+        @if(request()->hasAny(['category','payment_method','date_from','date_to','search','shift_id']))
         <a href="{{ route('expenses.index') }}"
            class="flex items-center gap-1.5 px-3 py-2 text-xs text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition self-end">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>

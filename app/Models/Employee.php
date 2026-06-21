@@ -27,6 +27,11 @@ class Employee extends Model
         'is_active'   => 'boolean',
     ];
 
+    public function user()
+    {
+        return $this->hasOne(\App\Models\User::class);
+    }
+
     public function attendances()
     {
         return $this->hasMany(Attendance::class);

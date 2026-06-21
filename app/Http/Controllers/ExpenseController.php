@@ -5,6 +5,7 @@ use App\Models\CashSettlement;
 use App\Models\CashWithdrawal;
 use App\Models\Expense;
 use App\Models\Shift;
+use App\Models\User;
 use App\Services\CashSettlementService;
 use Illuminate\Http\Request;
 
@@ -41,11 +42,21 @@ class ExpenseController extends Controller
         if ($request->filled('payment_method')) {
             $query->where('payment_method', $request->input('payment_method'));
         }
+        if ($request->filled('shift_id')) {
+            $query->where('shift_id', $request->input('shift_id'));
+        }
 
         $expenses   = $query->paginate(25)->withQueryString();
         $categories = $this->categories;
 
-        return view('expenses.index', compact('expenses', 'categories'));
+        $user = auth()->user();
+        $shiftsQuery = Shift::with('user')->orderBy('shift_date', 'desc')->orderBy('id', 'desc')->limit(60);
+        if (!$user->isAdmin()) {
+            $shiftsQuery->where('user_id', $user->id);
+        }
+        $availableShifts = $shiftsQuery->get();
+
+        return view('expenses.index', compact('expenses', 'categories', 'availableShifts'));
     }
 
     public function create()
@@ -69,7 +80,7 @@ class ExpenseController extends Controller
         $data['paid_by']        = auth()->id();
         $data['payment_method'] = $request->input('payment_method', 'cash');
 
-        $activeShift = Shift::where('is_closed', false)->latest()->first();
+        $activeShift = Shift::where('is_closed', false)->where('user_id', auth()->id())->latest()->first();
         if ($activeShift) {
             $data['shift_id'] = $activeShift->id;
         }
@@ -105,7 +116,7 @@ class ExpenseController extends Controller
         $expense->refresh();
 
         if ($expense->isPaidFromCash()) {
-            $activeShift = Shift::where('is_closed', false)->latest()->first();
+            $activeShift = Shift::where('is_closed', false)->where('user_id', auth()->id())->latest()->first();
             $this->syncWithdrawal($expense, $activeShift);
         } else {
             // طريقة الدفع تغيّرت → احذف السحب المرتبط (Observer يعيد الحساب تلقائياً)

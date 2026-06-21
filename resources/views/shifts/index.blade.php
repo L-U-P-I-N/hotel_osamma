@@ -57,34 +57,25 @@
     </div>
 </div>
 
-{{-- إجماليات العملات --}}
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
-    @foreach(['yer'=>['label'=>'ريال يمني','symbol'=>'ر.ي'], 'sar'=>['label'=>'ريال سعودي','symbol'=>'ر.س'], 'usd'=>['label'=>'دولار','symbol'=>'$']] as $cur => $info)
-    @php
-        $recv = $activeShift->{'total_received_'.$cur};
-        $wdr  = $activeShift->{'total_withdrawals_'.$cur};
-        $net  = $recv - $wdr;
-    @endphp
-    @if($recv > 0 || $wdr > 0 || $cur === 'yer')
+{{-- إجماليات الوردية (ريال يمني فقط) --}}
+@php
+    $recv = $activeShift->total_received_yer;
+    $wdr  = $activeShift->total_withdrawals_yer;
+    $net  = $recv - $wdr;
+@endphp
+<div class="grid grid-cols-3 gap-4 mb-5">
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-        <p class="text-xs text-gray-500 mb-3 font-medium">{{ $info['label'] }}</p>
-        <div class="space-y-2 text-sm">
-            <div class="flex justify-between">
-                <span class="text-gray-500">مستلمات</span>
-                <span class="font-semibold text-green-700">{{ number_format($recv, 0) }} {{ $info['symbol'] }}</span>
-            </div>
-            <div class="flex justify-between">
-                <span class="text-gray-500">سحبيات</span>
-                <span class="font-semibold text-red-600">{{ number_format($wdr, 0) }} {{ $info['symbol'] }}</span>
-            </div>
-            <div class="flex justify-between border-t border-gray-100 pt-2 mt-2">
-                <span class="text-gray-700 font-medium">الصافي</span>
-                <span class="font-bold {{ $net >= 0 ? 'text-primary-800' : 'text-red-700' }}">{{ number_format($net, 0) }} {{ $info['symbol'] }}</span>
-            </div>
-        </div>
+        <p class="text-xs text-gray-500 mb-1">المستلمات</p>
+        <p class="text-xl font-bold text-green-700">{{ number_format($recv, 0) }} <span class="text-sm font-normal">ر.ي</span></p>
     </div>
-    @endif
-    @endforeach
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <p class="text-xs text-gray-500 mb-1">السحبيات</p>
+        <p class="text-xl font-bold text-red-600">{{ number_format($wdr, 0) }} <span class="text-sm font-normal">ر.ي</span></p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <p class="text-xs text-gray-500 mb-1">الصافي</p>
+        <p class="text-xl font-bold {{ $net >= 0 ? 'text-primary-800' : 'text-red-700' }}">{{ number_format($net, 0) }} <span class="text-sm font-normal">ر.ي</span></p>
+    </div>
 </div>
 
 {{-- المستلمات + السحبيات --}}
@@ -180,29 +171,71 @@
 </div>
 @endif
 
-{{-- ===== ورديات الأدمن على جميع الموظفين ===== --}}
-@if(auth()->user()->isAdmin() && $allActive->where('user_id', '!=', auth()->id())->count() > 0)
+{{-- ===== لوحة الأدمن: حالة صناديق جميع الموظفين ===== --}}
+@if(auth()->user()->isAdmin() && $allUsersStatus->count() > 0)
 <div class="mt-5 bg-white rounded-xl shadow-sm border border-blue-100">
-    <div class="px-5 py-3 border-b border-blue-100 bg-blue-50 rounded-t-xl">
-        <h3 class="font-semibold text-blue-800 text-sm">ورديات مفتوحة لموظفين آخرين</h3>
+    <div class="px-5 py-3 border-b border-blue-100 bg-blue-50 rounded-t-xl flex items-center justify-between">
+        <h3 class="font-semibold text-blue-800 text-sm">حالة صناديق الموظفين</h3>
+        <a href="{{ route('reports.shiftDeficits') }}" class="text-xs text-blue-600 hover:underline flex items-center gap-1">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+            تقرير العجز التراكمي
+        </a>
     </div>
-    <div class="divide-y divide-gray-50">
-        @foreach($allActive->where('user_id', '!=', auth()->id()) as $s)
-        <div class="px-5 py-3 flex items-center justify-between text-sm">
-            <div class="flex items-center gap-3">
-                <span class="font-medium text-gray-700">{{ $s->user->name }}</span>
-                <span class="text-xs text-gray-400">منذ {{ $s->started_at->format('H:i') }}</span>
-            </div>
-            <div class="flex items-center gap-3 text-xs">
-                <span class="text-green-700 font-medium">{{ number_format($s->total_received_yer, 0) }} ر.ي</span>
-                <a href="{{ route('shifts.pdf', $s) }}" target="_blank"
-                   class="flex items-center gap-1 px-2 py-1 border border-gray-200 text-gray-500 rounded hover:bg-gray-50 transition">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-                    PDF
-                </a>
-            </div>
-        </div>
-        @endforeach
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50"><tr>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الموظف</th>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">حالة الوردية</th>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">آخر وردية</th>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الصافي (ر.ي)</th>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الفرق</th>
+                <th class="px-4 py-2"></th>
+            </tr></thead>
+            <tbody class="divide-y divide-gray-50">
+                @foreach($allUsersStatus as $us)
+                @php $ls = $us['lastShift']; @endphp
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-2 font-medium text-gray-800">{{ $us['user']->name }}</td>
+                    <td class="px-4 py-2">
+                        @if($us['isActive'])
+                        <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">مفتوحة</span>
+                        @elseif($ls)
+                        <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">مقفلة</span>
+                        @else
+                        <span class="text-gray-300 text-xs">—</span>
+                        @endif
+                    </td>
+                    <td class="px-4 py-2 text-gray-500 text-xs">{{ $ls?->shift_date->format('d/m/Y') ?? '—' }}</td>
+                    <td class="px-4 py-2 font-medium text-gray-700">
+                        @if($ls)
+                        {{ number_format($ls->total_received_yer - $ls->total_withdrawals_yer, 0) }}
+                        @else —
+                        @endif
+                    </td>
+                    <td class="px-4 py-2">
+                        @if($ls && $ls->shortfall !== null)
+                            @php $sf = $ls->shortfall; @endphp
+                            <span class="px-2 py-0.5 rounded-full text-xs font-semibold
+                                {{ $sf == 0 ? 'bg-green-100 text-green-700' : ($sf < 0 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700') }}">
+                                {{ $sf == 0 ? 'مطابق' : ($sf < 0 ? '▼ '.number_format(abs($sf), 0) : '▲ '.number_format($sf, 0)) }}
+                            </span>
+                        @else
+                            <span class="text-gray-300 text-xs">—</span>
+                        @endif
+                    </td>
+                    <td class="px-4 py-2">
+                        @if($ls)
+                        <a href="{{ route('shifts.pdf', $ls) }}" target="_blank"
+                           class="flex items-center gap-1 px-2 py-1 border border-gray-200 text-gray-500 rounded text-xs hover:bg-gray-50 transition">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                            PDF
+                        </a>
+                        @endif
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
     </div>
 </div>
 @endif
@@ -253,7 +286,7 @@
                         @endif
                     </td>
                     <td class="px-4 py-3">
-                        <div class="flex items-center gap-1.5">
+                        <div class="flex items-center gap-1.5 flex-wrap">
                             <a href="{{ route('shifts.pdf', $s) }}" target="_blank"
                                class="flex items-center gap-1 px-2 py-1 border border-gray-200 text-gray-500 rounded text-xs hover:bg-gray-50 transition">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
@@ -272,6 +305,24 @@
                             </form>
                             @endif
                             @endcan
+                            @if(auth()->user()->isAdmin() && $s->shortfall !== null && $s->shortfall < 0)
+                                @if($s->salary_deducted_at)
+                                <span class="flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-400 rounded text-xs" title="تم الخصم بتاريخ {{ $s->salary_deducted_at->format('d/m/Y') }}">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                    مخصوم
+                                </span>
+                                @else
+                                <form method="POST" action="{{ route('shifts.deductSalary', $s) }}"
+                                      onsubmit="return confirm('هل تريد خصم عجز هذه الوردية ({{ number_format(abs($s->shortfall), 0) }} ر.ي) من راتب الموظف؟')">
+                                    @csrf
+                                    <button type="submit"
+                                            class="flex items-center gap-1 px-2 py-1 border border-red-300 text-red-600 rounded text-xs hover:bg-red-50 transition">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        خصم من الراتب
+                                    </button>
+                                </form>
+                                @endif
+                            @endif
                         </div>
                     </td>
                 </tr>

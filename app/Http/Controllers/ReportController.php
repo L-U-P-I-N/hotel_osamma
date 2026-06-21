@@ -521,4 +521,41 @@ class ReportController extends Controller
         $year = (int) $request->input('year', now()->year);
         return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\SalariesReportExport($year), 'salaries-' . $year . '.xlsx');
     }
+
+    public function shiftDeficits(Request $request)
+    {
+        $from = $request->input('from', now()->startOfMonth()->toDateString());
+        $to   = $request->input('to', now()->toDateString());
+
+        $users = User::with(['shifts' => function ($q) use ($from, $to) {
+            $q->where('is_closed', true)
+              ->whereDate('shift_date', '>=', $from)
+              ->whereDate('shift_date', '<=', $to)
+              ->orderBy('shift_date', 'desc');
+        }])->whereHas('shifts', function ($q) use ($from, $to) {
+            $q->where('is_closed', true)
+              ->whereDate('shift_date', '>=', $from)
+              ->whereDate('shift_date', '<=', $to);
+        })->get();
+
+        $summary = $users->map(function (User $user) {
+            $shifts       = $user->shifts;
+            $deficitShifts = $shifts->filter(fn($s) => $s->shortfall !== null && $s->shortfall < 0);
+            $surplusShifts = $shifts->filter(fn($s) => $s->shortfall !== null && $s->shortfall > 0);
+
+            return [
+                'user'            => $user,
+                'shift_count'     => $shifts->count(),
+                'total_received'  => $shifts->sum('total_received_yer'),
+                'total_withdrawn' => $shifts->sum('total_withdrawals_yer'),
+                'total_deficit'   => $deficitShifts->sum(fn($s) => abs($s->shortfall)),
+                'total_surplus'   => $surplusShifts->sum('shortfall'),
+                'deficit_count'   => $deficitShifts->count(),
+                'deducted_count'  => $deficitShifts->whereNotNull('salary_deducted_at')->count(),
+                'shifts'          => $shifts,
+            ];
+        })->sortByDesc('total_deficit')->values();
+
+        return view('reports.shift-deficits', compact('summary', 'from', 'to'));
+    }
 }

@@ -2,8 +2,10 @@
 namespace App\Services;
 
 use App\Models\CashWithdrawal;
+use App\Models\Employee;
 use App\Models\Expense;
 use App\Models\Payment;
+use App\Models\Salary;
 use App\Models\Shift;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
@@ -179,5 +181,80 @@ class ShiftService
             ->with(['user', 'payments', 'withdrawals'])
             ->latest()
             ->get();
+    }
+
+    public function deductFromSalary(Shift $shift, User $requestingUser): void
+    {
+        if (!$shift->is_closed) {
+            throw new \RuntimeException('لا يمكن خصم من راتب وردية مفتوحة');
+        }
+        if ($shift->shortfall === null || $shift->shortfall >= 0) {
+            throw new \RuntimeException('لا يوجد عجز في هذه الوردية');
+        }
+        if ($shift->salary_deducted_at !== null) {
+            throw new \RuntimeException('تم خصم عجز هذه الوردية من الراتب مسبقاً');
+        }
+
+        $shiftUser = User::find($shift->user_id);
+        if (!$shiftUser || !$shiftUser->employee_id) {
+            throw new \RuntimeException('هذا المستخدم غير مرتبط بسجل موظف في نظام الموارد البشرية');
+        }
+
+        $employee = Employee::find($shiftUser->employee_id);
+        if (!$employee) {
+            throw new \RuntimeException('سجل الموظف غير موجود');
+        }
+
+        $deficit = abs((float) $shift->shortfall);
+        $month   = $shift->shift_date->month;
+        $year    = $shift->shift_date->year;
+
+        $salary = Salary::firstOrCreate(
+            ['employee_id' => $employee->id, 'month' => $month, 'year' => $year],
+            [
+                'base_salary' => $employee->base_salary,
+                'bonuses'     => 0,
+                'deductions'  => 0,
+                'net_salary'  => $employee->base_salary,
+                'status'      => 'pending',
+                'notes'       => '',
+                'created_by'  => $requestingUser->id,
+            ]
+        );
+
+        $newDeductions = (float) $salary->deductions + $deficit;
+        $newNet        = (float) $salary->base_salary + (float) $salary->bonuses - $newDeductions;
+        $deductionNote = "خصم عجز وردية #{$shift->id} بتاريخ {$shift->shift_date->format('Y-m-d')}: " . number_format($deficit, 0) . " ر.ي";
+
+        $salary->update([
+            'deductions' => $newDeductions,
+            'net_salary' => $newNet,
+            'notes'      => trim(($salary->notes ? $salary->notes . "\n" : '') . $deductionNote),
+        ]);
+
+        $old = $shift->only(['salary_deducted_at', 'salary_deducted_by']);
+        $shift->update([
+            'salary_deducted_at' => now(),
+            'salary_deducted_by' => $requestingUser->id,
+        ]);
+
+        AuditLogService::log('update', $shift, $old, $shift->fresh()->only(['salary_deducted_at', 'salary_deducted_by']), $requestingUser);
+    }
+
+    public function getAllUsersShiftStatus(): \Illuminate\Support\Collection
+    {
+        $users = User::with([
+            'shifts' => fn($q) => $q->orderBy('id', 'desc')->limit(1),
+        ])->get();
+
+        return $users->map(function (User $user) {
+            $lastShift = $user->shifts->first();
+            return [
+                'user'       => $user,
+                'lastShift'  => $lastShift,
+                'isActive'   => $lastShift && !$lastShift->is_closed,
+                'lastDeficit'=> $lastShift?->shortfall,
+            ];
+        });
     }
 }

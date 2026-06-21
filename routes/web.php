@@ -140,6 +140,7 @@ Route::middleware(['auth'])->group(function () {
     });
     Route::post('/shifts/withdrawal', [ShiftController::class, 'addWithdrawal'])->name('shifts.withdrawal')->middleware('permission:withdrawal.create');
     Route::post('/shifts/{shift}/reopen', [ShiftController::class, 'reopen'])->name('shifts.reopen')->middleware('permission:shifts.reopen');
+    Route::post('/shifts/{shift}/deduct-salary', [ShiftController::class, 'deductSalary'])->name('shifts.deductSalary')->middleware('permission:users.manage');
 
     // Reports
     Route::middleware('permission:reports.view')->group(function () {
@@ -174,6 +175,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/reports/shifts', [ReportController::class, 'shifts'])->name('reports.shifts');
         Route::get('/reports/shifts/pdf', [ReportController::class, 'shiftsPdf'])->name('reports.shifts.pdf');
         Route::get('/reports/shifts/excel', [ReportController::class, 'shiftsExcel'])->name('reports.shifts.excel');
+        Route::get('/reports/shift-deficits', [ReportController::class, 'shiftDeficits'])->name('reports.shiftDeficits');
     });
 
     // Users

@@ -22,9 +22,10 @@ class ShiftController extends Controller
             $activeShift->load(['payments.reservation.guest', 'withdrawals']);
         }
 
-        $allActive = $user->isAdmin() ? $this->service->getAllActiveShifts() : collect();
+        $allActive       = $user->isAdmin() ? $this->service->getAllActiveShifts() : collect();
+        $allUsersStatus  = $user->isAdmin() ? $this->service->getAllUsersShiftStatus() : collect();
 
-        return view('shifts.index', compact('activeShift', 'recentShifts', 'allActive'));
+        return view('shifts.index', compact('activeShift', 'recentShifts', 'allActive', 'allUsersStatus'));
     }
 
     public function addWithdrawal(Request $request)
@@ -89,6 +90,16 @@ class ShiftController extends Controller
         try {
             $this->service->reopenShift($shift, auth()->user());
             return redirect()->route('shifts.index')->with('success', 'تم فتح الإقفال بنجاح، يمكنك الآن إجراء التعديلات وإقفال الوردية مجدداً');
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
+        }
+    }
+
+    public function deductSalary(Shift $shift)
+    {
+        try {
+            $this->service->deductFromSalary($shift, auth()->user());
+            return back()->with('success', 'تم خصم العجز من راتب الموظف بنجاح');
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()]);
         }

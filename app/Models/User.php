@@ -34,6 +34,7 @@ class User extends Authenticatable
     public function shifts()          { return $this->hasMany(Shift::class); }
     public function auditLogs()       { return $this->hasMany(AuditLog::class); }
     public function userPermissions() { return $this->hasMany(UserPermission::class); }
+    public function employee()        { return $this->belongsTo(\App\Models\Employee::class); }
 
     // --- role helpers ---
 
