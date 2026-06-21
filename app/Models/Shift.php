@@ -10,6 +10,7 @@ class Shift extends Model
         'is_closed','closed_at',
         'total_received_yer','total_received_sar','total_received_usd',
         'total_withdrawals_yer','total_withdrawals_sar','total_withdrawals_usd',
+        'actual_amount','shortfall',
         'employee_signature','admin_signature','notes','locked_by',
     ];
 

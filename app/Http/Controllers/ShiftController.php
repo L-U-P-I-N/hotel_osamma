@@ -64,7 +64,8 @@ class ShiftController extends Controller
     public function close(Request $request)
     {
         $request->validate([
-            'notes' => 'nullable|string|max:1000',
+            'notes'         => 'nullable|string|max:1000',
+            'actual_amount' => 'nullable|numeric|min:0',
         ]);
 
         $shift = $this->service->getActiveShift(auth()->user());
@@ -73,7 +74,8 @@ class ShiftController extends Controller
         }
 
         try {
-            $this->service->closeShift($shift, $request->notes ?? '');
+            $actualAmount = $request->filled('actual_amount') ? (float) $request->actual_amount : null;
+            $this->service->closeShift($shift, $request->notes ?? '', $actualAmount);
             return redirect()->route('shifts.index')->with('success', 'تم إقفال الوردية بنجاح');
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()]);

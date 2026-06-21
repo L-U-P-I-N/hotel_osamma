@@ -222,18 +222,35 @@
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المستلمات (ر.ي)</th>
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">السحبيات (ر.ي)</th>
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الصافي (ر.ي)</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الفعلي (ر.ي)</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الفرق</th>
                 <th class="px-4 py-3"></th>
             </tr></thead>
             <tbody class="divide-y divide-gray-50">
                 @foreach($recentShifts->where('is_closed', true) as $s)
+                @php $net = $s->total_received_yer - $s->total_withdrawals_yer; @endphp
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 text-gray-600">{{ $s->shift_date->format('d/m/Y') }}</td>
                     <td class="px-4 py-3 text-gray-500 text-xs">{{ $s->started_at->format('H:i') }}</td>
                     <td class="px-4 py-3 text-gray-500 text-xs">{{ $s->ended_at?->format('H:i') ?? '—' }}</td>
                     <td class="px-4 py-3 font-medium text-green-700">{{ number_format($s->total_received_yer, 0) }}</td>
                     <td class="px-4 py-3 font-medium text-red-600">{{ number_format($s->total_withdrawals_yer, 0) }}</td>
-                    <td class="px-4 py-3 font-bold {{ ($s->total_received_yer - $s->total_withdrawals_yer) >= 0 ? 'text-primary-700' : 'text-red-700' }}">
-                        {{ number_format($s->total_received_yer - $s->total_withdrawals_yer, 0) }}
+                    <td class="px-4 py-3 font-bold {{ $net >= 0 ? 'text-primary-700' : 'text-red-700' }}">
+                        {{ number_format($net, 0) }}
+                    </td>
+                    <td class="px-4 py-3 font-medium text-gray-700">
+                        {{ $s->actual_amount !== null ? number_format($s->actual_amount, 0) : '—' }}
+                    </td>
+                    <td class="px-4 py-3">
+                        @if($s->shortfall !== null)
+                            @php $sf = $s->shortfall; @endphp
+                            <span class="px-2 py-0.5 rounded-full text-xs font-semibold
+                                {{ $sf == 0 ? 'bg-green-100 text-green-700' : ($sf < 0 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700') }}">
+                                {{ $sf == 0 ? 'مطابق' : ($sf < 0 ? '▼ '.number_format(abs($sf), 0) : '▲ '.number_format($sf, 0)) }}
+                            </span>
+                        @else
+                            <span class="text-gray-300 text-xs">—</span>
+                        @endif
                     </td>
                     <td class="px-4 py-3">
                         <a href="{{ route('shifts.pdf', $s) }}" target="_blank"
@@ -325,25 +342,76 @@
 
 {{-- Modal: إقفال الوردية --}}
 <div x-show="closeModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="closeModal=false">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
-        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h3 class="font-bold text-gray-800">إقفال الوردية</h3>
-            <button @click="closeModal=false" class="text-gray-400 hover:text-gray-600">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm"
+         x-data="{
+             systemBalance: {{ $activeShift->total_received_yer - $activeShift->total_withdrawals_yer }},
+             actualAmount: '',
+             get diff() {
+                 if (this.actualAmount === '' || this.actualAmount === null) return null;
+                 return parseFloat(this.actualAmount) - this.systemBalance;
+             }
+         }">
+        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between" style="background:#0F4C75; border-radius: 1rem 1rem 0 0;">
+            <h3 class="font-bold text-white">إقفال الوردية</h3>
+            <button @click="closeModal=false" class="text-white/70 hover:text-white">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>
         <form method="POST" action="{{ route('shifts.close') }}" class="p-6 space-y-4">
             @csrf
-            <div class="bg-gray-50 rounded-lg p-4 text-sm space-y-1">
-                <div class="flex justify-between"><span class="text-gray-500">المستلمات:</span><span class="font-semibold text-green-700">{{ number_format($activeShift->total_received_yer, 0) }} ر.ي</span></div>
-                <div class="flex justify-between"><span class="text-gray-500">السحبيات:</span><span class="font-semibold text-red-600">{{ number_format($activeShift->total_withdrawals_yer, 0) }} ر.ي</span></div>
-                <div class="flex justify-between border-t border-gray-200 pt-1 mt-1"><span class="font-medium">الصافي:</span><span class="font-bold">{{ number_format($activeShift->total_received_yer - $activeShift->total_withdrawals_yer, 0) }} ر.ي</span></div>
+
+            {{-- ملخص النظام --}}
+            <div class="bg-gray-50 rounded-xl p-4 text-sm space-y-2 border border-gray-100">
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-500">المستلمات</span>
+                    <span class="font-semibold text-green-700">{{ number_format($activeShift->total_received_yer, 0) }} ر.ي</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-500">السحبيات</span>
+                    <span class="font-semibold text-red-600">{{ number_format($activeShift->total_withdrawals_yer, 0) }} ر.ي</span>
+                </div>
+                <div class="flex justify-between items-center border-t border-gray-200 pt-2">
+                    <span class="font-semibold text-gray-700">الصافي حسب النظام</span>
+                    <span class="font-bold text-lg" style="color:#0F4C75">{{ number_format($activeShift->total_received_yer - $activeShift->total_withdrawals_yer, 0) }} ر.ي</span>
+                </div>
             </div>
+
+            {{-- المبلغ الفعلي --}}
+            <div>
+                <label class="block text-xs font-semibold text-gray-700 mb-1.5">المبلغ الفعلي في الصندوق (ر.ي)</label>
+                <input type="number" name="actual_amount" x-model="actualAmount"
+                       step="1" min="0" placeholder="أدخل المبلغ الذي عددته فعلياً..."
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition">
+            </div>
+
+            {{-- عرض الفرق --}}
+            <div x-show="diff !== null" x-transition>
+                <div class="rounded-xl p-3 text-sm font-medium text-center"
+                     :class="{
+                         'bg-green-50 border border-green-200 text-green-700': diff === 0,
+                         'bg-red-50 border border-red-200 text-red-700': diff < 0,
+                         'bg-amber-50 border border-amber-200 text-amber-700': diff > 0
+                     }">
+                    <template x-if="diff === 0">
+                        <span>✓ المبلغ مطابق تماماً</span>
+                    </template>
+                    <template x-if="diff < 0">
+                        <span>نقص في الصندوق: <strong x-text="Math.abs(diff).toLocaleString()"></strong> ر.ي</span>
+                    </template>
+                    <template x-if="diff > 0">
+                        <span>زيادة في الصندوق: <strong x-text="diff.toLocaleString()"></strong> ر.ي</span>
+                    </template>
+                </div>
+            </div>
+
+            {{-- ملاحظات --}}
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1">ملاحظات الإقفال</label>
-                <textarea name="notes" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none resize-none"></textarea>
+                <textarea name="notes" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none resize-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition"></textarea>
             </div>
-            <button type="submit" class="w-full py-2.5 bg-gray-800 text-white rounded-lg text-sm font-semibold hover:bg-gray-700 transition"
+
+            <button type="submit" class="w-full py-2.5 text-white rounded-lg text-sm font-semibold transition"
+                    style="background:#0F4C75;"
                     onclick="return confirm('هل أنت متأكد من إقفال الوردية؟')">
                 تأكيد الإقفال
             </button>

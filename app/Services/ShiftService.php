@@ -36,21 +36,24 @@ class ShiftService
             ->first();
     }
 
-    public function closeShift(Shift $shift, string $notes = '', string $empSig = '', string $adminSig = ''): void
+    public function closeShift(Shift $shift, string $notes = '', ?float $actualAmount = null): void
     {
         if ($shift->is_closed) {
             throw new \RuntimeException('الوردية مقفلة مسبقاً');
         }
 
         $this->computeTotals($shift);
+        $shift->refresh();
+
+        $netBalance = $shift->total_received_yer - $shift->total_withdrawals_yer;
 
         $shift->update([
-            'is_closed'          => true,
-            'closed_at'          => now(),
-            'ended_at'           => now(),
-            'notes'              => $notes ?: null,
-            'employee_signature' => $empSig  ?: null,
-            'admin_signature'    => $adminSig ?: null,
+            'is_closed'     => true,
+            'closed_at'     => now(),
+            'ended_at'      => now(),
+            'notes'         => $notes ?: null,
+            'actual_amount' => $actualAmount,
+            'shortfall'     => $actualAmount !== null ? ($actualAmount - $netBalance) : null,
         ]);
 
         AuditLogService::log('update', $shift, ['is_closed' => false], ['is_closed' => true], auth()->user());
