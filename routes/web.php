@@ -63,7 +63,6 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/rooms/{room}/status', [RoomController::class, 'updateStatus'])
         ->name('rooms.updateStatus')
         ->middleware('permission:rooms.edit|rooms.maintenance');
-    Route::get('/floors/{floor}/rooms', [FloorController::class, 'availableRoomNumbers'])->name('floors.roomNumbers')->middleware('auth');
 
     // Check-in
     Route::middleware('permission:checkin.create')->group(function () {
