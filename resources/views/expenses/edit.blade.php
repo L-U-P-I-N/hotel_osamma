@@ -41,21 +41,7 @@
             </select>
         </div>
 
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1.5">طريقة الدفع *</label>
-            @php $currentMethod = old('payment_method', $expense->payment_method ?? 'cash'); @endphp
-            <div class="grid grid-cols-3 gap-2">
-                @foreach(['cash' => ['label' => 'نقداً من الصندوق', 'color' => 'green'], 'bank_transfer' => ['label' => 'تحويل بنكي', 'color' => 'blue'], 'later' => ['label' => 'لاحقاً', 'color' => 'gray']] as $val => $opt)
-                <label class="relative cursor-pointer">
-                    <input type="radio" name="payment_method" value="{{ $val }}" class="sr-only peer" {{ $currentMethod === $val ? 'checked' : '' }}>
-                    <div class="rounded-lg border-2 px-3 py-2.5 text-center text-sm font-medium transition
-                                {{ $currentMethod === $val ? 'border-'.$opt['color'].'-500 bg-'.$opt['color'].'-50 text-'.$opt['color'].'-700' : 'border-gray-200 text-gray-500 hover:border-gray-300' }}">
-                        {{ $opt['label'] }}
-                    </div>
-                </label>
-                @endforeach
-            </div>
-        </div>
+        <input type="hidden" name="payment_method" value="cash">
 
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1.5">اسم المستلم</label>
