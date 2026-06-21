@@ -7,14 +7,29 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Convert all non-target statuses before altering enum
-        DB::table('reservations')->where('status', 'confirmed')->update(['status' => 'checked_in']);
-        DB::table('reservations')->where('status', 'cancelled')->update(['status' => 'checked_out']);
-        DB::table('reservations')->whereNotIn('status', ['checked_in', 'checked_out'])->update(['status' => 'checked_in']);
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
 
-        DB::table('rooms')->where('status', 'reserved')->update(['status' => 'available']);
-        DB::table('rooms')->whereNotIn('status', ['available', 'occupied', 'under_inspection', 'maintenance'])->update(['status' => 'available']);
+        // Clear all transactional data (keep rooms, floors, users, employees)
+        DB::table('audit_logs')->truncate();
+        DB::table('extra_charges')->truncate();
+        DB::table('payments')->truncate();
+        DB::table('companions')->truncate();
+        DB::table('reservations')->truncate();
+        DB::table('guests')->truncate();
+        DB::table('cash_withdrawals')->truncate();
+        DB::table('cash_settlements')->truncate();
+        DB::table('expenses')->truncate();
+        DB::table('salaries')->truncate();
+        DB::table('shifts')->truncate();
+        DB::table('room_inspections')->truncate();
+        DB::table('inspection_images')->truncate();
 
+        // Reset all rooms to available
+        DB::table('rooms')->update(['status' => 'available']);
+
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+
+        // Now safely alter enums
         DB::statement("ALTER TABLE reservations MODIFY COLUMN status ENUM('checked_in','checked_out') NOT NULL DEFAULT 'checked_in'");
         DB::statement("ALTER TABLE rooms MODIFY COLUMN status ENUM('available','occupied','under_inspection','maintenance') NOT NULL DEFAULT 'available'");
     }
