@@ -32,7 +32,7 @@ class SalariesReportExport implements FromCollection, WithHeadings, WithMapping,
                        7=>'يوليو',8=>'أغسطس',9=>'سبتمبر',10=>'أكتوبر',11=>'نوفمبر',12=>'ديسمبر'];
 
         return [
-            $sal->employee?->full_name ?? '',
+            $sal->employee?->name ?? '',
             $monthNames[$sal->month] ?? $sal->month,
             $sal->year,
             number_format($sal->base_salary, 0),

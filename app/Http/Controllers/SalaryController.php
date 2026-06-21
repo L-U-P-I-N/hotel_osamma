@@ -66,4 +66,66 @@ class SalaryController extends Controller
         $salary->update(['status' => 'paid']);
         return back()->with('success', 'تم تسجيل الراتب كمدفوع');
     }
+
+    public function edit(Salary $salary)
+    {
+        if ($salary->status === 'paid') {
+            return back()->withErrors(['error' => 'لا يمكن تعديل راتب مدفوع']);
+        }
+        $employees = Employee::where('is_active', true)->orderBy('name')->get();
+        return view('salaries.edit', compact('salary', 'employees'));
+    }
+
+    public function update(Request $request, Salary $salary)
+    {
+        if ($salary->status === 'paid') {
+            return back()->withErrors(['error' => 'لا يمكن تعديل راتب مدفوع']);
+        }
+
+        $data = $request->validate([
+            'base_salary' => 'required|numeric|min:0',
+            'bonuses'     => 'nullable|numeric|min:0',
+            'deductions'  => 'nullable|numeric|min:0',
+            'notes'       => 'nullable|string',
+        ]);
+
+        $data['bonuses']    = $data['bonuses'] ?? 0;
+        $data['deductions'] = $data['deductions'] ?? 0;
+        $data['net_salary'] = $data['base_salary'] + $data['bonuses'] - $data['deductions'];
+
+        $salary->update($data);
+
+        return redirect()->route('salaries.index', ['month' => $salary->month, 'year' => $salary->year])
+            ->with('success', 'تم تحديث قسيمة الراتب بنجاح');
+    }
+
+    public function destroy(Salary $salary)
+    {
+        if ($salary->status === 'paid') {
+            return back()->withErrors(['error' => 'لا يمكن حذف راتب مدفوع']);
+        }
+
+        $month = $salary->month;
+        $year  = $salary->year;
+        $salary->delete();
+
+        return redirect()->route('salaries.index', ['month' => $month, 'year' => $year])
+            ->with('success', 'تم حذف قسيمة الراتب');
+    }
+
+    public function pdf(Salary $salary)
+    {
+        $salary->load(['employee', 'creator']);
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('salaries.pdf', compact('salary'));
+        $pdf->setPaper('a4', 'portrait');
+
+        $dompdf = $pdf->getDomPDF();
+        $options = $dompdf->getOptions();
+        $options->setFontDir(storage_path('fonts'));
+        $options->setFontCache(storage_path('fonts'));
+        $dompdf->setOptions($options);
+
+        $filename = 'salary-' . $salary->employee->name . '-' . \App\Models\Salary::monthName($salary->month) . '-' . $salary->year . '.pdf';
+        return $pdf->download($filename);
+    }
 }

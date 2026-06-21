@@ -106,7 +106,7 @@
             <tbody class="divide-y divide-gray-50">
                 @foreach($salaries as $sal)
                 <tr class="hover:bg-gray-50">
-                    <td class="px-4 py-3 font-medium text-gray-800">{{ $sal->employee->full_name ?? '—' }}</td>
+                    <td class="px-4 py-3 font-medium text-gray-800">{{ $sal->employee->name ?? '—' }}</td>
                     <td class="px-4 py-3 text-gray-600">{{ $monthNames[$sal->month] ?? $sal->month }} {{ $sal->year }}</td>
                     <td class="px-4 py-3 text-gray-700">{{ number_format($sal->base_salary, 0) }}</td>
                     <td class="px-4 py-3 text-green-600">{{ number_format($sal->bonuses, 0) }}</td>
