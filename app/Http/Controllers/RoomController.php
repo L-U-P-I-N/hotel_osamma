@@ -201,6 +201,29 @@ class RoomController extends Controller
         return response()->json($rooms);
     }
 
+    public function bulkUpdatePrice(Request $request)
+    {
+        $request->validate([
+            'price_yer' => 'required|numeric|min:0',
+            'sub_type'  => 'nullable|string',
+            'room_ids'  => 'nullable|array',
+            'room_ids.*'=> 'integer|exists:rooms,id',
+        ]);
+
+        $query = Room::query();
+
+        if ($request->filled('room_ids')) {
+            $query->whereIn('id', $request->room_ids);
+        } elseif ($request->filled('sub_type')) {
+            $query->where('room_sub_type', $request->sub_type);
+        }
+
+        $count = $query->count();
+        $query->update(['price_yer' => $request->price_yer]);
+
+        return back()->with('success', "تم تحديث سعر {$count} غرفة بنجاح");
+    }
+
     public function updateStatus(Request $request, Room $room)
     {
         $request->validate([
