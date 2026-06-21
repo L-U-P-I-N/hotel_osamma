@@ -60,6 +60,9 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/floors/{floor}', [FloorController::class, 'destroy'])->name('floors.destroy');
     });
     Route::get('/floors/{floor}/room-numbers', [FloorController::class, 'availableRoomNumbers'])->name('floors.roomNumbers')->middleware('auth');
+    Route::post('/rooms/bulk-price', [RoomController::class, 'bulkUpdatePrice'])
+        ->name('rooms.bulkPrice')
+        ->middleware('permission:rooms.edit');
     Route::post('/rooms/{room}/status', [RoomController::class, 'updateStatus'])
         ->name('rooms.updateStatus')
         ->middleware('permission:rooms.edit|rooms.maintenance');
@@ -128,8 +131,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/settlement', [SettlementController::class, 'index'])->name('settlement.index');
     });
     Route::middleware('permission:shifts.view')->group(function () {
-        Route::post('/settlement/withdrawal', [SettlementController::class, 'addWithdrawal'])->name('settlement.withdrawal');
-        Route::post('/settlement/signatures', [SettlementController::class, 'saveSignatures'])->name('settlement.signatures');
         Route::post('/settlement/lock', [SettlementController::class, 'lock'])->name('settlement.lock');
     });
 

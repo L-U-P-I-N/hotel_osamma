@@ -52,16 +52,18 @@ class CashSettlementService
         ]);
     }
 
-    public function lockSettlement(CashSettlement $settlement, User $lockedBy): void
+    public function lockSettlement(CashSettlement $settlement, User $lockedBy, float $actualAmount = 0): void
     {
         if ($settlement->status === 'locked') {
             throw new \RuntimeException('الحساب مقفل مسبقاً');
         }
 
         $settlement->update([
-            'status' => 'locked',
-            'locked_by' => $lockedBy->id,
-            'locked_at' => now(),
+            'status'         => 'locked',
+            'locked_by'      => $lockedBy->id,
+            'locked_at'      => now(),
+            'actual_amount'  => $actualAmount,
+            'shortfall'      => $actualAmount - $settlement->net_balance,
         ]);
 
         AuditLogService::log('update', $settlement, ['status' => 'open'], ['status' => 'locked'], $lockedBy);
