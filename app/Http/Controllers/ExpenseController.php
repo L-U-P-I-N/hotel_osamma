@@ -6,6 +6,7 @@ use App\Models\CashWithdrawal;
 use App\Models\Expense;
 use App\Models\Shift;
 use App\Services\CashSettlementService;
+use App\Services\ShiftService;
 use Illuminate\Http\Request;
 
 class ExpenseController extends Controller
@@ -104,13 +105,18 @@ class ExpenseController extends Controller
         $expense->update($data);
         $expense->refresh();
 
+        $linkedShift = $expense->shift_id ? Shift::find($expense->shift_id) : null;
+
         if ($expense->isPaidFromCash()) {
-            $activeShift = Shift::where('is_closed', false)->latest()->first();
+            $activeShift = $linkedShift ?? Shift::where('is_closed', false)->latest()->first();
             $this->syncWithdrawal($expense, $activeShift);
         } else {
             // طريقة الدفع تغيّرت → احذف السحب المرتبط
             $expense->cashWithdrawal()?->delete();
             $this->recomputeSettlement($expense);
+            if ($linkedShift) {
+                app(ShiftService::class)->computeTotals($linkedShift);
+            }
         }
 
         return redirect()->route('expenses.index')->with('success', 'تم تحديث المصروف بنجاح');
@@ -118,9 +124,14 @@ class ExpenseController extends Controller
 
     public function destroy(Expense $expense)
     {
+        $shift = $expense->shift_id ? Shift::find($expense->shift_id) : null;
         $expense->cashWithdrawal()?->delete();
         $this->recomputeSettlement($expense);
         $expense->delete();
+
+        if ($shift) {
+            app(ShiftService::class)->computeTotals($shift);
+        }
 
         return redirect()->route('expenses.index')->with('success', 'تم حذف المصروف بنجاح');
     }
@@ -193,6 +204,10 @@ class ExpenseController extends Controller
         }
 
         app(CashSettlementService::class)->computeTotals($settlement);
+
+        if ($shift) {
+            app(ShiftService::class)->computeTotals($shift);
+        }
     }
 
     private function getOrCreateSettlement(\App\Models\User $user): ?CashSettlement

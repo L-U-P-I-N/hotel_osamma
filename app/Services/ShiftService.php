@@ -2,6 +2,7 @@
 namespace App\Services;
 
 use App\Models\CashWithdrawal;
+use App\Models\Expense;
 use App\Models\Payment;
 use App\Models\Shift;
 use App\Models\User;
@@ -67,9 +68,27 @@ class ShiftService
 
         $type = $data['withdrawal_type'] ?? 'expense';
 
+        // إنشاء سجل مصروف تلقائياً لكل سحب من نوع "مصروف"
+        $expenseId = null;
+        if ($type === 'expense') {
+            $expense = Expense::create([
+                'amount'         => $data['amount'],
+                'currency'       => $data['currency'] ?? 'YER',
+                'category'       => $data['category'] ?? 'other',
+                'recipient_name' => $data['withdrawn_by_name'],
+                'description'    => $data['notes'] ?? null,
+                'expense_date'   => now()->toDateString(),
+                'paid_by'        => auth()->id(),
+                'shift_id'       => $shift->id,
+                'payment_method' => 'cash',
+            ]);
+            $expenseId = $expense->id;
+        }
+
         $withdrawal = CashWithdrawal::create([
             'shift_id'             => $shift->id,
             'cash_settlement_id'   => null,
+            'expense_id'           => $expenseId,
             'amount'               => $data['amount'],
             'currency'             => $data['currency'] ?? 'YER',
             'withdrawal_date'      => $data['withdrawal_date'] ?? now(),
