@@ -1,9 +1,11 @@
 <?php
 namespace App\Providers;
 
+use App\Models\CashWithdrawal;
 use App\Models\Guest;
 use App\Models\Payment;
 use App\Models\Reservation;
+use App\Observers\CashWithdrawalObserver;
 use App\Observers\GuestObserver;
 use App\Observers\PaymentObserver;
 use App\Observers\ReservationObserver;
@@ -20,6 +22,7 @@ class AppServiceProvider extends ServiceProvider
         Reservation::observe(ReservationObserver::class);
         Guest::observe(GuestObserver::class);
         Payment::observe(PaymentObserver::class);
+        CashWithdrawal::observe(CashWithdrawalObserver::class);
 
         // نظام الصلاحيات الديناميكي
         Gate::before(function ($user, string $ability) {

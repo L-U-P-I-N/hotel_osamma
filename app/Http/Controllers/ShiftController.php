@@ -17,6 +17,8 @@ class ShiftController extends Controller
         $recentShifts = $this->service->getHistory($user, 10);
 
         if ($activeShift) {
+            $this->service->computeTotals($activeShift);
+            $activeShift->refresh();
             $activeShift->load(['payments.reservation.guest', 'withdrawals']);
         }
 

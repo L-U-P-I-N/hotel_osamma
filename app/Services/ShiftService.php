@@ -100,7 +100,6 @@ class ShiftService
             'exchange_to_amount'   => $type === 'currency_exchange' ? ($data['exchange_to_amount'] ?? null) : null,
         ]);
 
-        $this->computeTotals($shift);
         return $withdrawal;
     }
 
