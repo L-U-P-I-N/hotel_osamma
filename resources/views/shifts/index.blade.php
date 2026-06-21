@@ -254,55 +254,23 @@
 @if($activeShift)
 @can('withdrawal.create')
 <div x-show="withdrawalModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="withdrawalModal=false">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md" x-data="{ wType: 'expense' }">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
         <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h3 class="font-bold text-gray-800" x-text="wType === 'currency_exchange' ? 'تسجيل صرف عملة' : 'تسجيل سحب'"></h3>
+            <h3 class="font-bold text-gray-800">تسجيل سحب</h3>
             <button @click="withdrawalModal=false" class="text-gray-400 hover:text-gray-600">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>
         <form method="POST" action="{{ route('shifts.withdrawal') }}" class="p-6 space-y-4">
             @csrf
-            <div class="flex rounded-lg overflow-hidden border border-gray-200">
-                <button type="button" @click="wType='expense'"
-                        :class="wType==='expense' ? 'bg-red-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'"
-                        class="flex-1 py-2 text-xs font-medium transition">مصروف عادي</button>
-                <button type="button" @click="wType='currency_exchange'"
-                        :class="wType==='currency_exchange' ? 'bg-yellow-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'"
-                        class="flex-1 py-2 text-xs font-medium transition">صرف عملة</button>
-            </div>
-            <input type="hidden" name="withdrawal_type" :value="wType">
+            <input type="hidden" name="withdrawal_type" value="expense">
+            <input type="hidden" name="currency" value="YER">
 
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">المبلغ *</label>
-                    <input type="number" name="amount" step="0.01" min="0.01" required
-                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1" x-text="wType==='currency_exchange' ? 'عملة السحب' : 'العملة'"></label>
-                    <select name="currency" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
-                        <option value="YER">ريال يمني</option>
-                    </select>
-                </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">المبلغ (ر.ي) *</label>
+                <input type="number" name="amount" step="0.01" min="0.01" required
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
             </div>
-
-            <div x-show="wType==='currency_exchange'" class="grid grid-cols-2 gap-3 bg-yellow-50 rounded-lg p-3 border border-yellow-200">
-                <div>
-                    <label class="block text-xs font-medium text-yellow-700 mb-1">المبلغ المُحوَّل إليه *</label>
-                    <input type="number" name="exchange_to_amount" step="0.01" min="0.01"
-                           :required="wType==='currency_exchange'"
-                           class="w-full border border-yellow-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-yellow-400 outline-none bg-white">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-yellow-700 mb-1">العملة المُحوَّل إليها *</label>
-                    <select name="exchange_to_currency" :required="wType==='currency_exchange'"
-                            class="w-full border border-yellow-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-yellow-400 outline-none bg-white">
-                        <option value="YER">ريال يمني</option>
-                    </select>
-                </div>
-            </div>
-
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1">اسم المستلم *</label>
                 <input type="text" name="withdrawn_by_name" required
@@ -313,10 +281,8 @@
                 <input type="text" name="notes"
                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
             </div>
-            <button type="submit"
-                    :class="wType==='currency_exchange' ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-red-600 hover:bg-red-700'"
-                    class="w-full py-2.5 text-white rounded-lg text-sm font-semibold transition"
-                    x-text="wType==='currency_exchange' ? 'تسجيل صرف العملة' : 'تسجيل السحب'">
+            <button type="submit" class="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition">
+                تسجيل السحب
             </button>
         </form>
     </div>
