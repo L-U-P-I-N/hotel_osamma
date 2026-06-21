@@ -7,16 +7,15 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // 1. Convert existing 'confirmed' reservations to 'checked_in'
+        // Convert all non-target statuses before altering enum
         DB::table('reservations')->where('status', 'confirmed')->update(['status' => 'checked_in']);
+        DB::table('reservations')->where('status', 'cancelled')->update(['status' => 'checked_out']);
+        DB::table('reservations')->whereNotIn('status', ['checked_in', 'checked_out'])->update(['status' => 'checked_in']);
 
-        // 2. Convert existing 'reserved' rooms to 'available'
         DB::table('rooms')->where('status', 'reserved')->update(['status' => 'available']);
+        DB::table('rooms')->whereNotIn('status', ['available', 'occupied', 'under_inspection', 'maintenance'])->update(['status' => 'available']);
 
-        // 3. Change reservations.status enum (remove 'confirmed' and 'cancelled')
         DB::statement("ALTER TABLE reservations MODIFY COLUMN status ENUM('checked_in','checked_out') NOT NULL DEFAULT 'checked_in'");
-
-        // 4. Change rooms.status enum (remove 'reserved')
         DB::statement("ALTER TABLE rooms MODIFY COLUMN status ENUM('available','occupied','under_inspection','maintenance') NOT NULL DEFAULT 'available'");
     }
 
