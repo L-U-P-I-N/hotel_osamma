@@ -71,16 +71,37 @@
                     </td>
                     @can('hr.edit')
                     <td class="px-4 py-3">
-                        @if($salary->status === 'draft')
-                        <form method="POST" action="{{ route('salaries.markPaid', $salary) }}">
-                            @csrf @method('PATCH')
-                            <button type="submit" class="text-xs px-3 py-1.5 rounded-lg text-white transition" style="background:#0F4C75;">
-                                تسجيل كمدفوع
-                            </button>
-                        </form>
-                        @else
-                        <span class="text-xs text-gray-400">-</span>
-                        @endif
+                        <div class="flex items-center gap-2">
+                            {{-- PDF slip --}}
+                            <a href="{{ route('salaries.pdf', $salary) }}" target="_blank"
+                               class="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition" title="طباعة PDF">
+                                PDF
+                            </a>
+                            @if($salary->status === 'draft')
+                            {{-- Edit --}}
+                            <a href="{{ route('salaries.edit', $salary) }}"
+                               class="text-xs px-2.5 py-1.5 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 transition">
+                                تعديل
+                            </a>
+                            {{-- Mark paid --}}
+                            <form method="POST" action="{{ route('salaries.markPaid', $salary) }}">
+                                @csrf @method('PATCH')
+                                <button type="submit" class="text-xs px-2.5 py-1.5 rounded-lg text-white transition" style="background:#0F4C75;">
+                                    مدفوعة
+                                </button>
+                            </form>
+                            {{-- Delete --}}
+                            @can('hr.delete')
+                            <form method="POST" action="{{ route('salaries.destroy', $salary) }}"
+                                  onsubmit="return confirm('هل تريد حذف قسيمة الراتب هذه؟')">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="text-xs px-2.5 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition">
+                                    حذف
+                                </button>
+                            </form>
+                            @endcan
+                            @endif
+                        </div>
                     </td>
                     @endcan
                 </tr>

@@ -18,6 +18,8 @@ use App\Http\Controllers\FloorController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\SalaryController;
 use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\LeaveController;
 
 Route::get('/', fn() => redirect()->route('login'));
 
@@ -219,6 +221,33 @@ Route::middleware(['auth'])->group(function () {
     });
     Route::middleware('permission:hr.edit')->group(function () {
         Route::patch('/salaries/{salary}/mark-paid', [SalaryController::class, 'markPaid'])->name('salaries.markPaid');
+        Route::get('/salaries/{salary}/edit', [SalaryController::class, 'edit'])->name('salaries.edit');
+        Route::put('/salaries/{salary}', [SalaryController::class, 'update'])->name('salaries.update');
+        Route::get('/salaries/{salary}/pdf', [SalaryController::class, 'pdf'])->name('salaries.pdf');
+    });
+    Route::middleware('permission:hr.delete')->group(function () {
+        Route::delete('/salaries/{salary}', [SalaryController::class, 'destroy'])->name('salaries.destroy');
+    });
+
+    // Attendance
+    Route::middleware('permission:attendance.view')->group(function () {
+        Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
+        Route::get('/attendance/daily', [AttendanceController::class, 'daily'])->name('attendance.daily');
+    });
+    Route::middleware('permission:attendance.create')->group(function () {
+        Route::post('/attendance/daily', [AttendanceController::class, 'saveDaily'])->name('attendance.saveDaily');
+    });
+
+    // Leaves
+    Route::middleware('permission:hr.view')->group(function () {
+        Route::get('/leaves', [LeaveController::class, 'index'])->name('leaves.index');
+    });
+    Route::middleware('permission:hr.create')->group(function () {
+        Route::get('/leaves/create', [LeaveController::class, 'create'])->name('leaves.create');
+        Route::post('/leaves', [LeaveController::class, 'store'])->name('leaves.store');
+    });
+    Route::middleware('permission:hr.delete')->group(function () {
+        Route::delete('/leaves/{leave}', [LeaveController::class, 'destroy'])->name('leaves.destroy');
     });
 
     // ===== Expense Module =====

@@ -57,6 +57,9 @@ class PermissionService
         'expenses.delete'       => ['label' => 'حذف المصروفات',                 'default' => false],
         // Shifts
         'shifts.reopen'         => ['label' => 'فتح إقفال الوردية (إعادة فتح)', 'default' => false],
+        // Attendance
+        'attendance.view'       => ['label' => 'عرض كشف الحضور والغياب',         'default' => false],
+        'attendance.create'     => ['label' => 'تسجيل الحضور اليومي',             'default' => false],
     ];
 
     public static function userCan(User $user, string $permission): bool

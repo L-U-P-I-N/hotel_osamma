@@ -111,7 +111,7 @@
     <tbody>
         @foreach($salaries as $sal)
         <tr>
-            <td>{{ $sal->employee?->full_name ?? '—' }}</td>
+            <td>{{ $sal->employee?->name ?? '—' }}</td>
             <td>{{ $monthNames[$sal->month] ?? $sal->month }} {{ $sal->year }}</td>
             <td class="ltr">{{ number_format($sal->base_salary, 0) }}</td>
             <td class="ltr" style="color:#16a34a;">{{ number_format($sal->bonuses, 0) }}</td>
