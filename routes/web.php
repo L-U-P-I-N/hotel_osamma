@@ -126,13 +126,11 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('permission:payments.bank_receipt')
         ->where('file', '.*');
 
-    // Cash Settlement
-    Route::middleware('permission:shifts.view')->group(function () {
-        Route::get('/settlement', [SettlementController::class, 'index'])->name('settlement.index');
-    });
-    Route::middleware('permission:shifts.view')->group(function () {
-        Route::post('/settlement/lock', [SettlementController::class, 'lock'])->name('settlement.lock');
-    });
+    // Cash Settlement (redirected to shifts)
+    Route::get('/settlement', fn() => redirect()->route('shifts.index'))->name('settlement.index');
+    Route::post('/settlement/lock', fn() => redirect()->route('shifts.index'))->name('settlement.lock');
+    Route::post('/settlement/withdrawal', fn() => redirect()->route('shifts.index'))->name('settlement.withdrawal');
+    Route::post('/settlement/signatures', fn() => redirect()->route('shifts.index'))->name('settlement.signatures');
 
     // Shifts
     Route::middleware('permission:shifts.view')->group(function () {
