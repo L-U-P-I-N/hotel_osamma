@@ -55,6 +55,8 @@ class PermissionService
         'expenses.create'       => ['label' => 'إضافة مصروف جديد',             'default' => false],
         'expenses.edit'         => ['label' => 'تعديل المصروفات',               'default' => false],
         'expenses.delete'       => ['label' => 'حذف المصروفات',                 'default' => false],
+        // Shifts
+        'shifts.reopen'         => ['label' => 'فتح إقفال الوردية (إعادة فتح)', 'default' => false],
     ];
 
     public static function userCan(User $user, string $permission): bool

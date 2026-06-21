@@ -253,11 +253,26 @@
                         @endif
                     </td>
                     <td class="px-4 py-3">
-                        <a href="{{ route('shifts.pdf', $s) }}" target="_blank"
-                           class="flex items-center gap-1 px-2 py-1 border border-gray-200 text-gray-500 rounded text-xs hover:bg-gray-50 transition">
-                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-                            PDF
-                        </a>
+                        <div class="flex items-center gap-1.5">
+                            <a href="{{ route('shifts.pdf', $s) }}" target="_blank"
+                               class="flex items-center gap-1 px-2 py-1 border border-gray-200 text-gray-500 rounded text-xs hover:bg-gray-50 transition">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                                PDF
+                            </a>
+                            @can('shifts.reopen')
+                            @if(!$activeShift)
+                            <form method="POST" action="{{ route('shifts.reopen', $s) }}"
+                                  onsubmit="return confirm('هل تريد فتح إقفال هذه الوردية للتعديل عليها؟')">
+                                @csrf
+                                <button type="submit"
+                                        class="flex items-center gap-1 px-2 py-1 border border-amber-300 text-amber-700 rounded text-xs hover:bg-amber-50 transition">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
+                                    فتح
+                                </button>
+                            </form>
+                            @endif
+                            @endcan
+                        </div>
                     </td>
                 </tr>
                 @endforeach

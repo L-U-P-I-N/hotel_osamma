@@ -60,6 +60,31 @@ class ShiftService
         AuditLogService::log('update', $shift, ['is_closed' => false], ['is_closed' => true], auth()->user());
     }
 
+    public function reopenShift(Shift $shift, User $requestingUser): void
+    {
+        if (!$shift->is_closed) {
+            throw new \RuntimeException('الوردية مفتوحة بالفعل');
+        }
+
+        // لا يمكن فتح وردية بينما الموظف لديه وردية أخرى مفتوحة
+        $shiftOwner = User::find($shift->user_id);
+        if ($shiftOwner && $this->getActiveShift($shiftOwner)) {
+            throw new \RuntimeException('لا يمكن فتح الإقفال لأن الموظف لديه وردية مفتوحة حالياً');
+        }
+
+        $old = $shift->only(['is_closed', 'closed_at', 'ended_at', 'actual_amount', 'shortfall']);
+
+        $shift->update([
+            'is_closed'     => false,
+            'closed_at'     => null,
+            'ended_at'      => null,
+            'actual_amount' => null,
+            'shortfall'     => null,
+        ]);
+
+        AuditLogService::log('update', $shift, $old, $shift->fresh()->toArray(), $requestingUser);
+    }
+
     public function addWithdrawal(Shift $shift, array $data): CashWithdrawal
     {
         if ($shift->is_closed) {

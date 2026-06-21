@@ -84,6 +84,16 @@ class ShiftController extends Controller
         }
     }
 
+    public function reopen(Shift $shift)
+    {
+        try {
+            $this->service->reopenShift($shift, auth()->user());
+            return redirect()->route('shifts.index')->with('success', 'تم فتح الإقفال بنجاح، يمكنك الآن إجراء التعديلات وإقفال الوردية مجدداً');
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
+        }
+    }
+
     public function exportPdf(Shift $shift)
     {
         $shift->load(['user', 'payments.reservation.guest', 'payments.reservation.room', 'withdrawals']);
