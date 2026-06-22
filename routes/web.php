@@ -322,11 +322,12 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/reservations/{reservation}/discount', [\App\Http\Controllers\ReservationController::class, 'applyDiscount'])->name('reservations.applyDiscount');
     });
 
-    // ===== Reports: Room Revenue + Cash Flow + Monthly Expenses =====
+    // ===== Reports: Financial Analysis =====
     Route::middleware('permission:reports.view')->group(function () {
         Route::get('/reports/room-revenue', [ReportController::class, 'roomRevenue'])->name('reports.roomRevenue');
         Route::get('/reports/cash-flow', [ReportController::class, 'cashFlow'])->name('reports.cashFlow');
         Route::get('/reports/monthly-expenses', [ReportController::class, 'monthlyExpenses'])->name('reports.monthlyExpenses');
+        Route::get('/reports/financial-ratios', [ReportController::class, 'financialRatios'])->name('reports.financialRatios');
     });
 
     // ===== Leaves: Report =====

@@ -833,4 +833,80 @@ class ReportController extends Controller
 
         return view('reports.monthly-expenses', compact('totalExpenses', 'expenseCount', 'expensesByCategory', 'month'));
     }
+
+    public function financialRatios(Request $request)
+    {
+        $period = $request->input('period', 'month');
+
+        if ($period === 'month') {
+            $fromDate = now()->startOfMonth()->toDateString();
+            $toDate = now()->toDateString();
+        } elseif ($period === 'quarter') {
+            $fromDate = now()->startOfQuarter()->toDateString();
+            $toDate = now()->toDateString();
+        } elseif ($period === 'year') {
+            $fromDate = now()->startOfYear()->toDateString();
+            $toDate = now()->toDateString();
+        } else {
+            $fromDate = Reservation::orderBy('check_in_date')->first()?->check_in_date->toDateString() ?? now()->subYear()->toDateString();
+            $toDate = now()->toDateString();
+        }
+
+        $days = \Carbon\Carbon::parse($fromDate)->diffInDays(\Carbon\Carbon::parse($toDate)) + 1;
+
+        $revenue = Payment::whereDate('payment_date', '>=', $fromDate)
+            ->whereDate('payment_date', '<=', $toDate)
+            ->where('currency', 'YER')
+            ->sum('amount');
+
+        $expenses = Expense::whereDate('expense_date', '>=', $fromDate)
+            ->whereDate('expense_date', '<=', $toDate)
+            ->where('currency', 'YER')
+            ->sum('amount');
+
+        $profit = $revenue - $expenses;
+
+        // Main Ratios
+        $profitMargin = $revenue > 0 ? round(($profit / $revenue) * 100, 1) : 0;
+        $costRatio = $revenue > 0 ? round(($expenses / $revenue) * 100, 1) : 0;
+
+        // Room Metrics
+        $totalRooms = Room::count();
+        $reservations = Reservation::whereDate('check_in_date', '>=', $fromDate)
+            ->whereDate('check_in_date', '<=', $toDate)
+            ->get();
+
+        $totalNights = $reservations->sum('nights');
+        $occupiedRoomDays = $totalNights;
+        $totalRoomDays = $totalRooms * $days;
+        $occupancyRate = $totalRoomDays > 0 ? round(($occupiedRoomDays / $totalRoomDays) * 100) : 0;
+
+        $revenuePerRoom = $totalRooms > 0 ? round($revenue / $totalRooms) : 0;
+        $guestCount = $reservations->count();
+        $revenuePerGuest = $guestCount > 0 ? round($revenue / $guestCount) : 0;
+        $avgStay = $guestCount > 0 ? round($totalNights / $guestCount, 2) : 0;
+
+        // Daily Averages
+        $dailyRevenue = round($revenue / $days);
+        $dailyExpense = round($expenses / $days);
+        $dailyProfit = $dailyRevenue - $dailyExpense;
+
+        // ADR
+        $adr = $totalNights > 0 ? round($revenue / $totalNights) : 0;
+
+        // Occupancy
+        $avgOccupiedRooms = round($occupiedRoomDays / $days, 1);
+
+        // Scoring
+        $profitabilityScore = min(10, max(0, (int)($profitMargin / 3)));
+        $efficiencyScore = min(10, max(0, round((100 - $costRatio) / 10)));
+        $overallHealth = round(($profitabilityScore + $efficiencyScore) / 2);
+
+        return view('reports.financial-ratios', compact(
+            'profitMargin', 'costRatio', 'occupancyRate', 'revenuePerRoom', 'adr',
+            'revenuePerGuest', 'avgStay', 'guestCount',
+            'dailyRevenue', 'dailyExpense', 'dailyProfit', 'avgOccupiedRooms',
+            'profitabilityScore', 'efficiencyScore', 'overallHealth', 'period'
+        ));
+    }
 }
