@@ -84,9 +84,22 @@ class RoomController extends Controller
         $subType  = $validated['room_sub_type'] ?? 'regular';
         $isSuite  = $subType === 'suite';
 
+        $roomType = isset($validated['room_type_id'])
+            ? RoomType::find($validated['room_type_id'])
+            : (RoomType::first() ?? RoomType::withTrashed()->first());
+
+        if (!$roomType) {
+            $roomType = RoomType::create([
+                'hotel_id'     => $hotel->id,
+                'name'         => 'غرفة عادية',
+                'base_price'   => 0,
+                'max_capacity' => 2,
+            ]);
+        }
+
         $baseAttributes = [
             'hotel_id'     => $hotel->id,
-            'room_type_id' => $validated['room_type_id'] ?? RoomType::first()?->id,
+            'room_type_id' => $roomType->id,
             'floor'        => $validated['floor'],
             'beds_count'   => $validated['beds_count'] ?? 1,
             'status'       => 'available',
