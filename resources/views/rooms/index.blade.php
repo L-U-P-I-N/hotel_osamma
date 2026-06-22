@@ -266,7 +266,7 @@
         </div>
 
         {{-- Card Body --}}
-        <div @click="selectMode ? toggleSelect({{ $room->id }}) : openRoom({{ $room->toJson() }}, '{{ addslashes($room->roomType?->name ?? '') }}', {{ $room->roomType?->base_price ?? 0 }})"
+        <div @click="selectMode ? toggleSelect({{ $room->id }}) : openRoom(@js($room->only(['id','room_number','floor','beds_count','status','room_sub_type','price_yer','suite_price_yer'])), @js($room->roomType?->name ?? ''), {{ (float)($room->price_yer ?? 0) }})"
              class="p-4 pb-3 cursor-pointer select-none">
 
             {{-- Top row: room number + status badge --}}
