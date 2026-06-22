@@ -142,6 +142,119 @@
 
 </div>
 
+{{-- ── KPIs الإضافية ── --}}
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+    {{-- معدل الإشغال --}}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <div class="flex items-center justify-between mb-3">
+            <div>
+                <p class="text-xs text-gray-500 mb-1">معدل الإشغال اليومي</p>
+                <p class="text-3xl font-bold text-primary-600">{{ $occupancyRateToday }}%</p>
+            </div>
+            <div class="text-3xl">📊</div>
+        </div>
+        <div class="w-full bg-gray-100 rounded-full h-2">
+            <div class="bg-primary-600 h-2 rounded-full transition-all duration-300" style="width: {{ $occupancyRateToday }}%"></div>
+        </div>
+        <p class="text-xs text-gray-400 mt-2">{{ $occupiedRooms }} من {{ $totalRooms }} غرفة مشغولة</p>
+    </div>
+
+    {{-- مصروفات اليوم --}}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-xs text-gray-500 mb-1">مصروفات اليوم</p>
+                <p class="text-3xl font-bold {{ $todayExpenses > $todayRevenue ? 'text-red-600' : 'text-gray-700' }}">{{ number_format($todayExpenses, 0) }} ر.ي</p>
+            </div>
+            <div class="text-3xl">💸</div>
+        </div>
+        @if($todayRevenue > 0)
+        <div class="mt-3 pt-3 border-t border-gray-100">
+            <div class="flex items-center justify-between text-xs">
+                <span class="text-gray-500">الإيرادات: {{ number_format($todayRevenue, 0) }} ر.ي</span>
+                <span class="font-semibold {{ $todayExpenses > $todayRevenue ? 'text-red-600' : 'text-green-600' }}">
+                    {{ $todayExpenses > $todayRevenue ? '−' : '+' }}{{ number_format(abs($todayRevenue - $todayExpenses), 0) }} ر.ي
+                </span>
+            </div>
+        </div>
+        @endif
+    </div>
+</div>
+
+{{-- ── مخطط إيرادات الأسبوع ── --}}
+@if($weeklyRevenue)
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-5">
+    <div class="flex items-center justify-between mb-4">
+        <div>
+            <h3 class="font-semibold text-gray-800">إيرادات الأسبوع</h3>
+            <p class="text-xs text-gray-400 mt-0.5">آخر 7 أيام</p>
+        </div>
+        <div class="text-2xl">📈</div>
+    </div>
+    <div style="position: relative; height: 300px;">
+        <canvas id="weeklyRevenueChart"></canvas>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('weeklyRevenueChart');
+        if (ctx) {
+            const weeklyData = @json($weeklyRevenue);
+            const dates = weeklyData.map(d => d.date);
+            const revenues = weeklyData.map(d => d.revenue);
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'الإيراد اليومي (ر.ي)',
+                        data: revenues,
+                        borderColor: '#0F4C75',
+                        backgroundColor: 'rgba(15, 76, 117, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#0F4C75',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointHoverRadius: 7
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString('ar-SA') + ' ر.ي';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+@endif
+
 {{-- ── جدول النزلاء المسجلين (الأقرب للمغادرة) ── --}}
 @can('checkin.view')
 <div class="bg-white rounded-xl shadow-sm border border-gray-100">

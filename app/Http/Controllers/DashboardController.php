@@ -25,6 +25,23 @@ class DashboardController extends Controller
         $monthlyRevenue = Payment::whereMonth('payment_date', now()->month)
             ->whereYear('payment_date', now()->year)->sum('amount');
 
+        // 🆕 Weekly Revenue Chart (last 7 days)
+        $weeklyRevenue = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $date = now()->subDays($i)->toDateString();
+            $revenue = Payment::whereDate('payment_date', $date)->sum('amount');
+            $weeklyRevenue[] = [
+                'date' => now()->subDays($i)->format('d/m'),
+                'revenue' => (int)$revenue
+            ];
+        }
+
+        // 🆕 Occupancy Rate Today
+        $occupancyRateToday = $totalRooms > 0 ? round(($occupiedRooms / $totalRooms) * 100) : 0;
+
+        // 🆕 Today's Expenses
+        $todayExpenses = Expense::whereDate('expense_date', today())->sum('amount');
+
         $expiringGuests = Reservation::with(['guest', 'room'])
             ->where('status', 'checked_in')
             ->orderBy('check_out_date', 'asc')
@@ -47,7 +64,6 @@ class DashboardController extends Controller
             $alerts[] = ['type' => 'warning', 'title' => 'مصروفات مؤجلة عالية', 'message' => 'إجمالي المصروفات المؤجلة: ' . number_format($deferredExpenses, 0) . ' ر.ي', 'icon' => '💰'];
         }
 
-        $todayExpenses = Expense::whereDate('expense_date', today())->sum('amount');
         if ($todayExpenses > $todayRevenue && $todayRevenue > 0) {
             $alerts[] = ['type' => 'danger', 'title' => 'المصروفات تتجاوز الإيرادات', 'message' => 'المصروفات: ' . number_format($todayExpenses, 0) . ' ر.ي والإيرادات: ' . number_format($todayRevenue, 0) . ' ر.ي', 'icon' => '📉'];
         }
@@ -60,8 +76,9 @@ class DashboardController extends Controller
         return view('dashboard.index', compact(
             'totalRooms', 'occupiedRooms', 'availableRooms', 'maintenanceRooms',
             'todayArrivals', 'todayDepartures',
-            'todayRevenue', 'monthlyRevenue',
-            'expiringGuests', 'roomStatusCounts', 'alerts'
+            'todayRevenue', 'monthlyRevenue', 'todayExpenses',
+            'expiringGuests', 'roomStatusCounts', 'alerts',
+            'weeklyRevenue', 'occupancyRateToday'
         ));
     }
 }

@@ -435,5 +435,27 @@ window.addEventListener('appinstalled', () => {
     if (banner) banner.classList.add('hidden');
 });
 </script>
+
+<!-- Toast Notifications System -->
+@include('components.toast-notification')
+@include('components.delete-confirmation-modal')
+
+<!-- Flash messages → Toast -->
+@if(session('success'))
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        Toast.success('{{ session("success") }}');
+    });
+</script>
+@endif
+
+@if(session('error'))
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        Toast.error('{{ session("error") }}');
+    });
+</script>
+@endif
+
 </body>
 </html>

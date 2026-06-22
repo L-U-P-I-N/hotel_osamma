@@ -236,6 +236,7 @@
     </div>
     @if($expenses->hasPages())
     <div class="px-4 py-3 border-t border-gray-100">
+        <x-pagination-info :items="$expenses" />
         {{ $expenses->links() }}
     </div>
     @endif
