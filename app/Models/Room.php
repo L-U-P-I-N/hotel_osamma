@@ -75,7 +75,7 @@ class Room extends Model
         };
 
         if (($value === null || $value === '') && $currency === 'YER') {
-            return (float) ($this->roomType->base_price ?? 0);
+            return (float) ($this->roomType?->base_price ?? 0);
         }
 
         return (float) ($value ?? 0);
