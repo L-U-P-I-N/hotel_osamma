@@ -69,7 +69,7 @@
             <td class="ltr">{{ number_format($res->total_amount, 0) }}</td>
             <td class="ltr" style="color:#16a34a;">{{ number_format($res->paid_amount, 0) }}</td>
             <td class="ltr" style="font-weight:bold;color:#dc2626;">{{ number_format($balance, 0) }}</td>
-            <td class="ltr">{{ $res->check_in_date?->format('d/m/Y') ?? '—' }}</td>
+            <td class="ltr">{{ $res->check_in_date?->format('d/m/Y') ?? '—' }}{{ $res->check_in_time ? ' ' . $res->check_in_time : '' }}</td>
             <td class="ltr">{{ $res->check_out_date?->format('d/m/Y') ?? '—' }}</td>
         </tr>
         @endforeach
