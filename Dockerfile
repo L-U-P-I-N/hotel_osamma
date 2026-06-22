@@ -89,4 +89,4 @@ RUN echo '[supervisord]' > /etc/supervisord.conf && \
 
 EXPOSE 8080
 
-CMD ["supervisord", "-c", "/etc/supervisord.conf"]
+CMD ["sh", "-c", "php artisan migrate --force && php artisan storage:link --force 2>/dev/null; supervisord -c /etc/supervisord.conf"]
