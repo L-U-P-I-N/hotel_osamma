@@ -366,7 +366,9 @@
     <div x-transition:enter="transition ease-out duration-200"
          x-transition:enter-start="opacity-0 scale-95"
          x-transition:enter-end="opacity-100 scale-100"
-         class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+         class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+
+        {{-- Header --}}
         <div class="px-6 py-4 flex items-center justify-between" style="background:#0F4C75;">
             <h3 class="font-bold text-white flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-5 5a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a2 2 0 014-4z"/></svg>
@@ -376,31 +378,42 @@
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>
-        <form method="POST" action="{{ route('rooms.bulkPrice') }}" class="p-6 space-y-4">
+
+        <form method="POST" action="{{ route('rooms.bulkPrice') }}" class="p-6 space-y-5">
             @csrf
+
+            {{-- إذا كانت هناك غرف محددة يدوياً --}}
             <template x-if="selectedIds.length > 0">
                 <div>
                     <template x-for="id in selectedIds" :key="id">
                         <input type="hidden" name="room_ids[]" :value="id">
                     </template>
-                    <div class="flex items-center gap-3 p-3 rounded-xl" style="background:#eff6ff;">
-                        <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0">
+                    <div class="flex items-center gap-3 p-3.5 rounded-xl bg-blue-50 border border-blue-100">
+                        <div class="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0">
                             <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         </div>
-                        <p class="text-sm font-semibold text-blue-800">
-                            <span x-text="selectedIds.length"></span> غرفة محددة للتحديث
-                        </p>
+                        <div>
+                            <p class="text-sm font-bold text-blue-800">
+                                <span x-text="selectedIds.length"></span> غرفة محددة يدوياً
+                            </p>
+                            <p class="text-xs text-blue-600 mt-0.5" x-show="hasSuiteInSelection">
+                                يشمل التحديد أجنحة — ستظهر حقول سعر الجناح
+                            </p>
+                        </div>
                     </div>
                 </div>
             </template>
+
+            {{-- إذا لم تكن هناك غرف محددة — اختر النوع --}}
             <template x-if="selectedIds.length === 0">
                 <div>
                     <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">تطبيق على</label>
-                    <select name="sub_type"
+                    <select name="sub_type" x-model="bulkSubType"
                             class="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-gray-50 focus:bg-white focus:border-blue-400 outline-none transition">
                         <option value="">جميع الغرف ({{ $total }})</option>
                         <option value="regular">عادية فقط</option>
                         <option value="double">زوجية فقط</option>
+                        <option value="suite">جناح (A+B معاً)</option>
                         <option value="suite_a">جناح A فقط</option>
                         <option value="suite_b">جناح B فقط</option>
                         <option value="hall">صالة فقط</option>
@@ -409,16 +422,38 @@
                 </div>
             </template>
 
+            {{-- ─── حقل السعر العادي (لجميع الأنواع) ─── --}}
             <div>
-                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">السعر الجديد</label>
+                <label class="block text-xs font-bold text-gray-600 mb-1.5">
+                    <span x-show="!hasSuiteInSelection">سعر الليلة (ر.ي)</span>
+                    <span x-show="hasSuiteInSelection">سعر القسم المستقل — كل قسم A أو B على حدة (ر.ي)</span>
+                </label>
                 <div class="relative">
-                    <input type="number" name="price_yer" required min="0" step="1"
-                           placeholder="0"
-                           class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-2xl font-black text-center text-gray-800 outline-none focus:border-blue-400 transition bg-gray-50 focus:bg-white">
+                    <input type="number" name="price_yer" min="0" step="1" placeholder="0"
+                           class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-2xl font-black text-center text-gray-800 outline-none focus:border-amber-400 transition bg-gray-50 focus:bg-white">
                     <span class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400">ر.ي</span>
                 </div>
-                <p class="text-xs text-gray-400 mt-1 text-center">السعر لكل ليلة</p>
+                <p class="text-xs text-gray-400 mt-1 text-center" x-show="!hasSuiteInSelection">اتركه فارغاً لعدم تغييره</p>
+                <p class="text-xs text-amber-600 mt-1 text-center" x-show="hasSuiteInSelection">يُستخدم عند تأجير القسم بشكل مستقل</p>
             </div>
+
+            {{-- ─── حقل سعر الجناح الكامل (يظهر فقط عند تضمين الأجنحة) ─── --}}
+            <div x-show="hasSuiteInSelection" x-cloak>
+                <label class="block text-xs font-bold text-indigo-700 mb-1.5">
+                    سعر الجناح كامل — A+B معاً (ر.ي)
+                </label>
+                <div class="relative">
+                    <input type="number" name="suite_price_yer" min="0" step="1" placeholder="0"
+                           class="w-full border-2 border-indigo-200 rounded-xl px-4 py-3 text-2xl font-black text-center text-indigo-800 outline-none focus:border-indigo-500 transition bg-indigo-50 focus:bg-white">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-indigo-400">ر.ي</span>
+                </div>
+                <p class="text-xs text-indigo-500 mt-1 text-center">يُستخدم عند حجز الجناح كامل دفعة واحدة — اتركه فارغاً لعدم تغييره</p>
+            </div>
+
+            {{-- رسالة خطأ --}}
+            @error('price_yer')
+            <p class="text-xs text-red-600 text-center">{{ $message }}</p>
+            @enderror
 
             <button type="submit"
                     class="w-full py-3 text-white font-bold text-sm rounded-xl transition hover:opacity-90 shadow-sm"
@@ -563,6 +598,7 @@ function roomsPage() {
         selectMode: false,
         selectedIds: [],
         bulkPriceModal: false,
+        bulkSubType: '',
         allRoomIds: @json($rooms->pluck('id')),
         roomSubTypes: @json($rooms->pluck('room_sub_type', 'id')),
         statusLabels: {
@@ -575,6 +611,12 @@ function roomsPage() {
         },
         get allSelected() {
             return this.allRoomIds.length > 0 && this.selectedIds.length === this.allRoomIds.length;
+        },
+        get hasSuiteInSelection() {
+            if (this.selectedIds.length > 0) {
+                return this.selectedIds.some(id => ['suite_a','suite_b'].includes(this.roomSubTypes[String(id)]));
+            }
+            return ['suite','suite_a','suite_b',''].includes(this.bulkSubType);
         },
         init() {},
         openRoom(room, type, price) {

@@ -264,24 +264,57 @@ class RoomController extends Controller
     public function bulkUpdatePrice(Request $request)
     {
         $request->validate([
-            'price_yer' => 'required|numeric|min:0',
-            'sub_type'  => 'nullable|string',
-            'room_ids'  => 'nullable|array',
-            'room_ids.*'=> 'integer|exists:rooms,id',
+            'price_yer'       => 'nullable|numeric|min:0',
+            'suite_price_yer' => 'nullable|numeric|min:0',
+            'sub_type'        => 'nullable|string',
+            'room_ids'        => 'nullable|array',
+            'room_ids.*'      => 'integer|exists:rooms,id',
+        ], [
+            'price_yer.numeric'       => 'السعر يجب أن يكون رقماً',
+            'suite_price_yer.numeric' => 'سعر الجناح الكامل يجب أن يكون رقماً',
         ]);
 
-        $query = Room::query();
-
-        if ($request->filled('room_ids')) {
-            $query->whereIn('id', $request->room_ids);
-        } elseif ($request->filled('sub_type')) {
-            $query->where('room_sub_type', $request->sub_type);
+        if (!$request->filled('price_yer') && !$request->filled('suite_price_yer')) {
+            return back()->withErrors(['price_yer' => 'يجب إدخال سعر واحد على الأقل']);
         }
 
-        $count = $query->count();
-        $query->update(['price_yer' => $request->price_yer]);
+        // بناء الاستعلام حسب التحديد
+        $buildQuery = function (array $additionalSubTypes = []) use ($request) {
+            $q = Room::query();
+            if ($request->filled('room_ids')) {
+                $q->whereIn('id', $request->room_ids);
+            } elseif ($request->filled('sub_type')) {
+                $subType = $request->sub_type;
+                // 'suite' يعني كلا القسمين
+                $subType === 'suite'
+                    ? $q->whereIn('room_sub_type', ['suite_a', 'suite_b'])
+                    : $q->where('room_sub_type', $subType);
+            }
+            if (!empty($additionalSubTypes)) {
+                $q->whereIn('room_sub_type', $additionalSubTypes);
+            }
+            return $q;
+        };
 
-        return back()->with('success', "تم تحديث سعر {$count} غرفة بنجاح");
+        $updatedCount = 0;
+
+        // تحديث price_yer لجميع الغرف المحددة
+        if ($request->filled('price_yer')) {
+            $q = $buildQuery();
+            $updatedCount = $q->count();
+            $q->update(['price_yer' => $request->price_yer]);
+        }
+
+        // تحديث suite_price_yer للأجنحة فقط
+        if ($request->filled('suite_price_yer')) {
+            $q = $buildQuery(['suite_a', 'suite_b']);
+            if ($updatedCount === 0) {
+                $updatedCount = $q->count();
+            }
+            $q->update(['suite_price_yer' => $request->suite_price_yer]);
+        }
+
+        return back()->with('success', "تم تحديث أسعار {$updatedCount} غرفة بنجاح");
     }
 
     public function updateStatus(Request $request, Room $room)
