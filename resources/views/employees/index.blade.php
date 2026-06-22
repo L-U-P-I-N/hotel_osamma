@@ -67,13 +67,22 @@
                     @endcanany
                 </tr>
                 @empty
-                <tr><td colspan="8" class="px-4 py-8 text-center text-gray-400">لا يوجد موظفون مسجلون</td></tr>
+                <tr><td colspan="8" class="px-4 py-8">
+                    <x-empty-state
+                        icon="👥"
+                        title="لا يوجد موظفون"
+                        message="ابدأ بإضافة موظف جديد لفريقك"
+                        action_text="إضافة موظف"
+                        action_url="{{ route('employees.create') }}"
+                    />
+                </td></tr>
                 @endforelse
             </tbody>
         </table>
     </div>
     @if($employees->hasPages())
     <div class="px-4 py-3 border-t border-gray-100">
+        <x-pagination-info :items="$employees" />
         {{ $employees->links() }}
     </div>
     @endif

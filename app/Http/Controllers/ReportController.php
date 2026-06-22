@@ -768,6 +768,44 @@ class ReportController extends Controller
         return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\SalariesReportExport($year), 'salaries-' . $year . '.xlsx');
     }
 
+    public function paymentMethodsStats(Request $request)
+    {
+        $from = $request->input('from', now()->startOfMonth()->toDateString());
+        $to   = $request->input('to', now()->toDateString());
+
+        $payments = Payment::whereDate('payment_date', '>=', $from)
+            ->whereDate('payment_date', '<=', $to)
+            ->where('currency', 'YER')
+            ->get();
+
+        $byMethod = $payments->groupBy('method')->map(fn($group) => [
+            'count'   => $group->count(),
+            'total'   => $group->sum('amount'),
+            'average' => $group->count() > 0 ? $group->sum('amount') / $group->count() : 0,
+        ]);
+
+        $totalAmount = $payments->sum('amount');
+        $totalCount  = $payments->count();
+
+        $dailyByMethod = $payments->groupBy(fn($p) => $p->payment_date->format('Y-m-d'))
+            ->map(fn($group) => $group->groupBy('method')
+                ->map(fn($g) => $g->sum('amount'))
+            );
+
+        $methodLabels = [
+            'cash'          => 'نقداً',
+            'bank_transfer' => 'تحويل بنكي',
+            'pos'           => 'POS',
+            'check'         => 'شيك',
+            'credit_card'   => 'بطاقة ائتمان',
+        ];
+
+        return view('reports.payment-methods-stats', compact(
+            'byMethod', 'totalAmount', 'totalCount', 'dailyByMethod',
+            'from', 'to', 'methodLabels'
+        ));
+    }
+
     public function shiftDeficits(Request $request)
     {
         $from = $request->input('from', now()->startOfMonth()->toDateString());

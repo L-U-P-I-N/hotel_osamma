@@ -140,13 +140,22 @@
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="10" class="px-4 py-10 text-center text-gray-400">لا توجد حجوزات</td></tr>
+                <tr><td colspan="10" class="px-4 py-10">
+                    <x-empty-state
+                        icon="📭"
+                        title="لا توجد حجوزات"
+                        message="ابدأ بإنشاء حجزة جديدة"
+                        action_text="إنشاء حجزة"
+                        action_url="{{ route('checkin.create') }}"
+                    />
+                </td></tr>
                 @endforelse
             </tbody>
         </table>
     </div>
     @if($reservations->hasPages())
     <div class="px-6 py-4 border-t border-gray-100">
+        <x-pagination-info :items="$reservations" />
         {{ $reservations->links() }}
     </div>
     @endif

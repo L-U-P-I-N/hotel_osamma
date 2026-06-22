@@ -188,6 +188,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/reports/daily-close', [ReportController::class, 'dailyClose'])->name('reports.dailyClose');
         Route::get('/reports/aged-debts', [ReportController::class, 'agedDebts'])->name('reports.agedDebts');
         Route::get('/reports/profit-loss', [ReportController::class, 'profitLoss'])->name('reports.profitLoss');
+        Route::get('/reports/monthly-expenses', [ReportController::class, 'monthlyExpenses'])->name('reports.monthlyExpenses');
+        Route::get('/reports/financial-ratios', [ReportController::class, 'financialRatios'])->name('reports.financialRatios');
+        Route::get('/reports/payment-methods-stats', [ReportController::class, 'paymentMethodsStats'])->name('reports.paymentMethodsStats');
     });
 
     // Users

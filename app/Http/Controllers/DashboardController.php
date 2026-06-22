@@ -78,6 +78,23 @@ class DashboardController extends Controller
             ]);
         }
 
+        // 🆕 Weekly Revenue Chart (last 7 days)
+        $weeklyRevenue = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $date = now()->subDays($i)->toDateString();
+            $revenue = Payment::whereDate('payment_date', $date)->sum('amount');
+            $weeklyRevenue[] = [
+                'date' => now()->subDays($i)->format('d/m'),
+                'revenue' => (int)$revenue
+            ];
+        }
+
+        // 🆕 Occupancy Rate Today
+        $occupancyRateToday = $totalRooms > 0 ? round(($occupiedRooms / $totalRooms) * 100) : 0;
+
+        // 🆕 Today's Expenses
+        $todayExpenses = Expense::whereDate('expense_date', today())->sum('amount');
+
         $expiringGuests = Reservation::with(['guest', 'room'])
             ->where('status', 'checked_in')
             ->orderBy('check_out_date', 'asc')
@@ -88,6 +105,27 @@ class DashboardController extends Controller
             ->pluck('count', 'status')
             ->toArray();
 
+        $alerts = [];
+
+        $totalDebt = Reservation::whereRaw('paid_amount < total_amount')->sum(DB::raw('total_amount - paid_amount'));
+        if ($totalDebt > 50000) {
+            $alerts[] = ['type' => 'danger', 'title' => 'ديون عالية جداً', 'message' => 'إجمالي الديون المعلقة: ' . number_format($totalDebt, 0) . ' ر.ي', 'icon' => '⚠️'];
+        }
+
+        $deferredExpenses = Expense::where('payment_method', 'later')->whereNull('settled_at')->sum('amount');
+        if ($deferredExpenses > 30000) {
+            $alerts[] = ['type' => 'warning', 'title' => 'مصروفات مؤجلة عالية', 'message' => 'إجمالي المصروفات المؤجلة: ' . number_format($deferredExpenses, 0) . ' ر.ي', 'icon' => '💰'];
+        }
+
+        if ($todayExpenses > $todayRevenue && $todayRevenue > 0) {
+            $alerts[] = ['type' => 'danger', 'title' => 'المصروفات تتجاوز الإيرادات', 'message' => 'المصروفات: ' . number_format($todayExpenses, 0) . ' ر.ي والإيرادات: ' . number_format($todayRevenue, 0) . ' ر.ي', 'icon' => '📉'];
+        }
+
+        $overdueDays30 = Expense::where('payment_method', 'later')->whereNull('settled_at')->where('expense_date', '<', now()->subDays(30))->count();
+        if ($overdueDays30 > 0) {
+            $alerts[] = ['type' => 'danger', 'title' => 'مصروفات متأخرة 30+ يوم', 'message' => 'عدد المصروفات: ' . $overdueDays30 . ' مصروف', 'icon' => '🚨'];
+        }
+
         return view('dashboard.index', compact(
             'totalRooms', 'occupiedRooms', 'availableRooms', 'maintenanceRooms',
             'todayArrivals', 'todayDepartures',
@@ -96,7 +134,8 @@ class DashboardController extends Controller
             'occupancyRate', 'adr',
             'debtReservations', 'totalOutstandingDebt',
             'upcomingArrivals', 'trendDays',
-            'expiringGuests', 'roomStatusCounts'
+            'expiringGuests', 'roomStatusCounts', 'alerts',
+            'weeklyRevenue', 'occupancyRateToday'
         ));
     }
 }

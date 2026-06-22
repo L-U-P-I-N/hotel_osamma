@@ -214,56 +214,24 @@
                         <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                         أعمار الديون
                     </a>
+                    <a href="{{ route('reports.monthlyExpenses') }}" class="nav-link text-xs {{ request()->routeIs('reports.monthlyExpenses') ? 'active' : '' }}">
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                        المصروفات الشهرية
+                    </a>
+                    <a href="{{ route('reports.financialRatios') }}" class="nav-link text-xs {{ request()->routeIs('reports.financialRatios') ? 'active' : '' }}">
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12a1 1 0 100-2 1 1 0 000 2z"/></svg>
+                        نسب الأداء المالي
+                    </a>
                     <a href="{{ route('reports.profitLoss') }}" class="nav-link text-xs {{ request()->routeIs('reports.profitLoss') ? 'active' : '' }}">
                         <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                         الأرباح والخسائر
                     </a>
-                    <a href="{{ route('reports.roomRevenue') }}" class="nav-link text-xs {{ request()->routeIs('reports.roomRevenue') ? 'active' : '' }}">
-                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-                        إيراد الغرف
-                    </a>
-                    <a href="{{ route('reports.cashFlow') }}" class="nav-link text-xs {{ request()->routeIs('reports.cashFlow') ? 'active' : '' }}">
-                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v7a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
-                        تدفق النقد
-                    </a>
-                    <a href="{{ route('reports.monthlyExpenses') }}" class="nav-link text-xs {{ request()->routeIs('reports.monthlyExpenses') ? 'active' : '' }}">
-                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        المصروفات الشهرية
-                    </a>
-                    <a href="{{ route('reports.financialRatios') }}" class="nav-link text-xs {{ request()->routeIs('reports.financialRatios') ? 'active' : '' }}">
-                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                        نسب الأداء المالي
+                    <a href="{{ route('reports.paymentMethodsStats') }}" class="nav-link text-xs {{ request()->routeIs('reports.paymentMethodsStats') ? 'active' : '' }}">
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                        طرق الدفع
                     </a>
                 </div>
             </div>
-            @endcan
-
-            {{-- غرفة الدخول & التسعير --}}
-            @can('rooms.view')
-            <div class="nav-section-label mt-2">إدارة الأسعار</div>
-            <a href="{{ route('seasonal-prices.index') }}"
-               class="nav-link text-xs {{ request()->routeIs('seasonal-prices.*') ? 'active' : '' }}">
-                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                الأسعار الموسمية
-            </a>
-            @endcan
-
-            {{-- الميزانية --}}
-            @can('reports.view')
-            <a href="{{ route('budgets.index') }}"
-               class="nav-link text-xs {{ request()->routeIs('budgets.*') ? 'active' : '' }}">
-                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                الميزانية الشهرية
-            </a>
-            @endcan
-
-            {{-- الاسترجاعات --}}
-            @can('checkin.view')
-            <a href="{{ route('refunds.index') }}"
-               class="nav-link text-xs {{ request()->routeIs('refunds.*') ? 'active' : '' }}">
-                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3"/></svg>
-                الاسترجاعات
-            </a>
             @endcan
 
             <!-- النظام -->
@@ -306,13 +274,9 @@
                         <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         الرواتب
                     </a>
-                    <a href="{{ route('leaves.index') }}" class="nav-link text-xs {{ request()->routeIs('leaves.index','leaves.create') ? 'active' : '' }}">
+                    <a href="{{ route('leaves.index') }}" class="nav-link text-xs {{ request()->routeIs('leaves.*') ? 'active' : '' }}">
                         <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                         الإجازات
-                    </a>
-                    <a href="{{ route('leaves.report') }}" class="nav-link text-xs {{ request()->routeIs('leaves.report') ? 'active' : '' }}">
-                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                        تقرير الإجازات
                     </a>
                     @endcan
                     @can('attendance.view')
@@ -345,10 +309,6 @@
                     <a href="{{ route('expenses.report') }}" class="nav-link text-xs {{ request()->routeIs('expenses.report') ? 'active' : '' }}">
                         <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
                         تقرير المصروفات
-                    </a>
-                    <a href="{{ route('expenses.deferred') }}" class="nav-link text-xs {{ request()->routeIs('expenses.deferred') ? 'active' : '' }}">
-                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        مصروفات مؤجلة
                     </a>
                 </div>
             </div>
@@ -475,5 +435,27 @@ window.addEventListener('appinstalled', () => {
     if (banner) banner.classList.add('hidden');
 });
 </script>
+
+<!-- Toast Notifications System -->
+@include('components.toast-notification')
+@include('components.delete-confirmation-modal')
+
+<!-- Flash messages → Toast -->
+@if(session('success'))
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        Toast.success('{{ session("success") }}');
+    });
+</script>
+@endif
+
+@if(session('error'))
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        Toast.error('{{ session("error") }}');
+    });
+</script>
+@endif
+
 </body>
 </html>

@@ -8,12 +8,31 @@
     $todayCount   = $expiringGuests->filter(fn($r) => $r->check_out_date->isToday())->count();
 @endphp
 
-{{-- ── شريط KPI الرئيسي ── --}}
-<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+{{-- ── التنبيهات المهمة ── --}}
+@if(!empty($alerts))
+<div class="mb-5 space-y-3">
+    @foreach($alerts as $alert)
+    <div class="flex items-start gap-3 px-4 py-3 rounded-lg border-l-4 {{
+        $alert['type'] === 'danger' ? 'bg-red-50 border-red-400 text-red-900' :
+        ($alert['type'] === 'warning' ? 'bg-amber-50 border-amber-400 text-amber-900' :
+        'bg-blue-50 border-blue-400 text-blue-900')
+    }}">
+        <span class="text-2xl flex-shrink-0">{{ $alert['icon'] }}</span>
+        <div class="flex-1">
+            <p class="font-semibold text-sm">{{ $alert['title'] }}</p>
+            <p class="text-xs mt-0.5 opacity-90">{{ $alert['message'] }}</p>
+        </div>
+    </div>
+    @endforeach
+</div>
+@endif
+
+{{-- ── شريط الأرقام السريعة ── --}}
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
 
     @can('rooms.view')
     <a href="{{ route('rooms.index', ['status' => 'available']) }}"
-       class="flex items-center gap-3 bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 hover:border-green-300 transition">
+       class="flex items-center gap-3 bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 hover:border-green-300 transition group">
         <div class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
             <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         </div>
@@ -26,7 +45,7 @@
 
     @can('rooms.view')
     <a href="{{ route('rooms.index', ['status' => 'occupied']) }}"
-       class="flex items-center gap-3 bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 hover:border-red-300 transition">
+       class="flex items-center gap-3 bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 hover:border-red-300 transition group">
         <div class="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
             <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
         </div>
@@ -61,83 +80,8 @@
 
 </div>
 
-{{-- ── KPIs المالية المتقدمة (للمدير/المالك) ── --}}
-@can('reports.view')
-<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-
-    {{-- الأرباح الصافية اليوم --}}
-    <div class="bg-white rounded-xl border shadow-sm px-4 py-3 {{ $todayNetProfit >= 0 ? 'border-emerald-200' : 'border-red-200' }}">
-        <div class="flex items-center gap-2 mb-1">
-            <div class="w-8 h-8 rounded-lg {{ $todayNetProfit >= 0 ? 'bg-emerald-100' : 'bg-red-100' }} flex items-center justify-center flex-shrink-0">
-                <svg class="w-4 h-4 {{ $todayNetProfit >= 0 ? 'text-emerald-600' : 'text-red-600' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
-            </div>
-            <p class="text-xs text-gray-500">صافي الربح اليوم</p>
-        </div>
-        <p class="text-xl font-bold {{ $todayNetProfit >= 0 ? 'text-emerald-700' : 'text-red-700' }}">
-            {{ $todayNetProfit >= 0 ? '+' : '' }}{{ number_format($todayNetProfit, 0) }}
-        </p>
-        <p class="text-xs text-gray-400 mt-0.5">إيراد: {{ number_format($todayRevenue,0) }} — مصروف: {{ number_format($todayExpenses,0) }}</p>
-    </div>
-
-    {{-- معدل الإشغال --}}
-    <div class="bg-white rounded-xl border border-blue-200 shadow-sm px-4 py-3">
-        <div class="flex items-center gap-2 mb-1">
-            <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-            </div>
-            <p class="text-xs text-gray-500">معدل الإشغال</p>
-        </div>
-        <p class="text-xl font-bold text-blue-700">{{ $occupancyRate }}%</p>
-        <div class="mt-1.5 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-            <div class="h-full rounded-full {{ $occupancyRate >= 70 ? 'bg-emerald-500' : ($occupancyRate >= 40 ? 'bg-amber-400' : 'bg-red-400') }}"
-                 style="width:{{ $occupancyRate }}%"></div>
-        </div>
-        <p class="text-xs text-gray-400 mt-0.5">{{ $occupiedRooms }}/{{ $totalRooms }} غرفة</p>
-    </div>
-
-    {{-- متوسط سعر الليلة ADR --}}
-    <div class="bg-white rounded-xl border border-purple-200 shadow-sm px-4 py-3">
-        <div class="flex items-center gap-2 mb-1">
-            <div class="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
-                <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
-            </div>
-            <p class="text-xs text-gray-500">متوسط سعر الليلة (ADR)</p>
-        </div>
-        <p class="text-xl font-bold text-purple-700">{{ number_format($adr, 0) }}</p>
-        <p class="text-xs text-gray-400 mt-0.5">ر.ي / ليلة اليوم</p>
-    </div>
-
-    {{-- الديون المستحقة --}}
-    @if($debtReservations > 0)
-    <a href="{{ route('reports.agedDebts') }}"
-       class="bg-white rounded-xl border border-rose-300 shadow-sm px-4 py-3 hover:bg-rose-50 transition">
-        <div class="flex items-center gap-2 mb-1">
-            <div class="w-8 h-8 rounded-lg bg-rose-100 flex items-center justify-center flex-shrink-0">
-                <svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-            </div>
-            <p class="text-xs text-gray-500">ديون مستحقة</p>
-        </div>
-        <p class="text-xl font-bold text-rose-700">{{ number_format($totalOutstandingDebt, 0) }}</p>
-        <p class="text-xs text-rose-500 mt-0.5 font-medium">{{ $debtReservations }} حجز · ر.ي</p>
-    </a>
-    @else
-    <div class="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3">
-        <div class="flex items-center gap-2 mb-1">
-            <div class="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            </div>
-            <p class="text-xs text-gray-500">ديون مستحقة</p>
-        </div>
-        <p class="text-xl font-bold text-gray-400">0</p>
-        <p class="text-xs text-green-600 mt-0.5 font-medium">لا توجد ديون ✓</p>
-    </div>
-    @endif
-
-</div>
-@endcan
-
 {{-- ── الأزرار السريعة ── --}}
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
 
     @can('checkin.create')
     <a href="{{ route('checkin.create') }}"
@@ -198,116 +142,120 @@
 
 </div>
 
-{{-- ── الحجوزات القادمة + الرسم البياني ── --}}
-@can('reports.view')
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-
-    {{-- الحجوزات القادمة (7 أيام) --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100">
-        <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-            <h3 class="font-semibold text-gray-800 text-sm">الوصولات القادمة (7 أيام)</h3>
-            <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">{{ $upcomingArrivals->count() }}</span>
-        </div>
-        @if($upcomingArrivals->isEmpty())
-        <div class="py-8 text-center text-gray-400 text-sm">لا توجد حجوزات قادمة</div>
-        @else
-        <div class="divide-y divide-gray-50 max-h-60 overflow-y-auto">
-            @foreach($upcomingArrivals as $res)
-            <div class="px-5 py-2.5 flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-800">{{ $res->guest?->full_name ?? '—' }}</p>
-                    <p class="text-xs text-gray-400">غرفة {{ $res->room?->room_number ?? '—' }}</p>
-                </div>
-                <div class="text-left">
-                    <p class="text-xs font-semibold text-blue-600">{{ $res->check_in_date->format('d/m') }}</p>
-                    @php $daysUntil = now()->diffInDays($res->check_in_date, false); @endphp
-                    <p class="text-xs text-gray-400">
-                        {{ $daysUntil == 0 ? 'اليوم' : ($daysUntil == 1 ? 'غداً' : 'بعد '.$daysUntil.' أيام') }}
-                    </p>
-                </div>
+{{-- ── KPIs الإضافية ── --}}
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+    {{-- معدل الإشغال --}}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <div class="flex items-center justify-between mb-3">
+            <div>
+                <p class="text-xs text-gray-500 mb-1">معدل الإشغال اليومي</p>
+                <p class="text-3xl font-bold text-primary-600">{{ $occupancyRateToday }}%</p>
             </div>
-            @endforeach
+            <div class="text-3xl">📊</div>
+        </div>
+        <div class="w-full bg-gray-100 rounded-full h-2">
+            <div class="bg-primary-600 h-2 rounded-full transition-all duration-300" style="width: {{ $occupancyRateToday }}%"></div>
+        </div>
+        <p class="text-xs text-gray-400 mt-2">{{ $occupiedRooms }} من {{ $totalRooms }} غرفة مشغولة</p>
+    </div>
+
+    {{-- مصروفات اليوم --}}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-xs text-gray-500 mb-1">مصروفات اليوم</p>
+                <p class="text-3xl font-bold {{ $todayExpenses > $todayRevenue ? 'text-red-600' : 'text-gray-700' }}">{{ number_format($todayExpenses, 0) }} ر.ي</p>
+            </div>
+            <div class="text-3xl">💸</div>
+        </div>
+        @if($todayRevenue > 0)
+        <div class="mt-3 pt-3 border-t border-gray-100">
+            <div class="flex items-center justify-between text-xs">
+                <span class="text-gray-500">الإيرادات: {{ number_format($todayRevenue, 0) }} ر.ي</span>
+                <span class="font-semibold {{ $todayExpenses > $todayRevenue ? 'text-red-600' : 'text-green-600' }}">
+                    {{ $todayExpenses > $todayRevenue ? '−' : '+' }}{{ number_format(abs($todayRevenue - $todayExpenses), 0) }} ر.ي
+                </span>
+            </div>
         </div>
         @endif
     </div>
-
-    {{-- رسم بياني آخر 7 أيام --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-        <h3 class="font-semibold text-gray-800 text-sm mb-3">الإيراد والمصروف (آخر 7 أيام)</h3>
-        <canvas id="trendChart" height="120"></canvas>
-    </div>
-
 </div>
-@endcan
 
-{{-- ── مقارنة YTD vs الشهر الماضي ── --}}
-@can('reports.view')
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-
-    {{-- YTD Summary --}}
-    <div class="bg-white rounded-xl shadow-sm border border-emerald-100 p-4">
-        <p class="text-xs font-medium text-gray-500 mb-2">📊 السنة من البداية</p>
-        <div class="space-y-1.5">
-            <div class="flex justify-between">
-                <span class="text-xs text-gray-600">الإيراد:</span>
-                <span class="font-semibold text-green-700">{{ number_format($ytdRevenue, 0) }}</span>
-            </div>
-            <div class="flex justify-between">
-                <span class="text-xs text-gray-600">المصروف:</span>
-                <span class="font-semibold text-red-600">{{ number_format($ytdExpenses, 0) }}</span>
-            </div>
-            <div class="h-px bg-gray-100 my-1.5"></div>
-            <div class="flex justify-between">
-                <span class="text-xs font-medium text-gray-700">الصافي:</span>
-                <span class="font-bold {{ ($ytdRevenue - $ytdExpenses) >= 0 ? 'text-emerald-700' : 'text-red-700' }}">{{ number_format($ytdRevenue - $ytdExpenses, 0) }}</span>
-            </div>
+{{-- ── مخطط إيرادات الأسبوع ── --}}
+@if($weeklyRevenue)
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-5">
+    <div class="flex items-center justify-between mb-4">
+        <div>
+            <h3 class="font-semibold text-gray-800">إيرادات الأسبوع</h3>
+            <p class="text-xs text-gray-400 mt-0.5">آخر 7 أيام</p>
         </div>
+        <div class="text-2xl">📈</div>
     </div>
-
-    {{-- This Month vs Last Month --}}
-    <div class="bg-white rounded-xl shadow-sm border border-blue-100 p-4">
-        <p class="text-xs font-medium text-gray-500 mb-2">📈 هذا الشهر</p>
-        <div class="space-y-1.5">
-            <div class="flex justify-between">
-                <span class="text-xs text-gray-600">الإيراد:</span>
-                <span class="font-semibold text-green-700">{{ number_format($monthlyRevenue, 0) }}</span>
-            </div>
-            <div class="flex justify-between">
-                <span class="text-xs text-gray-600">المصروف:</span>
-                <span class="font-semibold text-red-600">{{ number_format($monthlyExpenses, 0) }}</span>
-            </div>
-            <div class="h-px bg-gray-100 my-1.5"></div>
-            <div class="flex justify-between">
-                <span class="text-xs font-medium text-gray-700">الصافي:</span>
-                <span class="font-bold text-blue-700">{{ number_format($monthlyRevenue - $monthlyExpenses, 0) }}</span>
-            </div>
-        </div>
+    <div style="position: relative; height: 300px;">
+        <canvas id="weeklyRevenueChart"></canvas>
     </div>
-
-    {{-- Last Month Comparison --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-        <p class="text-xs font-medium text-gray-500 mb-2">📉 الشهر الماضي</p>
-        <div class="space-y-1.5">
-            <div class="flex justify-between">
-                <span class="text-xs text-gray-600">الإيراد:</span>
-                <span class="font-semibold text-gray-600">{{ number_format($lastMonthRevenue, 0) }}</span>
-            </div>
-            <div class="flex justify-between">
-                <span class="text-xs text-gray-600">المصروف:</span>
-                <span class="font-semibold text-gray-600">{{ number_format($lastMonthExpenses, 0) }}</span>
-            </div>
-            <div class="h-px bg-gray-100 my-1.5"></div>
-            <div class="flex justify-between">
-                <span class="text-xs font-medium text-gray-700">الصافي:</span>
-                <span class="font-bold text-gray-700">{{ number_format($lastMonthRevenue - $lastMonthExpenses, 0) }}</span>
-            </div>
-        </div>
-    </div>
-
 </div>
-@endcan
 
-{{-- ── جدول النزلاء المسجلين ── --}}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('weeklyRevenueChart');
+        if (ctx) {
+            const weeklyData = @json($weeklyRevenue);
+            const dates = weeklyData.map(d => d.date);
+            const revenues = weeklyData.map(d => d.revenue);
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'الإيراد اليومي (ر.ي)',
+                        data: revenues,
+                        borderColor: '#0F4C75',
+                        backgroundColor: 'rgba(15, 76, 117, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#0F4C75',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointHoverRadius: 7
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString('ar-SA') + ' ر.ي';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+@endif
+
+{{-- ── جدول النزلاء المسجلين (الأقرب للمغادرة) ── --}}
 @can('checkin.view')
 <div class="bg-white rounded-xl shadow-sm border border-gray-100">
     <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
@@ -321,7 +269,7 @@
             @endif
         </div>
         <div class="flex items-center gap-3">
-            @if($monthlyRevenue > 0)
+            @if($todayRevenue > 0)
             <span class="text-xs text-gray-400">الشهر: <strong class="text-gray-700">{{ number_format($monthlyRevenue, 0) }} ر.ي</strong></span>
             @endif
             @can('rooms.view')
@@ -348,7 +296,6 @@
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الدخول</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الخروج</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المدة</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الرصيد</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">إجراءات</th>
                 </tr>
             </thead>
@@ -373,7 +320,6 @@
                         $badgeCls = 'bg-gray-100 text-gray-600';
                         $badgeTxt = $daysLeft . ' أيام';
                     }
-                    $balance = (float)$res->total_amount - (float)$res->paid_amount;
                 @endphp
                 <tr class="{{ $rowCls }} transition-colors">
                     <td class="px-4 py-3">
@@ -386,13 +332,6 @@
                     <td class="px-4 py-3 text-gray-600 font-medium text-xs">{{ $res->check_out_date->format('d/m/Y') }}</td>
                     <td class="px-4 py-3">
                         <span class="px-2 py-1 rounded-full text-xs font-semibold {{ $badgeCls }}">{{ $badgeTxt }}</span>
-                    </td>
-                    <td class="px-4 py-3">
-                        @if($balance > 0)
-                        <span class="text-xs font-bold text-rose-600">{{ number_format($balance, 0) }} ر.ي</span>
-                        @else
-                        <span class="text-xs text-green-600">مسوّى</span>
-                        @endif
                     </td>
                     <td class="px-4 py-3">
                         <div class="flex items-center gap-1.5">
@@ -417,7 +356,7 @@
 </div>
 @endcan
 
-{{-- ── شريط حالة الغرف السفلي ── --}}
+{{-- ── شريط حالة الغرف السفلي (للمدير) ── --}}
 @can('rooms.view')
 <div class="mt-4 flex flex-wrap gap-2">
     @php
@@ -440,33 +379,3 @@
 @endcan
 
 @endsection
-
-@push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
-<script>
-(function() {
-    const ctx = document.getElementById('trendChart');
-    if (!ctx) return;
-    const labels   = @json($trendDays->pluck('label'));
-    const revenue  = @json($trendDays->pluck('revenue'));
-    const expenses = @json($trendDays->pluck('expense'));
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels,
-            datasets: [
-                { label: 'إيراد', data: revenue, backgroundColor: 'rgba(16,185,129,.7)', borderRadius: 4 },
-                { label: 'مصروف', data: expenses, backgroundColor: 'rgba(239,68,68,.6)', borderRadius: 4 },
-            ]
-        },
-        options: {
-            responsive: true,
-            plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } },
-            scales: {
-                y: { beginAtZero: true, ticks: { callback: v => v.toLocaleString('ar') } }
-            }
-        }
-    });
-})();
-</script>
-@endpush
