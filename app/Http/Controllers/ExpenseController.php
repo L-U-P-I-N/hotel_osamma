@@ -136,6 +136,45 @@ class ExpenseController extends Controller
         return redirect()->route('expenses.index')->with('success', 'تم حذف المصروف بنجاح');
     }
 
+    public function deferred(Request $request)
+    {
+        $deferredExpenses = Expense::with('paidBy')
+            ->where('payment_method', 'later')
+            ->whereNull('settled_at')
+            ->orderBy('expense_date', 'asc')
+            ->get();
+
+        $recentlySettled = Expense::with(['paidBy', 'settledBy'])
+            ->where('payment_method', 'later')
+            ->whereNotNull('settled_at')
+            ->where('settled_at', '>=', now()->subDays(30))
+            ->orderBy('settled_at', 'desc')
+            ->get();
+
+        $totalDeferred = $deferredExpenses->sum('amount');
+        $totalSettled  = Expense::where('payment_method', 'later')
+            ->whereNotNull('settled_at')
+            ->sum('amount');
+
+        return view('expenses.deferred', compact('deferredExpenses', 'recentlySettled', 'totalDeferred', 'totalSettled'));
+    }
+
+    public function settle(Expense $expense)
+    {
+        if ($expense->settled_at) {
+            return back()->withErrors(['error' => 'هذا المصروف مسوّى بالفعل']);
+        }
+
+        $expense->update([
+            'settled_at' => now(),
+            'settled_by' => auth()->id(),
+        ]);
+
+        \App\Services\AuditLogService::log('expense_settled', $expense, null, ['amount' => $expense->amount]);
+
+        return back()->with('success', 'تم تسوية المصروف بنجاح');
+    }
+
     public function report(Request $request)
     {
         $dateFrom = $request->input('date_from', now()->startOfMonth()->toDateString());

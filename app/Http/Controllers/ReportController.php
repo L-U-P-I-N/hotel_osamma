@@ -259,6 +259,150 @@ class ReportController extends Controller
         return view('reports.debts', compact('reservations', 'totalDebt'));
     }
 
+    public function dailyClose(Request $request)
+    {
+        $date = $request->input('date', today()->toDateString());
+
+        $payments = Payment::whereDate('payment_date', $date)->where('currency', 'YER')->get();
+        $totalRevenue     = $payments->sum('amount');
+        $paymentCount     = $payments->count();
+        $reservationCount = $payments->unique('reservation_id')->count();
+
+        $revenueByMethod = Payment::whereDate('payment_date', $date)
+            ->where('currency', 'YER')
+            ->select('method', DB::raw('SUM(amount) as total'), DB::raw('COUNT(*) as count'))
+            ->groupBy('method')
+            ->get();
+
+        $expenses = \App\Models\Expense::whereDate('expense_date', $date)->get();
+        $totalExpenses = $expenses->sum('amount');
+
+        $expensesByCategory = \App\Models\Expense::whereDate('expense_date', $date)
+            ->select('category', DB::raw('SUM(amount) as total'), DB::raw('COUNT(*) as count'))
+            ->groupBy('category')
+            ->get();
+
+        $shifts = \App\Models\Shift::with('user')
+            ->whereDate('shift_date', $date)
+            ->get();
+
+        $cashRevenue     = $payments->where('method', 'cash')->sum('amount');
+        $cashExpenses    = $expenses->where('payment_method', 'cash')->sum('amount');
+        $totalWithdrawals = $shifts->sum('total_withdrawals_yer');
+        $expectedCash    = $cashRevenue - $cashExpenses;
+        $netDay          = $totalRevenue - $totalExpenses;
+
+        return view('reports.daily-close', compact(
+            'date', 'totalRevenue', 'paymentCount', 'reservationCount',
+            'revenueByMethod', 'totalExpenses', 'expensesByCategory',
+            'shifts', 'cashRevenue', 'cashExpenses', 'totalWithdrawals',
+            'expectedCash', 'netDay'
+        ));
+    }
+
+    public function agedDebts(Request $request)
+    {
+        $reservations = Reservation::with(['guest', 'room'])
+            ->whereIn('status', ['checked_in', 'checked_out'])
+            ->whereRaw('paid_amount < total_amount')
+            ->orderByRaw('(total_amount - paid_amount) DESC')
+            ->get();
+
+        $totalDebt = $reservations->sum(fn($r) => $r->total_amount - $r->paid_amount);
+
+        $buckets = [
+            'current' => ['count' => 0, 'total' => 0],
+            '30_60'   => ['count' => 0, 'total' => 0],
+            '60_90'   => ['count' => 0, 'total' => 0],
+            'over_90' => ['count' => 0, 'total' => 0],
+        ];
+
+        foreach ($reservations as $res) {
+            $refDate = $res->actual_check_out ?? $res->check_out_date;
+            $days    = $refDate ? now()->startOfDay()->diffInDays($refDate->startOfDay()) : 0;
+            $balance = $res->total_amount - $res->paid_amount;
+
+            if ($days <= 30)      { $buckets['current']['count']++; $buckets['current']['total'] += $balance; }
+            elseif ($days <= 60)  { $buckets['30_60']['count']++;   $buckets['30_60']['total']   += $balance; }
+            elseif ($days <= 90)  { $buckets['60_90']['count']++;   $buckets['60_90']['total']   += $balance; }
+            else                  { $buckets['over_90']['count']++;  $buckets['over_90']['total']  += $balance; }
+        }
+
+        return view('reports.aged-debts', compact('reservations', 'totalDebt', 'buckets'));
+    }
+
+    public function profitLoss(Request $request)
+    {
+        $from = $request->input('from', now()->startOfMonth()->toDateString());
+        $to   = $request->input('to', now()->toDateString());
+
+        $totalRevenue = Payment::whereDate('payment_date', '>=', $from)
+            ->whereDate('payment_date', '<=', $to)
+            ->where('currency', 'YER')
+            ->sum('amount');
+
+        $totalExpenses = \App\Models\Expense::whereDate('expense_date', '>=', $from)
+            ->whereDate('expense_date', '<=', $to)
+            ->sum('amount');
+
+        $netProfit = $totalRevenue - $totalExpenses;
+
+        $revenueByMethod = Payment::whereDate('payment_date', '>=', $from)
+            ->whereDate('payment_date', '<=', $to)
+            ->where('currency', 'YER')
+            ->select('method', DB::raw('SUM(amount) as total'), DB::raw('COUNT(*) as count'))
+            ->groupBy('method')
+            ->get();
+
+        $expensesByCategory = \App\Models\Expense::whereDate('expense_date', '>=', $from)
+            ->whereDate('expense_date', '<=', $to)
+            ->select('category', DB::raw('SUM(amount) as total'), DB::raw('COUNT(*) as count'))
+            ->groupBy('category')
+            ->orderByDesc('total')
+            ->get();
+
+        $rawTrend = DB::select("
+            SELECT
+                DATE_FORMAT(m.month_start, '%Y-%m') as month_key,
+                COALESCE(rev.revenue, 0) as revenue,
+                COALESCE(exp.expenses, 0) as expenses
+            FROM (
+                SELECT DATE_FORMAT(payment_date, '%Y-%m-01') as month_start
+                FROM payments
+                WHERE payment_date BETWEEN ? AND ? AND currency = 'YER' AND deleted_at IS NULL
+                GROUP BY DATE_FORMAT(payment_date, '%Y-%m-01')
+                UNION
+                SELECT DATE_FORMAT(expense_date, '%Y-%m-01') as month_start
+                FROM expenses
+                WHERE expense_date BETWEEN ? AND ? AND deleted_at IS NULL
+                GROUP BY DATE_FORMAT(expense_date, '%Y-%m-01')
+            ) m
+            LEFT JOIN (
+                SELECT DATE_FORMAT(payment_date, '%Y-%m-01') as mo, SUM(amount) as revenue
+                FROM payments WHERE payment_date BETWEEN ? AND ? AND currency = 'YER' AND deleted_at IS NULL
+                GROUP BY mo
+            ) rev ON rev.mo = m.month_start
+            LEFT JOIN (
+                SELECT DATE_FORMAT(expense_date, '%Y-%m-01') as mo, SUM(amount) as expenses
+                FROM expenses WHERE expense_date BETWEEN ? AND ? AND deleted_at IS NULL
+                GROUP BY mo
+            ) exp ON exp.mo = m.month_start
+            GROUP BY m.month_start
+            ORDER BY m.month_start
+        ", [$from, $to, $from, $to, $from, $to, $from, $to]);
+
+        $monthlyTrend = collect($rawTrend)->map(function ($row) {
+            [$year, $month] = explode('-', $row->month_key);
+            $row->month_label = \App\Models\Salary::monthName((int)$month) . ' ' . $year;
+            return $row;
+        });
+
+        return view('reports.profit-loss', compact(
+            'from', 'to', 'totalRevenue', 'totalExpenses', 'netProfit',
+            'revenueByMethod', 'expensesByCategory', 'monthlyTrend'
+        ));
+    }
+
     public function salaries(Request $request)
     {
         $year = $request->input('year', now()->year);
