@@ -92,7 +92,7 @@
         @endphp
         <tr>
             <td style="text-align:center;">{{ $r->id }}</td>
-            <td style="font-weight:bold;text-align:center;">{{ $r->room?->room_number ?? '—' }}</td>
+            <td style="font-weight:bold;text-align:center;">{{ $r->display_room_number }}</td>
             <td>{{ $g?->full_name ?? '—' }}</td>
             <td>{{ $g?->nationality ?? '—' }}</td>
             <td>{{ $g?->occupation ?? '—' }}</td>

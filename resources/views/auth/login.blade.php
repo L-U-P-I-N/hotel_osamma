@@ -25,10 +25,44 @@
             <h2 class="text-xl font-semibold text-gray-800 mb-6 text-center">تسجيل الدخول</h2>
 
             @if($errors->any())
-            <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
                 @foreach($errors->all() as $error)
-                    <p>{{ $error }}</p>
+                    <p class="flex items-start gap-2">
+                        <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>
+                        {{ $error }}
+                    </p>
                 @endforeach
+            </div>
+            @endif
+
+            {{-- تحذير الحساب مستخدم على جهاز آخر --}}
+            @if(session('show_force_login'))
+            <div class="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                <div class="flex items-start gap-3 mb-3">
+                    <div class="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-bold text-amber-800">الحساب مستخدم على جهاز آخر</p>
+                        <p class="text-xs text-amber-700 mt-0.5">يمكنك إنهاء الجلسة الأخرى وتسجيل الدخول هنا</p>
+                    </div>
+                </div>
+                <form method="POST" action="{{ route('login.force') }}">
+                    @csrf
+                    <input type="hidden" name="username" value="{{ session('force_username') }}">
+                    <div class="mb-3">
+                        <label class="block text-xs font-medium text-amber-800 mb-1">أدخل كلمة المرور للتأكيد</label>
+                        <input type="password" name="password" required autofocus
+                               class="w-full px-3 py-2 border border-amber-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-400 outline-none bg-white"
+                               placeholder="كلمة المرور">
+                    </div>
+                    <button type="submit"
+                            class="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-semibold transition">
+                        إنهاء الجلسة الأخرى والدخول هنا
+                    </button>
+                </form>
             </div>
             @endif
 

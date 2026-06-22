@@ -1,6 +1,7 @@
 @extends('layouts.app')
 @section('title', 'تسجيل الخروج')
 @section('page-title', 'تسجيل الخروج')
+@section('back-url', route('reservations.index'))
 
 @section('content')
 <div x-data="checkoutForm()" class="max-w-3xl mx-auto space-y-5"

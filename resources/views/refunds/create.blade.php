@@ -8,7 +8,7 @@
         <h3 class="font-semibold text-gray-800 mb-3">بيانات الحجز</h3>
         <div class="grid grid-cols-2 gap-3 text-sm">
             <div><span class="text-gray-500">النزيل:</span> <strong>{{ $reservation->guest?->full_name }}</strong></div>
-            <div><span class="text-gray-500">الغرفة:</span> <strong>{{ $reservation->room?->room_number }}</strong></div>
+            <div><span class="text-gray-500">الغرفة:</span> <strong>{{ $reservation->display_room_number }}</strong></div>
             <div><span class="text-gray-500">الإجمالي:</span> <strong>{{ number_format($reservation->total_amount, 0) }} ر.ي</strong></div>
             <div><span class="text-gray-500">المدفوع:</span> <strong class="text-green-600">{{ number_format($reservation->paid_amount, 0) }} ر.ي</strong></div>
         </div>

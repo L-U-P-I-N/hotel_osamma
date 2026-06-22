@@ -1,6 +1,7 @@
 @extends('layouts.app')
 @section('title', 'تعديل الحجز #' . $reservation->id)
 @section('page-title', 'تعديل الحجز #' . $reservation->id)
+@section('back-url', route('reservations.show', $reservation))
 
 @section('content')
 <div class="max-w-3xl mx-auto" x-data="editReservation()">

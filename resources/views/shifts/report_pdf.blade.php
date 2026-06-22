@@ -170,7 +170,7 @@
         @foreach($payments as $i => $p)
         <tr>
             <td class="center">{{ $i + 1 }}</td>
-            <td class="center">{{ $p->reservation?->room?->room_number ?? '—' }}</td>
+            <td class="center">{{ $p->reservation?->display_room_number ?? '—' }}</td>
             <td>{{ $p->reservation?->guest?->full_name }}</td>
             <td>{{ $payLabels[$p->payment_type] ?? 'دفعة' }}</td>
             <td class="ltr" style="font-weight:bold;">{{ number_format($p->amount, 0) }}</td>
@@ -208,6 +208,7 @@
             <th>المبلغ</th>
             <th>العملة</th>
             <th>مقابل</th>
+            <th>بواسطة</th>
             <th>الوقت</th>
         </tr>
     </thead>
@@ -227,6 +228,7 @@
                 —
                 @endif
             </td>
+            <td>{{ ($w->handed_by_name && $w->handed_by_name !== '-') ? $w->handed_by_name : '—' }}</td>
             <td class="ltr">{{ $w->created_at?->format('H:i') }}</td>
         </tr>
         @endforeach

@@ -57,7 +57,8 @@ class ShiftController extends Controller
         }
 
         try {
-            $this->service->addWithdrawal($shift, $request->all());
+            $data = array_merge($request->all(), ['handed_by_name' => auth()->user()->name]);
+            $this->service->addWithdrawal($shift, $data);
             return back()->with('success', $isExchange ? 'تم تسجيل عملية صرف العملة بنجاح' : 'تم تسجيل السحب بنجاح');
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()]);

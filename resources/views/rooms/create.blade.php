@@ -1,6 +1,7 @@
 @extends('layouts.app')
 @section('title', 'إضافة غرفة جديدة')
 @section('page-title', 'إضافة غرفة جديدة')
+@section('back-url', route('rooms.index'))
 
 @section('content')
 <div class="max-w-2xl mx-auto">
@@ -146,13 +147,36 @@
 
             @if($canPrice)
             <div class="md:col-span-2">
-                <div class="border border-amber-200 bg-amber-50 rounded-xl p-4">
-                    <label class="block text-sm font-semibold text-amber-800 mb-1">سعر الغرفة (ر.ي)</label>
-                    <div class="mt-2">
+                <div class="border border-amber-200 bg-amber-50 rounded-xl p-4 space-y-3">
+                    <label class="block text-sm font-semibold text-amber-800">سعر الغرفة (ر.ي)</label>
+
+                    {{-- Non-suite: single price field --}}
+                    <div x-show="!isSuite">
                         <label class="block text-xs font-medium text-gray-600 mb-1">سعر الليلة بالريال اليمني</label>
-                        <input type="number" name="price_yer" value="{{ old('price_yer') }}" min="0" step="0.01"
-                               placeholder="0.00"
+                        <input type="number" name="price_yer" value="{{ old('price_yer') }}" min="0" step="1"
+                               placeholder="0"
                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-400 outline-none bg-white">
+                    </div>
+
+                    {{-- Suite: two price fields --}}
+                    <div x-show="isSuite" class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">
+                                سعر القسم المستقل (كل قسم A أو B على حدة)
+                            </label>
+                            <input type="number" name="price_yer" value="{{ old('price_yer') }}" min="0" step="1"
+                                   placeholder="0"
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-400 outline-none bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">
+                                سعر الجناح كامل (القسمين A+B معاً)
+                            </label>
+                            <input type="number" name="suite_price_yer" value="{{ old('suite_price_yer') }}" min="0" step="1"
+                                   placeholder="0"
+                                   class="w-full border border-indigo-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400 outline-none bg-white">
+                            <p class="text-xs text-indigo-600 mt-1">يُستخدم هذا السعر عند حجز الجناح كامل دفعة واحدة</p>
+                        </div>
                     </div>
                 </div>
             </div>

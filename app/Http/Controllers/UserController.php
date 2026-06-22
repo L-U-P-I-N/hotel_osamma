@@ -11,11 +11,33 @@ use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::with('roles')->paginate(25);
-        $roles = Role::all();
-        return view('users.index', compact('users', 'roles'));
+        $query = User::with('roles');
+
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->where(function ($q) use ($s) {
+                $q->where('name', 'like', "%{$s}%")
+                  ->orWhere('username', 'like', "%{$s}%")
+                  ->orWhere('employee_id', 'like', "%{$s}%");
+            });
+        }
+
+        if ($request->filled('role')) {
+            $query->whereHas('roles', fn($q) => $q->where('name', $request->role));
+        }
+
+        if ($request->filled('status')) {
+            $query->where('is_active', $request->status === 'active');
+        }
+
+        $users      = $query->paginate(20)->withQueryString();
+        $roles      = Role::all();
+        $totalCount  = User::count();
+        $activeCount = User::where('is_active', true)->count();
+
+        return view('users.index', compact('users', 'roles', 'totalCount', 'activeCount'));
     }
 
     public function permissions(User $user)
@@ -59,7 +81,7 @@ class UserController extends Controller
             'username' => 'required|string|unique:users|alpha_dash',
             'password' => 'required|string|min:8|confirmed',
             'phone' => 'nullable|string',
-            'role' => 'required|exists:roles,name',
+            'role' => 'nullable|exists:roles,name',
         ]);
 
         $plainCode = $this->generateBackupCode();
@@ -74,7 +96,7 @@ class UserController extends Controller
             'backup_code' => Hash::make($plainCode),
         ]);
 
-        $user->assignRole($request->role);
+        $user->assignRole($request->role ?? 'receptionist');
         AuditLogService::log('create', $user, null, $user->toArray());
 
         return back()
@@ -88,7 +110,7 @@ class UserController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'phone' => 'nullable|string',
-            'role' => 'required|exists:roles,name',
+            'role' => 'nullable|exists:roles,name',
             'password' => 'nullable|string|min:8',
         ]);
 
@@ -103,7 +125,7 @@ class UserController extends Controller
         }
 
         $user->update($updateData);
-        $user->syncRoles([$request->role]);
+        $user->syncRoles([$request->role ?? $user->roles->first()?->name ?? 'receptionist']);
 
         AuditLogService::log('update', $user, $old, $user->fresh()->toArray());
 

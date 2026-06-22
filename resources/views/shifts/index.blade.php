@@ -99,7 +99,7 @@
                 <tr>
                     <td class="px-4 py-2 text-gray-400 text-xs">{{ $p->payment_date->format('H:i') }}</td>
                     <td class="px-4 py-2 text-gray-700 text-xs">
-                        <span class="font-medium">{{ $p->reservation?->room?->room_number ?? '—' }}</span>
+                        <span class="font-medium">{{ $p->reservation?->display_room_number ?? '—' }}</span>
                         <span class="text-gray-400 mr-1">{{ $p->reservation?->guest?->full_name ?? '' }}</span>
                     </td>
                     <td class="px-4 py-2 font-semibold text-green-700 whitespace-nowrap">{{ number_format($p->amount, 0) }} {{ $p->currency }}</td>
@@ -126,6 +126,7 @@
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المبلغ</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">النوع</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">البيان</th>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">بواسطة</th>
             </tr></thead>
             <tbody class="divide-y divide-gray-50">
                 @foreach($activeShift->withdrawals as $w)
@@ -145,6 +146,16 @@
                         @endif
                     </td>
                     <td class="px-4 py-2 text-gray-400 text-xs">{{ $w->notes ?? '—' }}</td>
+                    <td class="px-4 py-2 text-xs text-gray-500">
+                        @if($w->handed_by_name && $w->handed_by_name !== '-')
+                        <span class="inline-flex items-center gap-1">
+                            <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                            {{ $w->handed_by_name }}
+                        </span>
+                        @else
+                        <span class="text-gray-300">—</span>
+                        @endif
+                    </td>
                 </tr>
                 @endforeach
             </tbody>

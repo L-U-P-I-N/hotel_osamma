@@ -140,7 +140,7 @@
                     <tr class="hover:bg-blue-50 transition">
                         <td class="px-4 py-2.5 text-gray-400">#{{ $res->id }}</td>
                         <td class="px-4 py-2.5 font-bold whitespace-nowrap" style="color:#0F4C75">
-                            {{ $res->room?->room_number ?? '—' }}
+                            {{ $res->display_room_number }}
                         </td>
                         <td class="px-4 py-2.5 text-gray-500 whitespace-nowrap">
                             {{ $res->room?->roomType?->name ?? '—' }}

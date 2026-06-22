@@ -108,7 +108,7 @@
     <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2">
         <div class="flex items-center gap-3">
             <span class="text-sm font-bold text-gray-700">#{{ $res->id }}</span>
-            <span class="text-sm text-gray-500">{{ $res->room->room_number ?? '—' }}</span>
+            <span class="text-sm text-gray-500">{{ $res->display_room_number }}</span>
             <span class="text-xs px-2 py-0.5 rounded-full {{ $res->status === 'checked_in' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600' }}">
                 {{ $res->status_label }}
             </span>

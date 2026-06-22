@@ -82,7 +82,7 @@
                         @endif
                     </td>
                     <td class="px-4 py-3">
-                        <span class="font-medium text-gray-800">{{ $res->room?->room_number ?? '—' }}</span>
+                        <span class="font-medium text-gray-800">{{ $res->display_room_number }}</span>
                         @if($res->room?->roomType)
                         <div class="text-xs text-gray-400">{{ $res->room->roomType->name }}</div>
                         @endif
