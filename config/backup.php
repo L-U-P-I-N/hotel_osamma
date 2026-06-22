@@ -7,8 +7,12 @@ return [
 
         'source' => [
             'files' => [
-                'include' => [],
-                'exclude' => [],
+                'include' => [
+                    storage_path('app/private'),
+                ],
+                'exclude' => [
+                    storage_path('app/private/backup-temp'),
+                ],
                 'follow_links' => false,
                 'ignore_unreadable_directories' => false,
                 'relative_path' => null,

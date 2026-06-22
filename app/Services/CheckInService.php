@@ -7,6 +7,7 @@ use App\Models\Payment;
 use App\Models\Reservation;
 use App\Models\Room;
 use App\Models\User;
+use App\Helpers\StorageHelper;
 use Illuminate\Support\Facades\DB;
 
 class CheckInService
@@ -43,7 +44,7 @@ class CheckInService
             // 4. صورة الهوية
             $idImagePath = null;
             if (!empty($data['id_image'])) {
-                $idImagePath = $data['id_image']->store('id_images/guests', 'private');
+                $idImagePath = StorageHelper::store($data['id_image'], 'id_images/guests');
             }
 
             // 5. النزيل
@@ -94,11 +95,11 @@ class CheckInService
                 foreach ($data['companions'] as $companionData) {
                     $compImgPath = null;
                     if (!empty($companionData['id_image'])) {
-                        $compImgPath = $companionData['id_image']->store('id_images/companions', 'private');
+                        $compImgPath = StorageHelper::store($companionData['id_image'], 'id_images/companions');
                     }
                     $marriageDocPath = null;
                     if (($companionData['relationship'] ?? '') === 'wife' && !empty($companionData['marriage_doc'])) {
-                        $marriageDocPath = $companionData['marriage_doc']->store('marriage_docs', 'private');
+                        $marriageDocPath = StorageHelper::store($companionData['marriage_doc'], 'marriage_docs');
                     }
                     Companion::create([
                         'reservation_id' => $reservation->id,
@@ -119,7 +120,7 @@ class CheckInService
             if (!empty($data['paid_amount']) && $data['paid_amount'] > 0) {
                 $bankReceiptPath = null;
                 if (!empty($data['bank_receipt'])) {
-                    $bankReceiptPath = $data['bank_receipt']->store('bank_receipts', 'private');
+                    $bankReceiptPath = StorageHelper::store($data['bank_receipt'], 'bank_receipts');
                 }
 
                 $shift = app(ShiftService::class)->getActiveShift($user);
