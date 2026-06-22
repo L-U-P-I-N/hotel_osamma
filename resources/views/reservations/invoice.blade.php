@@ -46,7 +46,7 @@ tr:nth-child(even) td { background:#fafafa; }
 <div class="page">
 
     <div class="header">
-        <div class="hotel-name">فندق أسامة</div>
+        <div class="hotel-name">فندق السعودي</div>
         <div class="invoice-title">فاتورة رسمية — Invoice</div>
     </div>
 
@@ -208,7 +208,7 @@ tr:nth-child(even) td { background:#fafafa; }
     </div>
 
     <div class="print-footer">
-        طُبع في: {{ now()->format('d/m/Y H:i') }} — فندق أسامة | هذه الفاتورة وثيقة رسمية معتمدة
+        طُبع في: {{ now()->format('d/m/Y H:i') }} — فندق السعودي | هذه الفاتورة وثيقة رسمية معتمدة
     </div>
 
 </div>
