@@ -7,6 +7,7 @@ use App\Models\Room;
 use App\Models\RoomType;
 use App\Services\AuditLogService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class RoomController extends Controller
 {
@@ -47,7 +48,7 @@ class RoomController extends Controller
         $request->merge(['room_number' => Room::normalizeDigits($request->input('room_number', ''))]);
 
         $validated = $request->validate([
-            'room_number'    => 'required|string|max:10|unique:rooms,room_number',
+            'room_number'    => ['required', 'string', 'max:10', Rule::unique('rooms', 'room_number')->whereNull('deleted_at')],
             'floor'          => 'required|integer|min:1|max:50',
             'room_type_id'   => 'nullable|exists:room_types,id',
             'room_sub_type'  => 'nullable|in:regular,double,suite,suite_a,suite_b,hall,apartment',
@@ -133,7 +134,7 @@ class RoomController extends Controller
         $request->merge(['room_number' => Room::normalizeDigits($request->input('room_number', ''))]);
 
         $validated = $request->validate([
-            'room_number'    => 'required|string|max:10|unique:rooms,room_number,' . $room->id,
+            'room_number'    => ['required', 'string', 'max:10', Rule::unique('rooms', 'room_number')->ignore($room->id)->whereNull('deleted_at')],
             'floor'          => 'required|integer|min:1|max:50',
             'room_type_id'   => 'nullable|exists:room_types,id',
             'room_sub_type'  => 'nullable|in:regular,double,suite,suite_a,suite_b,hall,apartment',
