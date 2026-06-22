@@ -35,7 +35,7 @@ $crudGroups = [
     [
         'icon'   => '🛏️',
         'name'   => 'إدارة الغرف',
-        'view'   => null,
+        'view'   => 'rooms.view',
         'create' => 'rooms.create',
         'edit'   => 'rooms.edit',
         'delete' => 'rooms.delete',

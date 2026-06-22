@@ -38,6 +38,7 @@ class PermissionService
         'guest.edit'            => ['label' => 'تعديل بيانات النزيل',         'default' => false, 'group' => '👤 النزلاء'],
 
         // Rooms
+        'rooms.view'            => ['label' => 'عرض قائمة الغرف',                     'default' => true,  'group' => '🛏️ إدارة الغرف'],
         'rooms.maintenance'     => ['label' => 'تغيير حالة الغرفة (صيانة/فحص/متاحة)', 'default' => true, 'group' => '🛏️ إدارة الغرف'],
         'room.price.edit'       => ['label' => 'تعديل سعر الغرفة',           'default' => false, 'group' => '🛏️ إدارة الغرف'],
         'rooms.create'          => ['label' => 'إضافة غرفة جديدة',                    'default' => false, 'group' => '🛏️ إدارة الغرف'],
