@@ -39,60 +39,71 @@
         </div>
 
         {{-- Action Buttons --}}
-        <div class="flex items-center gap-2 flex-wrap">
+        <div class="flex items-center gap-2 flex-wrap justify-end">
+            {{-- PRIMARY: Checkout --}}
+            @can('checkout.process')
+            @if($reservation->status === 'checked_in')
+            <a href="{{ route('checkout.show', $reservation) }}"
+               class="inline-flex items-center gap-1.5 px-6 py-2.5 bg-red-600 text-white text-sm font-semibold rounded-xl hover:bg-red-700 transition shadow-sm">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                تسجيل الخروج
+            </a>
+            @endif
+            @endcan
+
+            {{-- Secondary Actions --}}
             @can('checkin.view')
             @if($reservation->status === 'checked_in')
             <a href="{{ route('reservations.edit', $reservation) }}"
-               class="inline-flex items-center gap-1.5 px-4 py-2 border border-primary-600 text-primary-700 text-sm rounded-xl hover:bg-primary-50 transition font-medium">
+               class="inline-flex items-center gap-1.5 px-4 py-2.5 border border-primary-600 text-primary-700 text-sm rounded-xl hover:bg-primary-50 transition font-medium">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                 تعديل
             </a>
-            @endif
-            @if($reservation->status === 'checked_in')
+
             <button onclick="document.getElementById('renewModal').classList.remove('hidden')"
-                    class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm rounded-xl hover:bg-blue-700 transition font-medium">
+                    class="inline-flex items-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white text-sm rounded-xl hover:bg-blue-700 transition font-medium">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                 تجديد
             </button>
+
             <button onclick="document.getElementById('transferRoomModal').classList.remove('hidden')"
-                    class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 text-white text-sm rounded-xl hover:bg-amber-600 transition font-medium">
+                    class="inline-flex items-center gap-1.5 px-4 py-2.5 bg-amber-500 text-white text-sm rounded-xl hover:bg-amber-600 transition font-medium">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
                 تغيير الغرفة
             </button>
-            @endcan
-            @can('checkout.process')
-            <a href="{{ route('checkout.show', $reservation) }}"
-               class="inline-flex items-center gap-1.5 px-4 py-2 bg-red-600 text-white text-sm rounded-xl hover:bg-red-700 transition font-medium">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-                تسجيل الخروج
-            </a>
-            @endcan
             @endif
+            @endcan
+
+            {{-- Payment Button --}}
             @can('payments.create')
             @if($reservation->balance > 0 && in_array($reservation->status, ['checked_in', 'checked_out']))
             <button onclick="document.getElementById('paymentModal').classList.remove('hidden')"
-                    class="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm rounded-xl hover:bg-green-700 transition font-medium">
+                    class="inline-flex items-center gap-1.5 px-4 py-2.5 bg-green-600 text-white text-sm rounded-xl hover:bg-green-700 transition font-medium">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
                 إضافة دفعة
             </button>
             @endif
             @endcan
+
+            {{-- Export Button --}}
             @can('government.export')
             <a href="{{ route('checkin.exportGov', ['reservation'=>$reservation->id,'format'=>'pdf']) }}"
-               class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-700 text-white text-sm rounded-xl hover:bg-gray-800 transition font-medium">
+               class="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gray-600 text-white text-sm rounded-xl hover:bg-gray-700 transition font-medium">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                تصدير PDF
+                PDF
             </a>
             @endcan
+
+            {{-- Destructive Actions: Cancel --}}
             @can('checkin.view')
             @if($reservation->status === 'checked_in')
-            <form method="POST" action="{{ route('reservations.cancel', $reservation) }}"
-                  onsubmit="return confirm('هل أنت متأكد من حذف هذا الحجز نهائياً؟')">
+            <button onclick="deleteModal.open(document.getElementById('cancelForm'), 'هل أنت متأكد من إلغاء هذا الحجز نهائياً؟')"
+                    class="inline-flex items-center gap-1.5 px-4 py-2.5 border-2 border-red-300 text-red-600 text-sm rounded-xl hover:bg-red-50 transition font-medium">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                إلغاء الحجز
+            </button>
+            <form id="cancelForm" method="POST" action="{{ route('reservations.cancel', $reservation) }}" class="hidden">
                 @csrf @method('PATCH')
-                <button type="submit"
-                        class="inline-flex items-center gap-1.5 px-4 py-2 border border-red-300 text-red-600 text-sm rounded-xl hover:bg-red-50 transition font-medium">
-                    إلغاء الحجز
-                </button>
             </form>
             @endif
             @endcan
@@ -346,7 +357,8 @@
                 </div>
                 <h3 class="font-semibold text-gray-800">سجل المدفوعات</h3>
             </div>
-            <div class="overflow-x-auto">
+            {{-- Desktop Table View --}}
+            <div class="hidden md:block overflow-x-auto">
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="bg-gray-50 text-xs text-gray-500 font-medium">
@@ -409,6 +421,36 @@
                         @endforeach
                     </tbody>
                 </table>
+            </div>
+
+            {{-- Mobile Card View --}}
+            <div class="md:hidden space-y-3 p-4">
+                @foreach($reservation->payments as $p)
+                @php
+                    $typeLabel = match($p->type) {
+                        'reservation'  => ['label' => 'دفعة حجز',   'class' => 'bg-blue-50 text-blue-700'],
+                        'renewal'      => ['label' => 'دفعة تجديد', 'class' => 'bg-amber-50 text-amber-700'],
+                        'compensation' => ['label' => 'تعويض أضرار','class' => 'bg-red-50 text-red-700'],
+                        'extra_service'=> ['label' => 'خدمة إضافية','class' => 'bg-purple-50 text-purple-700'],
+                        default        => ['label' => $p->type,      'class' => 'bg-gray-50 text-gray-600'],
+                    };
+                @endphp
+                <div class="border border-gray-200 rounded-lg p-3 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-400">{{ $p->payment_date->format('d/m/Y H:i') }}</span>
+                        <span class="font-bold text-green-700">{{ number_format($p->amount, 2) }} ر.ي</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="px-2 py-0.5 rounded-full text-xs font-medium {{ $p->method === 'cash' ? 'bg-green-50 text-green-700' : ($p->method === 'pos' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700') }}">
+                            {{ match($p->method) { 'cash'=>'نقدي', 'pos'=>'POS', 'bank_transfer'=>'تحويل', default=>$p->method } }}
+                        </span>
+                        <span class="px-2 py-0.5 rounded-full text-xs font-medium {{ $typeLabel['class'] }}">
+                            {{ $typeLabel['label'] }}
+                        </span>
+                    </div>
+                    <div class="text-xs text-gray-600">من: {{ $p->receivedBy?->name ?? '—' }}</div>
+                </div>
+                @endforeach
             </div>
         </div>
         @endif

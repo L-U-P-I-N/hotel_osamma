@@ -464,14 +464,21 @@
                 </div>
             </div>
 
+            <!-- Price Edit Button -->
+            <button type="button" x-show="!showPriceOverride"
+                    @click="showPriceOverride = true"
+                    class="w-full px-4 py-2.5 border border-amber-300 bg-amber-50 text-amber-700 rounded-xl text-sm font-medium hover:bg-amber-100 transition flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                تعديل السعر (للتفاوض)
+            </button>
+
             <!-- Price override (per selected currency) -->
-            <div class="border border-amber-200 bg-amber-50 rounded-xl p-4">
+            <div x-show="showPriceOverride" class="border border-amber-200 bg-amber-50 rounded-xl p-4 transition-all">
                 <div class="flex items-center justify-between mb-2">
                     <label class="text-sm font-medium text-amber-800">تعديل سعر الليلة (تفاوض)</label>
-                    <button type="button" x-show="customPrice !== null"
-                            @click="customPrice = null; calcTotal()"
+                    <button type="button" @click="showPriceOverride = false; customPrice = null; calcTotal()"
                             class="text-xs text-gray-400 hover:text-red-500 underline">
-                        استعادة السعر الأصلي (<span x-text="formatNumber(roomBasePriceFor('YER'))"></span> ر.ي)
+                        إلغاء التعديل
                     </button>
                 </div>
                 <div class="flex items-center gap-3">
@@ -507,15 +514,22 @@
                 <label class="relative cursor-pointer">
                     <input type="radio" name="payment_status" value="partial" x-model="paymentStatus" class="peer sr-only">
                     <div class="border-2 border-gray-200 peer-checked:border-blue-500 peer-checked:bg-blue-50 rounded-xl p-3 text-center transition-all">
-                        <div class="font-semibold text-sm text-gray-700">دفعة جزئية</div>
+                        <div class="font-semibold text-sm text-gray-700 peer-checked:text-blue-700">دفعة جزئية</div>
                         <div class="text-xs text-gray-400 mt-0.5">دفع جزء من المبلغ</div>
+                    </div>
+                </label>
+                <label class="relative cursor-pointer">
+                    <input type="radio" name="payment_status" value="deferred" x-model="paymentStatus" class="peer sr-only">
+                    <div class="border-2 border-gray-200 peer-checked:border-purple-500 peer-checked:bg-purple-50 rounded-xl p-3 text-center transition-all">
+                        <div class="font-semibold text-sm text-gray-700 peer-checked:text-purple-700">آجل</div>
+                        <div class="text-xs text-gray-400 mt-0.5">سيدفع لاحقاً</div>
                     </div>
                 </label>
             </div>
         </div>
 
-        <!-- Payment Details (paid or partial) -->
-        <div x-show="paymentStatus === 'paid' || paymentStatus === 'partial'" class="md:col-span-2 space-y-4">
+        <!-- Payment Details (paid, partial, or deferred) -->
+        <div x-show="paymentStatus === 'paid' || paymentStatus === 'partial' || paymentStatus === 'deferred'" class="md:col-span-2 space-y-4">
             <div x-show="paymentStatus === 'partial'">
                 <label class="block text-sm font-medium text-gray-700 mb-1.5">المبلغ المدفوع (ر.ي) <span class="text-red-500">*</span></label>
                 <input type="number" name="paid_amount" x-model="paidAmount" step="0.01" min="0"
@@ -525,6 +539,9 @@
             <template x-if="paymentStatus === 'paid'">
                 <input type="hidden" name="paid_amount" :value="totalAmount">
             </template>
+            <template x-if="paymentStatus === 'deferred'">
+                <input type="hidden" name="paid_amount" value="0">
+            </template>
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1.5">طريقة الدفع</label>
@@ -533,8 +550,9 @@
                         <input type="radio" name="payment_method" value="cash" x-model="paymentMethod" class="text-primary-600">
                         <span class="text-sm">نقدي</span>
                     </label>
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="radio" name="payment_method" value="bank_transfer" x-model="paymentMethod" class="text-primary-600">
+                    <label class="flex items-center gap-2 cursor-pointer" :class="paymentStatus === 'deferred' ? 'opacity-50 cursor-not-allowed' : ''">
+                        <input type="radio" name="payment_method" value="bank_transfer" x-model="paymentMethod"
+                               :disabled="paymentStatus === 'deferred'" class="text-primary-600">
                         <span class="text-sm">تحويل بنكي</span>
                     </label>
                 </div>
@@ -655,7 +673,7 @@
 <div class="flex items-center justify-between mt-4">
     <button type="button" @click="prevStep()" x-show="currentStep > 1"
             class="flex items-center gap-2 px-5 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
         السابق
     </button>
     <div x-show="currentStep === 1"></div>
@@ -714,6 +732,7 @@ function checkInWizard() {
         paymentStatus: 'paid',
         paymentMethod: 'cash',
         paidAmount: 0,
+        showPriceOverride: false,
         idImagePreview: null,
         idImageName: '',
         floorFilter: 'all',
@@ -767,6 +786,7 @@ function checkInWizard() {
                     paymentMethod:   this.paymentMethod,
                     paidAmount:      this.paidAmount,
                     customPrice:     this.customPrice,
+                    showPriceOverride: this.showPriceOverride,
                 }));
             } catch(e) {}
         },
@@ -790,6 +810,7 @@ function checkInWizard() {
                 this.paymentMethod    = s.paymentMethod     ?? 'cash';
                 this.paidAmount       = s.paidAmount        ?? 0;
                 this.customPrice      = s.customPrice       ?? null;
+                this.showPriceOverride = s.showPriceOverride ?? false;
                 this.currentStep      = s.currentStep       ?? 1;
                 this.$nextTick(() => this.calcTotal());
             } catch(e) {}
@@ -928,6 +949,7 @@ function checkInWizard() {
                 if (this.effectiveRoomPrice() <= 0) return 'لا يوجد سعر للغرفة بالعملة المختارة — أدخل السعر يدوياً';
                 if (this.paymentStatus === 'partial' && (parseFloat(this.paidAmount) || 0) <= 0) return 'يرجى إدخال المبلغ المدفوع';
                 if (this.paymentStatus === 'partial' && (parseFloat(this.paidAmount) || 0) > this.totalAmount) return `المبلغ المدفوع يتجاوز إجمالي الحجز (${this.totalAmount.toLocaleString('ar-SA')} ر.ي)`;
+                if (this.paymentStatus === 'deferred' && this.paymentMethod !== 'cash') return 'الدفع الآجل متوفر فقط للدفع النقدي';
                 return '';
             }
             return '';
