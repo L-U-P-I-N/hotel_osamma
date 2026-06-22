@@ -804,4 +804,33 @@ class ReportController extends Controller
 
         return view('reports.shift-deficits', compact('summary', 'from', 'to'));
     }
+
+    public function monthlyExpenses(Request $request)
+    {
+        $month = $request->input('month', now()->format('Y-m'));
+        list($year, $monthNum) = explode('-', $month);
+
+        $fromDate = "{$year}-{$monthNum}-01";
+        $toDate   = \Carbon\Carbon::parse($fromDate)->endOfMonth()->toDateString();
+
+        $expenses = Expense::whereDate('expense_date', '>=', $fromDate)
+            ->whereDate('expense_date', '<=', $toDate)
+            ->get();
+
+        $totalExpenses = $expenses->sum('amount');
+        $expenseCount  = $expenses->count();
+
+        $expensesByCategory = $expenses->groupBy('category')
+            ->map(function ($group) {
+                return (object)[
+                    'category' => $group->first()->category,
+                    'count'    => $group->count(),
+                    'total'    => $group->sum('amount'),
+                ];
+            })
+            ->sortByDesc('total')
+            ->values();
+
+        return view('reports.monthly-expenses', compact('totalExpenses', 'expenseCount', 'expensesByCategory', 'month'));
+    }
 }
