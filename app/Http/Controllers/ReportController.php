@@ -1,10 +1,12 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Models\Expense;
 use App\Models\Payment;
 use App\Models\Reservation;
 use App\Models\Room;
 use App\Models\RoomType;
+use App\Models\Salary;
 use App\Models\Shift;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -400,6 +402,106 @@ class ReportController extends Controller
         return view('reports.profit-loss', compact(
             'from', 'to', 'totalRevenue', 'totalExpenses', 'netProfit',
             'revenueByMethod', 'expensesByCategory', 'monthlyTrend'
+        ));
+    }
+
+    public function roomRevenue(Request $request)
+    {
+        $from = $request->input('from', now()->startOfMonth()->toDateString());
+        $to   = $request->input('to', now()->toDateString());
+
+        $roomTypes = RoomType::with('rooms')->get();
+
+        $revenueByType = [];
+        foreach ($roomTypes as $type) {
+            $roomIds = $type->rooms->pluck('id');
+
+            $actualRevenue = Payment::whereHas('reservation', fn($q) => $q->whereIn('room_id', $roomIds))
+                ->whereDate('payment_date', '>=', $from)
+                ->whereDate('payment_date', '<=', $to)
+                ->where('currency', 'YER')
+                ->sum('amount');
+
+            $reservationCount = Reservation::whereIn('room_id', $roomIds)
+                ->whereDate('check_in_date', '>=', $from)
+                ->whereDate('check_in_date', '<=', $to)
+                ->whereIn('status', ['checked_in', 'checked_out'])
+                ->count();
+
+            $totalNights = Reservation::whereIn('room_id', $roomIds)
+                ->whereDate('check_in_date', '>=', $from)
+                ->whereDate('check_in_date', '<=', $to)
+                ->whereIn('status', ['checked_in', 'checked_out'])
+                ->selectRaw('SUM(DATEDIFF(check_out_date, check_in_date)) as nights')
+                ->value('nights') ?? 0;
+
+            $expectedRevenue = $totalNights * (float)$type->base_price;
+
+            $revenueByType[] = [
+                'type'             => $type,
+                'rooms_count'      => $type->rooms->count(),
+                'actual_revenue'   => (float)$actualRevenue,
+                'expected_revenue' => $expectedRevenue,
+                'reservation_count'=> $reservationCount,
+                'total_nights'     => (int)$totalNights,
+                'adr'              => $totalNights > 0 ? round($actualRevenue / $totalNights) : 0,
+                'achievement'      => $expectedRevenue > 0 ? round(($actualRevenue / $expectedRevenue) * 100) : 0,
+            ];
+        }
+
+        $totalActual   = array_sum(array_column($revenueByType, 'actual_revenue'));
+        $totalExpected = array_sum(array_column($revenueByType, 'expected_revenue'));
+
+        return view('reports.room-revenue', compact(
+            'from', 'to', 'revenueByType', 'totalActual', 'totalExpected'
+        ));
+    }
+
+    public function cashFlow(Request $request)
+    {
+        $from = $request->input('from', now()->startOfMonth()->toDateString());
+        $to   = $request->input('to', now()->toDateString());
+
+        // Build daily cash flow
+        $days = collect();
+        $period = \Carbon\CarbonPeriod::create($from, $to);
+
+        $allPayments = Payment::whereDate('payment_date', '>=', $from)
+            ->whereDate('payment_date', '<=', $to)
+            ->where('currency', 'YER')
+            ->selectRaw('DATE(payment_date) as day, SUM(amount) as total')
+            ->groupBy('day')
+            ->pluck('total', 'day');
+
+        $allExpenses = Expense::whereDate('expense_date', '>=', $from)
+            ->whereDate('expense_date', '<=', $to)
+            ->where('currency', 'YER')
+            ->selectRaw('DATE(expense_date) as day, SUM(amount) as total')
+            ->groupBy('day')
+            ->pluck('total', 'day');
+
+        $runningBalance = 0;
+        foreach ($period as $date) {
+            $d   = $date->format('Y-m-d');
+            $rev = (float)($allPayments[$d] ?? 0);
+            $exp = (float)($allExpenses[$d] ?? 0);
+            $runningBalance += $rev - $exp;
+            $days->push([
+                'date'    => $d,
+                'label'   => $date->format('d/m'),
+                'revenue' => $rev,
+                'expense' => $exp,
+                'net'     => $rev - $exp,
+                'balance' => $runningBalance,
+            ]);
+        }
+
+        $totalIn  = $days->sum('revenue');
+        $totalOut = $days->sum('expense');
+        $netFlow  = $totalIn - $totalOut;
+
+        return view('reports.cash-flow', compact(
+            'from', 'to', 'days', 'totalIn', 'totalOut', 'netFlow'
         ));
     }
 
