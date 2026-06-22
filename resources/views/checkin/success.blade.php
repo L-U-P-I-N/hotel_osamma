@@ -16,7 +16,7 @@
         <h2 class="font-semibold text-gray-700 mb-4">ملخص الحجز</h2>
         <div class="grid grid-cols-2 gap-3 text-sm">
             <div><span class="text-gray-500">النزيل:</span> <span class="font-medium">{{ $reservation->guest?->full_name ?? '—' }}</span></div>
-            <div><span class="text-gray-500">الغرفة:</span> <span class="font-medium">{{ $reservation->room?->room_number ?? '—' }}</span></div>
+            <div><span class="text-gray-500">الغرفة:</span> <span class="font-medium">{{ $reservation->display_room_number }}</span></div>
             <div><span class="text-gray-500">الدخول:</span> <span class="font-medium">{{ $reservation->check_in_date?->format('d/m/Y') ?? '—' }}</span></div>
             <div><span class="text-gray-500">الخروج:</span> <span class="font-medium">{{ $reservation->check_out_date?->format('d/m/Y') ?? '—' }}</span></div>
             <div><span class="text-gray-500">المرافقون:</span> <span class="font-medium">{{ $reservation->companions->count() }}</span></div>

@@ -102,7 +102,7 @@
                         <div class="font-medium text-gray-800">{{ $res->guest?->full_name ?? '—' }}</div>
                         <div class="text-xs text-gray-400">{{ $res->guest?->nationality ?? '' }}</div>
                     </td>
-                    <td class="px-4 py-3 font-semibold text-gray-800">{{ $res->room?->room_number ?? '—' }}</td>
+                    <td class="px-4 py-3 font-semibold text-gray-800">{{ $res->display_room_number }}</td>
                     <td class="px-4 py-3 text-gray-600">{{ $res->check_in_date?->format('d/m/Y') ?? '—' }}</td>
                     <td class="px-4 py-3 text-gray-600">{{ $res->check_out_date?->format('d/m/Y') ?? '—' }}</td>
                     <td class="px-4 py-3 font-medium text-gray-800">{{ number_format($res->total_amount, 0) }}</td>

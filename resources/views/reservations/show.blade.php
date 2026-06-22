@@ -104,8 +104,13 @@
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 text-center">
         <p class="text-xs text-gray-400 mb-1">الغرفة</p>
-        <p class="text-2xl font-bold text-primary-800">{{ $reservation->room?->room_number ?? '—' }}</p>
-        <p class="text-xs text-gray-500 mt-0.5">{{ $reservation->room?->roomType?->name ?? '' }}</p>
+        <p class="text-2xl font-bold text-primary-800">{{ $reservation->display_room_number }}</p>
+        <p class="text-xs text-gray-500 mt-0.5">
+            {{ $reservation->room?->roomType?->name ?? '' }}
+            @if($reservation->suite_booking_type === 'both')
+                <span class="text-primary-600">(A+B)</span>
+            @endif
+        </p>
     </div>
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 text-center">
         <p class="text-xs text-gray-400 mb-1">عدد الليالي</p>
@@ -193,7 +198,7 @@
                     {{-- ID Image --}}
                     @can('guests.sensitive')
                     @if($reservation->guest?->id_image_path)
-                    <div class="md:w-48 shrink-0">
+                    <div class="md:w-48 shrink-0" id="guestIdImageBox">
                         <p class="text-xs text-gray-400 mb-2 text-center">صورة الهوية</p>
                         @php
                             $ext = strtolower(pathinfo($reservation->guest->id_image_path, PATHINFO_EXTENSION));
@@ -211,7 +216,8 @@
                         <a href="{{ route('guests.idImage', $reservation->guest) }}" target="_blank">
                             <img src="{{ route('guests.idImage', $reservation->guest) }}"
                                  alt="هوية النزيل"
-                                 class="w-full h-36 object-cover rounded-xl border border-gray-200 hover:opacity-90 transition cursor-zoom-in shadow-sm">
+                                 class="w-full h-36 object-cover rounded-xl border border-gray-200 hover:opacity-90 transition cursor-zoom-in shadow-sm"
+                                 onerror="document.getElementById('guestIdImageBox').innerHTML='<div class=\'flex flex-col items-center justify-center h-36 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 text-gray-400 text-xs text-center p-3\'><svg class=\'w-8 h-8 mb-2\' fill=\'none\' stroke=\'currentColor\' viewBox=\'0 0 24 24\'><path stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z\'></path></svg>الصورة غير متاحة</div>'">
                         </a>
                         @endif
                     </div>

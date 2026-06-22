@@ -45,7 +45,7 @@
         <span class="meta-value">{{ now()->format('d/m/Y H:i') }}</span>
 
         <span class="meta-label">رقم الغرفة:</span>
-        <span class="meta-value">{{ $reservation->room?->room_number ?? '—' }}</span>
+        <span class="meta-value">{{ $reservation->display_room_number }}</span>
         <span class="meta-label">نوع الغرفة:</span>
         <span class="meta-value">{{ $reservation->room?->roomType?->name ?? '—' }}</span>
 

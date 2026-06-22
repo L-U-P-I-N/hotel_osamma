@@ -99,6 +99,18 @@ class Reservation extends Model
         return $this->check_in_date->diffInDays($this->check_out_date);
     }
 
+    public function getDisplayRoomNumberAttribute(): string
+    {
+        if (!$this->room) {
+            return '—';
+        }
+        // عند حجز الجناح كاملاً (A+B): اعرض الرقم بدون الحرف (301 بدلاً من 301A)
+        if ($this->suite_booking_type === 'both') {
+            return rtrim($this->room->room_number, 'AB');
+        }
+        return $this->room->room_number;
+    }
+
     public function getStatusLabelAttribute(): string
     {
         return match($this->status) {
