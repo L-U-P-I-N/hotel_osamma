@@ -48,7 +48,7 @@
 <div class="space-y-4">
 @foreach($shifts as $shift)
 @php
-    $payments = $shift->payments->sortBy(fn($p) => $p->reservation?->room?->room_number ?? '');
+    $payments = $shift->payments->sortBy(fn($p) => $p->reservation?->display_room_number ?? '');
     $withdrawals = $shift->withdrawals->sortBy('withdrawal_date');
     $expenses = $withdrawals->where('withdrawal_type', '!=', 'currency_exchange');
     $exchanges = $withdrawals->where('withdrawal_type', 'currency_exchange');
@@ -124,7 +124,7 @@
                     <div class="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
                         <div class="flex items-center gap-2.5">
                             <span class="font-bold text-primary-800 text-xs w-14">
-                                غرفة {{ $p->reservation?->room?->room_number ?? '—' }}
+                                غرفة {{ $p->reservation?->display_room_number ?? '—' }}
                             </span>
                             <span class="text-gray-500 text-xs">
                                 {{ $p->reservation?->guest?->full_name ?? '' }}

@@ -94,7 +94,7 @@
                 @endphp
                 <tr class="hover:bg-gray-50 transition-colors">
                     <td class="px-3 py-2.5 font-bold text-gray-800 whitespace-nowrap">
-                        {{ $res->room?->room_number }}
+                        {{ $res->display_room_number }}
                     </td>
                     <td class="px-3 py-2.5 font-medium text-gray-800 whitespace-nowrap">{{ $res->guest?->full_name }}</td>
                     <td class="px-3 py-2.5 text-gray-600 whitespace-nowrap">{{ $res->guest?->nationality }}</td>

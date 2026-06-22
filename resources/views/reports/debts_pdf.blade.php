@@ -63,7 +63,7 @@
         @php $balance = $res->total_amount - $res->paid_amount; @endphp
         <tr>
             <td>{{ $res->guest?->full_name ?? '—' }}</td>
-            <td style="font-weight:bold;text-align:center;">{{ $res->room?->room_number ?? '—' }}</td>
+            <td style="font-weight:bold;text-align:center;">{{ $res->display_room_number }}</td>
             <td style="text-align:center;">{{ $res->status === 'checked_in' ? 'داخل' : 'خرج' }}</td>
             <td class="ltr">{{ number_format($res->total_amount, 0) }}</td>
             <td class="ltr" style="color:#16a34a;">{{ number_format($res->paid_amount, 0) }}</td>

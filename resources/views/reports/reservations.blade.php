@@ -123,7 +123,7 @@
                 <tr class="hover:bg-gray-50 transition">
                     <td class="px-3 py-2.5 text-gray-400">{{ $r->id }}</td>
                     <td class="px-3 py-2.5 font-bold text-primary-800 whitespace-nowrap">
-                        {{ $r->room?->room_number ?? '—' }}
+                        {{ $r->display_room_number }}
                     </td>
                     <td class="px-3 py-2.5 font-medium text-gray-800 whitespace-nowrap">
                         <a href="{{ route('reservations.show', $r) }}" class="hover:text-primary-600 hover:underline">

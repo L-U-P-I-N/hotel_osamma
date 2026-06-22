@@ -164,7 +164,7 @@
         @php $cCount = $res->companions->count(); @endphp
         <tr>
             <td style="font-weight:bold;text-align:center;">
-                {{ $res->room?->room_number }}
+                {{ $res->display_room_number }}
                 @if($res->status === 'confirmed')
                 <span class="badge-confirmed">(محجوز)</span>
                 @endif

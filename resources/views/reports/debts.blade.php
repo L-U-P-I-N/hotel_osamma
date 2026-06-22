@@ -44,7 +44,7 @@
                 @php $balance = $res->total_amount - $res->paid_amount; @endphp
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 font-medium text-gray-800">{{ $res->guest->full_name ?? '—' }}</td>
-                    <td class="px-4 py-3 text-gray-600">{{ $res->room->room_number ?? '—' }}</td>
+                    <td class="px-4 py-3 text-gray-600">{{ $res->display_room_number }}</td>
                     <td class="px-4 py-3">
                         @if($res->status === 'checked_in')
                         <span class="px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-700">داخل</span>

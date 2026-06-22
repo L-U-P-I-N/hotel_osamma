@@ -79,7 +79,7 @@
 @php $balance = $res->total_amount - $res->paid_amount; $nights = $res->check_in_date->diffInDays($res->check_out_date); @endphp
 <div style="margin-bottom:16px; border:1px solid #e5e7eb; border-radius:6px; overflow:hidden;">
     <div style="background:#0F4C75; color:white; padding:7px 10px; font-size:12px; font-weight:bold;">
-        حجز #{{ $res->id }} — غرفة {{ $res->room->room_number ?? '—' }} —
+        حجز #{{ $res->id }} — غرفة {{ $res->display_room_number }} —
         {{ $res->check_in_date->format('d/m/Y') }} إلى {{ $res->check_out_date->format('d/m/Y') }}
         ({{ $nights }} ليلة)
     </div>

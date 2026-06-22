@@ -74,7 +74,7 @@
                 @foreach($perCurrency['payment_details'] as $p)
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 text-gray-600">{{ \Carbon\Carbon::parse($p->payment_date)->format('d/m/Y H:i') }}</td>
-                    <td class="px-4 py-3 text-gray-700">{{ $p->reservation?->room?->room_number ?? '-' }}</td>
+                    <td class="px-4 py-3 text-gray-700">{{ $p->reservation?->display_room_number ?? '—' }}</td>
                     <td class="px-4 py-3 font-bold text-green-700">{{ number_format($p->amount, 0) }}</td>
                 </tr>
                 @endforeach

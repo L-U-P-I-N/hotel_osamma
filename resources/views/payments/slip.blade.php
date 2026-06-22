@@ -122,7 +122,7 @@
     </tr>
     <tr>
         <td>الغرفة:</td>
-        <td>{{ $payment->reservation->room->room_number ?? '—' }}</td>
+        <td>{{ $payment->reservation->display_room_number ?? '—' }}</td>
     </tr>
     <tr>
         <td>تاريخ الوصول:</td>

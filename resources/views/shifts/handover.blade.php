@@ -136,7 +136,7 @@
             <tr>
                 <td>{{ $pmt->payment_date?->format('H:i') ?? '—' }}</td>
                 <td>{{ $pmt->reservation->guest->full_name ?? '—' }}</td>
-                <td>{{ $pmt->reservation->room->room_number ?? '—' }}</td>
+                <td>{{ $pmt->reservation->display_room_number ?? '—' }}</td>
                 <td>{{ match($pmt->method) {'cash'=>'نقداً','bank_transfer'=>'تحويل','pos'=>'POS',default=>$pmt->method} }}</td>
                 <td style="font-weight:bold;">{{ number_format($pmt->amount, 0) }}</td>
             </tr>

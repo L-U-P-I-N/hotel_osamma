@@ -104,7 +104,7 @@
                 @endphp
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 font-medium text-gray-800">{{ $res->guest->full_name ?? '—' }}</td>
-                    <td class="px-4 py-3 text-gray-600">{{ $res->room->room_number ?? '—' }}</td>
+                    <td class="px-4 py-3 text-gray-600">{{ $res->display_room_number }}</td>
                     <td class="px-4 py-3 text-gray-500 text-xs">{{ $refDate?->format('d/m/Y') ?? '—' }}</td>
                     <td class="px-4 py-3 text-center">
                         <span class="font-bold {{ $daysAgo > 60 ? 'text-red-600' : 'text-gray-700' }}">{{ $daysAgo }}</span>

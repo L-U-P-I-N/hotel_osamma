@@ -99,7 +99,7 @@
                 <tr>
                     <td class="px-4 py-2 text-gray-400 text-xs">{{ $p->payment_date->format('H:i') }}</td>
                     <td class="px-4 py-2 text-gray-700 text-xs">
-                        <span class="font-medium">{{ $p->reservation?->room?->room_number ?? '—' }}</span>
+                        <span class="font-medium">{{ $p->reservation?->display_room_number ?? '—' }}</span>
                         <span class="text-gray-400 mr-1">{{ $p->reservation?->guest?->full_name ?? '' }}</span>
                     </td>
                     <td class="px-4 py-2 font-semibold text-green-700 whitespace-nowrap">{{ number_format($p->amount, 0) }} {{ $p->currency }}</td>

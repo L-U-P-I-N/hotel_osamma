@@ -872,7 +872,7 @@
             @csrf
             <div class="p-5 space-y-4">
                 <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
-                    <p class="font-medium">الغرفة الحالية: <span class="font-bold text-amber-900">{{ $reservation->room?->room_number }}</span></p>
+                    <p class="font-medium">الغرفة الحالية: <span class="font-bold text-amber-900">{{ $reservation->display_room_number }}</span></p>
                     <p class="text-xs mt-1 text-amber-600">ستنتقل الغرفة الحالية إلى وضع <strong>تحت الفحص</strong> بعد النقل</p>
                 </div>
                 <div>

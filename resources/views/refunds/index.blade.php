@@ -46,7 +46,7 @@
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 text-gray-400">{{ $refund->id }}</td>
                     <td class="px-4 py-3 font-medium">{{ $refund->reservation?->guest?->full_name ?? '—' }}</td>
-                    <td class="px-4 py-3">{{ $refund->reservation?->room?->room_number ?? '—' }}</td>
+                    <td class="px-4 py-3">{{ $refund->reservation?->display_room_number ?? '—' }}</td>
                     <td class="px-4 py-3 font-bold text-rose-600">{{ number_format($refund->amount, 0) }} ر.ي</td>
                     <td class="px-4 py-3">{{ match($refund->method) { 'cash'=>'نقداً','pos'=>'POS','bank_transfer'=>'تحويل', default=>$refund->method } }}</td>
                     <td class="px-4 py-3 text-gray-600 max-w-xs truncate">{{ $refund->reason }}</td>
