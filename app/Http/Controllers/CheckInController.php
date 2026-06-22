@@ -8,6 +8,7 @@ use App\Models\Room;
 use App\Models\RoomType;
 use App\Models\User;
 use App\Models\Reservation;
+use App\Helpers\StorageHelper;
 use App\Services\CheckInService;
 use App\Services\GovernmentExportService;
 use Illuminate\Http\Request;
@@ -199,26 +200,26 @@ class CheckInController extends Controller
 
     public function serveGuestIdImage(\App\Models\Guest $guest)
     {
-        if (!$guest->id_image_path || !Storage::disk('private')->exists($guest->id_image_path)) {
+        if (!$guest->id_image_path || !StorageHelper::exists($guest->id_image_path)) {
             abort(404);
         }
-        return response()->file(Storage::disk('private')->path($guest->id_image_path));
+        return StorageHelper::response($guest->id_image_path);
     }
 
     public function serveCompanionIdImage(\App\Models\Companion $companion)
     {
-        if (!$companion->id_image_path || !Storage::disk('private')->exists($companion->id_image_path)) {
+        if (!$companion->id_image_path || !StorageHelper::exists($companion->id_image_path)) {
             abort(404);
         }
-        return response()->file(Storage::disk('private')->path($companion->id_image_path));
+        return StorageHelper::response($companion->id_image_path);
     }
 
     public function serveMarriageDoc(\App\Models\Companion $companion)
     {
-        if (!$companion->marriage_doc_path || !Storage::disk('private')->exists($companion->marriage_doc_path)) {
+        if (!$companion->marriage_doc_path || !StorageHelper::exists($companion->marriage_doc_path)) {
             abort(404);
         }
-        return response()->file(Storage::disk('private')->path($companion->marriage_doc_path));
+        return StorageHelper::response($companion->marriage_doc_path);
     }
 
     private function getNationalities(): array

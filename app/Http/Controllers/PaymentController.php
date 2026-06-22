@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Helpers\StorageHelper;
 use App\Models\Reservation;
 use App\Services\CashSettlementService;
 use App\Services\PaymentService;
@@ -71,12 +72,12 @@ class PaymentController extends Controller
     public function viewReceipt(string $file)
     {
         $path = $file;
-        if (!Storage::disk('private')->exists($path)) {
+        if (!StorageHelper::exists($path)) {
             abort(404);
         }
 
         \App\Services\AuditLogService::log('view_sensitive', null, null, ['file' => $path]);
 
-        return response()->file(Storage::disk('private')->path($path));
+        return StorageHelper::response($path);
     }
 }
