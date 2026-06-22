@@ -3,11 +3,26 @@
 @section('page-title', 'إدارة المستخدمين')
 
 @section('content')
-<div x-data="{ addModal: false, editModal: false, editUser: {}, backupCodeModal: false, backupCode: '', backupCodeUser: '' }" x-init="
+<div x-data="{
+    addModal: false,
+    editModal: false,
+    editUser: {},
+    backupCodeModal: false,
+    backupCode: '',
+    backupCodeUser: '',
+    openDropdown: null,
+    toast: { show: false, message: '', type: 'success' }
+}" x-init="
     @if(session('new_backup_code'))
     backupCode = '{{ session('new_backup_code') }}';
     backupCodeUser = '{{ session('new_backup_code_user') }}';
     backupCodeModal = true;
+    @endif
+    @if(session('success'))
+    toast.message = '{{ session('success') }}';
+    toast.type = 'success';
+    toast.show = true;
+    setTimeout(() => toast.show = false, 3000);
     @endif
 ">
 
@@ -62,27 +77,49 @@
                         @endif
                     </td>
                     <td class="px-4 py-3">
-                        <div class="flex items-center gap-3">
-                            <button @click="editUser={{ json_encode(['id'=>$user->id,'name'=>$user->name,'phone'=>$user->phone,'role'=>$user->roles->first()?->name]) }}; editModal=true"
-                                    class="text-xs font-medium" style="color:#0F4C75;">تعديل</button>
-                            @if(!$user->isAdmin())
-                            <a href="{{ route('users.permissions', $user) }}" class="text-xs font-medium text-purple-600 hover:text-purple-800">صلاحيات</a>
-                            @endif
-                            <form method="POST" action="{{ route('users.regenerateBackupCode', $user) }}">
-                                @csrf
-                                <button type="submit" class="text-xs font-medium text-amber-600 hover:text-amber-800"
-                                        onclick="return confirm('تجديد رمز الاسترداد لـ {{ $user->name }}؟')">
-                                    رمز الاسترداد
+                        <div class="relative" x-data="{ open{{ $user->id }}: false }" @click.away="open{{ $user->id }}=false">
+                            <button @click="open{{ $user->id }}=!open{{ $user->id }}" class="inline-flex items-center justify-center w-8 h-8 text-gray-500 rounded-lg hover:bg-gray-100 transition">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10.5 1.5H9.5A1.5 1.5 0 008 3v14a1.5 1.5 0 001.5 1.5h1a1.5 1.5 0 001.5-1.5V3a1.5 1.5 0 00-1.5-1.5zM4 8.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm12 0a1.5 1.5 0 110 3 1.5 1.5 0 010-3z"/></svg>
+                            </button>
+                            <div x-show="open{{ $user->id }}" x-cloak class="absolute left-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 z-50 py-1">
+                                <button @click="editUser={{ json_encode(['id'=>$user->id,'name'=>$user->name,'phone'=>$user->phone,'role'=>$user->roles->first()?->name]) }}; editModal=true; open{{ $user->id }}=false"
+                                        class="w-full px-4 py-2 text-right text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                    تعديل
                                 </button>
-                            </form>
-                            @if($user->id !== auth()->id())
-                            <form method="POST" action="{{ route('users.toggle', $user) }}">
-                                @csrf @method('PATCH')
-                                <button type="submit" class="text-xs font-medium {{ $user->is_active ? 'text-red-500 hover:text-red-700' : 'text-green-600 hover:text-green-800' }}">
-                                    {{ $user->is_active ? 'تعطيل' : 'تفعيل' }}
-                                </button>
-                            </form>
-                            @endif
+                                @if(!$user->isAdmin())
+                                <a href="{{ route('users.permissions', $user) }}"
+                                   class="w-full px-4 py-2 text-right text-sm text-purple-600 hover:bg-purple-50 flex items-center gap-2 block">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    صلاحيات
+                                </a>
+                                @endif
+                                <form method="POST" action="{{ route('users.regenerateBackupCode', $user) }}" class="block">
+                                    @csrf
+                                    <button type="submit" class="w-full px-4 py-2 text-right text-sm text-amber-600 hover:bg-amber-50 flex items-center gap-2"
+                                            onclick="event.preventDefault();
+                                            if(confirm('تجديد رمز الاسترداد لـ {{ addslashes($user->name) }}؟\n\nرمز الاسترداد الحالي سيصبح غير صالح.')) {
+                                                this.closest('form').submit();
+                                            }">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+                                        رمز الاسترداد
+                                    </button>
+                                </form>
+                                <div class="border-t border-gray-100 my-1"></div>
+                                @if($user->id !== auth()->id())
+                                <form method="POST" action="{{ route('users.toggle', $user) }}" class="block">
+                                    @csrf @method('PATCH')
+                                    <button type="submit" class="w-full px-4 py-2 text-right text-sm {{ $user->is_active ? 'text-red-600 hover:bg-red-50' : 'text-green-600 hover:bg-green-50' }} flex items-center gap-2"
+                                            onclick="event.preventDefault();
+                                            if(confirm('{{ $user->is_active ? 'تعطيل' : 'تفعيل' }} المستخدم {{ addslashes($user->name) }}؟')) {
+                                                this.closest('form').submit();
+                                            }">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M{{ $user->is_active ? '6 18L18 6M6 6l12 12' : '9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' }}"/></svg>
+                                        {{ $user->is_active ? 'تعطيل' : 'تفعيل' }}
+                                    </button>
+                                </form>
+                                @endif
+                            </div>
                         </div>
                     </td>
                 </tr>
@@ -129,7 +166,7 @@
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>
-        <form method="POST" action="{{ route('users.store') }}" class="p-6 space-y-4">
+        <form method="POST" action="{{ route('users.store') }}" class="p-6 space-y-4" x-data="{ pwd: '', pwd_confirm: '' }">
             @csrf
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1.5">الاسم الكامل *</label>
@@ -145,7 +182,13 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1.5">كلمة المرور *</label>
-                <input type="password" name="password" required minlength="8" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none">
+                <input type="password" name="password" x-model="pwd" required minlength="8" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none">
+                <p class="text-xs text-gray-500 mt-1">على الأقل 8 أحرف</p>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">تأكيد كلمة المرور *</label>
+                <input type="password" name="password_confirmation" x-model="pwd_confirm" required minlength="8" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none">
+                <p class="text-xs text-red-500 mt-1" x-show="pwd && pwd_confirm && pwd !== pwd_confirm">كلمات المرور غير متطابقة</p>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1.5">رقم الجوال</label>
@@ -198,6 +241,17 @@
             </div>
             <button type="submit" class="w-full text-white py-2.5 rounded-lg font-semibold transition text-sm" style="background:#0F4C75;">حفظ التغييرات</button>
         </form>
+    </div>
+</div>
+
+<!-- Toast Notification -->
+<div x-show="toast.show" x-cloak x-transition class="fixed bottom-4 right-4 px-6 py-3 rounded-lg text-white shadow-lg"
+     :class="toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'">
+    <div class="flex items-center gap-2">
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+        </svg>
+        <span x-text="toast.message"></span>
     </div>
 </div>
 

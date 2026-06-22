@@ -28,38 +28,51 @@ class PermissionService
 
     // جميع الصلاحيات القابلة للتعديل
     const ALL_PERMISSIONS = [
-        'checkin.create'        => ['label' => 'إضافة حجز جديد',             'default' => true],
-        'checkin.view'          => ['label' => 'عرض الحجوزات',                'default' => true],
-        'checkout.process'      => ['label' => 'تسجيل الخروج',               'default' => true],
-        'payments.create'       => ['label' => 'تسجيل المستلمات',             'default' => true],
-        'shifts.view'           => ['label' => 'عرض الوردية',                 'default' => true],
-        'withdrawal.create'     => ['label' => 'تسجيل السحبيات',              'default' => true],
-        'reports.view'          => ['label' => 'عرض التقارير',                'default' => true],
-        'guests.sensitive'      => ['label' => 'عرض الهوية ورقم الجوال',     'default' => false],
-        'guest.edit'            => ['label' => 'تعديل بيانات النزيل',         'default' => false],
-        'room.price.edit'       => ['label' => 'تعديل سعر الغرفة',           'default' => false],
-        'payments.bank_receipt' => ['label' => 'عرض سندات التحويل',           'default' => false],
-        'government.export'     => ['label' => 'التصدير للجهات الحكومية',    'default' => false],
-        'report.monthly'        => ['label' => 'التقرير الشهري',              'default' => false],
-        'rooms.maintenance'     => ['label' => 'تغيير حالة الغرفة (صيانة/فحص/متاحة)', 'default' => true],
-        'rooms.create'          => ['label' => 'إضافة غرفة جديدة',                    'default' => false],
-        'rooms.edit'            => ['label' => 'تعديل بيانات الغرفة',                 'default' => false],
-        'rooms.delete'          => ['label' => 'حذف الغرفة',                          'default' => false],
+        // Reservations & Check-in/out
+        'checkin.create'        => ['label' => 'إضافة حجز جديد',             'default' => true, 'group' => '📋 الحجوزات والإقامة'],
+        'checkin.view'          => ['label' => 'عرض الحجوزات',                'default' => true, 'group' => '📋 الحجوزات والإقامة'],
+        'checkout.process'      => ['label' => 'تسجيل الخروج',               'default' => true, 'group' => '📋 الحجوزات والإقامة'],
+
+        // Guests
+        'guests.sensitive'      => ['label' => 'عرض الهوية ورقم الجوال',     'default' => false, 'group' => '👤 النزلاء'],
+        'guest.edit'            => ['label' => 'تعديل بيانات النزيل',         'default' => false, 'group' => '👤 النزلاء'],
+
+        // Rooms
+        'rooms.maintenance'     => ['label' => 'تغيير حالة الغرفة (صيانة/فحص/متاحة)', 'default' => true, 'group' => '🛏️ إدارة الغرف'],
+        'room.price.edit'       => ['label' => 'تعديل سعر الغرفة',           'default' => false, 'group' => '🛏️ إدارة الغرف'],
+        'rooms.create'          => ['label' => 'إضافة غرفة جديدة',                    'default' => false, 'group' => '🛏️ إدارة الغرف'],
+        'rooms.edit'            => ['label' => 'تعديل بيانات الغرفة',                 'default' => false, 'group' => '🛏️ إدارة الغرف'],
+        'rooms.delete'          => ['label' => 'حذف الغرفة',                          'default' => false, 'group' => '🛏️ إدارة الغرف'],
+
+        // Payments & Withdrawals
+        'payments.create'       => ['label' => 'تسجيل المستلمات',             'default' => true, 'group' => '💰 المالية'],
+        'payments.bank_receipt' => ['label' => 'عرض سندات التحويل',           'default' => false, 'group' => '💰 المالية'],
+        'withdrawal.create'     => ['label' => 'تسجيل السحبيات',              'default' => true, 'group' => '💰 المالية'],
+
+        // Shifts & Settlement
+        'shifts.view'           => ['label' => 'عرض الوردية',                 'default' => true, 'group' => '⏰ الورديات'],
+        'shifts.reopen'         => ['label' => 'فتح إقفال الوردية (إعادة فتح)', 'default' => false, 'group' => '⏰ الورديات'],
+
+        // Reports
+        'reports.view'          => ['label' => 'عرض التقارير',                'default' => true, 'group' => '📊 التقارير'],
+        'report.monthly'        => ['label' => 'التقرير الشهري',              'default' => false, 'group' => '📊 التقارير'],
+        'government.export'     => ['label' => 'التصدير للجهات الحكومية',    'default' => false, 'group' => '📊 التقارير'],
+
         // HR Module
-        'hr.view'               => ['label' => 'عرض الموارد البشرية (موظفون، رواتب)', 'default' => false],
-        'hr.create'             => ['label' => 'إضافة موظف أو قسيمة راتب',            'default' => false],
-        'hr.edit'               => ['label' => 'تعديل بيانات الموظفين والرواتب',       'default' => false],
-        'hr.delete'             => ['label' => 'حذف الموظفين',                         'default' => false],
+        'hr.view'               => ['label' => 'عرض الموارد البشرية (موظفون، رواتب)', 'default' => false, 'group' => '👥 الموارد البشرية'],
+        'hr.create'             => ['label' => 'إضافة موظف أو قسيمة راتب',            'default' => false, 'group' => '👥 الموارد البشرية'],
+        'hr.edit'               => ['label' => 'تعديل بيانات الموظفين والرواتب',       'default' => false, 'group' => '👥 الموارد البشرية'],
+        'hr.delete'             => ['label' => 'حذف الموظفين',                         'default' => false, 'group' => '👥 الموارد البشرية'],
+
         // Expense Module
-        'expenses.view'         => ['label' => 'عرض المصروفات',                 'default' => false],
-        'expenses.create'       => ['label' => 'إضافة مصروف جديد',             'default' => false],
-        'expenses.edit'         => ['label' => 'تعديل المصروفات',               'default' => false],
-        'expenses.delete'       => ['label' => 'حذف المصروفات',                 'default' => false],
-        // Shifts
-        'shifts.reopen'         => ['label' => 'فتح إقفال الوردية (إعادة فتح)', 'default' => false],
+        'expenses.view'         => ['label' => 'عرض المصروفات',                 'default' => false, 'group' => '💸 المصروفات'],
+        'expenses.create'       => ['label' => 'إضافة مصروف جديد',             'default' => false, 'group' => '💸 المصروفات'],
+        'expenses.edit'         => ['label' => 'تعديل المصروفات',               'default' => false, 'group' => '💸 المصروفات'],
+        'expenses.delete'       => ['label' => 'حذف المصروفات',                 'default' => false, 'group' => '💸 المصروفات'],
+
         // Attendance
-        'attendance.view'       => ['label' => 'عرض كشف الحضور والغياب',         'default' => false],
-        'attendance.create'     => ['label' => 'تسجيل الحضور اليومي',             'default' => false],
+        'attendance.view'       => ['label' => 'عرض كشف الحضور والغياب',         'default' => false, 'group' => '✅ الحضور والغياب'],
+        'attendance.create'     => ['label' => 'تسجيل الحضور اليومي',             'default' => false, 'group' => '✅ الحضور والغياب'],
     ];
 
     public static function userCan(User $user, string $permission): bool
@@ -118,6 +131,7 @@ class PermissionService
                 'is_granted'=> $stored[$key] ?? $config['default'],
                 'default'   => $config['default'],
                 'is_custom' => isset($stored[$key]),
+                'group'     => $config['group'] ?? 'عام',
             ];
         }
         return $map;
