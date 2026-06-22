@@ -301,13 +301,14 @@
         @php
             $info = $linkedAvailability[$room->id] ?? null;
             $roomData = [
-                'id'             => $room->id,
-                'room_number'    => $room->room_number,
-                'floor'          => $room->floor,
-                'base_price'     => (float)$room->roomType->base_price,
-                'prices'         => $room->pricesArray(),
-                'room_type_name' => $room->roomType->name,
-                'sub_type'       => $room->room_sub_type,
+                'id'              => $room->id,
+                'room_number'     => $room->room_number,
+                'floor'           => $room->floor,
+                'base_price'      => (float)$room->roomType->base_price,
+                'prices'          => $room->pricesArray(),
+                'suite_price_yer' => (float)($room->suite_price_yer ?? 0),
+                'room_type_name'  => $room->roomType->name,
+                'sub_type'        => $room->room_sub_type,
             ];
             $roomTypeKey = match($room->room_sub_type) {
                 'suite_a', 'suite_b' => 'suite',
@@ -321,13 +322,14 @@
         @php
             $doorLabel = rtrim($room->room_number, 'AB');
             $linkedRoomData = $info ? [
-                'id'             => $info['linked_id'],
-                'room_number'    => $info['linked_number'],
-                'floor'          => $room->floor,
-                'base_price'     => (float)$room->roomType->base_price,
-                'prices'         => $room->pricesArray(),
-                'room_type_name' => $room->roomType->name,
-                'sub_type'       => 'suite_b',
+                'id'              => $info['linked_id'],
+                'room_number'     => $info['linked_number'],
+                'floor'           => $room->floor,
+                'base_price'      => (float)$room->roomType->base_price,
+                'prices'          => $room->pricesArray(),
+                'suite_price_yer' => (float)($room->suite_price_yer ?? 0),
+                'room_type_name'  => $room->roomType->name,
+                'sub_type'        => 'suite_b',
             ] : null;
         @endphp
         {{-- Suite door card with inline A / B / A+B selector --}}
@@ -872,10 +874,17 @@ function checkInWizard() {
         },
 
         effectiveRoomPrice() {
-            const base = (this.customPrice !== null && this.customPrice !== '')
-                ? parseFloat(this.customPrice) || 0
-                : this.roomBasePriceFor('YER');
-            return this.suiteBookingType === 'both' ? base * 2 : base;
+            if (this.customPrice !== null && this.customPrice !== '') {
+                return parseFloat(this.customPrice) || 0;
+            }
+            // When booking the full suite, prefer suite_price_yer if set
+            if (this.suiteBookingType === 'both') {
+                const suitePrice = parseFloat(this.selectedRoom?.suite_price_yer) || 0;
+                if (suitePrice > 0) return suitePrice;
+                // Fall back to per-part price × 2
+                return this.roomBasePriceFor('YER') * 2;
+            }
+            return this.roomBasePriceFor('YER');
         },
 
         roomSelectionLabel() {

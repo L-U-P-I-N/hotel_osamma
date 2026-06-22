@@ -48,23 +48,25 @@ class RoomController extends Controller
         $request->merge(['room_number' => Room::normalizeDigits($request->input('room_number', ''))]);
 
         $validated = $request->validate([
-            'room_number'   => ['required', 'string', 'max:10', Rule::unique('rooms', 'room_number')->whereNull('deleted_at')],
-            'floor'         => 'required|integer|min:1|max:50',
-            'room_sub_type' => 'nullable|in:regular,double,suite,suite_a,suite_b,hall,apartment',
-            'beds_count'    => 'nullable|integer|min:1|max:20',
-            'price_yer'     => 'nullable|numeric|min:0',
-            'notes'         => 'nullable|string|max:500',
+            'room_number'     => ['required', 'string', 'max:10', Rule::unique('rooms', 'room_number')->whereNull('deleted_at')],
+            'floor'           => 'required|integer|min:1|max:50',
+            'room_sub_type'   => 'nullable|in:regular,double,suite,suite_a,suite_b,hall,apartment',
+            'beds_count'      => 'nullable|integer|min:1|max:20',
+            'price_yer'       => 'nullable|numeric|min:0',
+            'suite_price_yer' => 'nullable|numeric|min:0',
+            'notes'           => 'nullable|string|max:500',
         ], [
-            'room_number.required' => 'رقم الغرفة مطلوب',
-            'room_number.max'      => 'رقم الغرفة لا يتجاوز 10 أحرف',
-            'room_number.unique'   => 'رقم الغرفة موجود مسبقاً',
-            'floor.required'       => 'رقم الطابق مطلوب',
-            'floor.integer'        => 'رقم الطابق يجب أن يكون رقماً صحيحاً',
-            'floor.min'            => 'رقم الطابق يجب أن يكون 1 على الأقل',
-            'floor.max'            => 'رقم الطابق لا يتجاوز 50',
-            'room_sub_type.in'     => 'تصنيف الغرفة غير صالح',
-            'price_yer.numeric'    => 'السعر بالريال اليمني يجب أن يكون رقماً',
-            'notes.max'            => 'الملاحظات لا تتجاوز 500 حرف',
+            'room_number.required'     => 'رقم الغرفة مطلوب',
+            'room_number.max'          => 'رقم الغرفة لا يتجاوز 10 أحرف',
+            'room_number.unique'       => 'رقم الغرفة موجود مسبقاً',
+            'floor.required'           => 'رقم الطابق مطلوب',
+            'floor.integer'            => 'رقم الطابق يجب أن يكون رقماً صحيحاً',
+            'floor.min'                => 'رقم الطابق يجب أن يكون 1 على الأقل',
+            'floor.max'                => 'رقم الطابق لا يتجاوز 50',
+            'room_sub_type.in'         => 'تصنيف الغرفة غير صالح',
+            'price_yer.numeric'        => 'السعر المستقل يجب أن يكون رقماً',
+            'suite_price_yer.numeric'  => 'سعر الجناح الكامل يجب أن يكون رقماً',
+            'notes.max'                => 'الملاحظات لا تتجاوز 500 حرف',
         ]);
 
         // Validate room number against floor constraints
@@ -99,6 +101,9 @@ class RoomController extends Controller
 
         if (auth()->user()->can('room.price.edit')) {
             $baseAttributes['price_yer'] = $validated['price_yer'] ?? null;
+            if ($isSuite) {
+                $baseAttributes['suite_price_yer'] = $validated['suite_price_yer'] ?? null;
+            }
         }
 
         try {
@@ -182,25 +187,27 @@ class RoomController extends Controller
         $request->merge(['room_number' => Room::normalizeDigits($request->input('room_number', ''))]);
 
         $validated = $request->validate([
-            'room_number'    => ['required', 'string', 'max:10', Rule::unique('rooms', 'room_number')->ignore($room->id)->whereNull('deleted_at')],
-            'floor'          => 'required|integer|min:1|max:50',
-            'room_type_id'   => 'nullable|exists:room_types,id',
-            'room_sub_type'  => 'nullable|in:regular,double,suite,suite_a,suite_b,hall,apartment',
-            'beds_count'     => 'nullable|integer|min:1|max:20',
-            'price_yer'      => 'nullable|numeric|min:0',
-            'notes'          => 'nullable|string|max:500',
+            'room_number'     => ['required', 'string', 'max:10', Rule::unique('rooms', 'room_number')->ignore($room->id)->whereNull('deleted_at')],
+            'floor'           => 'required|integer|min:1|max:50',
+            'room_type_id'    => 'nullable|exists:room_types,id',
+            'room_sub_type'   => 'nullable|in:regular,double,suite,suite_a,suite_b,hall,apartment',
+            'beds_count'      => 'nullable|integer|min:1|max:20',
+            'price_yer'       => 'nullable|numeric|min:0',
+            'suite_price_yer' => 'nullable|numeric|min:0',
+            'notes'           => 'nullable|string|max:500',
         ], [
-            'room_number.required'  => 'رقم الغرفة مطلوب',
-            'room_number.max'       => 'رقم الغرفة لا يتجاوز 10 أحرف',
-            'room_number.unique'    => 'رقم الغرفة موجود مسبقاً في غرفة أخرى',
-            'floor.required'        => 'رقم الطابق مطلوب',
-            'floor.integer'         => 'رقم الطابق يجب أن يكون رقماً صحيحاً',
-            'floor.min'             => 'رقم الطابق يجب أن يكون 1 على الأقل',
-            'floor.max'             => 'رقم الطابق لا يتجاوز 50',
-            'room_type_id.exists'   => 'نوع الغرفة المحدد غير موجود',
-            'room_sub_type.in'      => 'تصنيف الغرفة غير صالح',
-            'price_yer.numeric'     => 'السعر بالريال اليمني يجب أن يكون رقماً',
-            'notes.max'             => 'الملاحظات لا تتجاوز 500 حرف',
+            'room_number.required'    => 'رقم الغرفة مطلوب',
+            'room_number.max'         => 'رقم الغرفة لا يتجاوز 10 أحرف',
+            'room_number.unique'      => 'رقم الغرفة موجود مسبقاً في غرفة أخرى',
+            'floor.required'          => 'رقم الطابق مطلوب',
+            'floor.integer'           => 'رقم الطابق يجب أن يكون رقماً صحيحاً',
+            'floor.min'               => 'رقم الطابق يجب أن يكون 1 على الأقل',
+            'floor.max'               => 'رقم الطابق لا يتجاوز 50',
+            'room_type_id.exists'     => 'نوع الغرفة المحدد غير موجود',
+            'room_sub_type.in'        => 'تصنيف الغرفة غير صالح',
+            'price_yer.numeric'       => 'السعر المستقل يجب أن يكون رقماً',
+            'suite_price_yer.numeric' => 'سعر الجناح الكامل يجب أن يكون رقماً',
+            'notes.max'               => 'الملاحظات لا تتجاوز 500 حرف',
         ]);
 
         $floor = Floor::where('floor_number', $validated['floor'])->first();
@@ -209,6 +216,9 @@ class RoomController extends Controller
                 'room_number' => 'رقم الغرفة ' . $validated['room_number'] . ' لا ينتمي للطابق ' . $validated['floor'] . ' الذي يحتوي على ' . $floor->door_count . ' أبواب فقط (من ' . ($floor->floor_number * 100 + 1) . ' إلى ' . ($floor->floor_number * 100 + $floor->door_count) . ')',
             ]);
         }
+
+        $isSuite = in_array($room->room_sub_type, ['suite_a', 'suite_b'])
+            || ($validated['room_sub_type'] ?? '') === 'suite';
 
         $old = $room->toArray();
         $attributes = [
@@ -222,6 +232,9 @@ class RoomController extends Controller
 
         if (auth()->user()->can('room.price.edit')) {
             $attributes['price_yer'] = $validated['price_yer'] ?? null;
+            if ($isSuite) {
+                $attributes['suite_price_yer'] = $validated['suite_price_yer'] ?? null;
+            }
         }
 
         $room->update($attributes);

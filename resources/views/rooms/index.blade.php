@@ -303,12 +303,25 @@
             @endif
 
             {{-- Price --}}
+            @if($room->isSuite() && ($room->suite_price_yer ?? 0) > 0)
+            <div class="mt-1 space-y-0.5">
+                <div class="flex items-baseline gap-1">
+                    <span class="text-sm font-bold text-gray-600">{{ number_format($room->priceFor('YER'), 0) }}</span>
+                    <span class="text-[10px] text-gray-400">ر.ي مستقل</span>
+                </div>
+                <div class="flex items-baseline gap-1">
+                    <span class="text-base font-black" style="color:#0F4C75;">{{ number_format($room->suite_price_yer, 0) }}</span>
+                    <span class="text-[10px] text-indigo-500 font-medium">ر.ي كامل</span>
+                </div>
+            </div>
+            @else
             <div class="flex items-baseline gap-1 mt-1">
                 <span class="text-base font-black" style="color:#0F4C75;">
                     {{ number_format($room->priceFor('YER'), 0) }}
                 </span>
                 <span class="text-[10px] text-gray-400 font-medium">ر.ي / ليلة</span>
             </div>
+            @endif
         </div>
 
         {{-- Actions --}}

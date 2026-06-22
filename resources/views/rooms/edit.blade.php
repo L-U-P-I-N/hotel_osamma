@@ -102,15 +102,33 @@
                 </div>
 
                 @if($canPrice)
+                @php $isSuiteRoom = in_array($room->room_sub_type, ['suite_a','suite_b']); @endphp
                 <div class="md:col-span-2">
-                    <div class="border border-amber-200 bg-amber-50 rounded-xl p-4">
-                        <label class="block text-sm font-semibold text-amber-800 mb-1">سعر الغرفة (ر.ي)</label>
-                        <div class="mt-2">
-                            <label class="block text-xs font-medium text-gray-600 mb-1">سعر الليلة بالريال اليمني</label>
-                            <input type="number" name="price_yer" value="{{ old('price_yer', $room->price_yer) }}" min="0" step="0.01"
-                                   placeholder="0.00"
+                    <div class="border border-amber-200 bg-amber-50 rounded-xl p-4 space-y-3">
+                        <label class="block text-sm font-semibold text-amber-800">سعر الغرفة (ر.ي)</label>
+
+                        @if($isSuiteRoom)
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">سعر القسم المستقل (كل قسم على حدة)</label>
+                            <input type="number" name="price_yer" value="{{ old('price_yer', $room->price_yer) }}" min="0" step="1"
+                                   placeholder="0"
                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-400 outline-none bg-white">
                         </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">سعر الجناح كامل (القسمين A+B معاً)</label>
+                            <input type="number" name="suite_price_yer" value="{{ old('suite_price_yer', $room->suite_price_yer) }}" min="0" step="1"
+                                   placeholder="0"
+                                   class="w-full border border-indigo-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400 outline-none bg-white">
+                            <p class="text-xs text-indigo-600 mt-1">يُستخدم عند حجز الجناح كامل دفعة واحدة</p>
+                        </div>
+                        @else
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">سعر الليلة بالريال اليمني</label>
+                            <input type="number" name="price_yer" value="{{ old('price_yer', $room->price_yer) }}" min="0" step="1"
+                                   placeholder="0"
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-400 outline-none bg-white">
+                        </div>
+                        @endif
                     </div>
                 </div>
                 @endif

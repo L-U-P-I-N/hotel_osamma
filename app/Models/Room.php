@@ -12,16 +12,17 @@ class Room extends Model
 
     protected $fillable = [
         'hotel_id','room_type_id','room_number','floor','beds_count',
-        'price_yer','price_sar','price_usd',
+        'price_yer','suite_price_yer','price_sar','price_usd',
         'room_sub_type','linked_room_id','is_always_linked',
         'status','notes',
     ];
 
     protected $casts = [
         'is_always_linked' => 'boolean',
-        'price_yer' => 'decimal:2',
-        'price_sar' => 'decimal:2',
-        'price_usd' => 'decimal:2',
+        'price_yer'       => 'decimal:2',
+        'suite_price_yer' => 'decimal:2',
+        'price_sar'       => 'decimal:2',
+        'price_usd'       => 'decimal:2',
     ];
 
     public function hotel()      { return $this->belongsTo(Hotel::class); }
@@ -84,9 +85,10 @@ class Room extends Model
     public function pricesArray(): array
     {
         return [
-            'YER' => $this->priceFor('YER'),
-            'SAR' => $this->priceFor('SAR'),
-            'USD' => $this->priceFor('USD'),
+            'YER'       => $this->priceFor('YER'),
+            'SAR'       => $this->priceFor('SAR'),
+            'USD'       => $this->priceFor('USD'),
+            'SUITE_YER' => (float)($this->suite_price_yer ?? 0),
         ];
     }
 
