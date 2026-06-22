@@ -57,7 +57,7 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'employee_id' => 'required|string|unique:users',
             'username' => 'required|string|unique:users|alpha_dash',
-            'password' => 'required|string|min:8',
+            'password' => 'required|string|min:8|confirmed',
             'phone' => 'nullable|string',
             'role' => 'required|exists:roles,name',
         ]);
