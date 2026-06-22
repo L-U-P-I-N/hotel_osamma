@@ -315,6 +315,18 @@
             @endcan
         </nav>
 
+        <!-- PWA Install Button (sidebar) -->
+        <div id="pwa-sidebar-install" class="hidden px-3 pb-2 flex-shrink-0">
+            <button onclick="installPWA()"
+                    class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors"
+                    style="background:rgba(255,255,255,0.08); color:#a8c8e0;">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                تثبيت التطبيق
+            </button>
+        </div>
+
         <!-- User info -->
         <div class="px-4 py-3 flex-shrink-0" style="border-top: 1px solid rgba(255,255,255,0.07);">
             <div class="flex items-center gap-3">
@@ -410,29 +422,42 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js');
 }
 
-// Install prompt banner
-let deferredPrompt;
+let deferredPrompt = null;
+
+function showInstallUI() {
+    document.getElementById('pwa-install-banner')?.classList.remove('hidden');
+    document.getElementById('pwa-sidebar-install')?.classList.remove('hidden');
+}
+
+function hideInstallUI() {
+    document.getElementById('pwa-install-banner')?.classList.add('hidden');
+    document.getElementById('pwa-sidebar-install')?.classList.add('hidden');
+}
+
+// المتصفح أرسل حدث التثبيت — احفظه واعرض الـ UI
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
-
-    const banner = document.getElementById('pwa-install-banner');
-    if (banner) banner.classList.remove('hidden');
+    showInstallUI();
 });
 
 function installPWA() {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
-    deferredPrompt.userChoice.then(() => {
+    deferredPrompt.userChoice.then((choice) => {
         deferredPrompt = null;
-        const banner = document.getElementById('pwa-install-banner');
-        if (banner) banner.classList.add('hidden');
+        if (choice.outcome === 'accepted') {
+            hideInstallUI();
+        }
+        // لو رفض نبقي الزر في الشريط الجانبي بس نخفي البانر
+        document.getElementById('pwa-install-banner')?.classList.add('hidden');
     });
 }
 
+// عند اكتمال التثبيت اخفِ كل شيء
 window.addEventListener('appinstalled', () => {
-    const banner = document.getElementById('pwa-install-banner');
-    if (banner) banner.classList.add('hidden');
+    hideInstallUI();
+    deferredPrompt = null;
 });
 </script>
 
