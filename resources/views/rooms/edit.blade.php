@@ -1,6 +1,7 @@
 @extends('layouts.app')
 @section('title', 'تعديل الغرفة ' . $room->room_number)
 @section('page-title', 'تعديل الغرفة ' . $room->room_number)
+@section('back-url', route('rooms.index'))
 
 @section('content')
 @php

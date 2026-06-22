@@ -1,6 +1,7 @@
 @extends('layouts.app')
 @section('title', 'إضافة غرفة جديدة')
 @section('page-title', 'إضافة غرفة جديدة')
+@section('back-url', route('rooms.index'))
 
 @section('content')
 <div class="max-w-2xl mx-auto">

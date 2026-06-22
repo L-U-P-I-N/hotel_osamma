@@ -1,6 +1,7 @@
 @extends('layouts.app')
 @section('title', 'تفاصيل الحجز #' . $reservation->id)
 @section('page-title', 'تفاصيل الحجز')
+@section('back-url', route('reservations.index'))
 
 @section('content')
 @php
@@ -770,6 +771,7 @@
 {{-- ===== BACK LINK ===== --}}
 <div>
     <a href="{{ route('reservations.index') }}"
+       onclick="event.preventDefault(); history.length > 1 ? history.back() : (location='{{ route('reservations.index') }}');"
        class="inline-flex items-center gap-1.5 px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-xl hover:bg-gray-50 transition">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
         العودة للقائمة
