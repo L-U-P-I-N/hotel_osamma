@@ -29,6 +29,7 @@ Route::get('/', fn() => redirect()->route('login'));
 // Auth
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+Route::post('/login/force', [AuthController::class, 'forceLogin'])->name('login.force');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 
 // Password Reset via Backup Code
