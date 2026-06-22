@@ -240,6 +240,73 @@
 </div>
 @endcan
 
+{{-- ── مقارنة YTD vs الشهر الماضي ── --}}
+@can('reports.view')
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+
+    {{-- YTD Summary --}}
+    <div class="bg-white rounded-xl shadow-sm border border-emerald-100 p-4">
+        <p class="text-xs font-medium text-gray-500 mb-2">📊 السنة من البداية</p>
+        <div class="space-y-1.5">
+            <div class="flex justify-between">
+                <span class="text-xs text-gray-600">الإيراد:</span>
+                <span class="font-semibold text-green-700">{{ number_format($ytdRevenue, 0) }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-xs text-gray-600">المصروف:</span>
+                <span class="font-semibold text-red-600">{{ number_format($ytdExpenses, 0) }}</span>
+            </div>
+            <div class="h-px bg-gray-100 my-1.5"></div>
+            <div class="flex justify-between">
+                <span class="text-xs font-medium text-gray-700">الصافي:</span>
+                <span class="font-bold {{ ($ytdRevenue - $ytdExpenses) >= 0 ? 'text-emerald-700' : 'text-red-700' }}">{{ number_format($ytdRevenue - $ytdExpenses, 0) }}</span>
+            </div>
+        </div>
+    </div>
+
+    {{-- This Month vs Last Month --}}
+    <div class="bg-white rounded-xl shadow-sm border border-blue-100 p-4">
+        <p class="text-xs font-medium text-gray-500 mb-2">📈 هذا الشهر</p>
+        <div class="space-y-1.5">
+            <div class="flex justify-between">
+                <span class="text-xs text-gray-600">الإيراد:</span>
+                <span class="font-semibold text-green-700">{{ number_format($monthlyRevenue, 0) }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-xs text-gray-600">المصروف:</span>
+                <span class="font-semibold text-red-600">{{ number_format($monthlyExpenses, 0) }}</span>
+            </div>
+            <div class="h-px bg-gray-100 my-1.5"></div>
+            <div class="flex justify-between">
+                <span class="text-xs font-medium text-gray-700">الصافي:</span>
+                <span class="font-bold text-blue-700">{{ number_format($monthlyRevenue - $monthlyExpenses, 0) }}</span>
+            </div>
+        </div>
+    </div>
+
+    {{-- Last Month Comparison --}}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <p class="text-xs font-medium text-gray-500 mb-2">📉 الشهر الماضي</p>
+        <div class="space-y-1.5">
+            <div class="flex justify-between">
+                <span class="text-xs text-gray-600">الإيراد:</span>
+                <span class="font-semibold text-gray-600">{{ number_format($lastMonthRevenue, 0) }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-xs text-gray-600">المصروف:</span>
+                <span class="font-semibold text-gray-600">{{ number_format($lastMonthExpenses, 0) }}</span>
+            </div>
+            <div class="h-px bg-gray-100 my-1.5"></div>
+            <div class="flex justify-between">
+                <span class="text-xs font-medium text-gray-700">الصافي:</span>
+                <span class="font-bold text-gray-700">{{ number_format($lastMonthRevenue - $lastMonthExpenses, 0) }}</span>
+            </div>
+        </div>
+    </div>
+
+</div>
+@endcan
+
 {{-- ── جدول النزلاء المسجلين ── --}}
 @can('checkin.view')
 <div class="bg-white rounded-xl shadow-sm border border-gray-100">

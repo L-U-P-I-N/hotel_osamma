@@ -25,9 +25,17 @@ class DashboardController extends Controller
         $todayRevenue   = Payment::whereDate('payment_date', today())->where('currency','YER')->sum('amount');
         $monthlyRevenue = Payment::whereMonth('payment_date', now()->month)
             ->whereYear('payment_date', now()->year)->where('currency','YER')->sum('amount');
+        $ytdRevenue     = Payment::whereYear('payment_date', now()->year)->where('currency','YER')->sum('amount');
+        $lastMonthRevenue = Payment::whereMonth('payment_date', now()->subMonth()->month)
+            ->whereYear('payment_date', now()->subMonth()->year)->where('currency','YER')->sum('amount');
 
         // Expenses today
-        $todayExpenses = Expense::whereDate('expense_date', today())->where('currency','YER')->sum('amount');
+        $todayExpenses  = Expense::whereDate('expense_date', today())->where('currency','YER')->sum('amount');
+        $monthlyExpenses = Expense::whereMonth('expense_date', now()->month)
+            ->whereYear('expense_date', now()->year)->where('currency','YER')->sum('amount');
+        $ytdExpenses    = Expense::whereYear('expense_date', now()->year)->where('currency','YER')->sum('amount');
+        $lastMonthExpenses = Expense::whereMonth('expense_date', now()->subMonth()->month)
+            ->whereYear('expense_date', now()->subMonth()->year)->where('currency','YER')->sum('amount');
 
         // Net profit today
         $todayNetProfit = $todayRevenue - $todayExpenses;
@@ -83,8 +91,8 @@ class DashboardController extends Controller
         return view('dashboard.index', compact(
             'totalRooms', 'occupiedRooms', 'availableRooms', 'maintenanceRooms',
             'todayArrivals', 'todayDepartures',
-            'todayRevenue', 'monthlyRevenue',
-            'todayExpenses', 'todayNetProfit',
+            'todayRevenue', 'monthlyRevenue', 'ytdRevenue', 'lastMonthRevenue',
+            'todayExpenses', 'monthlyExpenses', 'ytdExpenses', 'lastMonthExpenses', 'todayNetProfit',
             'occupancyRate', 'adr',
             'debtReservations', 'totalOutstandingDebt',
             'upcomingArrivals', 'trendDays',
