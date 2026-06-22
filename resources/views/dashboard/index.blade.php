@@ -8,6 +8,25 @@
     $todayCount   = $expiringGuests->filter(fn($r) => $r->check_out_date->isToday())->count();
 @endphp
 
+{{-- ── التنبيهات المهمة ── --}}
+@if(!empty($alerts))
+<div class="mb-5 space-y-3">
+    @foreach($alerts as $alert)
+    <div class="flex items-start gap-3 px-4 py-3 rounded-lg border-l-4 {{
+        $alert['type'] === 'danger' ? 'bg-red-50 border-red-400 text-red-900' :
+        ($alert['type'] === 'warning' ? 'bg-amber-50 border-amber-400 text-amber-900' :
+        'bg-blue-50 border-blue-400 text-blue-900')
+    }}">
+        <span class="text-2xl flex-shrink-0">{{ $alert['icon'] }}</span>
+        <div class="flex-1">
+            <p class="font-semibold text-sm">{{ $alert['title'] }}</p>
+            <p class="text-xs mt-0.5 opacity-90">{{ $alert['message'] }}</p>
+        </div>
+    </div>
+    @endforeach
+</div>
+@endif
+
 {{-- ── شريط الأرقام السريعة ── --}}
 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
 
