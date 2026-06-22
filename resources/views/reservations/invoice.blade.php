@@ -68,7 +68,7 @@ tr:nth-child(even) td { background:#fafafa; }
             <td style="width:25%;color:#888;font-size:9pt;">اسم النزيل</td>
             <td style="width:25%;font-weight:bold;">{{ $reservation->guest?->full_name ?? '—' }}</td>
             <td style="width:25%;color:#888;font-size:9pt;">رقم الغرفة</td>
-            <td style="width:25%;font-weight:bold;">{{ $reservation->room?->room_number ?? '—' }}</td>
+            <td style="width:25%;font-weight:bold;">{{ $reservation->display_room_number }}</td>
         </tr>
         <tr>
             <td style="color:#888;font-size:9pt;">نوع الغرفة</td>
@@ -114,7 +114,7 @@ tr:nth-child(even) td { background:#fafafa; }
             @endphp
             <tr>
                 <td>{{ $row++ }}</td>
-                <td>إيجار غرفة {{ $reservation->room?->room_number }} — {{ $reservation->room?->sub_type_label ?? '' }}</td>
+                <td>إيجار غرفة {{ $reservation->display_room_number }} — {{ $reservation->room?->sub_type_label ?? '' }}</td>
                 <td>{{ $nights }} ليلة</td>
                 <td>{{ number_format($basePrice, 0) }} ر.ي</td>
                 <td>{{ number_format($basePrice * $nights, 0) }} ر.ي</td>

@@ -84,7 +84,15 @@ class FloorController extends Controller
     {
         $usedNumbers = Room::where('floor', $floor->floor_number)->pluck('room_number')->toArray();
         $allNumbers  = $floor->validRoomNumbers();
-        $available   = array_values(array_diff($allNumbers, $usedNumbers));
+
+        // Derive base numbers from suite variants (e.g. '601A' → '601', '608B' → '608')
+        // so that base number slots occupied by suites are also excluded.
+        $usedBaseNumbers = array_unique(array_map(fn($rn) => rtrim($rn, 'ABab'), $usedNumbers));
+
+        $available = array_values(array_filter(
+            $allNumbers,
+            fn($num) => !in_array($num, $usedNumbers, true) && !in_array($num, $usedBaseNumbers, true)
+        ));
 
         return response()->json([
             'floor'     => $floor->floor_number,

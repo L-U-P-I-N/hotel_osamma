@@ -23,7 +23,7 @@
         <div>
             <h2 class="text-xl font-bold text-gray-800">تم تسجيل الخروج بنجاح</h2>
             <p class="text-gray-500 text-sm mt-0.5">
-                {{ $reservation->guest?->full_name }} — غرفة {{ $reservation->room?->room_number }}
+                {{ $reservation->guest?->full_name }} — غرفة {{ $reservation->display_room_number }}
                 &nbsp;·&nbsp; {{ now()->format('d/m/Y H:i') }}
             </p>
         </div>
@@ -34,7 +34,7 @@
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
     <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">
         <p class="text-xs text-gray-400 mb-1">الغرفة</p>
-        <p class="text-2xl font-bold text-primary-800">{{ $reservation->room?->room_number }}</p>
+        <p class="text-2xl font-bold text-primary-800">{{ $reservation->display_room_number }}</p>
         <p class="text-xs text-gray-500">{{ $reservation->room?->roomType?->name }}</p>
     </div>
     <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">

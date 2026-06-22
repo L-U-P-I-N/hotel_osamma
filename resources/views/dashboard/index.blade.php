@@ -327,7 +327,7 @@
                             {{ $res->guest?->full_name ?? '—' }}
                         </a>
                     </td>
-                    <td class="px-4 py-3 font-medium text-gray-700">{{ $res->room?->room_number ?? '—' }}</td>
+                    <td class="px-4 py-3 font-medium text-gray-700">{{ $res->display_room_number }}</td>
                     <td class="px-4 py-3 text-gray-500 text-xs">{{ $res->check_in_date->format('d/m/Y') }}</td>
                     <td class="px-4 py-3 text-gray-600 font-medium text-xs">{{ $res->check_out_date->format('d/m/Y') }}</td>
                     <td class="px-4 py-3">

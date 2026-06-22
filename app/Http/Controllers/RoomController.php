@@ -49,7 +49,7 @@ class RoomController extends Controller
         $validated = $request->validate([
             'room_number'    => 'required|string|max:10|unique:rooms,room_number',
             'floor'          => 'required|integer|min:1|max:50',
-            'room_type_id'   => 'required|exists:room_types,id',
+            'room_type_id'   => 'nullable|exists:room_types,id',
             'room_sub_type'  => 'nullable|in:regular,double,suite,suite_a,suite_b,hall,apartment',
             'beds_count'     => 'nullable|integer|min:1|max:20',
             'price_yer'      => 'nullable|numeric|min:0',
@@ -62,7 +62,6 @@ class RoomController extends Controller
             'floor.integer'         => 'رقم الطابق يجب أن يكون رقماً صحيحاً',
             'floor.min'             => 'رقم الطابق يجب أن يكون 1 على الأقل',
             'floor.max'             => 'رقم الطابق لا يتجاوز 50',
-            'room_type_id.required' => 'نوع الغرفة مطلوب',
             'room_type_id.exists'   => 'نوع الغرفة المحدد غير موجود',
             'room_sub_type.in'      => 'تصنيف الغرفة غير صالح',
             'price_yer.numeric'     => 'السعر بالريال اليمني يجب أن يكون رقماً',
@@ -82,7 +81,7 @@ class RoomController extends Controller
 
         $baseAttributes = [
             'hotel_id'     => $hotel->id,
-            'room_type_id' => $validated['room_type_id'],
+            'room_type_id' => $validated['room_type_id'] ?? RoomType::first()?->id,
             'floor'        => $validated['floor'],
             'beds_count'   => $validated['beds_count'] ?? 1,
             'status'       => 'available',
@@ -136,7 +135,7 @@ class RoomController extends Controller
         $validated = $request->validate([
             'room_number'    => 'required|string|max:10|unique:rooms,room_number,' . $room->id,
             'floor'          => 'required|integer|min:1|max:50',
-            'room_type_id'   => 'required|exists:room_types,id',
+            'room_type_id'   => 'nullable|exists:room_types,id',
             'room_sub_type'  => 'nullable|in:regular,double,suite,suite_a,suite_b,hall,apartment',
             'beds_count'     => 'nullable|integer|min:1|max:20',
             'price_yer'      => 'nullable|numeric|min:0',
@@ -149,7 +148,6 @@ class RoomController extends Controller
             'floor.integer'         => 'رقم الطابق يجب أن يكون رقماً صحيحاً',
             'floor.min'             => 'رقم الطابق يجب أن يكون 1 على الأقل',
             'floor.max'             => 'رقم الطابق لا يتجاوز 50',
-            'room_type_id.required' => 'نوع الغرفة مطلوب',
             'room_type_id.exists'   => 'نوع الغرفة المحدد غير موجود',
             'room_sub_type.in'      => 'تصنيف الغرفة غير صالح',
             'price_yer.numeric'     => 'السعر بالريال اليمني يجب أن يكون رقماً',
@@ -168,7 +166,7 @@ class RoomController extends Controller
             'room_number'   => $validated['room_number'],
             'floor'         => $validated['floor'],
             'beds_count'    => $validated['beds_count'] ?? $room->beds_count,
-            'room_type_id'  => $validated['room_type_id'],
+            'room_type_id'  => $validated['room_type_id'] ?? $room->room_type_id,
             'room_sub_type' => $validated['room_sub_type'] ?? $room->room_sub_type,
             'notes'         => $validated['notes'] ?? null,
         ];
