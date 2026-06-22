@@ -126,6 +126,7 @@
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المبلغ</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">النوع</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">البيان</th>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">بواسطة</th>
             </tr></thead>
             <tbody class="divide-y divide-gray-50">
                 @foreach($activeShift->withdrawals as $w)
@@ -145,6 +146,16 @@
                         @endif
                     </td>
                     <td class="px-4 py-2 text-gray-400 text-xs">{{ $w->notes ?? '—' }}</td>
+                    <td class="px-4 py-2 text-xs text-gray-500">
+                        @if($w->handed_by_name && $w->handed_by_name !== '-')
+                        <span class="inline-flex items-center gap-1">
+                            <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                            {{ $w->handed_by_name }}
+                        </span>
+                        @else
+                        <span class="text-gray-300">—</span>
+                        @endif
+                    </td>
                 </tr>
                 @endforeach
             </tbody>

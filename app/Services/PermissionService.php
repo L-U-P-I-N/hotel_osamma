@@ -21,9 +21,9 @@ class PermissionService
         'checkin.view',
         'checkout.process',
         'payments.create',
+        'withdrawal.create',
         'shifts.view',
         'settlement.view', // backward compat alias
-        'reports.view',
     ];
 
     // جميع الصلاحيات القابلة للتعديل
@@ -45,16 +45,16 @@ class PermissionService
         'rooms.delete'          => ['label' => 'حذف الغرفة',                          'default' => false, 'group' => '🛏️ إدارة الغرف'],
 
         // Payments & Withdrawals
-        'payments.create'       => ['label' => 'تسجيل المستلمات',             'default' => true, 'group' => '💰 المالية'],
+        'payments.create'       => ['label' => 'تسجيل المستلمات',             'default' => true,  'group' => '💰 المالية'],
         'payments.bank_receipt' => ['label' => 'عرض سندات التحويل',           'default' => false, 'group' => '💰 المالية'],
-        'withdrawal.create'     => ['label' => 'تسجيل السحبيات',              'default' => true, 'group' => '💰 المالية'],
+        'withdrawal.create'     => ['label' => 'تسجيل السحبيات',              'default' => true,  'group' => '💰 المالية'],
 
         // Shifts & Settlement
         'shifts.view'           => ['label' => 'عرض الوردية',                 'default' => true, 'group' => '⏰ الورديات'],
         'shifts.reopen'         => ['label' => 'فتح إقفال الوردية (إعادة فتح)', 'default' => false, 'group' => '⏰ الورديات'],
 
         // Reports
-        'reports.view'          => ['label' => 'عرض التقارير',                'default' => true, 'group' => '📊 التقارير'],
+        'reports.view'          => ['label' => 'عرض التقارير',                'default' => false, 'group' => '📊 التقارير'],
         'report.monthly'        => ['label' => 'التقرير الشهري',              'default' => false, 'group' => '📊 التقارير'],
         'government.export'     => ['label' => 'التصدير للجهات الحكومية',    'default' => false, 'group' => '📊 التقارير'],
 

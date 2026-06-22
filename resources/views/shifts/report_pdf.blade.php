@@ -208,6 +208,7 @@
             <th>المبلغ</th>
             <th>العملة</th>
             <th>مقابل</th>
+            <th>بواسطة</th>
             <th>الوقت</th>
         </tr>
     </thead>
@@ -227,6 +228,7 @@
                 —
                 @endif
             </td>
+            <td>{{ ($w->handed_by_name && $w->handed_by_name !== '-') ? $w->handed_by_name : '—' }}</td>
             <td class="ltr">{{ $w->created_at?->format('H:i') }}</td>
         </tr>
         @endforeach
