@@ -105,6 +105,12 @@ class ShiftController extends Controller
         }
     }
 
+    public function handover(Shift $shift)
+    {
+        $shift->load(['user', 'payments.reservation.guest', 'payments.reservation.room', 'withdrawals']);
+        return view('shifts.handover', compact('shift'));
+    }
+
     public function exportPdf(Shift $shift)
     {
         $shift->load(['user', 'payments.reservation.guest', 'payments.reservation.room', 'withdrawals']);

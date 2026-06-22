@@ -20,16 +20,24 @@ class Expense extends Model
         'paid_by',
         'shift_id',
         'payment_method',
+        'settled_at',
+        'settled_by',
     ];
 
     protected $casts = [
         'amount'       => 'decimal:2',
         'expense_date' => 'date',
+        'settled_at'   => 'datetime',
     ];
 
     public function paidBy()
     {
         return $this->belongsTo(User::class, 'paid_by');
+    }
+
+    public function settledBy()
+    {
+        return $this->belongsTo(User::class, 'settled_by');
     }
 
     public function shift()

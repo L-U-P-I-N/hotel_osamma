@@ -122,7 +122,9 @@ class Reservation extends Model
     public function updatePaymentStatus(): void
     {
         $status = 'unpaid';
-        if ($this->paid_amount >= $this->total_amount && $this->total_amount > 0) {
+        if ((float)$this->total_amount == 0) {
+            $status = 'paid';
+        } elseif ($this->paid_amount >= $this->total_amount) {
             $status = 'paid';
         } elseif ($this->paid_amount > 0) {
             $status = 'partial';

@@ -20,6 +20,7 @@ use App\Http\Controllers\SalaryController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\LeaveController;
+use App\Http\Controllers\GuestController;
 
 Route::get('/', fn() => redirect()->route('login'));
 
@@ -123,6 +124,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/payments', [PaymentController::class, 'store'])
         ->name('payments.store')
         ->middleware('permission:payments.create');
+    Route::get('/payments/{payment}/slip', [PaymentController::class, 'slip'])
+        ->name('payments.slip')
+        ->middleware('permission:payments.create');
     Route::get('/payments/{file}/receipt', [PaymentController::class, 'viewReceipt'])
         ->name('payments.receipt')
         ->middleware('permission:payments.bank_receipt')
@@ -139,6 +143,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/shifts', [ShiftController::class, 'index'])->name('shifts.index');
         Route::post('/shifts/close', [ShiftController::class, 'close'])->name('shifts.close');
         Route::get('/shifts/{shift}/pdf', [ShiftController::class, 'exportPdf'])->name('shifts.pdf');
+        Route::get('/shifts/{shift}/handover', [ShiftController::class, 'handover'])->name('shifts.handover');
     });
     Route::post('/shifts/withdrawal', [ShiftController::class, 'addWithdrawal'])->name('shifts.withdrawal')->middleware('permission:withdrawal.create');
     Route::post('/shifts/{shift}/reopen', [ShiftController::class, 'reopen'])->name('shifts.reopen')->middleware('permission:shifts.reopen');
@@ -178,6 +183,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/reports/shifts/pdf', [ReportController::class, 'shiftsPdf'])->name('reports.shifts.pdf');
         Route::get('/reports/shifts/excel', [ReportController::class, 'shiftsExcel'])->name('reports.shifts.excel');
         Route::get('/reports/shift-deficits', [ReportController::class, 'shiftDeficits'])->name('reports.shiftDeficits');
+        Route::get('/reports/daily-close', [ReportController::class, 'dailyClose'])->name('reports.dailyClose');
+        Route::get('/reports/aged-debts', [ReportController::class, 'agedDebts'])->name('reports.agedDebts');
+        Route::get('/reports/profit-loss', [ReportController::class, 'profitLoss'])->name('reports.profitLoss');
     });
 
     // Users
@@ -212,6 +220,12 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // Salaries
+    // Guest statement
+    Route::middleware('permission:checkin.view')->group(function () {
+        Route::get('/guests/{guest}/statement', [GuestController::class, 'statement'])->name('guests.statement');
+        Route::get('/guests/{guest}/statement/pdf', [GuestController::class, 'statementPdf'])->name('guests.statement.pdf');
+    });
+
     Route::middleware('permission:hr.view')->group(function () {
         Route::get('/salaries', [SalaryController::class, 'index'])->name('salaries.index');
     });
@@ -254,6 +268,10 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware('permission:expenses.view')->group(function () {
         Route::get('/expenses', [ExpenseController::class, 'index'])->name('expenses.index');
         Route::get('/expenses/report', [ExpenseController::class, 'report'])->name('expenses.report');
+        Route::get('/expenses/deferred', [ExpenseController::class, 'deferred'])->name('expenses.deferred');
+    });
+    Route::middleware('permission:expenses.edit')->group(function () {
+        Route::patch('/expenses/{expense}/settle', [ExpenseController::class, 'settle'])->name('expenses.settle');
     });
     Route::middleware('permission:expenses.create')->group(function () {
         Route::get('/expenses/create', [ExpenseController::class, 'create'])->name('expenses.create');

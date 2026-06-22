@@ -52,6 +52,22 @@ class PaymentController extends Controller
         return back()->with('success', 'تم تسجيل الدفعة بنجاح');
     }
 
+    public function slip(\App\Models\Payment $payment)
+    {
+        $payment->load(['reservation.guest', 'reservation.room', 'receivedBy']);
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('payments.slip', compact('payment'));
+        $pdf->setPaper([0, 0, 420, 595], 'portrait'); // half A4
+
+        $dompdf = $pdf->getDomPDF();
+        $opts   = $dompdf->getOptions();
+        $opts->setFontDir(storage_path('fonts'));
+        $opts->setFontCache(storage_path('fonts'));
+        $dompdf->setOptions($opts);
+
+        $filename = 'receipt-' . str_pad($payment->id, 6, '0', STR_PAD_LEFT) . '.pdf';
+        return $pdf->stream($filename);
+    }
+
     public function viewReceipt(string $file)
     {
         $path = $file;
