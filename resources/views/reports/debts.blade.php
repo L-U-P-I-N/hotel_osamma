@@ -35,6 +35,7 @@
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الإجمالي</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المدفوع</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المتبقي</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">تاريخ الدخول</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">تاريخ الخروج</th>
                     <th class="px-4 py-3"></th>
                 </tr>
@@ -55,13 +56,14 @@
                     <td class="px-4 py-3 text-gray-700">{{ number_format($res->total_amount, 0) }}</td>
                     <td class="px-4 py-3 text-green-700">{{ number_format($res->paid_amount, 0) }}</td>
                     <td class="px-4 py-3 font-bold text-red-600">{{ number_format($balance, 0) }}</td>
-                    <td class="px-4 py-3 text-gray-500 text-xs">{{ $res->check_out_date?->format('Y/m/d') }}</td>
+                    <td class="px-4 py-3 text-gray-500 text-xs">{{ $res->check_in_date?->format('d/m/Y') ?? '—' }}</td>
+                    <td class="px-4 py-3 text-gray-500 text-xs">{{ $res->check_out_date?->format('d/m/Y') ?? '—' }}</td>
                     <td class="px-4 py-3">
                         <a href="{{ route('reservations.show', $res->id) }}" class="text-xs px-2 py-1 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">تفاصيل</a>
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="8" class="px-4 py-8 text-center text-gray-400">لا توجد ديون مسجلة — ممتاز!</td></tr>
+                <tr><td colspan="9" class="px-4 py-8 text-center text-gray-400">لا توجد ديون مسجلة — ممتاز!</td></tr>
                 @endforelse
             </tbody>
         </table>

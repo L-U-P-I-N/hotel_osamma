@@ -55,6 +55,7 @@
             <th>الإجمالي (ر.ي)</th>
             <th>المدفوع (ر.ي)</th>
             <th>المتبقي (ر.ي)</th>
+            <th>تاريخ الدخول</th>
             <th>تاريخ الخروج</th>
         </tr>
     </thead>
@@ -68,12 +69,14 @@
             <td class="ltr">{{ number_format($res->total_amount, 0) }}</td>
             <td class="ltr" style="color:#16a34a;">{{ number_format($res->paid_amount, 0) }}</td>
             <td class="ltr" style="font-weight:bold;color:#dc2626;">{{ number_format($balance, 0) }}</td>
+            <td class="ltr">{{ $res->check_in_date?->format('d/m/Y') ?? '—' }}</td>
             <td class="ltr">{{ $res->check_out_date?->format('d/m/Y') ?? '—' }}</td>
         </tr>
         @endforeach
         <tr class="total-row">
             <td colspan="5">إجمالي المبالغ غير المحصّلة</td>
             <td class="ltr">{{ number_format($totalDebt, 0) }}</td>
+            <td></td>
             <td></td>
         </tr>
     </tbody>
