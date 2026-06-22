@@ -77,6 +77,10 @@ class RoomController extends Controller
         }
 
         $hotel    = Hotel::first();
+        if (!$hotel) {
+            return back()->withInput()->withErrors(['error' => 'لم يتم إعداد بيانات الفندق بعد']);
+        }
+
         $subType  = $validated['room_sub_type'] ?? 'regular';
         $isSuite  = $subType === 'suite';
 
