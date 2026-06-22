@@ -71,14 +71,36 @@
 </head>
 <body class="bg-slate-50 text-gray-800">
 
-<!-- PWA Install Banner -->
-<div id="pwa-install-banner" class="hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl shadow-xl text-white text-sm font-medium" style="background:#0F4C75; min-width:280px;">
-    <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+<!-- PWA Install Banner (Chrome/Edge/Android) -->
+<div id="pwa-install-banner" class="hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl shadow-xl text-white text-sm font-medium" style="background:#0F4C75; min-width:280px; max-width:90vw;">
+    <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
     <span class="flex-1">تثبيت التطبيق على جهازك</span>
-    <button onclick="installPWA()" class="px-3 py-1 rounded-lg text-xs font-bold transition" style="background:rgba(255,255,255,0.2);">تثبيت</button>
-    <button onclick="document.getElementById('pwa-install-banner').classList.add('hidden')" class="text-white/60 hover:text-white">
+    <button onclick="installPWA()" class="px-3 py-1 rounded-lg text-xs font-bold transition flex-shrink-0" style="background:rgba(255,255,255,0.2);">تثبيت</button>
+    <button onclick="document.getElementById('pwa-install-banner').classList.add('hidden')" class="text-white/60 hover:text-white flex-shrink-0">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
     </button>
+</div>
+
+<!-- PWA Install Banner (Safari iOS/iPadOS) -->
+<div id="pwa-safari-banner" class="hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50 rounded-2xl shadow-xl text-white text-sm" style="background:#0F4C75; min-width:300px; max-width:92vw;">
+    <div class="flex items-center gap-3 px-4 pt-4 pb-2">
+        <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        <span class="flex-1 font-medium">تثبيت التطبيق على جهازك</span>
+        <button onclick="document.getElementById('pwa-safari-banner').classList.add('hidden')" class="text-white/60 hover:text-white flex-shrink-0">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+    </div>
+    <div class="px-4 pb-4 text-xs" style="color:rgba(255,255,255,0.8);">
+        <p class="mb-1">اضغط على زر المشاركة
+            <svg class="w-4 h-4 inline-block mx-0.5 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+            في أسفل الشاشة
+        </p>
+        <p>ثم اختر <strong>"إضافة إلى الشاشة الرئيسية"</strong></p>
+    </div>
+    <!-- مثلث يشير للأسفل -->
+    <div class="flex justify-center pb-1">
+        <svg class="w-5 h-5 text-blue-900" fill="currentColor" viewBox="0 0 20 20" style="color:#0a3254;"><path d="M10 15l-8-8h16l-8 8z"/></svg>
+    </div>
 </div>
 
 <div x-data="{ sidebarOpen: true }" class="flex h-screen overflow-hidden">
@@ -315,11 +337,12 @@
             @endcan
         </nav>
 
-        <!-- PWA Install Button (sidebar) -->
+        <!-- PWA Install Button (sidebar — يظهر لجميع الأجهزة) -->
         <div id="pwa-sidebar-install" class="hidden px-3 pb-2 flex-shrink-0">
             <button onclick="installPWA()"
                     class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors"
-                    style="background:rgba(255,255,255,0.08); color:#a8c8e0;">
+                    style="background:rgba(255,255,255,0.08); color:#a8c8e0;"
+                    title="تثبيت التطبيق على جهازك">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                 </svg>
@@ -424,6 +447,13 @@ if ('serviceWorker' in navigator) {
 
 let deferredPrompt = null;
 
+// كشف نوع الجهاز والمتصفح
+const isIos     = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isSafari  = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+const isIosSafari = isIos && isSafari;
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                  || window.navigator.standalone === true;
+
 function showInstallUI() {
     document.getElementById('pwa-install-banner')?.classList.remove('hidden');
     document.getElementById('pwa-sidebar-install')?.classList.remove('hidden');
@@ -431,10 +461,23 @@ function showInstallUI() {
 
 function hideInstallUI() {
     document.getElementById('pwa-install-banner')?.classList.add('hidden');
+    document.getElementById('pwa-safari-banner')?.classList.add('hidden');
     document.getElementById('pwa-sidebar-install')?.classList.add('hidden');
 }
 
-// المتصفح أرسل حدث التثبيت — احفظه واعرض الـ UI
+// إذا التطبيق مثبّت بالفعل لا نعرض شيئاً
+if (isStandalone) {
+    hideInstallUI();
+}
+// Safari على iPhone/iPad — يعرض تعليمات يدوية
+else if (isIosSafari) {
+    setTimeout(() => {
+        document.getElementById('pwa-safari-banner')?.classList.remove('hidden');
+        document.getElementById('pwa-sidebar-install')?.classList.remove('hidden');
+    }, 2000);
+}
+
+// Chrome / Edge / Android — يستخدم beforeinstallprompt
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
@@ -442,19 +485,24 @@ window.addEventListener('beforeinstallprompt', (e) => {
 });
 
 function installPWA() {
+    // Safari iOS — فتح البانر مع التعليمات
+    if (isIosSafari) {
+        document.getElementById('pwa-safari-banner')?.classList.remove('hidden');
+        return;
+    }
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
     deferredPrompt.userChoice.then((choice) => {
         deferredPrompt = null;
         if (choice.outcome === 'accepted') {
             hideInstallUI();
+        } else {
+            // رفض — أخفِ البانر الكبير وأبقِ الزر الجانبي
+            document.getElementById('pwa-install-banner')?.classList.add('hidden');
         }
-        // لو رفض نبقي الزر في الشريط الجانبي بس نخفي البانر
-        document.getElementById('pwa-install-banner')?.classList.add('hidden');
     });
 }
 
-// عند اكتمال التثبيت اخفِ كل شيء
 window.addEventListener('appinstalled', () => {
     hideInstallUI();
     deferredPrompt = null;
