@@ -81,7 +81,7 @@ class UserController extends Controller
             'username' => 'required|string|unique:users|alpha_dash',
             'password' => 'required|string|min:8|confirmed',
             'phone' => 'nullable|string',
-            'role' => 'required|exists:roles,name',
+            'role' => 'nullable|exists:roles,name',
         ]);
 
         $plainCode = $this->generateBackupCode();
@@ -96,7 +96,7 @@ class UserController extends Controller
             'backup_code' => Hash::make($plainCode),
         ]);
 
-        $user->assignRole($request->role);
+        $user->assignRole($request->role ?? 'receptionist');
         AuditLogService::log('create', $user, null, $user->toArray());
 
         return back()
@@ -110,7 +110,7 @@ class UserController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'phone' => 'nullable|string',
-            'role' => 'required|exists:roles,name',
+            'role' => 'nullable|exists:roles,name',
             'password' => 'nullable|string|min:8',
         ]);
 
@@ -125,7 +125,7 @@ class UserController extends Controller
         }
 
         $user->update($updateData);
-        $user->syncRoles([$request->role]);
+        $user->syncRoles([$request->role ?? $user->roles->first()?->name ?? 'receptionist']);
 
         AuditLogService::log('update', $user, $old, $user->fresh()->toArray());
 
