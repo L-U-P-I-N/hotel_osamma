@@ -112,13 +112,24 @@
                     @endcan
                 </tr>
                 @empty
-                <tr><td colspan="8" class="px-4 py-8 text-center text-gray-400">لا توجد إجازات مسجّلة</td></tr>
+                <tr><td colspan="8" class="px-4 py-8">
+                    <x-empty-state
+                        icon="📅"
+                        title="لا توجد إجازات"
+                        message="لم يتم تسجيل أي إجازات حتى الآن"
+                        action_text="طلب إجازة"
+                        action_url="{{ route('leaves.create') }}"
+                    />
+                </td></tr>
                 @endforelse
             </tbody>
         </table>
     </div>
     @if($leaves->hasPages())
-    <div class="px-4 py-3 border-t border-gray-100">{{ $leaves->links() }}</div>
+    <div class="px-4 py-3 border-t border-gray-100">
+        <x-pagination-info :items="$leaves" />
+        {{ $leaves->links() }}
+    </div>
     @endif
 </div>
 

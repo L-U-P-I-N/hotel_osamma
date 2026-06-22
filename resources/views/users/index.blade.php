@@ -93,7 +93,10 @@
         </table>
     </div>
     @if($users->hasPages())
-    <div class="px-6 py-4 border-t border-gray-100">{{ $users->links() }}</div>
+    <div class="px-6 py-4 border-t border-gray-100">
+        <x-pagination-info :items="$users" />
+        {{ $users->links() }}
+    </div>
     @endif
 </div>
 
