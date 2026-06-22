@@ -361,6 +361,65 @@ class ReservationController extends Controller
         return view('reservations.expiring', compact('reservations'));
     }
 
+    public function invoice(Reservation $reservation)
+    {
+        $reservation->load(['guest', 'room.roomType', 'payments', 'extraCharges', 'createdBy']);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reservations.invoice', compact('reservation'));
+        $pdf->setPaper('a4', 'portrait');
+
+        $dompdf = $pdf->getDomPDF();
+        $opts   = $dompdf->getOptions();
+        $opts->setFontDir(storage_path('fonts'));
+        $opts->setFontCache(storage_path('fonts'));
+        $dompdf->setOptions($opts);
+
+        $filename = 'invoice-' . str_pad($reservation->id, 6, '0', STR_PAD_LEFT) . '.pdf';
+        return $pdf->stream($filename);
+    }
+
+    public function applyDiscount(Request $request, Reservation $reservation)
+    {
+        $validated = $request->validate([
+            'discount_type'   => 'required|in:fixed,percent',
+            'discount_value'  => 'required|numeric|min:0',
+            'discount_reason' => 'nullable|string|max:255',
+        ], [
+            'discount_type.required'  => 'نوع الخصم مطلوب',
+            'discount_value.required' => 'قيمة الخصم مطلوبة',
+        ]);
+
+        $nights = max(1, $reservation->check_in_date->diffInDays($reservation->check_out_date));
+        $pricePerNight = $nights > 0 ? (float)$reservation->total_amount / $nights : 0;
+        $baseTotal = $nights * $pricePerNight;
+
+        if ($validated['discount_type'] === 'percent') {
+            $discountAmount = round($baseTotal * min($validated['discount_value'], 100) / 100, 2);
+        } else {
+            $discountAmount = min((float)$validated['discount_value'], $baseTotal);
+        }
+
+        $newTotal = max(0, $baseTotal - $discountAmount);
+
+        $reservation->update([
+            'discount_type'   => $validated['discount_type'],
+            'discount_value'  => $validated['discount_value'],
+            'discount_amount' => $discountAmount,
+            'discount_reason' => $validated['discount_reason'] ?? null,
+            'total_amount'    => $newTotal,
+        ]);
+
+        $reservation->refresh()->updatePaymentStatus();
+
+        AuditLogService::log('discount_applied', $reservation, null, [
+            'discount_type'   => $validated['discount_type'],
+            'discount_value'  => $validated['discount_value'],
+            'discount_amount' => $discountAmount,
+        ]);
+
+        return back()->with('success', 'تم تطبيق الخصم بنجاح — ' . number_format($discountAmount, 0) . ' ر.ي');
+    }
+
     private function nullIfEmpty(mixed $value): mixed
     {
         return ($value === '' || $value === null) ? null : $value;

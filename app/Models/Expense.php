@@ -50,6 +50,11 @@ class Expense extends Model
         return $this->hasOne(CashWithdrawal::class);
     }
 
+    public function scopeByDate($query, $from, $to)
+    {
+        return $query->whereDate('expense_date', '>=', $from)->whereDate('expense_date', '<=', $to);
+    }
+
     public function isPaidFromCash(): bool
     {
         return $this->payment_method === 'cash';

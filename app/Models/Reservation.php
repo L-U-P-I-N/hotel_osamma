@@ -15,6 +15,7 @@ class Reservation extends Model
         'check_in_date','check_in_time','check_out_date','actual_check_out','origin','purpose','notes',
         'status','payment_status','total_amount','paid_amount','currency',
         'admin_approval_id','government_exported','government_exported_at',
+        'discount_type','discount_value','discount_amount','discount_reason',
     ];
 
     public function getCurrencySymbolAttribute(): string
@@ -34,6 +35,8 @@ class Reservation extends Model
         'government_exported_at' => 'datetime',
         'total_amount' => 'decimal:2',
         'paid_amount' => 'decimal:2',
+        'discount_value' => 'decimal:2',
+        'discount_amount' => 'decimal:2',
     ];
 
     public function guest()
@@ -72,6 +75,11 @@ class Reservation extends Model
     public function extraCharges()
     {
         return $this->hasMany(ExtraCharge::class);
+    }
+
+    public function refunds()
+    {
+        return $this->hasMany(Refund::class);
     }
 
     public function scopeActive(Builder $query): Builder

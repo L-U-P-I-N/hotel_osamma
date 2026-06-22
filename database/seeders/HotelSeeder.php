@@ -9,10 +9,10 @@ class HotelSeeder extends Seeder
     public function run(): void
     {
         Hotel::create([
-            'name' => 'فندق أسامة',
+            'name' => 'فندق السعودي',
             'address' => 'صنعاء، الجمهورية اليمنية',
             'phone' => '+967 1 234567',
-            'email' => 'info@hotel-osama.com',
+            'email' => 'info@hotel-saudi.com',
         ]);
     }
 }

@@ -5,56 +5,112 @@
 @section('content')
 <div dir="rtl">
 
-{{-- Filter --}}
+{{-- Filter & Export --}}
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-5">
-    <form method="GET" class="flex flex-wrap items-end gap-3">
-        <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">من تاريخ</label>
-            <input type="date" name="from" value="{{ $from }}"
-                   class="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400">
+    <div class="flex flex-wrap items-end gap-3 justify-between mb-3">
+        <form method="GET" class="flex flex-wrap items-end gap-3">
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">من تاريخ</label>
+                <input type="date" name="from" value="{{ $from }}"
+                       class="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">إلى تاريخ</label>
+                <input type="date" name="to" value="{{ $to }}"
+                       class="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400">
+            </div>
+            <button type="submit" class="px-4 py-2 text-white rounded-lg text-sm bg-blue-600 hover:bg-blue-700">عرض</button>
+        </form>
+
+        <div class="flex gap-2">
+            <button onclick="window.print()" class="px-3 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                طباعة
+            </button>
+            <a href="javascript:;" onclick="exportToExcel()" class="px-3 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                Excel
+            </a>
         </div>
-        <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">إلى تاريخ</label>
-            <input type="date" name="to" value="{{ $to }}"
-                   class="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400">
-        </div>
-        <button type="submit" class="px-4 py-2 text-white rounded-lg text-sm" style="background:#0F4C75;">عرض</button>
-        {{-- Quick presets --}}
+    </div>
+
+    {{-- Quick presets --}}
+    <div class="flex flex-wrap gap-2">
         <a href="{{ route('reports.profitLoss', ['from' => now()->startOfMonth()->toDateString(), 'to' => now()->toDateString()]) }}"
-           class="px-3 py-2 border border-gray-200 text-gray-600 rounded-lg text-xs hover:bg-gray-50">هذا الشهر</a>
+           class="px-3 py-1.5 border border-gray-200 text-gray-600 rounded-lg text-xs hover:bg-gray-50">📅 هذا الشهر</a>
         <a href="{{ route('reports.profitLoss', ['from' => now()->subMonth()->startOfMonth()->toDateString(), 'to' => now()->subMonth()->endOfMonth()->toDateString()]) }}"
-           class="px-3 py-2 border border-gray-200 text-gray-600 rounded-lg text-xs hover:bg-gray-50">الشهر الماضي</a>
+           class="px-3 py-1.5 border border-gray-200 text-gray-600 rounded-lg text-xs hover:bg-gray-50">📅 الشهر الماضي</a>
         <a href="{{ route('reports.profitLoss', ['from' => now()->startOfYear()->toDateString(), 'to' => now()->toDateString()]) }}"
-           class="px-3 py-2 border border-gray-200 text-gray-600 rounded-lg text-xs hover:bg-gray-50">هذه السنة</a>
-    </form>
+           class="px-3 py-1.5 border border-gray-200 text-gray-600 rounded-lg text-xs hover:bg-gray-50">📅 هذه السنة</a>
+    </div>
 </div>
 
-{{-- P&L Summary --}}
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
-    <div class="bg-white rounded-xl shadow-sm border border-green-100 p-5">
-        <p class="text-xs font-medium text-gray-500 mb-2">إجمالي الإيرادات</p>
-        <p class="text-3xl font-bold text-green-700">{{ number_format($totalRevenue, 0) }}</p>
-        <p class="text-sm text-gray-400 mt-1">ر.ي</p>
+{{-- P&L Summary with KPIs --}}
+@php
+    $margin = $totalRevenue > 0 ? ($netProfit / $totalRevenue) * 100 : 0;
+    $expenseRatio = $totalRevenue > 0 ? ($totalExpenses / $totalRevenue) * 100 : 0;
+@endphp
+
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-5">
+    <div class="bg-white rounded-xl shadow-sm border border-green-100 p-4">
+        <div class="flex items-center justify-between mb-2">
+            <p class="text-xs font-medium text-gray-500">إجمالي الإيرادات</p>
+            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <p class="text-2xl font-bold text-green-700">{{ number_format($totalRevenue, 0) }}</p>
+        <p class="text-xs text-gray-400 mt-1">ر.ي</p>
     </div>
-    <div class="bg-white rounded-xl shadow-sm border border-red-100 p-5">
-        <p class="text-xs font-medium text-gray-500 mb-2">إجمالي المصروفات</p>
-        <p class="text-3xl font-bold text-red-600">{{ number_format($totalExpenses, 0) }}</p>
-        <p class="text-sm text-gray-400 mt-1">ر.ي</p>
+
+    <div class="bg-white rounded-xl shadow-sm border border-red-100 p-4">
+        <div class="flex items-center justify-between mb-2">
+            <p class="text-xs font-medium text-gray-500">إجمالي المصروفات</p>
+            <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        </div>
+        <p class="text-2xl font-bold text-red-600">{{ number_format($totalExpenses, 0) }}</p>
+        <p class="text-xs text-gray-400 mt-1">{{ number_format($expenseRatio, 1) }}% من الإيراد</p>
     </div>
-    <div class="rounded-xl p-5 shadow-sm border {{ $netProfit >= 0 ? 'bg-blue-50 border-blue-100' : 'bg-red-50 border-red-200' }}">
-        <p class="text-xs font-medium text-gray-500 mb-2">{{ $netProfit >= 0 ? 'صافي الربح' : 'صافي الخسارة' }}</p>
-        <p class="text-3xl font-bold {{ $netProfit >= 0 ? 'text-blue-700' : 'text-red-700' }}">{{ number_format(abs($netProfit), 0) }}</p>
-        <p class="text-sm text-gray-400 mt-1">ر.ي
-            @if($totalRevenue > 0)
-            &nbsp;— هامش {{ number_format(($netProfit / $totalRevenue) * 100, 1) }}%
-            @endif
-        </p>
+
+    <div class="rounded-xl p-4 shadow-sm border {{ $netProfit >= 0 ? 'bg-blue-50 border-blue-100' : 'bg-red-50 border-red-200' }}">
+        <div class="flex items-center justify-between mb-2">
+            <p class="text-xs font-medium text-gray-500">{{ $netProfit >= 0 ? 'صافي الربح' : 'صافي الخسارة' }}</p>
+            <svg class="w-5 h-5 {{ $netProfit >= 0 ? 'text-blue-600' : 'text-red-600' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+        </div>
+        <p class="text-2xl font-bold {{ $netProfit >= 0 ? 'text-blue-700' : 'text-red-700' }}">{{ number_format($netProfit, 0) }}</p>
+        <p class="text-xs text-gray-400 mt-1">{{ $netProfit >= 0 ? '+' : '' }}{{ number_format($margin, 1) }}% هامش</p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-purple-100 p-4">
+        <p class="text-xs font-medium text-gray-500 mb-2">متوسط يومي</p>
+        @php $days = \Carbon\Carbon::parse($from)->diffInDays(\Carbon\Carbon::parse($to)) + 1; @endphp
+        <p class="text-2xl font-bold text-purple-700">{{ number_format($totalRevenue / $days, 0) }}</p>
+        <p class="text-xs text-gray-400 mt-1">إيراد يومي</p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-amber-100 p-4">
+        <p class="text-xs font-medium text-gray-500 mb-2">نسبة التغطية</p>
+        @php $coverage = $totalExpenses > 0 ? ($totalRevenue / $totalExpenses) : 0; @endphp
+        <p class="text-2xl font-bold text-amber-700">{{ number_format($coverage, 2) }}x</p>
+        <p class="text-xs text-gray-400 mt-1">الإيراد يغطي المصروفات</p>
+    </div>
+</div>
+
+{{-- Charts Row --}}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+    {{-- Revenue Chart --}}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <h3 class="font-semibold text-gray-700 text-sm mb-3">توزيع الإيرادات حسب الطريقة</h3>
+        <canvas id="revenueChart" height="80"></canvas>
+    </div>
+
+    {{-- Expense Chart --}}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <h3 class="font-semibold text-gray-700 text-sm mb-3">توزيع المصروفات حسب الفئة</h3>
+        <canvas id="expenseChart" height="80"></canvas>
     </div>
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
-
-    {{-- Revenue breakdown --}}
+    {{-- Revenue breakdown table --}}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100">
         <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
             <h3 class="font-semibold text-gray-700 text-sm">تفصيل الإيرادات</h3>
@@ -88,7 +144,7 @@
         </table>
     </div>
 
-    {{-- Expense breakdown --}}
+    {{-- Expense breakdown table --}}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100">
         <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
             <h3 class="font-semibold text-gray-700 text-sm">تفصيل المصروفات</h3>
@@ -125,7 +181,7 @@
 
 {{-- Monthly trend --}}
 @if($monthlyTrend->isNotEmpty())
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-5">
     <h3 class="font-semibold text-gray-700 text-sm mb-4">الاتجاه الشهري</h3>
     <div class="overflow-x-auto">
         <table class="w-full text-sm">
@@ -169,4 +225,77 @@
 @endif
 
 </div>
+
+<style media="print">
+    .btn-group, form, [onclick*="export"], [onclick*="print"] { display: none !important; }
+    body { background: white; }
+    .rounded-xl { page-break-inside: avoid; }
+</style>
+
 @endsection
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+    // Revenue Pie Chart
+    const revenueCtx = document.getElementById('revenueChart');
+    if (revenueCtx) {
+        new Chart(revenueCtx, {
+            type: 'doughnut',
+            data: {
+                labels: @json($revenueByMethod->map(fn($r) => match($r->method) {
+                    'cash' => 'نقداً',
+                    'bank_transfer' => 'تحويل بنكي',
+                    'pos' => 'POS',
+                    default => $r->method
+                })),
+                datasets: [{
+                    data: @json($revenueByMethod->pluck('total')),
+                    backgroundColor: ['#10b981', '#3b82f6', '#f59e0b'],
+                    borderColor: '#fff',
+                    borderWidth: 2,
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom', labels: { font: { size: 12 } } }
+                }
+            }
+        });
+    }
+
+    // Expense Pie Chart
+    const expenseCtx = document.getElementById('expenseChart');
+    if (expenseCtx) {
+        new Chart(expenseCtx, {
+            type: 'doughnut',
+            data: {
+                labels: @json($expensesByCategory->map(fn($r) => \App\Models\Expense::categoryLabel($r->category))),
+                datasets: [{
+                    data: @json($expensesByCategory->pluck('total')),
+                    backgroundColor: ['#ef4444', '#f97316', '#f59e0b', '#ec4899', '#8b5cf6', '#6366f1'],
+                    borderColor: '#fff',
+                    borderWidth: 2,
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom', labels: { font: { size: 12 } } }
+                }
+            }
+        });
+    }
+})();
+
+function exportToExcel() {
+    const table = document.body.innerHTML;
+    const link = document.createElement('a');
+    link.href = 'data:application/vnd.ms-excel,' + encodeURIComponent(table);
+    link.download = 'profit-loss-{{ now()->format("d-m-Y") }}.xls';
+    link.click();
+}
+</script>
+@endpush

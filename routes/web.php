@@ -20,7 +20,9 @@ use App\Http\Controllers\SalaryController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\LeaveController;
-use App\Http\Controllers\GuestController;
+use App\Http\Controllers\BudgetController;
+use App\Http\Controllers\RefundController;
+use App\Http\Controllers\SeasonalPriceController;
 
 Route::get('/', fn() => redirect()->route('login'));
 
@@ -286,5 +288,53 @@ Route::middleware(['auth'])->group(function () {
     });
     Route::middleware('permission:expenses.delete')->group(function () {
         Route::delete('/expenses/{expense}', [ExpenseController::class, 'destroy'])->name('expenses.destroy');
+    });
+
+    // ===== Refunds Module =====
+    Route::middleware('permission:checkin.view')->group(function () {
+        Route::get('/refunds', [RefundController::class, 'index'])->name('refunds.index');
+        Route::get('/refunds/create/{reservation}', [RefundController::class, 'create'])->name('refunds.create');
+    });
+    Route::middleware('permission:payments.create')->group(function () {
+        Route::post('/refunds/{reservation}', [RefundController::class, 'store'])->name('refunds.store');
+    });
+
+    // ===== Seasonal Pricing =====
+    Route::middleware('permission:rooms.edit')->group(function () {
+        Route::get('/seasonal-prices', [SeasonalPriceController::class, 'index'])->name('seasonal-prices.index');
+        Route::post('/seasonal-prices', [SeasonalPriceController::class, 'store'])->name('seasonal-prices.store');
+        Route::get('/seasonal-prices/{seasonalPrice}/edit', [SeasonalPriceController::class, 'edit'])->name('seasonal-prices.edit');
+        Route::put('/seasonal-prices/{seasonalPrice}', [SeasonalPriceController::class, 'update'])->name('seasonal-prices.update');
+        Route::delete('/seasonal-prices/{seasonalPrice}', [SeasonalPriceController::class, 'destroy'])->name('seasonal-prices.destroy');
+    });
+
+    // ===== Budgets =====
+    Route::middleware('permission:reports.view')->group(function () {
+        Route::get('/budgets', [BudgetController::class, 'index'])->name('budgets.index');
+    });
+    Route::middleware('permission:users.manage')->group(function () {
+        Route::post('/budgets', [BudgetController::class, 'store'])->name('budgets.store');
+        Route::delete('/budgets/{budget}', [BudgetController::class, 'destroy'])->name('budgets.destroy');
+    });
+
+    // ===== Reservations: Discount + Invoice =====
+    Route::middleware('permission:checkin.view')->group(function () {
+        Route::get('/reservations/{reservation}/invoice', [\App\Http\Controllers\ReservationController::class, 'invoice'])->name('reservations.invoice');
+    });
+    Route::middleware('permission:checkin.create')->group(function () {
+        Route::post('/reservations/{reservation}/discount', [\App\Http\Controllers\ReservationController::class, 'applyDiscount'])->name('reservations.applyDiscount');
+    });
+
+    // ===== Reports: Financial Analysis =====
+    Route::middleware('permission:reports.view')->group(function () {
+        Route::get('/reports/room-revenue', [ReportController::class, 'roomRevenue'])->name('reports.roomRevenue');
+        Route::get('/reports/cash-flow', [ReportController::class, 'cashFlow'])->name('reports.cashFlow');
+        Route::get('/reports/monthly-expenses', [ReportController::class, 'monthlyExpenses'])->name('reports.monthlyExpenses');
+        Route::get('/reports/financial-ratios', [ReportController::class, 'financialRatios'])->name('reports.financialRatios');
+    });
+
+    // ===== Leaves: Report =====
+    Route::middleware('permission:hr.view')->group(function () {
+        Route::get('/leaves/report', [LeaveController::class, 'report'])->name('leaves.report');
     });
 });

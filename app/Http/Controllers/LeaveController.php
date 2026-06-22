@@ -5,6 +5,7 @@ use App\Models\Employee;
 use App\Models\Leave;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class LeaveController extends Controller
 {
@@ -58,5 +59,43 @@ class LeaveController extends Controller
     {
         $leave->delete();
         return back()->with('success', 'تم حذف الإجازة');
+    }
+
+    public function report(Request $request)
+    {
+        $year      = (int) $request->input('year', now()->year);
+        $employees = Employee::where('is_active', true)->orderBy('name')->get();
+
+        $leaveTypes = ['annual', 'sick', 'emergency', 'unpaid'];
+        $annualEntitlement = 30; // days per year
+
+        $summary = [];
+        foreach ($employees as $emp) {
+            $byType = [];
+            $totalTaken = 0;
+            foreach ($leaveTypes as $type) {
+                $days = Leave::where('employee_id', $emp->id)
+                    ->where('type', $type)
+                    ->whereYear('from_date', $year)
+                    ->sum('days');
+                $byType[$type] = (int) $days;
+                $totalTaken += (int) $days;
+            }
+
+            $annualRemaining = max(0, $annualEntitlement - $byType['annual']);
+
+            $summary[] = [
+                'employee'         => $emp,
+                'by_type'          => $byType,
+                'total_taken'      => $totalTaken,
+                'annual_taken'     => $byType['annual'],
+                'annual_remaining' => $annualRemaining,
+                'annual_pct'       => round(($byType['annual'] / $annualEntitlement) * 100),
+            ];
+        }
+
+        $years = range(now()->year - 2, now()->year);
+
+        return view('leaves.report', compact('summary', 'year', 'years', 'leaveTypes', 'annualEntitlement'));
     }
 }
