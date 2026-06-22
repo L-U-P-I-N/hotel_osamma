@@ -1,8 +1,8 @@
 {
-    "name": "نظام إدارة فندق أسامة",
-    "short_name": "فندق أسامة",
+    "name": "نظام إدارة الفندق السعودي",
+    "short_name": "الفندق السعودي",
     "description": "نظام إدارة الفندق - الحجوزات والغرف والتقارير",
-    "start_url": "/",
+    "start_url": "/dashboard",
     "display": "standalone",
     "orientation": "any",
     "background_color": "#ffffff",
