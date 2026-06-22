@@ -23,31 +23,57 @@ class ExpenseController extends Controller
     public function index(Request $request)
     {
         $query = Expense::with('paidBy')->orderBy('expense_date', 'desc')->orderBy('id', 'desc');
+        $statsQuery = Expense::query();
 
         if ($request->filled('category')) {
             $query->where('category', $request->input('category'));
+            $statsQuery->where('category', $request->input('category'));
         }
         if ($request->filled('date_from')) {
             $query->whereDate('expense_date', '>=', $request->input('date_from'));
+            $statsQuery->whereDate('expense_date', '>=', $request->input('date_from'));
         }
         if ($request->filled('date_to')) {
             $query->whereDate('expense_date', '<=', $request->input('date_to'));
+            $statsQuery->whereDate('expense_date', '<=', $request->input('date_to'));
         }
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
                 $q->where('recipient_name', 'like', '%' . $request->input('search') . '%')
                   ->orWhere('description', 'like', '%' . $request->input('search') . '%');
             });
+            $statsQuery->where(function ($q) use ($request) {
+                $q->where('recipient_name', 'like', '%' . $request->input('search') . '%')
+                  ->orWhere('description', 'like', '%' . $request->input('search') . '%');
+            });
         }
         if ($request->filled('payment_method')) {
             $query->where('payment_method', $request->input('payment_method'));
+            $statsQuery->where('payment_method', $request->input('payment_method'));
         }
         if ($request->filled('shift_id')) {
             $query->where('shift_id', $request->input('shift_id'));
+            $statsQuery->where('shift_id', $request->input('shift_id'));
         }
 
         $expenses   = $query->paginate(25)->withQueryString();
         $categories = $this->categories;
+
+        $allExpenses = $statsQuery->get();
+        $stats = [
+            'total'   => $allExpenses->sum('amount'),
+            'count'   => $allExpenses->count(),
+            'average' => $allExpenses->count() > 0 ? $allExpenses->sum('amount') / $allExpenses->count() : 0,
+            'min'     => $allExpenses->count() > 0 ? $allExpenses->min('amount') : 0,
+            'max'     => $allExpenses->count() > 0 ? $allExpenses->max('amount') : 0,
+        ];
+
+        $byCategory = $allExpenses->groupBy('category')->map(function($group) {
+            return [
+                'count' => $group->count(),
+                'total' => $group->sum('amount'),
+            ];
+        });
 
         $user = auth()->user();
         $shiftsQuery = Shift::with('user')->orderBy('shift_date', 'desc')->orderBy('id', 'desc')->limit(60);
@@ -56,7 +82,7 @@ class ExpenseController extends Controller
         }
         $availableShifts = $shiftsQuery->get();
 
-        return view('expenses.index', compact('expenses', 'categories', 'availableShifts'));
+        return view('expenses.index', compact('expenses', 'categories', 'availableShifts', 'stats', 'byCategory'));
     }
 
     public function create()

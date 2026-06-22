@@ -45,11 +45,57 @@
 </div>
 
 @if($totalBalance > 0)
-<div class="mb-5 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-red-800 text-sm">
+<div class="mb-5 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-red-800 text-sm no-print">
     <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
     <span>يوجد رصيد متبقي غير محصّل بقيمة <strong>{{ number_format($totalBalance, 0) }} ر.ي</strong></span>
 </div>
 @endif
+
+{{-- Transaction Timeline --}}
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-5">
+    <h3 class="font-bold text-lg text-gray-800 mb-4">سجل جميع العمليات</h3>
+    <div class="relative">
+        <div class="space-y-3">
+            @forelse($allTransactions as $transaction)
+            <div class="flex gap-4">
+                <div class="flex flex-col items-center">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0
+                        {{ $transaction['direction'] === 'out' ? 'bg-green-500' : 'bg-red-500' }}">
+                        {{ $transaction['direction'] === 'out' ? '↓' : '↑' }}
+                    </div>
+                    @if(!$loop->last)
+                    <div class="w-0.5 h-12 bg-gray-200 my-2"></div>
+                    @endif
+                </div>
+                <div class="pb-3 flex-1">
+                    <div class="flex items-baseline justify-between mb-1">
+                        <span class="font-semibold text-gray-700 text-sm">{{ $transaction['description'] }}</span>
+                        <span class="font-bold {{ $transaction['direction'] === 'out' ? 'text-green-700' : 'text-red-700' }}">
+                            {{ ($transaction['direction'] === 'out' ? '−' : '+') }} {{ number_format($transaction['amount'], 0) }}
+                        </span>
+                    </div>
+                    <div class="flex gap-2 text-xs text-gray-500">
+                        <span>{{ $transaction['date']->format('d/m/Y H:i') }}</span>
+                        @if($transaction['type'] === 'payment' && $transaction['data']->method)
+                        <span>•</span>
+                        <span class="px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 text-xs">
+                            {{ match($transaction['data']->method) {
+                                'cash'          => 'نقداً',
+                                'bank_transfer' => 'تحويل',
+                                'pos'           => 'POS',
+                                default         => $transaction['data']->method,
+                            } }}
+                        </span>
+                        @endif
+                    </div>
+                </div>
+            </div>
+            @empty
+            <p class="text-center text-gray-400 py-4">لا توجد عمليات مسجلة</p>
+            @endforelse
+        </div>
+    </div>
+</div>
 
 {{-- Reservations with payments --}}
 @foreach($reservations as $res)
@@ -142,4 +188,89 @@
 @endif
 
 </div>
+
+<style media="print">
+    body {
+        margin: 0;
+        padding: 1cm;
+        font-family: 'Arial', sans-serif;
+        background: white;
+    }
+    .no-print { display: none; }
+
+    .print-header {
+        text-align: center;
+        margin-bottom: 2cm;
+        border-bottom: 2px solid #333;
+        padding-bottom: 1cm;
+    }
+
+    .print-header h1 {
+        margin: 0;
+        font-size: 24pt;
+    }
+
+    .print-header p {
+        margin: 5px 0;
+        font-size: 11pt;
+    }
+
+    .guest-info {
+        margin-bottom: 1cm;
+        border: 1px solid #999;
+        padding: 0.5cm;
+        border-radius: 5px;
+    }
+
+    .guest-info-row {
+        display: flex;
+        justify-content: space-between;
+        margin: 5px 0;
+        font-size: 11pt;
+    }
+
+    .summary-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1cm 0;
+    }
+
+    .summary-table td {
+        border: 1px solid #999;
+        padding: 8px;
+        font-size: 11pt;
+    }
+
+    .summary-table .label {
+        font-weight: bold;
+        width: 25%;
+    }
+
+    .transactions-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1cm;
+        page-break-inside: avoid;
+    }
+
+    .transactions-table th {
+        background: #f0f0f0;
+        border: 1px solid #999;
+        padding: 8px;
+        font-weight: bold;
+        font-size: 10pt;
+        text-align: right;
+    }
+
+    .transactions-table td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        font-size: 10pt;
+    }
+
+    .page-break {
+        page-break-before: always;
+        margin-top: 1cm;
+    }
+</style>
 @endsection
