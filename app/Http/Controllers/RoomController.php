@@ -106,6 +106,10 @@ class RoomController extends Controller
                 return $this->createSuite($validated['room_number'], $baseAttributes);
             }
 
+            // Permanently remove any soft-deleted room with the same number
+            // so the DB unique index doesn't block the INSERT
+            Room::onlyTrashed()->where('room_number', $validated['room_number'])->forceDelete();
+
             $room = Room::create(array_merge($baseAttributes, [
                 'room_number'   => $validated['room_number'],
                 'room_sub_type' => $subType,
@@ -149,6 +153,9 @@ class RoomController extends Controller
                 'room_number' => 'رقم الجناح ' . $baseNumber . ' موجود مسبقاً',
             ]);
         }
+
+        // Permanently remove any soft-deleted suite rooms with the same numbers
+        Room::onlyTrashed()->whereIn('room_number', [$numA, $numB])->forceDelete();
 
         $roomA = Room::create(array_merge($baseAttributes, ['room_number' => $numA, 'room_sub_type' => 'suite_a']));
         $roomB = Room::create(array_merge($baseAttributes, ['room_number' => $numB, 'room_sub_type' => 'suite_b', 'linked_room_id' => $roomA->id]));
