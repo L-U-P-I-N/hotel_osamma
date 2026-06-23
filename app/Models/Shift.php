@@ -13,6 +13,7 @@ class Shift extends Model
         'actual_amount','shortfall',
         'salary_deducted_at','salary_deducted_by',
         'employee_signature','admin_signature','notes','locked_by',
+        'close_events',
     ];
 
     protected $casts = [
@@ -22,6 +23,7 @@ class Shift extends Model
         'closed_at'           => 'datetime',
         'salary_deducted_at'  => 'datetime',
         'is_closed'           => 'boolean',
+        'close_events'        => 'array',
     ];
 
     public function user()        { return $this->belongsTo(User::class); }

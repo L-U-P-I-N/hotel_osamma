@@ -49,6 +49,20 @@ class ShiftService
         $shift->refresh();
 
         $netBalance = $shift->total_received_yer - $shift->total_withdrawals_yer;
+        $shortfall  = $actualAmount !== null ? ($actualAmount - $netBalance) : null;
+
+        // Append this closing event to the history
+        $closeEvents   = $shift->close_events ?? [];
+        $closeEvents[] = [
+            'closed_at'     => now()->toDateTimeString(),
+            'actual_amount' => $actualAmount,
+            'net_balance'   => $netBalance,
+            'shortfall'     => $shortfall,
+            'notes'         => $notes ?: null,
+            'closed_by'     => auth()->id(),
+            'closed_by_name'=> auth()->user()?->name,
+            'event'         => 'close',
+        ];
 
         $shift->update([
             'is_closed'     => true,
@@ -56,7 +70,8 @@ class ShiftService
             'ended_at'      => now(),
             'notes'         => $notes ?: null,
             'actual_amount' => $actualAmount,
-            'shortfall'     => $actualAmount !== null ? ($actualAmount - $netBalance) : null,
+            'shortfall'     => $shortfall,
+            'close_events'  => $closeEvents,
         ]);
 
         AuditLogService::log('update', $shift, ['is_closed' => false], ['is_closed' => true], auth()->user());
@@ -76,12 +91,27 @@ class ShiftService
 
         $old = $shift->only(['is_closed', 'closed_at', 'ended_at', 'actual_amount', 'shortfall']);
 
+        // Append reopen event to history (keep close history intact)
+        $closeEvents   = $shift->close_events ?? [];
+        $closeEvents[] = [
+            'closed_at'      => null,
+            'actual_amount'  => null,
+            'net_balance'    => null,
+            'shortfall'      => null,
+            'notes'          => null,
+            'closed_by'      => $requestingUser->id,
+            'closed_by_name' => $requestingUser->name,
+            'event'          => 'reopen',
+            'reopened_at'    => now()->toDateTimeString(),
+        ];
+
         $shift->update([
             'is_closed'     => false,
             'closed_at'     => null,
             'ended_at'      => null,
             'actual_amount' => null,
             'shortfall'     => null,
+            'close_events'  => $closeEvents,
         ]);
 
         AuditLogService::log('update', $shift, $old, $shift->fresh()->toArray(), $requestingUser);

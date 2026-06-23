@@ -131,6 +131,38 @@
     .info-row .lbl { color: #555; }
     .info-row .val { font-weight: bold; }
 
+    /* Close/Reopen history */
+    .history-box {
+        border: 1px solid #d1d5db;
+        border-radius: 5px;
+        margin-bottom: 14px;
+        overflow: hidden;
+    }
+    .history-title {
+        font-size: 10.5px;
+        font-weight: bold;
+        color: #fff;
+        background: #374151;
+        padding: 5px 10px;
+        text-align: right;
+    }
+    .history-event {
+        padding: 6px 10px;
+        border-bottom: 1px solid #e5e7eb;
+        font-size: 9px;
+    }
+    .history-event:last-child { border-bottom: none; }
+    .event-close { background: #fff5f5; }
+    .event-reopen { background: #f0fdf4; }
+    .event-label {
+        font-weight: bold;
+        font-size: 9.5px;
+        margin-bottom: 3px;
+    }
+    .event-close .event-label { color: #dc2626; }
+    .event-reopen .event-label { color: #16a34a; }
+    .event-detail { color: #555; margin-left: 14px; }
+
     /* Signatures */
     .sig-table { width: 100%; margin-top: 22px; border-collapse: collapse; direction: rtl; }
     .sig-table td { text-align: center; padding: 0 20px; width: 50%; }
@@ -430,6 +462,56 @@
         </tr>
         @endif
     </table>
+</div>
+@endif
+
+{{-- Close / Reopen History --}}
+@php $closeEvents = $shift->close_events ?? []; @endphp
+@if(count($closeEvents) > 0)
+<div class="history-box">
+    <div class="history-title">سجل الإقفال والفتح ({{ count($closeEvents) }} حدث)</div>
+    @foreach($closeEvents as $idx => $ev)
+    @php
+        $isClose  = ($ev['event'] ?? '') === 'close';
+        $evNet    = isset($ev['net_balance'])   ? (float)$ev['net_balance']   : null;
+        $evActual = isset($ev['actual_amount']) ? (float)$ev['actual_amount'] : null;
+        $evShort  = isset($ev['shortfall'])     ? (float)$ev['shortfall']     : null;
+        $evTs     = $isClose ? ($ev['closed_at'] ?? null) : ($ev['reopened_at'] ?? null);
+        $evDt     = $evTs ? \Carbon\Carbon::parse($evTs) : null;
+    @endphp
+    <div class="history-event {{ $isClose ? 'event-close' : 'event-reopen' }}">
+        <div class="event-label">
+            {{ $idx + 1 }}.
+            @if($isClose) اقفال @else اعادة فتح @endif
+            @if($evDt)
+                — {{ $evDt->format('d/m/Y') }} {{ $ampm($evDt) }}
+            @endif
+            @if(!empty($ev['closed_by_name']))
+                — {{ $ev['closed_by_name'] }}
+            @endif
+        </div>
+        @if($isClose)
+        <div style="direction:rtl;">
+            @if($evNet !== null)
+            <span class="event-detail">المحسوب: <strong class="net-blue" style="direction:ltr;">{{ number_format($evNet, 0) }} ر.ي</strong></span>
+            &nbsp;&nbsp;
+            @endif
+            @if($evActual !== null)
+            <span class="event-detail">الفعلي: <strong style="direction:ltr;" class="{{ $evShort !== null && $evShort < 0 ? 'neg' : 'pos' }}">{{ number_format($evActual, 0) }} ر.ي</strong></span>
+            &nbsp;&nbsp;
+            @endif
+            @if($evShort !== null && $evShort < 0)
+            <span class="event-detail">العجز: <strong class="neg" style="direction:ltr;">{{ number_format(abs($evShort), 0) }} ر.ي</strong></span>
+            @elseif($evShort !== null && $evShort >= 0)
+            <span class="event-detail" style="color:#16a34a;">لا يوجد عجز</span>
+            @endif
+            @if(!empty($ev['notes']))
+            <br><span class="event-detail" style="color:#374151;">ملاحظات: {{ $ev['notes'] }}</span>
+            @endif
+        </div>
+        @endif
+    </div>
+    @endforeach
 </div>
 @endif
 
