@@ -140,24 +140,24 @@ table.data tbody tr:nth-child(even) td { background: #f9fafb; }
 <div class="meta-box">
     <table>
         <tr>
-            <td class="lbl">رقم الحجز</td>
-            <td class="val">#{{ $reservation->id }}</td>
-            <td class="lbl">تاريخ الإصدار</td>
-            <td class="val">{{ now()->format('d/m/Y H:i') }}</td>
-            <td class="lbl">رقم الغرفة</td>
-            <td class="val">{{ $reservation->display_room_number }}</td>
-            <td class="lbl">نوع الغرفة</td>
             <td class="val">{{ $reservation->room?->roomType?->name ?? '—' }}</td>
+            <td class="lbl">نوع الغرفة</td>
+            <td class="val">{{ $reservation->display_room_number }}</td>
+            <td class="lbl">رقم الغرفة</td>
+            <td class="val">{{ now()->format('d/m/Y H:i') }}</td>
+            <td class="lbl">تاريخ الإصدار</td>
+            <td class="val">#{{ $reservation->id }}</td>
+            <td class="lbl">رقم الحجز</td>
         </tr>
         <tr>
-            <td class="lbl">تاريخ الوصول</td>
-            <td class="val">{{ $reservation->check_in_date?->format('d/m/Y') ?? '—' }}</td>
-            <td class="lbl">تاريخ المغادرة</td>
-            <td class="val">{{ $reservation->check_out_date?->format('d/m/Y') ?? '—' }}</td>
-            <td class="lbl">الغرض</td>
-            <td class="val">{{ $reservation->purpose ?? '—' }}</td>
-            <td class="lbl">جهة القدوم</td>
             <td class="val">{{ $reservation->origin ?? '—' }}</td>
+            <td class="lbl">جهة القدوم</td>
+            <td class="val">{{ $reservation->purpose ?? '—' }}</td>
+            <td class="lbl">الغرض</td>
+            <td class="val">{{ $reservation->check_out_date?->format('d/m/Y') ?? '—' }}</td>
+            <td class="lbl">تاريخ المغادرة</td>
+            <td class="val">{{ $reservation->check_in_date?->format('d/m/Y') ?? '—' }}</td>
+            <td class="lbl">تاريخ الوصول</td>
         </tr>
     </table>
 </div>
