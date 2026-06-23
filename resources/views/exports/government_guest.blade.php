@@ -3,8 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <style>
+    @font-face {
+        font-family: 'NotoNaskhArabic';
+        font-style: normal; font-weight: normal;
+        src: url("{{ storage_path('fonts') }}/NotoNaskhArabic.ttf") format('truetype');
+    }
+    @font-face {
+        font-family: 'NotoNaskhArabic';
+        font-style: normal; font-weight: bold;
+        src: url("{{ storage_path('fonts') }}/NotoNaskhArabic-Bold.ttf") format('truetype');
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'DejaVu Sans', Arial, sans-serif; font-size: 11px; color: #1a1a1a; direction: rtl; }
+    body { font-family: 'NotoNaskhArabic', sans-serif; font-size: 11px; color: #1a1a1a; direction: rtl; }
     .header { background: #0F4C75; color: white; padding: 18px 24px; text-align: center; margin-bottom: 16px; }
     .header h1 { font-size: 18px; font-weight: bold; margin-bottom: 3px; }
     .header p { font-size: 11px; opacity: 0.85; }

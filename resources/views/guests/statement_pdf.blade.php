@@ -6,7 +6,7 @@
     @font-face {
         font-family: 'NotoNaskh';
         font-style: normal; font-weight: normal;
-        src: url('{{ storage_path('fonts/NotoNaskhArabic-Regular.ttf') }}') format('truetype');
+        src: url('{{ storage_path('fonts/NotoNaskhArabic.ttf') }}') format('truetype');
     }
     @font-face {
         font-family: 'NotoNaskh';
