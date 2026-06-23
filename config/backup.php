@@ -3,7 +3,7 @@
 return [
 
     'backup' => [
-        'name' => env('APP_NAME', 'hotel_osamma'),
+        'name' => env('APP_NAME', 'فندق السعودي'),
 
         'source' => [
             'files' => [
@@ -87,7 +87,7 @@ return [
 
     'monitor_backups' => [
         [
-            'name'  => env('APP_NAME', 'hotel_osamma'),
+            'name'  => env('APP_NAME', 'فندق السعودي'),
             'disks' => ['local'],
             'health_checks' => [
                 \Spatie\Backup\Tasks\Monitor\HealthChecks\MaximumAgeInDays::class          => 2,
