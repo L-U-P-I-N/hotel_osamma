@@ -140,50 +140,29 @@
 <table class="main" dir="rtl">
     <thead>
         <tr>
-            <th>الغرفة</th>
-            <th>اسم النزيل</th>
-            <th>الجنسية</th>
-            <th>المهنة</th>
-            <th>جهة القدوم</th>
-            <th>تاريخ الدخول</th>
-            <th>الوقت</th>
-            <th>الغرض</th>
-            <th>نوع الهوية</th>
-            <th>رقم الهوية</th>
-            <th>صادر من</th>
-            <th>تاريخ الإصدار</th>
-            <th>المرافقون</th>
-            <th>الدفع</th>
-            <th>المدفوع/الإجمالي</th>
-            <th>الجوال</th>
             <th>ملاحظات</th>
+            <th>الجوال</th>
+            <th>المدفوع/الإجمالي</th>
+            <th>الدفع</th>
+            <th>المرافقون</th>
+            <th>تاريخ الإصدار</th>
+            <th>صادر من</th>
+            <th>رقم الهوية</th>
+            <th>نوع الهوية</th>
+            <th>الغرض</th>
+            <th>الوقت</th>
+            <th>تاريخ الدخول</th>
+            <th>جهة القدوم</th>
+            <th>المهنة</th>
+            <th>الجنسية</th>
+            <th>اسم النزيل</th>
+            <th>الغرفة</th>
         </tr>
     </thead>
     <tbody>
         @foreach($reservations as $res)
         @php $cCount = $res->companions->count(); @endphp
         <tr>
-            <td style="font-weight:bold;text-align:center;">
-                {{ $res->display_room_number }}
-                @if($res->status === 'confirmed')
-                <span class="badge-confirmed">(محجوز)</span>
-                @endif
-            </td>
-            <td>{{ $res->guest?->full_name }}</td>
-            <td>{{ $res->guest?->nationality }}</td>
-            <td>{{ $res->guest?->occupation }}</td>
-            <td>{{ $res->origin }}</td>
-            <td class="ltr-val">{{ $res->check_in_date?->format('d/m/Y') }}</td>
-            <td class="ltr-val">{{ $res->check_in_time ?? '—' }}</td>
-            <td>{{ $res->purpose }}</td>
-            <td>{{ $idTypeMap[$res->guest?->id_type] ?? $res->guest?->id_type }}</td>
-            <td class="ltr-val">{{ $res->guest?->id_number }}</td>
-            <td>{{ $res->guest?->id_issuer }}</td>
-            <td class="ltr-val">{{ $res->guest?->id_issue_date?->format('Y/m/d') }}</td>
-            <td>{{ $cCount > 0 ? $cCount . ' مرافق' : 'لوحده' }}</td>
-            <td>{{ $payLabels[$res->payment_status] ?? $res->payment_status }}</td>
-            <td class="ltr-val">{{ number_format($res->paid_amount, 0) }} / {{ number_format($res->total_amount, 0) }}</td>
-            <td class="ltr-val">{{ $res->guest?->phone }}</td>
             <td>
                 @php
                     $payNote   = $res->payments->first(fn($p) => $p->notes)?->notes;
@@ -194,6 +173,27 @@
                 @if($resNote && $payNote)<br/>@endif
                 @if($payNote)[دفع] {{ $payNote }}@endif
                 @if(!$resNote && !$payNote)—@endif
+            </td>
+            <td class="ltr-val">{{ $res->guest?->phone }}</td>
+            <td class="ltr-val">{{ number_format($res->paid_amount, 0) }} / {{ number_format($res->total_amount, 0) }}</td>
+            <td>{{ $payLabels[$res->payment_status] ?? $res->payment_status }}</td>
+            <td>{{ $cCount > 0 ? $cCount . ' مرافق' : 'لوحده' }}</td>
+            <td class="ltr-val">{{ $res->guest?->id_issue_date?->format('Y/m/d') }}</td>
+            <td>{{ $res->guest?->id_issuer }}</td>
+            <td class="ltr-val">{{ $res->guest?->id_number }}</td>
+            <td>{{ $idTypeMap[$res->guest?->id_type] ?? $res->guest?->id_type }}</td>
+            <td>{{ $res->purpose }}</td>
+            <td class="ltr-val">{{ $res->check_in_time ?? '—' }}</td>
+            <td class="ltr-val">{{ $res->check_in_date?->format('d/m/Y') }}</td>
+            <td>{{ $res->origin }}</td>
+            <td>{{ $res->guest?->occupation }}</td>
+            <td>{{ $res->guest?->nationality }}</td>
+            <td>{{ $res->guest?->full_name }}</td>
+            <td style="font-weight:bold;text-align:center;">
+                {{ $res->display_room_number }}
+                @if($res->status === 'confirmed')
+                <span class="badge-confirmed">(محجوز)</span>
+                @endif
             </td>
         </tr>
         @endforeach

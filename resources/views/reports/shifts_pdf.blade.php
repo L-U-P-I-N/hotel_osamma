@@ -43,17 +43,17 @@
 <table class="data" dir="rtl">
     <thead>
         <tr>
-            <th>التاريخ</th>
-            <th>الموظف</th>
-            <th>بداية</th>
-            <th>نهاية</th>
-            <th>الحالة</th>
-            <th>عدد الدفعات</th>
-            <th>مستلم YER</th>
-            <th>مستلم SAR</th>
-            <th>مستلم USD</th>
-            <th>سحبيات YER</th>
             <th>متبقي YER</th>
+            <th>سحبيات YER</th>
+            <th>مستلم USD</th>
+            <th>مستلم SAR</th>
+            <th>مستلم YER</th>
+            <th>عدد الدفعات</th>
+            <th>الحالة</th>
+            <th>نهاية</th>
+            <th>بداية</th>
+            <th>الموظف</th>
+            <th>التاريخ</th>
         </tr>
     </thead>
     <tbody>
@@ -62,10 +62,12 @@
             $netYER = $shift->total_received_yer - $shift->total_withdrawals_yer;
         @endphp
         <tr>
-            <td>{{ $shift->shift_date->format('d/m/Y') }}</td>
-            <td style="font-weight:bold;">{{ $shift->user?->name ?? '—' }}</td>
-            <td class="c">{{ $shift->started_at?->format('H:i') ?? '—' }}</td>
-            <td class="c">{{ $shift->ended_at?->format('H:i') ?? '—' }}</td>
+            <td style="font-weight:bold; color:{{ $netYER >= 0 ? '#16a34a' : '#dc2626' }};">{{ number_format($netYER, 0) }}</td>
+            <td style="color:#dc2626;">{{ $shift->total_withdrawals_yer > 0 ? number_format($shift->total_withdrawals_yer, 0) : '—' }}</td>
+            <td>{{ $shift->total_received_usd > 0 ? number_format($shift->total_received_usd, 2) : '—' }}</td>
+            <td>{{ $shift->total_received_sar > 0 ? number_format($shift->total_received_sar, 0) : '—' }}</td>
+            <td style="font-weight:bold; color:#0F4C75;">{{ number_format($shift->total_received_yer, 0) }}</td>
+            <td class="c">{{ $shift->payments->count() }}</td>
             <td class="c">
                 @if($shift->is_closed)
                 <span class="badge-close">مغلقة</span>
@@ -73,22 +75,20 @@
                 <span class="badge-open">مفتوحة</span>
                 @endif
             </td>
-            <td class="c">{{ $shift->payments->count() }}</td>
-            <td style="font-weight:bold; color:#0F4C75;">{{ number_format($shift->total_received_yer, 0) }}</td>
-            <td>{{ $shift->total_received_sar > 0 ? number_format($shift->total_received_sar, 0) : '—' }}</td>
-            <td>{{ $shift->total_received_usd > 0 ? number_format($shift->total_received_usd, 2) : '—' }}</td>
-            <td style="color:#dc2626;">{{ $shift->total_withdrawals_yer > 0 ? number_format($shift->total_withdrawals_yer, 0) : '—' }}</td>
-            <td style="font-weight:bold; color:{{ $netYER >= 0 ? '#16a34a' : '#dc2626' }};">{{ number_format($netYER, 0) }}</td>
+            <td class="c">{{ $shift->ended_at?->format('H:i') ?? '—' }}</td>
+            <td class="c">{{ $shift->started_at?->format('H:i') ?? '—' }}</td>
+            <td style="font-weight:bold;">{{ $shift->user?->name ?? '—' }}</td>
+            <td>{{ $shift->shift_date->format('d/m/Y') }}</td>
         </tr>
         @endforeach
         <tr class="total-row">
-            <td colspan="5">الإجمالي</td>
-            <td class="c">{{ $shifts->sum(fn($s) => $s->payments->count()) }}</td>
-            <td>{{ number_format($shifts->sum('total_received_yer'), 0) }}</td>
-            <td>{{ number_format($shifts->sum('total_received_sar'), 0) }}</td>
-            <td>{{ number_format($shifts->sum('total_received_usd'), 2) }}</td>
-            <td>{{ number_format($shifts->sum('total_withdrawals_yer'), 0) }}</td>
             <td>{{ number_format($shifts->sum('total_received_yer') - $shifts->sum('total_withdrawals_yer'), 0) }}</td>
+            <td>{{ number_format($shifts->sum('total_withdrawals_yer'), 0) }}</td>
+            <td>{{ number_format($shifts->sum('total_received_usd'), 2) }}</td>
+            <td>{{ number_format($shifts->sum('total_received_sar'), 0) }}</td>
+            <td>{{ number_format($shifts->sum('total_received_yer'), 0) }}</td>
+            <td class="c">{{ $shifts->sum(fn($s) => $s->payments->count()) }}</td>
+            <td colspan="5">الإجمالي</td>
         </tr>
     </tbody>
 </table>

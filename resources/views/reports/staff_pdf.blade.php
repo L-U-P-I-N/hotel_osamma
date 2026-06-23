@@ -37,32 +37,32 @@
 <table class="data" dir="rtl">
     <thead>
         <tr>
-            <th>#</th>
-            <th>اسم الموظف</th>
-            <th>الدور الوظيفي</th>
-            <th>رقم الموظف</th>
-            <th>تسجيلات الدخول</th>
             <th>إجمالي المستلم (ر.ي)</th>
+            <th>تسجيلات الدخول</th>
+            <th>رقم الموظف</th>
+            <th>الدور الوظيفي</th>
+            <th>اسم الموظف</th>
+            <th>#</th>
         </tr>
     </thead>
     <tbody>
         @forelse($staffData as $i => $row)
         <tr>
-            <td style="text-align:center;">{{ $i + 1 }}</td>
-            <td style="font-weight:bold;">{{ $row['user']->name }}</td>
-            <td>{{ $row['user']->roles->first()?->name ?? '—' }}</td>
-            <td>{{ $row['user']->employee_id ?? '—' }}</td>
-            <td style="text-align:center; font-weight:bold;">{{ $row['checkins'] }}</td>
             <td style="font-weight:bold; color:#16a34a;">{{ number_format($row['revenue'], 0) }}</td>
+            <td style="text-align:center; font-weight:bold;">{{ $row['checkins'] }}</td>
+            <td>{{ $row['user']->employee_id ?? '—' }}</td>
+            <td>{{ $row['user']->roles->first()?->name ?? '—' }}</td>
+            <td style="font-weight:bold;">{{ $row['user']->name }}</td>
+            <td style="text-align:center;">{{ $i + 1 }}</td>
         </tr>
         @empty
         <tr><td colspan="6" style="text-align:center;padding:12px;color:#999;">لا توجد بيانات</td></tr>
         @endforelse
         @if(count($staffData) > 0)
         <tr class="total-row">
-            <td colspan="4">الإجمالي</td>
-            <td style="text-align:center;">{{ collect($staffData)->sum('checkins') }}</td>
             <td>{{ number_format(collect($staffData)->sum('revenue'), 0) }}</td>
+            <td style="text-align:center;">{{ collect($staffData)->sum('checkins') }}</td>
+            <td colspan="4">الإجمالي</td>
         </tr>
         @endif
     </tbody>

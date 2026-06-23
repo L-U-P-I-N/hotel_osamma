@@ -51,19 +51,19 @@
 <table class="data" dir="rtl">
     <thead>
         <tr>
-            <th>التاريخ</th>
-            <th>نسبة الإشغال</th>
             <th>شريط بياني</th>
+            <th>نسبة الإشغال</th>
+            <th>التاريخ</th>
         </tr>
     </thead>
     <tbody>
         @forelse($dailyOccupancy as $day)
         <tr>
-            <td>{{ \Carbon\Carbon::parse($day['date'])->format('d/m/Y') }}</td>
-            <td style="font-weight:bold; color:#0F4C75;">{{ $day['percent'] }}%</td>
             <td class="bar-cell">
                 <div class="bar-bg"><div class="bar-fill" style="width:{{ $day['percent'] }}%;"></div></div>
             </td>
+            <td style="font-weight:bold; color:#0F4C75;">{{ $day['percent'] }}%</td>
+            <td>{{ \Carbon\Carbon::parse($day['date'])->format('d/m/Y') }}</td>
         </tr>
         @empty
         <tr><td colspan="3" style="text-align:center;padding:12px;color:#999;">لا توجد بيانات للفترة المحددة</td></tr>
