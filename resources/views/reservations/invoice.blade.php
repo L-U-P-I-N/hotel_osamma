@@ -83,8 +83,6 @@ table.data tbody tr:nth-child(even) td { background:#f8fafc; }
     $balance = (float)$reservation->total_amount - (float)$reservation->paid_amount;
     $psLabels = ['paid'=>'مكتمل الدفع','partial'=>'دفع جزئي','unpaid'=>'غير مدفوع','deferred'=>'آجل'];
     $stLabels = ['checked_in'=>'مقيم حالياً','checked_out'=>'غادر'];
-    $methodLabel = fn($m) => match($m) { 'cash'=>'نقدي','pos'=>'POS','bank_transfer'=>'تحويل بنكي', default=>$m };
-    $typeLabel = fn($t) => match($t) { 'reservation'=>'دفعة حجز','renewal'=>'دفعة تجديد','compensation'=>'تعويض أضرار','extra_service'=>'خدمة إضافية', default=>$t };
 @endphp
 
 {{-- Header --}}
@@ -303,7 +301,6 @@ table.data tbody tr:nth-child(even) td { background:#f8fafc; }
         <table class="data">
             <thead>
                 <tr>
-                    <th>#</th>
                     <th>التاريخ</th>
                     <th>المبلغ</th>
                     <th>الطريقة</th>
@@ -313,15 +310,29 @@ table.data tbody tr:nth-child(even) td { background:#f8fafc; }
                 </tr>
             </thead>
             <tbody>
-                @foreach($reservation->payments as $i => $p)
+                @foreach($reservation->payments as $p)
+                @php
+                    $tl = match($p->type) {
+                        'reservation'   => ['label'=>'دفعة حجز',    'bg'=>'#dbeafe','color'=>'#1d4ed8'],
+                        'renewal'       => ['label'=>'دفعة تجديد',  'bg'=>'#fef9c3','color'=>'#b45309'],
+                        'compensation'  => ['label'=>'تعويض أضرار', 'bg'=>'#fee2e2','color'=>'#b91c1c'],
+                        'extra_service' => ['label'=>'خدمة إضافية', 'bg'=>'#f3e8ff','color'=>'#6b21a8'],
+                        default         => ['label'=>$p->type,       'bg'=>'#f3f4f6','color'=>'#374151'],
+                    };
+                    $ml = match($p->method) {
+                        'cash'          => ['label'=>'نقدي',         'bg'=>'#dcfce7','color'=>'#166534'],
+                        'pos'           => ['label'=>'POS',           'bg'=>'#dbeafe','color'=>'#1d4ed8'],
+                        'bank_transfer' => ['label'=>'تحويل',        'bg'=>'#f3e8ff','color'=>'#6b21a8'],
+                        default         => ['label'=>$p->method,      'bg'=>'#f3f4f6','color'=>'#374151'],
+                    };
+                @endphp
                 <tr>
-                    <td style="text-align:center;">{{ $i+1 }}</td>
-                    <td>{{ $p->payment_date?->format('d/m/Y H:i') }}</td>
-                    <td style="font-weight:bold;color:#16a34a;">{{ number_format($p->amount, 2) }} ر.ي</td>
-                    <td>{{ $methodLabel($p->method) }}</td>
-                    <td>{{ $typeLabel($p->type) }}</td>
+                    <td style="white-space:nowrap;">{{ $p->payment_date?->format('d/m/Y H:i') }}</td>
+                    <td style="font-weight:bold;color:#16a34a;white-space:nowrap;">{{ number_format($p->amount, 2) }} <span style="font-size:7.5pt;font-weight:normal;color:#9ca3af;">{{ $reservation->currency_symbol }}</span></td>
+                    <td><span style="padding:1px 7px;border-radius:10px;font-size:8pt;background:{{ $ml['bg'] }};color:{{ $ml['color'] }};">{{ $ml['label'] }}</span></td>
+                    <td><span style="padding:1px 7px;border-radius:10px;font-size:8pt;background:{{ $tl['bg'] }};color:{{ $tl['color'] }};">{{ $tl['label'] }}</span></td>
                     <td style="font-size:8pt;color:#6b7280;">{{ $p->notes ?: '—' }}</td>
-                    <td>{{ $p->receivedBy?->name ?? '—' }}</td>
+                    <td style="color:#374151;">{{ $p->receivedBy?->name ?? '—' }}</td>
                 </tr>
                 @endforeach
             </tbody>
