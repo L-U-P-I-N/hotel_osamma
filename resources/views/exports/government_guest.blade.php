@@ -3,77 +3,169 @@
 <head>
 <meta charset="UTF-8">
 <style>
-    @font-face {
-        font-family: 'NotoNaskhArabic';
-        font-style: normal; font-weight: normal;
-        src: url("{{ storage_path('fonts') }}/NotoNaskhArabic.ttf") format('truetype');
-    }
-    @font-face {
-        font-family: 'NotoNaskhArabic';
-        font-style: normal; font-weight: bold;
-        src: url("{{ storage_path('fonts') }}/NotoNaskhArabic-Bold.ttf") format('truetype');
-    }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'NotoNaskhArabic', sans-serif; font-size: 11px; color: #1a1a1a; direction: rtl; }
-    .header { background: #0F4C75; color: white; padding: 18px 24px; text-align: center; margin-bottom: 16px; }
-    .header h1 { font-size: 18px; font-weight: bold; margin-bottom: 3px; }
-    .header p { font-size: 11px; opacity: 0.85; }
-    .header .doc-title { font-size: 14px; font-weight: bold; margin-top: 10px; background: rgba(255,255,255,0.15); padding: 5px 20px; border-radius: 4px; display: inline-block; }
-    .section { margin: 0 18px 16px; }
-    .section h2 { font-size: 12px; font-weight: bold; color: #0F4C75; border-bottom: 2px solid #0F4C75; padding-bottom: 4px; margin-bottom: 8px; }
-    table { width: 100%; border-collapse: collapse; }
-    th { background: #f1f5f9; color: #374151; font-size: 10px; padding: 5px 8px; text-align: right; border: 1px solid #cbd5e1; font-weight: bold; }
-    td { padding: 5px 8px; border: 1px solid #e2e8f0; font-size: 10px; }
-    tr:nth-child(even) td { background: #f9fafb; }
-    .meta { margin: 0 18px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 10px 14px; }
-    .meta-grid { display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 4px 16px; }
-    .meta-label { color: #64748b; font-size: 10px; font-weight: bold; }
-    .meta-value { font-size: 10px; color: #1e293b; }
-    .footer { margin: 18px; border-top: 1px solid #e2e8f0; padding-top: 14px; }
-    .footer-grid { display: flex; justify-content: space-between; align-items: flex-start; }
-    .sig-box { text-align: center; }
-    .sig-line { border-bottom: 1px solid #374151; width: 150px; margin: 28px auto 5px; }
-    .sig-label { font-size: 10px; color: #64748b; }
-    .sig-name { font-size: 10px; font-weight: bold; color: #1e293b; margin-top: 3px; }
-    .center-info { text-align: center; font-size: 9px; color: #94a3b8; }
-    .stamp { background: #0F4C75; color: white; padding: 3px 10px; border-radius: 4px; font-size: 9px; display: inline-block; margin-top: 6px; }
+@font-face {
+    font-family: 'NotoNaskhArabic';
+    font-style: normal; font-weight: normal;
+    src: url("{{ storage_path('fonts') }}/NotoNaskhArabic.ttf") format('truetype');
+}
+@font-face {
+    font-family: 'NotoNaskhArabic';
+    font-style: normal; font-weight: bold;
+    src: url("{{ storage_path('fonts') }}/NotoNaskhArabic-Bold.ttf") format('truetype');
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+    font-family: 'NotoNaskhArabic', sans-serif;
+    font-size: 10pt;
+    color: #1a1a1a;
+    direction: rtl;
+    padding: 12mm 14mm;
+    background: #fff;
+}
+
+/* Header */
+.header {
+    background: #0F4C75;
+    color: #fff;
+    text-align: center;
+    padding: 14px 20px;
+    margin-bottom: 14px;
+    border-radius: 4px;
+}
+.header h1 { font-size: 17pt; font-weight: bold; margin-bottom: 3px; }
+.header .sub { font-size: 9pt; opacity: 0.85; }
+.header .doc-title {
+    font-size: 12pt;
+    font-weight: bold;
+    margin-top: 10px;
+    background: rgba(255,255,255,0.18);
+    padding: 5px 22px;
+    border-radius: 3px;
+    display: inline-block;
+}
+
+/* Meta info box */
+.meta-box {
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    margin-bottom: 14px;
+    overflow: hidden;
+}
+.meta-box table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.meta-box table td {
+    padding: 5px 10px;
+    font-size: 9.5pt;
+    border: 1px solid #e2e8f0;
+    vertical-align: middle;
+}
+.meta-box table td.lbl {
+    background: #f8fafc;
+    color: #64748b;
+    font-weight: bold;
+    font-size: 8.5pt;
+    width: 12%;
+    white-space: nowrap;
+}
+.meta-box table td.val {
+    color: #1e293b;
+    width: 13%;
+}
+
+/* Section */
+.section { margin-bottom: 14px; }
+.section-title {
+    font-size: 11pt;
+    font-weight: bold;
+    color: #0F4C75;
+    border-bottom: 2px solid #0F4C75;
+    padding-bottom: 4px;
+    margin-bottom: 8px;
+}
+
+/* Data table */
+table.data { width: 100%; border-collapse: collapse; }
+table.data thead tr { background: #0F4C75; color: #fff; }
+table.data thead th {
+    padding: 6px 8px;
+    text-align: right;
+    font-size: 8.5pt;
+    font-weight: bold;
+    border: 1px solid #0a3a5e;
+}
+table.data tbody td {
+    padding: 5px 8px;
+    border: 1px solid #e2e8f0;
+    font-size: 9pt;
+    vertical-align: middle;
+}
+table.data tbody tr:nth-child(even) td { background: #f9fafb; }
+
+/* Footer */
+.footer {
+    margin-top: 18px;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 12px;
+}
+.footer-table { width: 100%; border-collapse: collapse; }
+.footer-table td { vertical-align: top; text-align: center; width: 33%; padding: 0 8px; }
+.sig-line { border-bottom: 1px solid #374151; width: 150px; margin: 26px auto 6px; }
+.sig-label { font-size: 9pt; color: #64748b; }
+.sig-name { font-size: 9pt; font-weight: bold; color: #1e293b; margin-top: 3px; }
+.center-meta { font-size: 9pt; color: #374151; }
+.center-meta p { margin-bottom: 3px; }
+.stamp {
+    background: #0F4C75;
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 3px;
+    font-size: 8.5pt;
+    display: inline-block;
+    margin-top: 6px;
+}
 </style>
 </head>
 <body>
 
+{{-- Header --}}
 <div class="header">
-    <h1>{{ $hotel->name ?? 'الفندق السعودي' }}</h1>
-    <p>{{ $hotel->address ?? '' }}{{ $hotel->phone ? ' | ' . $hotel->phone : '' }}</p>
+    <h1>{{ $hotel->name ?? 'فندق السعودي' }}</h1>
+    <div class="sub">{{ $hotel->address ?? '' }}{{ $hotel->phone ? ' | ' . $hotel->phone : '' }}</div>
     <div class="doc-title">نموذج بيانات النزلاء للجهات الحكومية</div>
 </div>
 
-<div class="meta">
-    <div class="meta-grid">
-        <span class="meta-label">رقم الحجز:</span>
-        <span class="meta-value">#{{ $reservation->id }}</span>
-        <span class="meta-label">تاريخ الإصدار:</span>
-        <span class="meta-value">{{ now()->format('d/m/Y H:i') }}</span>
-
-        <span class="meta-label">رقم الغرفة:</span>
-        <span class="meta-value">{{ $reservation->display_room_number }}</span>
-        <span class="meta-label">نوع الغرفة:</span>
-        <span class="meta-value">{{ $reservation->room?->roomType?->name ?? '—' }}</span>
-
-        <span class="meta-label">تاريخ الوصول:</span>
-        <span class="meta-value">{{ $reservation->check_in_date?->format('d/m/Y') ?? '—' }}</span>
-        <span class="meta-label">تاريخ المغادرة:</span>
-        <span class="meta-value">{{ $reservation->check_out_date?->format('d/m/Y') ?? '—' }}</span>
-
-        <span class="meta-label">الغرض من الزيارة:</span>
-        <span class="meta-value">{{ $reservation->purpose ?? '-' }}</span>
-        <span class="meta-label">جهة القدوم:</span>
-        <span class="meta-value">{{ $reservation->origin ?? '-' }}</span>
-    </div>
+{{-- Reservation Meta --}}
+<div class="meta-box">
+    <table>
+        <tr>
+            <td class="lbl">رقم الحجز</td>
+            <td class="val">#{{ $reservation->id }}</td>
+            <td class="lbl">تاريخ الإصدار</td>
+            <td class="val">{{ now()->format('d/m/Y H:i') }}</td>
+            <td class="lbl">رقم الغرفة</td>
+            <td class="val">{{ $reservation->display_room_number }}</td>
+            <td class="lbl">نوع الغرفة</td>
+            <td class="val">{{ $reservation->room?->roomType?->name ?? '—' }}</td>
+        </tr>
+        <tr>
+            <td class="lbl">تاريخ الوصول</td>
+            <td class="val">{{ $reservation->check_in_date?->format('d/m/Y') ?? '—' }}</td>
+            <td class="lbl">تاريخ المغادرة</td>
+            <td class="val">{{ $reservation->check_out_date?->format('d/m/Y') ?? '—' }}</td>
+            <td class="lbl">الغرض</td>
+            <td class="val">{{ $reservation->purpose ?? '—' }}</td>
+            <td class="lbl">جهة القدوم</td>
+            <td class="val">{{ $reservation->origin ?? '—' }}</td>
+        </tr>
+    </table>
 </div>
 
+{{-- Main Guest --}}
 <div class="section">
-    <h2>بيانات النزيل الرئيسي</h2>
-    <table>
+    <div class="section-title">بيانات النزيل الرئيسي</div>
+    <table class="data">
         <thead>
             <tr>
                 <th>الاسم الرباعي</th>
@@ -89,25 +181,26 @@
         <tbody>
             <tr>
                 <td><strong>{{ $reservation->guest?->full_name ?? '—' }}</strong></td>
-                <td>{{ $reservation->guest?->nationality ?? '-' }}</td>
+                <td>{{ $reservation->guest?->nationality ?? '—' }}</td>
                 <td>{{ $reservation->guest?->getIdTypeLabel() ?? '—' }}</td>
                 <td>{{ $reservation->guest?->id_number ?? '—' }}</td>
-                <td>{{ $reservation->guest?->id_issuer ?? '-' }}</td>
-                <td>{{ $reservation->guest?->id_issue_date?->format('d/m/Y') ?? '-' }}</td>
-                <td>{{ $reservation->guest?->phone ?? '-' }}</td>
-                <td>{{ $reservation->guest?->occupation ?? '-' }}</td>
+                <td>{{ $reservation->guest?->id_issuer ?? '—' }}</td>
+                <td>{{ $reservation->guest?->id_issue_date?->format('d/m/Y') ?? '—' }}</td>
+                <td>{{ $reservation->guest?->phone ?? '—' }}</td>
+                <td>{{ $reservation->guest?->occupation ?? '—' }}</td>
             </tr>
         </tbody>
     </table>
 </div>
 
+{{-- Companions --}}
 @if($reservation->companions->count() > 0)
 <div class="section">
-    <h2>بيانات المرافقين ({{ $reservation->companions->count() }} مرافق)</h2>
-    <table>
+    <div class="section-title">بيانات المرافقين ({{ $reservation->companions->count() }} مرافق)</div>
+    <table class="data">
         <thead>
             <tr>
-                <th>#</th>
+                <th style="width:4%;">#</th>
                 <th>الاسم الكامل</th>
                 <th>الجنسية</th>
                 <th>نوع الهوية</th>
@@ -120,13 +213,13 @@
         <tbody>
             @foreach($reservation->companions as $i => $comp)
             <tr>
-                <td>{{ $i + 1 }}</td>
+                <td style="text-align:center;">{{ $i + 1 }}</td>
                 <td><strong>{{ $comp->full_name }}</strong></td>
-                <td>{{ $comp->nationality ?? '-' }}</td>
-                <td>{{ $comp->id_type }}</td>
-                <td>{{ $comp->id_number ?? '-' }}</td>
-                <td>{{ $comp->id_issuer ?? '-' }}</td>
-                <td>{{ $comp->id_issue_date?->format('d/m/Y') ?? '-' }}</td>
+                <td>{{ $comp->nationality ?? '—' }}</td>
+                <td>{{ $comp->getIdTypeLabel() ?? '—' }}</td>
+                <td>{{ $comp->id_number ?? '—' }}</td>
+                <td>{{ $comp->id_issuer ?? '—' }}</td>
+                <td>{{ $comp->id_issue_date?->format('d/m/Y') ?? '—' }}</td>
                 <td>{{ $comp->getRelationshipLabel() }}</td>
             </tr>
             @endforeach
@@ -135,28 +228,33 @@
 </div>
 @else
 <div class="section">
-    <h2>المرافقون</h2>
-    <p style="color:#94a3b8; font-size:10px; padding:8px 0;">لا يوجد مرافقون</p>
+    <div class="section-title">المرافقون</div>
+    <p style="color:#94a3b8; font-size:9pt; padding:8px 0;">لا يوجد مرافقون</p>
 </div>
 @endif
 
+{{-- Footer --}}
 <div class="footer">
-    <div class="footer-grid">
-        <div class="sig-box">
-            <div class="sig-line"></div>
-            <div class="sig-label">توقيع موظف الاستقبال</div>
-            <div class="sig-name">{{ $reservation->createdBy?->name ?? '-' }}</div>
-        </div>
-        <div class="center-info">
-            <p>صدر بواسطة: {{ auth()->user()?->name ?? $reservation->createdBy?->name ?? 'النظام' }}</p>
-            <p style="margin-top:3px;">{{ now()->format('d/m/Y H:i:s') }}</p>
-            <div class="stamp">{{ $hotel->name ?? 'الفندق السعودي' }} — نظام إدارة الفندق</div>
-        </div>
-        <div class="sig-box">
-            <div class="sig-line"></div>
-            <div class="sig-label">ختم الفندق الرسمي</div>
-        </div>
-    </div>
+    <table class="footer-table">
+        <tr>
+            <td>
+                <div class="sig-line"></div>
+                <div class="sig-label">توقيع موظف الاستقبال</div>
+                <div class="sig-name">{{ $reservation->createdBy?->name ?? '—' }}</div>
+            </td>
+            <td>
+                <div class="center-meta">
+                    <p>صدر بواسطة: {{ $reservation->createdBy?->name ?? 'النظام' }}</p>
+                    <p>{{ now()->format('d/m/Y H:i:s') }}</p>
+                    <div class="stamp">{{ $hotel->name ?? 'فندق السعودي' }} — نظام إدارة الفندق</div>
+                </div>
+            </td>
+            <td>
+                <div class="sig-line"></div>
+                <div class="sig-label">ختم الفندق الرسمي</div>
+            </td>
+        </tr>
+    </table>
 </div>
 
 </body>
