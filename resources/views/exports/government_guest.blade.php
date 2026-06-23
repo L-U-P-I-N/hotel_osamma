@@ -168,26 +168,26 @@ table.data tbody tr:nth-child(even) td { background: #f9fafb; }
     <table class="data">
         <thead>
             <tr>
-                <th>الاسم الرباعي</th>
-                <th>الجنسية</th>
-                <th>نوع الهوية</th>
-                <th>رقم الهوية</th>
-                <th>الجهة المصدرة</th>
-                <th>تاريخ الإصدار</th>
-                <th>رقم الجوال</th>
                 <th>المهنة</th>
+                <th>رقم الجوال</th>
+                <th>تاريخ الإصدار</th>
+                <th>الجهة المصدرة</th>
+                <th>رقم الهوية</th>
+                <th>نوع الهوية</th>
+                <th>الجنسية</th>
+                <th>الاسم الرباعي</th>
             </tr>
         </thead>
         <tbody>
             <tr>
-                <td><strong>{{ $reservation->guest?->full_name ?? '—' }}</strong></td>
-                <td>{{ $reservation->guest?->nationality ?? '—' }}</td>
-                <td>{{ $reservation->guest?->getIdTypeLabel() ?? '—' }}</td>
-                <td>{{ $reservation->guest?->id_number ?? '—' }}</td>
-                <td>{{ $reservation->guest?->id_issuer ?? '—' }}</td>
-                <td>{{ $reservation->guest?->id_issue_date?->format('d/m/Y') ?? '—' }}</td>
-                <td>{{ $reservation->guest?->phone ?? '—' }}</td>
                 <td>{{ $reservation->guest?->occupation ?? '—' }}</td>
+                <td>{{ $reservation->guest?->phone ?? '—' }}</td>
+                <td>{{ $reservation->guest?->id_issue_date?->format('d/m/Y') ?? '—' }}</td>
+                <td>{{ $reservation->guest?->id_issuer ?? '—' }}</td>
+                <td>{{ $reservation->guest?->id_number ?? '—' }}</td>
+                <td>{{ $reservation->guest?->getIdTypeLabel() ?? '—' }}</td>
+                <td>{{ $reservation->guest?->nationality ?? '—' }}</td>
+                <td><strong>{{ $reservation->guest?->full_name ?? '—' }}</strong></td>
             </tr>
         </tbody>
     </table>
@@ -200,27 +200,27 @@ table.data tbody tr:nth-child(even) td { background: #f9fafb; }
     <table class="data">
         <thead>
             <tr>
-                <th style="width:4%;">#</th>
-                <th>الاسم الكامل</th>
-                <th>الجنسية</th>
-                <th>نوع الهوية</th>
-                <th>رقم الهوية</th>
-                <th>الجهة المصدرة</th>
-                <th>تاريخ الإصدار</th>
                 <th>صلة القرابة</th>
+                <th>تاريخ الإصدار</th>
+                <th>الجهة المصدرة</th>
+                <th>رقم الهوية</th>
+                <th>نوع الهوية</th>
+                <th>الجنسية</th>
+                <th>الاسم الكامل</th>
+                <th style="width:4%;">#</th>
             </tr>
         </thead>
         <tbody>
             @foreach($reservation->companions as $i => $comp)
             <tr>
-                <td style="text-align:center;">{{ $i + 1 }}</td>
-                <td><strong>{{ $comp->full_name }}</strong></td>
-                <td>{{ $comp->nationality ?? '—' }}</td>
-                <td>{{ $comp->getIdTypeLabel() ?? '—' }}</td>
-                <td>{{ $comp->id_number ?? '—' }}</td>
-                <td>{{ $comp->id_issuer ?? '—' }}</td>
-                <td>{{ $comp->id_issue_date?->format('d/m/Y') ?? '—' }}</td>
                 <td>{{ $comp->getRelationshipLabel() }}</td>
+                <td>{{ $comp->id_issue_date?->format('d/m/Y') ?? '—' }}</td>
+                <td>{{ $comp->id_issuer ?? '—' }}</td>
+                <td>{{ $comp->id_number ?? '—' }}</td>
+                <td>{{ $comp->getIdTypeLabel() ?? '—' }}</td>
+                <td>{{ $comp->nationality ?? '—' }}</td>
+                <td><strong>{{ $comp->full_name }}</strong></td>
+                <td style="text-align:center;">{{ $i + 1 }}</td>
             </tr>
             @endforeach
         </tbody>
