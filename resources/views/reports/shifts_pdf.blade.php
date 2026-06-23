@@ -50,20 +50,16 @@
             <th>الحالة</th>
             <th>عدد الدفعات</th>
             <th>مستلم YER</th>
-            <th>سحبيات YER</th>
-            <th>صافي YER</th>
             <th>مستلم SAR</th>
-            <th>صافي SAR</th>
             <th>مستلم USD</th>
-            <th>صافي USD</th>
+            <th>سحبيات YER</th>
+            <th>متبقي YER</th>
         </tr>
     </thead>
     <tbody>
         @foreach($shifts as $shift)
         @php
             $netYER = $shift->total_received_yer - $shift->total_withdrawals_yer;
-            $netSAR = $shift->total_received_sar - $shift->total_withdrawals_sar;
-            $netUSD = $shift->total_received_usd - $shift->total_withdrawals_usd;
         @endphp
         <tr>
             <td>{{ $shift->shift_date->format('d/m/Y') }}</td>
@@ -79,24 +75,20 @@
             </td>
             <td class="c">{{ $shift->payments->count() }}</td>
             <td style="font-weight:bold; color:#0F4C75;">{{ number_format($shift->total_received_yer, 0) }}</td>
+            <td>{{ $shift->total_received_sar > 0 ? number_format($shift->total_received_sar, 0) : '—' }}</td>
+            <td>{{ $shift->total_received_usd > 0 ? number_format($shift->total_received_usd, 2) : '—' }}</td>
             <td style="color:#dc2626;">{{ $shift->total_withdrawals_yer > 0 ? number_format($shift->total_withdrawals_yer, 0) : '—' }}</td>
             <td style="font-weight:bold; color:{{ $netYER >= 0 ? '#16a34a' : '#dc2626' }};">{{ number_format($netYER, 0) }}</td>
-            <td>{{ $shift->total_received_sar > 0 ? number_format($shift->total_received_sar, 0) : '—' }}</td>
-            <td style="font-weight:bold; color:{{ $netSAR >= 0 ? '#16a34a' : '#dc2626' }};">{{ $shift->total_received_sar > 0 || $shift->total_withdrawals_sar > 0 ? number_format($netSAR, 0) : '—' }}</td>
-            <td>{{ $shift->total_received_usd > 0 ? number_format($shift->total_received_usd, 2) : '—' }}</td>
-            <td style="font-weight:bold; color:{{ $netUSD >= 0 ? '#16a34a' : '#dc2626' }};">{{ $shift->total_received_usd > 0 || $shift->total_withdrawals_usd > 0 ? number_format($netUSD, 2) : '—' }}</td>
         </tr>
         @endforeach
         <tr class="total-row">
             <td colspan="5">الإجمالي</td>
             <td class="c">{{ $shifts->sum(fn($s) => $s->payments->count()) }}</td>
             <td>{{ number_format($shifts->sum('total_received_yer'), 0) }}</td>
+            <td>{{ number_format($shifts->sum('total_received_sar'), 0) }}</td>
+            <td>{{ number_format($shifts->sum('total_received_usd'), 2) }}</td>
             <td>{{ number_format($shifts->sum('total_withdrawals_yer'), 0) }}</td>
             <td>{{ number_format($shifts->sum('total_received_yer') - $shifts->sum('total_withdrawals_yer'), 0) }}</td>
-            <td>{{ number_format($shifts->sum('total_received_sar'), 0) }}</td>
-            <td>{{ number_format($shifts->sum('total_received_sar') - $shifts->sum('total_withdrawals_sar'), 0) }}</td>
-            <td>{{ number_format($shifts->sum('total_received_usd'), 2) }}</td>
-            <td>{{ number_format($shifts->sum('total_received_usd') - $shifts->sum('total_withdrawals_usd'), 2) }}</td>
         </tr>
     </tbody>
 </table>
