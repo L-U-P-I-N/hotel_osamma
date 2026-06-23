@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Models\CashWithdrawal;
 use App\Models\Shift;
 use App\Services\ShiftService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -63,6 +64,43 @@ class ShiftController extends Controller
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()]);
         }
+    }
+
+    public function updateWithdrawal(Request $request, CashWithdrawal $withdrawal)
+    {
+        $request->validate([
+            'amount'            => 'required|numeric|min:0.01',
+            'withdrawn_by_name' => 'required|string|max:100',
+            'notes'             => 'nullable|string|max:500',
+        ]);
+
+        if ($withdrawal->shift && $withdrawal->shift->is_closed) {
+            return back()->withErrors(['error' => 'لا يمكن تعديل سحب لوردية مقفلة']);
+        }
+
+        $withdrawal->update($request->only(['amount', 'withdrawn_by_name', 'notes']));
+
+        if ($withdrawal->shift_id) {
+            $this->service->computeTotals(Shift::find($withdrawal->shift_id));
+        }
+
+        return back()->with('success', 'تم تعديل السحب بنجاح');
+    }
+
+    public function destroyWithdrawal(CashWithdrawal $withdrawal)
+    {
+        if ($withdrawal->shift && $withdrawal->shift->is_closed) {
+            return back()->withErrors(['error' => 'لا يمكن حذف سحب من وردية مقفلة']);
+        }
+
+        $shiftId = $withdrawal->shift_id;
+        $withdrawal->delete();
+
+        if ($shiftId) {
+            $this->service->computeTotals(Shift::find($shiftId));
+        }
+
+        return back()->with('success', 'تم حذف السحب بنجاح');
     }
 
     public function close(Request $request)

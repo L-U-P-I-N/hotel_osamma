@@ -41,7 +41,9 @@ class RolesSeeder extends Seeder
             'expenses.view',
             'expenses.create', 'expenses.edit', 'expenses.delete',
             // Withdrawal
-            'withdrawal.create',
+            'withdrawal.create', 'withdrawal.view', 'withdrawal.edit', 'withdrawal.delete',
+            // Shifts
+            'shifts.reopen',
         ];
 
         foreach ($permissions as $permission) {
@@ -55,14 +57,14 @@ class RolesSeeder extends Seeder
                 'payments.bank_receipt', 'settlement.view', 'settlement.manage',
                 'settlement.lock', 'reports.view',
                 'hr.view', 'hr.create', 'hr.edit', 'hr.delete', 'expenses.view', 'expenses.create', 'expenses.edit', 'expenses.delete',
-                'withdrawal.create',
+                'withdrawal.create', 'withdrawal.view', 'withdrawal.edit', 'withdrawal.delete',
             ],
             'receptionist' => [
                 'dashboard.view', 'rooms.view', 'checkin.create',
                 'checkin.view', 'checkout.process', 'guests.view', 'guests.sensitive',
                 'companions.manage', 'payments.create', 'payments.bank_receipt',
                 'extra_charges.manage', 'government.export',
-                'withdrawal.create',
+                'withdrawal.create', 'withdrawal.view',
             ],
             'maintenance' => [
                 'dashboard.view', 'rooms.view', 'rooms.maintenance',

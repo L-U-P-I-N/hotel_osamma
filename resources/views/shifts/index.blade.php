@@ -3,7 +3,7 @@
 @section('page-title', 'الوردية')
 
 @section('content')
-<div x-data="{ withdrawalModal: false, closeModal: false }">
+<div x-data="{ withdrawalModal: false, closeModal: false, editWithdrawal: null }">
 
 @if(session('success'))
 <div class="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">{{ session('success') }}</div>
@@ -127,6 +127,9 @@
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">النوع</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">البيان</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">بواسطة</th>
+                @canany(['withdrawal.edit','withdrawal.delete'])
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">إجراءات</th>
+                @endcanany
             </tr></thead>
             <tbody class="divide-y divide-gray-50">
                 @foreach($activeShift->withdrawals as $w)
@@ -156,6 +159,27 @@
                         <span class="text-gray-300">—</span>
                         @endif
                     </td>
+                    @canany(['withdrawal.edit','withdrawal.delete'])
+                    <td class="px-4 py-2">
+                        <div class="flex items-center gap-1.5">
+                            @can('withdrawal.edit')
+                            @if(!$w->isExchange())
+                            <button type="button"
+                                @click="editWithdrawal = { id: {{ $w->id }}, amount: {{ $w->amount }}, name: '{{ addslashes($w->withdrawn_by_name) }}', notes: '{{ addslashes($w->notes ?? '') }}' }"
+                                class="text-xs px-2 py-1 rounded border border-gray-200 text-gray-600 hover:bg-gray-50 transition">
+                                تعديل
+                            </button>
+                            @endif
+                            @endcan
+                            @can('withdrawal.delete')
+                            <form method="POST" action="{{ route('shifts.withdrawal.destroy', $w) }}" onsubmit="return confirm('حذف هذا السحب؟')">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="text-xs px-2 py-1 rounded border border-red-200 text-red-600 hover:bg-red-50 transition">حذف</button>
+                            </form>
+                            @endcan
+                        </div>
+                    </td>
+                    @endcanany
                 </tr>
                 @endforeach
             </tbody>
@@ -379,6 +403,52 @@
                 تسجيل السحب
             </button>
         </form>
+    </div>
+</div>
+@endcan
+
+{{-- Modal: تعديل سحب --}}
+@can('withdrawal.edit')
+<div x-show="editWithdrawal !== null" x-cloak class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="editWithdrawal=null">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h3 class="font-bold text-gray-800">تعديل السحب</h3>
+            <button @click="editWithdrawal=null" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <template x-if="editWithdrawal">
+        <form method="POST" :action="`/shifts/withdrawals/${editWithdrawal.id}`" class="p-6 space-y-4">
+            @csrf
+            @method('PATCH')
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">المبلغ (ر.ي) *</label>
+                <input type="number" name="amount" step="0.01" min="0.01" required
+                       :value="editWithdrawal.amount"
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">اسم المستلم *</label>
+                <input type="text" name="withdrawn_by_name" required
+                       :value="editWithdrawal.name"
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">السبب / البيان</label>
+                <input type="text" name="notes"
+                       :value="editWithdrawal.notes"
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+            </div>
+            <div class="flex gap-3">
+                <button type="submit" class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition">
+                    حفظ التعديلات
+                </button>
+                <button type="button" @click="editWithdrawal=null" class="flex-1 py-2.5 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition">
+                    إلغاء
+                </button>
+            </div>
+        </form>
+        </template>
     </div>
 </div>
 @endcan

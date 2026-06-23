@@ -13,7 +13,7 @@ return new class extends Migration
         $permission = Permission::findOrCreate('withdrawal.create');
 
         foreach (['admin', 'accountant', 'receptionist'] as $roleName) {
-            $role = Role::findByName($roleName);
+            $role = Role::where('name', $roleName)->where('guard_name', 'web')->first();
             if ($role && !$role->hasPermissionTo($permission)) {
                 $role->givePermissionTo($permission);
             }

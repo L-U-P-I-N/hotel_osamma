@@ -99,7 +99,7 @@
                 @foreach($byCategory as $cat => $data)
                 <div class="flex items-center justify-between text-sm">
                     <div class="flex items-center gap-2">
-                        <div class="w-3 h-3 rounded-full" style="background:{{ $colors[array_key_first($byCategory) == $cat ? 0 : (array_search($cat, array_keys($byCategory->toArray())) % count($colors))] }};"></div>
+                        <div class="w-3 h-3 rounded-full" style="background:{{ $colors[array_search($cat, array_keys($byCategory->toArray())) % count($colors)] }};"></div>
                         <span class="text-gray-700">{{ $categories[$cat] ?? $cat }}</span>
                     </div>
                     <span class="font-semibold text-gray-900">{{ number_format($data['total'], 0) }}</span>

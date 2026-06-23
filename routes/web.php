@@ -149,6 +149,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/shifts/{shift}/handover', [ShiftController::class, 'handover'])->name('shifts.handover');
     });
     Route::post('/shifts/withdrawal', [ShiftController::class, 'addWithdrawal'])->name('shifts.withdrawal')->middleware('permission:withdrawal.create');
+    Route::patch('/shifts/withdrawals/{withdrawal}', [ShiftController::class, 'updateWithdrawal'])->name('shifts.withdrawal.update')->middleware('permission:withdrawal.edit');
+    Route::delete('/shifts/withdrawals/{withdrawal}', [ShiftController::class, 'destroyWithdrawal'])->name('shifts.withdrawal.destroy')->middleware('permission:withdrawal.delete');
     Route::post('/shifts/{shift}/reopen', [ShiftController::class, 'reopen'])->name('shifts.reopen')->middleware('permission:shifts.reopen');
     Route::post('/shifts/{shift}/deduct-salary', [ShiftController::class, 'deductSalary'])->name('shifts.deductSalary')->middleware('permission:users.manage');
 

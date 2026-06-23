@@ -51,7 +51,12 @@ $crudGroups = [
         'create' => 'payments.create',
         'edit'   => 'payments.edit',
         'delete' => 'payments.delete',
-        'extra'  => ['withdrawal.create' => 'تسجيل سحب'],
+        'extra'  => [
+            'withdrawal.create' => 'تسجيل سحب',
+            'withdrawal.view'   => 'عرض السحبيات',
+            'withdrawal.edit'   => 'تعديل السحبيات',
+            'withdrawal.delete' => 'حذف السحبيات',
+        ],
     ],
     [
         'icon'   => '⏰',
