@@ -217,7 +217,7 @@
 <div class="section-title">الإيرادات المستلمة ({{ $payments->count() }})</div>
 @if($payments->isEmpty())
 <table class="data" dir="rtl"><tbody>
-    <tr><td colspan="8" style="text-align:center;padding:10px;color:#999;">لا توجد مدفوعات في هذه الوردية</td></tr>
+    <tr><td colspan="10" style="text-align:center;padding:10px;color:#999;">لا توجد مدفوعات في هذه الوردية</td></tr>
 </tbody></table>
 @else
 <table class="data" dir="rtl">
@@ -225,6 +225,8 @@
         <tr>
             <th>الوقت</th>
             <th>العملة</th>
+            <th style="color:#dc2626;">الناقص</th>
+            <th>الإجمالي</th>
             <th>المبلغ</th>
             <th>نوع الدفع</th>
             <th>تاريخ الدخول</th>
@@ -236,11 +238,18 @@
     <tbody>
         @foreach($payments as $i => $p)
         @php
-            $checkIn = $p->reservation?->check_in_date;
+            $checkIn   = $p->reservation?->check_in_date;
+            $total     = (float)($p->reservation?->total_amount ?? 0);
+            $paid      = (float)($p->reservation?->paid_amount  ?? 0);
+            $remaining = $total - $paid;
         @endphp
         <tr>
             <td class="ltr">{{ $ampm($p->payment_date ?? $p->created_at) }}</td>
             <td class="center">{{ $curLabels[$p->currency] ?? $p->currency }}</td>
+            <td class="ltr" style="font-weight:bold; color:{{ $remaining > 0 ? '#dc2626' : '#16a34a' }};">
+                {{ $remaining > 0 ? number_format($remaining, 0) : 'مسدد' }}
+            </td>
+            <td class="ltr" style="color:#374151;">{{ $total > 0 ? number_format($total, 0) : '—' }}</td>
             <td class="ltr pos" style="font-weight:bold;">{{ number_format($p->amount, 0) }}</td>
             <td>{{ $typeLabels[$p->type] ?? 'دفعة' }}</td>
             <td class="ltr center">{{ $checkIn?->format('d/m/Y') ?? '—' }}</td>
@@ -255,6 +264,8 @@
         <tr class="total-row">
             <td></td>
             <td class="center">{{ $curLabels[$c] }}</td>
+            <td></td>
+            <td></td>
             <td class="ltr pos">{{ number_format($cTotal, 0) }}</td>
             <td colspan="5" style="text-align:right;">المجموع ({{ $curLabels[$c] }})</td>
         </tr>
