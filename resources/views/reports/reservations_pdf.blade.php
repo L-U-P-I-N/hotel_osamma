@@ -76,7 +76,6 @@
             <th>تاريخ الإصدار</th>
             <th>رقم الجوال</th>
             <th>حالة الدفع</th>
-            <th>المدفوع/الإجمالي</th>
             <th>ملاحظات</th>
         </tr>
     </thead>
@@ -105,8 +104,10 @@
             <td>{{ $g?->id_issuer ?? '—' }}</td>
             <td class="ltr">{{ $g?->id_issue_date?->format('d/m/Y') ?? '—' }}</td>
             <td class="ltr">{{ $g?->phone ?? '—' }}</td>
-            <td style="text-align:center;">{{ $psLabels[$ps] ?? $ps }}</td>
-            <td class="ltr">{{ number_format($r->paid_amount, 0) }} / {{ number_format($r->total_amount, 0) }}</td>
+            <td style="text-align:center;">
+                {{ $psLabels[$ps] ?? $ps }}
+                <div style="font-size:7px;color:#888;margin-top:1px;direction:ltr;text-align:left;">{{ number_format($r->paid_amount, 0) }} / {{ number_format($r->total_amount, 0) }}</div>
+            </td>
             <td>
                 @if($rNote){{ $rNote }}@endif
                 @if($rNote && $payNote)<br/>@endif

@@ -154,7 +154,6 @@
             <th>تاريخ الإصدار</th>
             <th>المرافقون</th>
             <th>الدفع</th>
-            <th>المدفوع/الإجمالي</th>
             <th>الجوال</th>
             <th>ملاحظات</th>
         </tr>
@@ -181,8 +180,10 @@
             <td>{{ $res->guest?->id_issuer }}</td>
             <td class="ltr-val">{{ $res->guest?->id_issue_date?->format('Y/m/d') }}</td>
             <td>{{ $cCount > 0 ? $cCount . ' مرافق' : 'لوحده' }}</td>
-            <td>{{ $payLabels[$res->payment_status] ?? $res->payment_status }}</td>
-            <td class="ltr-val">{{ number_format($res->paid_amount, 0) }} / {{ number_format($res->total_amount, 0) }}</td>
+            <td>
+                {{ $payLabels[$res->payment_status] ?? $res->payment_status }}
+                <div style="font-size:7px;color:#888;margin-top:1px;direction:ltr;text-align:left;">{{ number_format($res->paid_amount, 0) }} / {{ number_format($res->total_amount, 0) }}</div>
+            </td>
             <td class="ltr-val">{{ $res->guest?->phone }}</td>
             <td>
                 @php
