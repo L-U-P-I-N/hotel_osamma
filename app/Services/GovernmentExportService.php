@@ -13,7 +13,7 @@ class GovernmentExportService
     {
         $reservation->load(['guest', 'companions', 'room.roomType', 'createdBy']);
 
-        $pdf = Pdf::loadView('exports.government_guest', [
+        $pdf = pdf_load_view('exports.government_guest', [
             'reservation' => $reservation,
             'hotel' => \App\Models\Hotel::first(),
         ]);

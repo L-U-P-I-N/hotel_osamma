@@ -70,7 +70,7 @@ class GuestController extends Controller
         $totalAmount  = $reservations->sum('total_amount');
         $totalBalance = $totalAmount - $totalPaid;
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('guests.statement_pdf', compact('guest', 'reservations', 'totalPaid', 'totalBalance'));
+        $pdf = pdf_load_view('guests.statement_pdf', compact('guest', 'reservations', 'totalPaid', 'totalBalance'));
         $pdf->setPaper('a4', 'portrait');
 
         $dompdf = $pdf->getDomPDF();

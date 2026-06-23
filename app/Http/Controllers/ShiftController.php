@@ -116,7 +116,7 @@ class ShiftController extends Controller
     {
         $shift->load(['user', 'payments.reservation.guest', 'payments.reservation.room', 'withdrawals']);
 
-        $pdf = Pdf::loadView('shifts.report_pdf', compact('shift'));
+        $pdf = pdf_load_view('shifts.report_pdf', compact('shift'));
         $pdf->setPaper('a4', 'portrait');
 
         $dompdf = $pdf->getDomPDF();

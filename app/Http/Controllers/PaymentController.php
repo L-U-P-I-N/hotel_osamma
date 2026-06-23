@@ -56,7 +56,7 @@ class PaymentController extends Controller
     public function slip(\App\Models\Payment $payment)
     {
         $payment->load(['reservation.guest', 'reservation.room', 'receivedBy']);
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('payments.slip', compact('payment'));
+        $pdf = pdf_load_view('payments.slip', compact('payment'));
         $pdf->setPaper([0, 0, 420, 595], 'portrait'); // half A4
 
         $dompdf = $pdf->getDomPDF();

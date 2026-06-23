@@ -365,7 +365,7 @@ class ReservationController extends Controller
     {
         $reservation->load(['guest', 'room.roomType', 'payments', 'extraCharges', 'createdBy']);
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reservations.invoice', compact('reservation'));
+        $pdf = pdf_load_view('reservations.invoice', compact('reservation'));
         $pdf->setPaper('a4', 'portrait');
 
         $dompdf = $pdf->getDomPDF();

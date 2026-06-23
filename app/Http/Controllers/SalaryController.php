@@ -116,7 +116,7 @@ class SalaryController extends Controller
     public function pdf(Salary $salary)
     {
         $salary->load(['employee', 'creator']);
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('salaries.pdf', compact('salary'));
+        $pdf = pdf_load_view('salaries.pdf', compact('salary'));
         $pdf->setPaper('a4', 'portrait');
 
         $dompdf = $pdf->getDomPDF();

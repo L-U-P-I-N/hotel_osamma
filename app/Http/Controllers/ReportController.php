@@ -544,7 +544,7 @@ class ReportController extends Controller
             ->whereIn('status', ['checked_in', 'checked_out'])
             ->groupBy('date')->orderBy('date')->get()
             ->map(fn($r) => ['date' => $r->date, 'percent' => $totalRooms > 0 ? round(($r->count / $totalRooms) * 100) : 0]);
-        $pdf = $this->pdfOptions(\Barryvdh\DomPDF\Facade\Pdf::loadView('reports.occupancy_pdf', compact('dailyOccupancy', 'from', 'to', 'totalRooms')));
+        $pdf = $this->pdfOptions(pdf_load_view('reports.occupancy_pdf', compact('dailyOccupancy', 'from', 'to', 'totalRooms')));
         $pdf->setPaper('a4', 'portrait');
         return $pdf->download('occupancy-' . $from . '-' . $to . '.pdf');
     }
@@ -568,7 +568,7 @@ class ReportController extends Controller
             'checkins' => $u->reservations->count(),
             'revenue'  => $u->payments()->whereDate('payment_date', '>=', $from)->whereDate('payment_date', '<=', $to)->sum('amount'),
         ]);
-        $pdf = $this->pdfOptions(\Barryvdh\DomPDF\Facade\Pdf::loadView('reports.staff_pdf', compact('staffData', 'from', 'to')));
+        $pdf = $this->pdfOptions(pdf_load_view('reports.staff_pdf', compact('staffData', 'from', 'to')));
         $pdf->setPaper('a4', 'portrait');
         return $pdf->download('staff-' . $from . '-' . $to . '.pdf');
     }
@@ -588,7 +588,7 @@ class ReportController extends Controller
             ->whereDate('shift_date', '>=', $from)
             ->whereDate('shift_date', '<=', $to)
             ->orderBy('shift_date')->orderBy('started_at')->get();
-        $pdf = $this->pdfOptions(\Barryvdh\DomPDF\Facade\Pdf::loadView('reports.shifts_pdf', compact('shifts', 'from', 'to')));
+        $pdf = $this->pdfOptions(pdf_load_view('reports.shifts_pdf', compact('shifts', 'from', 'to')));
         $pdf->setPaper('a4', 'landscape');
         return $pdf->download('shifts-' . $from . '-' . $to . '.pdf');
     }
@@ -632,7 +632,7 @@ class ReportController extends Controller
         $total      = $reservations->count();
         $checkedIn  = $reservations->where('status', 'checked_in')->count();
         $checkedOut = $reservations->where('status', 'checked_out')->count();
-        $pdf = $this->pdfOptions(\Barryvdh\DomPDF\Facade\Pdf::loadView('reports.reservations_pdf', compact('reservations', 'from', 'to', 'total', 'checkedIn', 'checkedOut')));
+        $pdf = $this->pdfOptions(pdf_load_view('reports.reservations_pdf', compact('reservations', 'from', 'to', 'total', 'checkedIn', 'checkedOut')));
         $pdf->setPaper('a4', 'landscape');
         return $pdf->download('reservations-' . $from . '-' . $to . '.pdf');
     }
@@ -680,7 +680,7 @@ class ReportController extends Controller
         $foreignPayments = Payment::whereDate('payment_date', '>=', $from)->whereDate('payment_date', '<=', $to)
             ->whereIn('currency', ['SAR', 'USD'])->select('currency', DB::raw('SUM(amount) as total'), DB::raw('COUNT(*) as count'))->groupBy('currency')->get();
 
-        $pdf = $this->pdfOptions(\Barryvdh\DomPDF\Facade\Pdf::loadView('reports.revenue_pdf', compact(
+        $pdf = $this->pdfOptions(pdf_load_view('reports.revenue_pdf', compact(
             'revenueByType', 'revenueByMethod', 'totalRevenue',
             'paymentCount', 'reservationCount', 'avgPayment',
             'topRooms', 'from', 'to', 'foreignPayments'
@@ -704,7 +704,7 @@ class ReportController extends Controller
             ->withCount(['reservations as total_reservations' => fn($q) => $q->whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to)->whereNotIn('status', ['cancelled'])])
             ->withSum(['reservations as total_revenue' => fn($q) => $q->whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to)->whereNotIn('status', ['cancelled'])], 'total_amount')
             ->orderByDesc('total_revenue')->get();
-        $pdf = $this->pdfOptions(\Barryvdh\DomPDF\Facade\Pdf::loadView('reports.rooms_pdf', compact('rooms', 'from', 'to')));
+        $pdf = $this->pdfOptions(pdf_load_view('reports.rooms_pdf', compact('rooms', 'from', 'to')));
         $pdf->setPaper('a4', 'portrait');
         return $pdf->download('rooms-' . $from . '-' . $to . '.pdf');
     }
@@ -725,7 +725,7 @@ class ReportController extends Controller
         $returningGuests = \App\Models\Guest::whereHas('reservations', fn($q) => $q->whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to))->whereHas('reservations', fn($q) => $q->whereDate('check_in_date', '<', $from))->count();
         $byNationality   = \App\Models\Guest::select('nationality', DB::raw('count(*) as count'))->groupBy('nationality')->orderByDesc('count')->limit(10)->get();
         $topGuests       = \App\Models\Guest::withCount(['reservations as period_reservations' => fn($q) => $q->whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to)->whereNotIn('status', ['cancelled'])])->having('period_reservations', '>', 0)->orderByDesc('period_reservations')->limit(10)->get();
-        $pdf = $this->pdfOptions(\Barryvdh\DomPDF\Facade\Pdf::loadView('reports.guests_pdf', compact('totalGuests', 'newGuests', 'returningGuests', 'byNationality', 'topGuests', 'from', 'to')));
+        $pdf = $this->pdfOptions(pdf_load_view('reports.guests_pdf', compact('totalGuests', 'newGuests', 'returningGuests', 'byNationality', 'topGuests', 'from', 'to')));
         $pdf->setPaper('a4', 'portrait');
         return $pdf->download('guests-' . $from . '-' . $to . '.pdf');
     }
@@ -741,7 +741,7 @@ class ReportController extends Controller
     {
         $reservations = Reservation::with(['guest', 'room'])->whereIn('status', ['checked_in', 'checked_out'])->whereRaw('paid_amount < total_amount')->orderByRaw('(total_amount - paid_amount) DESC')->get();
         $totalDebt    = $reservations->sum(fn($r) => $r->total_amount - $r->paid_amount);
-        $pdf = $this->pdfOptions(\Barryvdh\DomPDF\Facade\Pdf::loadView('reports.debts_pdf', compact('reservations', 'totalDebt')));
+        $pdf = $this->pdfOptions(pdf_load_view('reports.debts_pdf', compact('reservations', 'totalDebt')));
         $pdf->setPaper('a4', 'portrait');
         return $pdf->download('debts-' . now()->format('Y-m-d') . '.pdf');
     }
@@ -757,7 +757,7 @@ class ReportController extends Controller
         $salaries = \App\Models\Salary::with('employee')->where('year', $year)->orderBy('month', 'desc')->get();
         $byMonth  = $salaries->groupBy('month')->map(fn($g) => ['count' => $g->count(), 'total_net' => $g->sum('net_salary'), 'total_base' => $g->sum('base_salary'), 'total_bonus' => $g->sum('bonuses'), 'total_ded' => $g->sum('deductions'), 'paid' => $g->where('status', 'paid')->count(), 'pending' => $g->where('status', 'pending')->count()]);
         $totalNet = $salaries->sum('net_salary');
-        $pdf = $this->pdfOptions(\Barryvdh\DomPDF\Facade\Pdf::loadView('reports.salaries_pdf', compact('salaries', 'byMonth', 'year', 'totalNet')));
+        $pdf = $this->pdfOptions(pdf_load_view('reports.salaries_pdf', compact('salaries', 'byMonth', 'year', 'totalNet')));
         $pdf->setPaper('a4', 'portrait');
         return $pdf->download('salaries-' . $year . '.pdf');
     }

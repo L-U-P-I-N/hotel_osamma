@@ -31,7 +31,7 @@ class DailyReportController extends Controller
         $date = $request->input('date', today()->toDateString());
         $reservations = $this->getReservations($date);
 
-        $pdf = Pdf::loadView('reports.daily_pdf', compact('reservations', 'date'));
+        $pdf = pdf_load_view('reports.daily_pdf', compact('reservations', 'date'));
         $pdf->setPaper('a4', 'landscape');
 
         // Point DomPDF at our fonts directory so it can find NotoNaskhArabic
