@@ -272,19 +272,19 @@ table.data tbody tr:nth-child(even) td { background:#f8fafc; }
         <table class="data">
             <thead>
                 <tr>
-                    <th>التاريخ</th>
-                    <th>النوع</th>
-                    <th>الوصف</th>
                     <th>المبلغ</th>
+                    <th>الوصف</th>
+                    <th>النوع</th>
+                    <th>التاريخ</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach($reservation->extraCharges as $charge)
                 <tr>
-                    <td>{{ $charge->charge_date->format('d/m/Y') }}</td>
-                    <td>{{ $charge->type }}</td>
-                    <td>{{ $charge->description ?: '—' }}</td>
                     <td style="color:#dc2626;font-weight:bold;">{{ number_format($charge->amount, 0) }} {{ $reservation->currency_symbol }}</td>
+                    <td>{{ $charge->description ?: '—' }}</td>
+                    <td>{{ $charge->type }}</td>
+                    <td>{{ $charge->charge_date->format('d/m/Y') }}</td>
                 </tr>
                 @endforeach
             </tbody>
@@ -301,12 +301,12 @@ table.data tbody tr:nth-child(even) td { background:#f8fafc; }
         <table class="data">
             <thead>
                 <tr>
-                    <th>التاريخ</th>
-                    <th>المبلغ</th>
-                    <th>الطريقة</th>
-                    <th>سبب الدفع</th>
-                    <th>ملاحظة</th>
                     <th>استلم بواسطة</th>
+                    <th>ملاحظة</th>
+                    <th>سبب الدفع</th>
+                    <th>الطريقة</th>
+                    <th>المبلغ</th>
+                    <th>التاريخ</th>
                 </tr>
             </thead>
             <tbody>
@@ -327,12 +327,12 @@ table.data tbody tr:nth-child(even) td { background:#f8fafc; }
                     };
                 @endphp
                 <tr>
-                    <td style="white-space:nowrap;">{{ $p->payment_date?->format('d/m/Y H:i') }}</td>
-                    <td style="font-weight:bold;color:#16a34a;white-space:nowrap;">{{ number_format($p->amount, 2) }} <span style="font-size:7.5pt;font-weight:normal;color:#9ca3af;">{{ $reservation->currency_symbol }}</span></td>
-                    <td><span style="padding:1px 7px;border-radius:10px;font-size:8pt;background:{{ $ml['bg'] }};color:{{ $ml['color'] }};">{{ $ml['label'] }}</span></td>
-                    <td><span style="padding:1px 7px;border-radius:10px;font-size:8pt;background:{{ $tl['bg'] }};color:{{ $tl['color'] }};">{{ $tl['label'] }}</span></td>
-                    <td style="font-size:8pt;color:#6b7280;">{{ $p->notes ?: '—' }}</td>
                     <td style="color:#374151;">{{ $p->receivedBy?->name ?? '—' }}</td>
+                    <td style="font-size:8pt;color:#6b7280;">{{ $p->notes ?: '—' }}</td>
+                    <td><span style="padding:1px 7px;border-radius:10px;font-size:8pt;background:{{ $tl['bg'] }};color:{{ $tl['color'] }};">{{ $tl['label'] }}</span></td>
+                    <td><span style="padding:1px 7px;border-radius:10px;font-size:8pt;background:{{ $ml['bg'] }};color:{{ $ml['color'] }};">{{ $ml['label'] }}</span></td>
+                    <td style="font-weight:bold;color:#16a34a;white-space:nowrap;">{{ number_format($p->amount, 2) }} <span style="font-size:7.5pt;font-weight:normal;color:#9ca3af;">{{ $reservation->currency_symbol }}</span></td>
+                    <td style="white-space:nowrap;">{{ $p->payment_date?->format('d/m/Y H:i') }}</td>
                 </tr>
                 @endforeach
             </tbody>

@@ -67,27 +67,27 @@
         <div class="section-title">حسب نوع الغرفة</div>
         <table class="data" dir="rtl">
             <thead><tr>
-                <th>نوع الغرفة</th><th>الحجوزات</th><th>الدفعات</th><th>الإجمالي (ر.ي)</th><th>النسبة</th>
+                <th>النسبة</th><th>الإجمالي (ر.ي)</th><th>الدفعات</th><th>الحجوزات</th><th>نوع الغرفة</th>
             </tr></thead>
             <tbody>
                 @forelse($revenueByType as $r)
                 <tr>
-                    <td>{{ $r->name }}</td>
-                    <td class="c">{{ $r->reservation_count }}</td>
-                    <td class="c">{{ $r->payment_count }}</td>
-                    <td>{{ number_format($r->total, 0) }}</td>
                     <td class="c">{{ $totalRevenue > 0 ? round(($r->total/$totalRevenue)*100) : 0 }}%</td>
+                    <td>{{ number_format($r->total, 0) }}</td>
+                    <td class="c">{{ $r->payment_count }}</td>
+                    <td class="c">{{ $r->reservation_count }}</td>
+                    <td>{{ $r->name }}</td>
                 </tr>
                 @empty
                 <tr><td colspan="5" class="c" style="color:#999;padding:6px;">لا توجد بيانات</td></tr>
                 @endforelse
                 @if($revenueByType->isNotEmpty())
                 <tr class="total-row">
-                    <td>الإجمالي</td>
-                    <td class="c">{{ $revenueByType->sum('reservation_count') }}</td>
-                    <td class="c">{{ $revenueByType->sum('payment_count') }}</td>
-                    <td>{{ number_format($totalRevenue, 0) }}</td>
                     <td class="c">100%</td>
+                    <td>{{ number_format($totalRevenue, 0) }}</td>
+                    <td class="c">{{ $revenueByType->sum('payment_count') }}</td>
+                    <td class="c">{{ $revenueByType->sum('reservation_count') }}</td>
+                    <td>الإجمالي</td>
                 </tr>
                 @endif
             </tbody>
@@ -98,25 +98,25 @@
         <div class="section-title">حسب طريقة الدفع</div>
         <table class="data" dir="rtl">
             <thead><tr>
-                <th>الطريقة</th><th>عدد الدفعات</th><th>الإجمالي (ر.ي)</th><th>النسبة</th>
+                <th>النسبة</th><th>الإجمالي (ر.ي)</th><th>عدد الدفعات</th><th>الطريقة</th>
             </tr></thead>
             <tbody>
                 @forelse($revenueByMethod as $m)
                 <tr>
-                    <td>{{ $methodLabels[$m->method] ?? $m->method }}</td>
-                    <td class="c">{{ $m->count }}</td>
-                    <td>{{ number_format($m->total, 0) }}</td>
                     <td class="c">{{ $totalRevenue > 0 ? round(($m->total/$totalRevenue)*100) : 0 }}%</td>
+                    <td>{{ number_format($m->total, 0) }}</td>
+                    <td class="c">{{ $m->count }}</td>
+                    <td>{{ $methodLabels[$m->method] ?? $m->method }}</td>
                 </tr>
                 @empty
                 <tr><td colspan="4" class="c" style="color:#999;padding:6px;">لا توجد بيانات</td></tr>
                 @endforelse
                 @if($revenueByMethod->isNotEmpty())
                 <tr class="total-row">
-                    <td>الإجمالي</td>
-                    <td class="c">{{ $revenueByMethod->sum('count') }}</td>
-                    <td>{{ number_format($totalRevenue, 0) }}</td>
                     <td class="c">100%</td>
+                    <td>{{ number_format($totalRevenue, 0) }}</td>
+                    <td class="c">{{ $revenueByMethod->sum('count') }}</td>
+                    <td>الإجمالي</td>
                 </tr>
                 @endif
             </tbody>
@@ -128,17 +128,17 @@
 <div class="section-title">أعلى الغرف إيرادًا</div>
 <table class="data" dir="rtl">
     <thead><tr>
-        <th>#</th><th>رقم الغرفة</th><th>نوع الغرفة</th><th>الحجوزات</th><th>الإيراد (ر.ي)</th><th>النسبة</th>
+        <th>النسبة</th><th>الإيراد (ر.ي)</th><th>الحجوزات</th><th>نوع الغرفة</th><th>رقم الغرفة</th><th>#</th>
     </tr></thead>
     <tbody>
         @foreach($topRooms as $i => $room)
         <tr>
-            <td class="c">{{ $i + 1 }}</td>
-            <td style="font-weight:bold;">{{ $room->room_number }}</td>
-            <td>{{ $room->type_name }}</td>
-            <td class="c">{{ $room->reservation_count }}</td>
-            <td>{{ number_format($room->total, 0) }}</td>
             <td class="c">{{ $totalRevenue > 0 ? round(($room->total/$totalRevenue)*100) : 0 }}%</td>
+            <td>{{ number_format($room->total, 0) }}</td>
+            <td class="c">{{ $room->reservation_count }}</td>
+            <td>{{ $room->type_name }}</td>
+            <td style="font-weight:bold;">{{ $room->room_number }}</td>
+            <td class="c">{{ $i + 1 }}</td>
         </tr>
         @endforeach
     </tbody>

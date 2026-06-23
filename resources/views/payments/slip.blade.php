@@ -42,8 +42,8 @@
     }
     .info-table { width: 100%; border-collapse: collapse; margin-bottom: 22px; }
     .info-table td { padding: 6px 8px; font-size: 12px; }
-    .info-table td:first-child { font-weight: bold; color: #374151; width: 140px; }
-    .info-table td:last-child   { color: #111827; }
+    .info-table td:last-child { font-weight: bold; color: #374151; width: 140px; }
+    .info-table td:first-child  { color: #111827; }
     .info-table tr:nth-child(odd) td { background: #f9fafb; }
     .amount-box {
         border: 2px solid #0F4C75;
@@ -113,32 +113,32 @@
 
 <table class="info-table">
     <tr>
-        <td>رقم الإيصال:</td>
         <td><span class="ltr">#{{ str_pad($payment->id, 6, '0', STR_PAD_LEFT) }}</span></td>
+        <td>رقم الإيصال:</td>
     </tr>
     <tr>
-        <td>النزيل:</td>
         <td>{{ $payment->reservation->guest->full_name ?? '—' }}</td>
+        <td>النزيل:</td>
     </tr>
     <tr>
-        <td>الغرفة:</td>
         <td>{{ $payment->reservation->display_room_number ?? '—' }}</td>
+        <td>الغرفة:</td>
     </tr>
     <tr>
-        <td>تاريخ الوصول:</td>
         <td>{{ $payment->reservation->check_in_date?->format('d/m/Y') ?? '—' }}</td>
+        <td>تاريخ الوصول:</td>
     </tr>
     <tr>
-        <td>تاريخ المغادرة:</td>
         <td>{{ $payment->reservation->check_out_date?->format('d/m/Y') ?? '—' }}</td>
+        <td>تاريخ المغادرة:</td>
     </tr>
     <tr>
-        <td>تاريخ الدفع:</td>
         <td>{{ $payment->payment_date?->format('d/m/Y H:i') ?? now()->format('d/m/Y H:i') }}</td>
+        <td>تاريخ الدفع:</td>
     </tr>
     <tr>
-        <td>موظف الاستقبال:</td>
         <td>{{ $payment->receivedBy->name ?? auth()->user()->name }}</td>
+        <td>موظف الاستقبال:</td>
     </tr>
 </table>
 
@@ -162,18 +162,18 @@
 @endphp
 <table class="info-table">
     <tr>
-        <td>إجمالي الحجز:</td>
         <td>{{ number_format($totalAmount, 0) }} ر.ي</td>
+        <td>إجمالي الحجز:</td>
     </tr>
     <tr>
-        <td>إجمالي المدفوع:</td>
         <td>{{ number_format($totalPaid, 0) }} ر.ي</td>
+        <td>إجمالي المدفوع:</td>
     </tr>
     <tr>
-        <td>الرصيد المتبقي:</td>
         <td style="font-weight:bold; color:{{ $balance > 0 ? '#dc2626' : '#16a34a' }};">
             {{ number_format($balance, 0) }} ر.ي
         </td>
+        <td>الرصيد المتبقي:</td>
     </tr>
 </table>
 

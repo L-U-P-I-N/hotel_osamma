@@ -90,30 +90,30 @@
             $payNote  = $strip($payNote);
         @endphp
         <tr>
-            <td style="text-align:center;">{{ $r->id }}</td>
-            <td style="font-weight:bold;text-align:center;">{{ $r->display_room_number }}</td>
-            <td>{{ $g?->full_name ?? '—' }}</td>
-            <td>{{ $g?->nationality ?? '—' }}</td>
-            <td>{{ $g?->occupation ?? '—' }}</td>
-            <td>{{ $r->origin ?? '—' }}</td>
-            <td class="ltr">{{ $r->check_in_date?->format('d/m/Y') ?? '—' }}</td>
-            <td class="ltr">{{ $r->check_in_time ?? '—' }}</td>
-            <td>{{ $r->purpose ?? '—' }}</td>
-            <td>{{ $idTypeMap[$g?->id_type] ?? $g?->id_type ?? '—' }}</td>
-            <td class="ltr">{{ $g?->id_number ?? '—' }}</td>
-            <td>{{ $g?->id_issuer ?? '—' }}</td>
-            <td class="ltr">{{ $g?->id_issue_date?->format('d/m/Y') ?? '—' }}</td>
-            <td class="ltr">{{ $g?->phone ?? '—' }}</td>
-            <td style="text-align:center;">
-                {{ $psLabels[$ps] ?? $ps }}
-                <div style="font-size:7px;color:#888;margin-top:1px;direction:ltr;text-align:left;">{{ number_format($r->paid_amount, 0) }} / {{ number_format($r->total_amount, 0) }}</div>
-            </td>
             <td>
                 @if($rNote){{ $rNote }}@endif
                 @if($rNote && $payNote)<br/>@endif
                 @if($payNote)[دفع] {{ $payNote }}@endif
                 @if(!$rNote && !$payNote)—@endif
             </td>
+            <td style="text-align:center;">
+                {{ $psLabels[$ps] ?? $ps }}
+                <div style="font-size:7px;color:#888;margin-top:1px;direction:ltr;text-align:left;">{{ number_format($r->paid_amount, 0) }} / {{ number_format($r->total_amount, 0) }}</div>
+            </td>
+            <td class="ltr">{{ $g?->phone ?? '—' }}</td>
+            <td class="ltr">{{ $g?->id_issue_date?->format('d/m/Y') ?? '—' }}</td>
+            <td>{{ $g?->id_issuer ?? '—' }}</td>
+            <td class="ltr">{{ $g?->id_number ?? '—' }}</td>
+            <td>{{ $idTypeMap[$g?->id_type] ?? $g?->id_type ?? '—' }}</td>
+            <td>{{ $r->purpose ?? '—' }}</td>
+            <td class="ltr">{{ $r->check_in_time ?? '—' }}</td>
+            <td class="ltr">{{ $r->check_in_date?->format('d/m/Y') ?? '—' }}</td>
+            <td>{{ $r->origin ?? '—' }}</td>
+            <td>{{ $g?->occupation ?? '—' }}</td>
+            <td>{{ $g?->nationality ?? '—' }}</td>
+            <td>{{ $g?->full_name ?? '—' }}</td>
+            <td style="font-weight:bold;text-align:center;">{{ $r->display_room_number }}</td>
+            <td style="text-align:center;">{{ $r->id }}</td>
         </tr>
         @endforeach
     </tbody>

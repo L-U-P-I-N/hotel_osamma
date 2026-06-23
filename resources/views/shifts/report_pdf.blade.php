@@ -157,35 +157,35 @@
 <table class="data" dir="rtl">
     <thead>
         <tr>
-            <th>#</th>
-            <th>الغرفة</th>
-            <th>النزيل</th>
-            <th>نوع الدفع</th>
-            <th>المبلغ</th>
-            <th>العملة</th>
             <th>الوقت</th>
+            <th>العملة</th>
+            <th>المبلغ</th>
+            <th>نوع الدفع</th>
+            <th>النزيل</th>
+            <th>الغرفة</th>
+            <th>#</th>
         </tr>
     </thead>
     <tbody>
         @foreach($payments as $i => $p)
         <tr>
-            <td class="center">{{ $i + 1 }}</td>
-            <td class="center">{{ $p->reservation?->display_room_number ?? '—' }}</td>
-            <td>{{ $p->reservation?->guest?->full_name }}</td>
-            <td>{{ $payLabels[$p->payment_type] ?? 'دفعة' }}</td>
-            <td class="ltr" style="font-weight:bold;">{{ number_format($p->amount, 0) }}</td>
-            <td class="center">{{ $curLabels[$p->currency] ?? $p->currency }}</td>
             <td class="ltr">{{ $p->created_at?->format('H:i') }}</td>
+            <td class="center">{{ $curLabels[$p->currency] ?? $p->currency }}</td>
+            <td class="ltr" style="font-weight:bold;">{{ number_format($p->amount, 0) }}</td>
+            <td>{{ $payLabels[$p->payment_type] ?? 'دفعة' }}</td>
+            <td>{{ $p->reservation?->guest?->full_name }}</td>
+            <td class="center">{{ $p->reservation?->display_room_number ?? '—' }}</td>
+            <td class="center">{{ $i + 1 }}</td>
         </tr>
         @endforeach
         @foreach(['YER','SAR','USD'] as $c)
         @php $cTotal = $payments->where('currency', $c)->sum(fn($p) => (float)$p->amount); @endphp
         @if($cTotal > 0)
         <tr class="total-row">
-            <td colspan="4" style="text-align:right;">المجموع ({{ $curLabels[$c] }})</td>
-            <td class="ltr pos">{{ number_format($cTotal, 0) }}</td>
-            <td class="center">{{ $curLabels[$c] }}</td>
             <td></td>
+            <td class="center">{{ $curLabels[$c] }}</td>
+            <td class="ltr pos">{{ number_format($cTotal, 0) }}</td>
+            <td colspan="4" style="text-align:right;">المجموع ({{ $curLabels[$c] }})</td>
         </tr>
         @endif
         @endforeach
@@ -201,26 +201,22 @@
 <table class="data" dir="rtl">
     <thead>
         <tr>
-            <th>#</th>
-            <th>المستلم</th>
-            <th>البيان / السبب</th>
-            <th>النوع</th>
-            <th>المبلغ</th>
-            <th>العملة</th>
-            <th>مقابل</th>
-            <th>بواسطة</th>
             <th>الوقت</th>
+            <th>بواسطة</th>
+            <th>مقابل</th>
+            <th>العملة</th>
+            <th>المبلغ</th>
+            <th>النوع</th>
+            <th>البيان / السبب</th>
+            <th>المستلم</th>
+            <th>#</th>
         </tr>
     </thead>
     <tbody>
         @foreach($withdrawals as $i => $w)
         <tr @if($w->isExchange()) class="exchange-row" @endif>
-            <td class="center">{{ $i + 1 }}</td>
-            <td>{{ $w->withdrawn_by_name }}</td>
-            <td>{{ $w->notes }}</td>
-            <td class="center">{{ $w->type_label }}</td>
-            <td class="ltr" style="font-weight:bold;color:#dc2626;">{{ number_format($w->amount, 0) }}</td>
-            <td class="center">{{ $curLabels[$w->currency] ?? $w->currency }}</td>
+            <td class="ltr">{{ $w->created_at?->format('H:i') }}</td>
+            <td>{{ ($w->handed_by_name && $w->handed_by_name !== '-') ? $w->handed_by_name : '—' }}</td>
             <td class="ltr">
                 @if($w->isExchange() && $w->exchange_to_amount)
                 {{ number_format($w->exchange_to_amount, 0) }} {{ $curLabels[$w->exchange_to_currency] ?? '' }}
@@ -228,18 +224,22 @@
                 —
                 @endif
             </td>
-            <td>{{ ($w->handed_by_name && $w->handed_by_name !== '-') ? $w->handed_by_name : '—' }}</td>
-            <td class="ltr">{{ $w->created_at?->format('H:i') }}</td>
+            <td class="center">{{ $curLabels[$w->currency] ?? $w->currency }}</td>
+            <td class="ltr" style="font-weight:bold;color:#dc2626;">{{ number_format($w->amount, 0) }}</td>
+            <td class="center">{{ $w->type_label }}</td>
+            <td>{{ $w->notes }}</td>
+            <td>{{ $w->withdrawn_by_name }}</td>
+            <td class="center">{{ $i + 1 }}</td>
         </tr>
         @endforeach
         @foreach(['YER','SAR','USD'] as $c)
         @php $cTotal = $withdrawals->where('currency', $c)->sum(fn($w) => (float)$w->amount); @endphp
         @if($cTotal > 0)
         <tr class="total-row">
-            <td colspan="4" style="text-align:right;">مجموع السحبيات ({{ $curLabels[$c] }})</td>
-            <td class="ltr neg">{{ number_format($cTotal, 0) }}</td>
+            <td colspan="3"></td>
             <td class="center">{{ $curLabels[$c] }}</td>
-            <td colspan="2"></td>
+            <td class="ltr neg">{{ number_format($cTotal, 0) }}</td>
+            <td colspan="4" style="text-align:right;">مجموع السحبيات ({{ $curLabels[$c] }})</td>
         </tr>
         @endif
         @endforeach
@@ -253,10 +253,10 @@
     <table style="width:100%;border-collapse:collapse;font-size:9.5px;direction:rtl;" dir="rtl">
         <thead>
             <tr style="background:#e8f0f7;">
-                <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;">العملة</th>
-                <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;">الإيرادات</th>
-                <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;">السحبيات</th>
                 <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;">الصافي المتبقي</th>
+                <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;">السحبيات</th>
+                <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;">الإيرادات</th>
+                <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;">العملة</th>
             </tr>
         </thead>
         <tbody>
@@ -272,17 +272,17 @@
             @endphp
             @forelse($summaryRows as $row)
             <tr>
-                <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;font-weight:bold;">
-                    {{ $curLabels[$row['cur']] }}
-                </td>
-                <td style="padding:4px 8px;border:1px solid #ddd;direction:ltr;text-align:left;" class="pos">
-                    {{ number_format($row['recv'], 0) }}
+                <td style="padding:4px 8px;border:1px solid #ddd;direction:ltr;text-align:left;font-weight:bold;" class="net">
+                    {{ number_format($row['net'], 0) }}
                 </td>
                 <td style="padding:4px 8px;border:1px solid #ddd;direction:ltr;text-align:left;" class="neg">
                     {{ number_format($row['wdr'], 0) }}
                 </td>
-                <td style="padding:4px 8px;border:1px solid #ddd;direction:ltr;text-align:left;font-weight:bold;" class="net">
-                    {{ number_format($row['net'], 0) }}
+                <td style="padding:4px 8px;border:1px solid #ddd;direction:ltr;text-align:left;" class="pos">
+                    {{ number_format($row['recv'], 0) }}
+                </td>
+                <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;font-weight:bold;">
+                    {{ $curLabels[$row['cur']] }}
                 </td>
             </tr>
             @empty

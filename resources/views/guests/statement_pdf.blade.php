@@ -85,25 +85,25 @@
     </div>
     <table style="width:100%; border-collapse:collapse; font-size:11px;">
         <tr style="background:#e8f0f7;">
-            <th style="padding:6px 10px; text-align:right; color:#0F4C75;">تاريخ الدفع</th>
-            <th style="padding:6px 10px; text-align:right; color:#0F4C75;">طريقة الدفع</th>
-            <th style="padding:6px 10px; text-align:right; color:#0F4C75;">المبلغ (ر.ي)</th>
             <th style="padding:6px 10px; text-align:right; color:#0F4C75;">الموظف</th>
+            <th style="padding:6px 10px; text-align:right; color:#0F4C75;">المبلغ (ر.ي)</th>
+            <th style="padding:6px 10px; text-align:right; color:#0F4C75;">طريقة الدفع</th>
+            <th style="padding:6px 10px; text-align:right; color:#0F4C75;">تاريخ الدفع</th>
         </tr>
         @forelse($res->payments as $pmt)
         <tr style="border-bottom:1px solid #f3f4f6;">
-            <td style="padding:6px 10px;">{{ $pmt->payment_date?->format('d/m/Y H:i') ?? '—' }}</td>
-            <td style="padding:6px 10px;">{{ match($pmt->method) {'cash'=>'نقداً','bank_transfer'=>'تحويل بنكي','pos'=>'POS',default=>$pmt->method} }}</td>
-            <td style="padding:6px 10px; font-weight:bold;">{{ number_format($pmt->amount, 0) }}</td>
             <td style="padding:6px 10px; color:#6b7280;">{{ $pmt->receivedBy->name ?? '—' }}</td>
+            <td style="padding:6px 10px; font-weight:bold;">{{ number_format($pmt->amount, 0) }}</td>
+            <td style="padding:6px 10px;">{{ match($pmt->method) {'cash'=>'نقداً','bank_transfer'=>'تحويل بنكي','pos'=>'POS',default=>$pmt->method} }}</td>
+            <td style="padding:6px 10px;">{{ $pmt->payment_date?->format('d/m/Y H:i') ?? '—' }}</td>
         </tr>
         @empty
         <tr><td colspan="4" style="padding:8px 10px; color:#9ca3af; text-align:center;">لا توجد دفعات</td></tr>
         @endforelse
         <tr style="background:#f9fafb; font-weight:bold;">
-            <td colspan="2" style="padding:6px 10px; color:#374151;">إجمالي الحجز: {{ number_format($res->total_amount, 0) }} ر.ي</td>
-            <td style="padding:6px 10px; color:#16a34a;">مدفوع: {{ number_format($res->paid_amount, 0) }}</td>
             <td style="padding:6px 10px; color:{{ $balance > 0 ? '#dc2626' : '#16a34a' }};">متبقي: {{ number_format($balance, 0) }}</td>
+            <td style="padding:6px 10px; color:#16a34a;">مدفوع: {{ number_format($res->paid_amount, 0) }}</td>
+            <td colspan="2" style="padding:6px 10px; color:#374151;">إجمالي الحجز: {{ number_format($res->total_amount, 0) }} ر.ي</td>
         </tr>
     </table>
 </div>

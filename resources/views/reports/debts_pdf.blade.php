@@ -49,35 +49,35 @@
 <table class="data" dir="rtl">
     <thead>
         <tr>
-            <th>النزيل</th>
-            <th>الغرفة</th>
-            <th>الحالة</th>
-            <th>الإجمالي (ر.ي)</th>
-            <th>المدفوع (ر.ي)</th>
-            <th>المتبقي (ر.ي)</th>
-            <th>تاريخ الدخول</th>
             <th>تاريخ الخروج</th>
+            <th>تاريخ الدخول</th>
+            <th>المتبقي (ر.ي)</th>
+            <th>المدفوع (ر.ي)</th>
+            <th>الإجمالي (ر.ي)</th>
+            <th>الحالة</th>
+            <th>الغرفة</th>
+            <th>النزيل</th>
         </tr>
     </thead>
     <tbody>
         @foreach($reservations as $res)
         @php $balance = $res->total_amount - $res->paid_amount; @endphp
         <tr>
-            <td>{{ $res->guest?->full_name ?? '—' }}</td>
-            <td style="font-weight:bold;text-align:center;">{{ $res->display_room_number }}</td>
-            <td style="text-align:center;">{{ $res->status === 'checked_in' ? 'داخل' : 'خرج' }}</td>
-            <td class="ltr">{{ number_format($res->total_amount, 0) }}</td>
-            <td class="ltr" style="color:#16a34a;">{{ number_format($res->paid_amount, 0) }}</td>
-            <td class="ltr" style="font-weight:bold;color:#dc2626;">{{ number_format($balance, 0) }}</td>
-            <td class="ltr">{{ $res->check_in_date?->format('d/m/Y') ?? '—' }}{{ $res->check_in_time ? ' ' . $res->check_in_time : '' }}</td>
             <td class="ltr">{{ $res->check_out_date?->format('d/m/Y') ?? '—' }}</td>
+            <td class="ltr">{{ $res->check_in_date?->format('d/m/Y') ?? '—' }}{{ $res->check_in_time ? ' ' . $res->check_in_time : '' }}</td>
+            <td class="ltr" style="font-weight:bold;color:#dc2626;">{{ number_format($balance, 0) }}</td>
+            <td class="ltr" style="color:#16a34a;">{{ number_format($res->paid_amount, 0) }}</td>
+            <td class="ltr">{{ number_format($res->total_amount, 0) }}</td>
+            <td style="text-align:center;">{{ $res->status === 'checked_in' ? 'داخل' : 'خرج' }}</td>
+            <td style="font-weight:bold;text-align:center;">{{ $res->display_room_number }}</td>
+            <td>{{ $res->guest?->full_name ?? '—' }}</td>
         </tr>
         @endforeach
         <tr class="total-row">
-            <td colspan="5">إجمالي المبالغ غير المحصّلة</td>
+            <td></td>
+            <td></td>
             <td class="ltr">{{ number_format($totalDebt, 0) }}</td>
-            <td></td>
-            <td></td>
+            <td colspan="5">إجمالي المبالغ غير المحصّلة</td>
         </tr>
     </tbody>
 </table>

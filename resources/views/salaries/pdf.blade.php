@@ -163,26 +163,26 @@
 <table class="salary-table">
     <thead>
         <tr>
-            <th>البند</th>
             <th style="text-align:left;">المبلغ (ر.ي)</th>
+            <th>البند</th>
         </tr>
     </thead>
     <tbody>
         <tr>
-            <td>الراتب الأساسي</td>
             <td class="ltr">{{ number_format($salary->base_salary, 0) }}</td>
+            <td>الراتب الأساسي</td>
         </tr>
         <tr>
-            <td style="color:#16a34a;">المكافآت والبدلات</td>
             <td class="ltr" style="color:#16a34a;">+{{ number_format($salary->bonuses, 0) }}</td>
+            <td style="color:#16a34a;">المكافآت والبدلات</td>
         </tr>
         <tr>
-            <td style="color:#dc2626;">الخصومات</td>
             <td class="ltr" style="color:#dc2626;">-{{ number_format($salary->deductions, 0) }}</td>
+            <td style="color:#dc2626;">الخصومات</td>
         </tr>
         <tr class="total-row">
-            <td>صافي الراتب</td>
             <td class="ltr">{{ number_format($salary->net_salary, 0) }}</td>
+            <td>صافي الراتب</td>
         </tr>
     </tbody>
 </table>

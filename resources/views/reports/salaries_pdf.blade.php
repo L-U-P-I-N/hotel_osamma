@@ -54,41 +54,41 @@
 <table class="data" dir="rtl">
     <thead>
         <tr>
-            <th>الشهر</th>
-            <th>الموظفين</th>
-            <th>الأساسي (ر.ي)</th>
-            <th>المكافآت (ر.ي)</th>
-            <th>الخصومات (ر.ي)</th>
-            <th>الصافي (ر.ي)</th>
             <th>مدفوع / معلق</th>
+            <th>الصافي (ر.ي)</th>
+            <th>الخصومات (ر.ي)</th>
+            <th>المكافآت (ر.ي)</th>
+            <th>الأساسي (ر.ي)</th>
+            <th>الموظفين</th>
+            <th>الشهر</th>
         </tr>
     </thead>
     <tbody>
         @forelse($byMonth as $month => $data)
         <tr>
-            <td>{{ $monthNames[$month] ?? $month }}</td>
-            <td class="ltr" style="text-align:center;">{{ $data['count'] }}</td>
-            <td class="ltr">{{ number_format($data['total_base'], 0) }}</td>
-            <td class="ltr" style="color:#16a34a;">{{ number_format($data['total_bonus'], 0) }}</td>
-            <td class="ltr" style="color:#dc2626;">{{ number_format($data['total_ded'], 0) }}</td>
-            <td class="ltr" style="font-weight:bold;color:#0F4C75;">{{ number_format($data['total_net'], 0) }}</td>
             <td>
                 <span class="badge-paid">{{ $data['paid'] }} مدفوع</span>
                 @if($data['pending'] > 0) / <span class="badge-pending">{{ $data['pending'] }} معلق</span>@endif
             </td>
+            <td class="ltr" style="font-weight:bold;color:#0F4C75;">{{ number_format($data['total_net'], 0) }}</td>
+            <td class="ltr" style="color:#dc2626;">{{ number_format($data['total_ded'], 0) }}</td>
+            <td class="ltr" style="color:#16a34a;">{{ number_format($data['total_bonus'], 0) }}</td>
+            <td class="ltr">{{ number_format($data['total_base'], 0) }}</td>
+            <td class="ltr" style="text-align:center;">{{ $data['count'] }}</td>
+            <td>{{ $monthNames[$month] ?? $month }}</td>
         </tr>
         @empty
         <tr><td colspan="7" style="text-align:center;padding:8px;color:#999;">لا توجد رواتب مسجلة</td></tr>
         @endforelse
         @if($byMonth->isNotEmpty())
         <tr class="total-row">
-            <td>الإجمالي</td>
-            <td class="ltr" style="text-align:center;">—</td>
-            <td class="ltr">{{ number_format($byMonth->sum('total_base'), 0) }}</td>
-            <td class="ltr">{{ number_format($byMonth->sum('total_bonus'), 0) }}</td>
-            <td class="ltr">{{ number_format($byMonth->sum('total_ded'), 0) }}</td>
-            <td class="ltr">{{ number_format($totalNet, 0) }}</td>
             <td>—</td>
+            <td class="ltr">{{ number_format($totalNet, 0) }}</td>
+            <td class="ltr">{{ number_format($byMonth->sum('total_ded'), 0) }}</td>
+            <td class="ltr">{{ number_format($byMonth->sum('total_bonus'), 0) }}</td>
+            <td class="ltr">{{ number_format($byMonth->sum('total_base'), 0) }}</td>
+            <td class="ltr" style="text-align:center;">—</td>
+            <td>الإجمالي</td>
         </tr>
         @endif
     </tbody>
@@ -99,25 +99,25 @@
 <table class="data" dir="rtl">
     <thead>
         <tr>
-            <th>الموظف</th>
-            <th>الشهر</th>
-            <th>الأساسي (ر.ي)</th>
-            <th>المكافآت (ر.ي)</th>
-            <th>الخصومات (ر.ي)</th>
-            <th>الصافي (ر.ي)</th>
             <th>الحالة</th>
+            <th>الصافي (ر.ي)</th>
+            <th>الخصومات (ر.ي)</th>
+            <th>المكافآت (ر.ي)</th>
+            <th>الأساسي (ر.ي)</th>
+            <th>الشهر</th>
+            <th>الموظف</th>
         </tr>
     </thead>
     <tbody>
         @foreach($salaries as $sal)
         <tr>
-            <td>{{ $sal->employee?->name ?? '—' }}</td>
-            <td>{{ $monthNames[$sal->month] ?? $sal->month }} {{ $sal->year }}</td>
-            <td class="ltr">{{ number_format($sal->base_salary, 0) }}</td>
-            <td class="ltr" style="color:#16a34a;">{{ number_format($sal->bonuses, 0) }}</td>
-            <td class="ltr" style="color:#dc2626;">{{ number_format($sal->deductions, 0) }}</td>
-            <td class="ltr" style="font-weight:bold;color:#0F4C75;">{{ number_format($sal->net_salary, 0) }}</td>
             <td>{{ $sal->status === 'paid' ? 'مدفوع' : 'معلق' }}</td>
+            <td class="ltr" style="font-weight:bold;color:#0F4C75;">{{ number_format($sal->net_salary, 0) }}</td>
+            <td class="ltr" style="color:#dc2626;">{{ number_format($sal->deductions, 0) }}</td>
+            <td class="ltr" style="color:#16a34a;">{{ number_format($sal->bonuses, 0) }}</td>
+            <td class="ltr">{{ number_format($sal->base_salary, 0) }}</td>
+            <td>{{ $monthNames[$sal->month] ?? $sal->month }} {{ $sal->year }}</td>
+            <td>{{ $sal->employee?->name ?? '—' }}</td>
         </tr>
         @endforeach
     </tbody>
