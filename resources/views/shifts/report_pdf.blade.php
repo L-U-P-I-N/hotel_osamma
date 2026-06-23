@@ -179,7 +179,9 @@
     }
 
     $netYer = (float)($shift->total_received_yer ?? 0) - (float)($shift->total_withdrawals_yer ?? 0);
-    $hasShortfall = $shift->is_closed && $shift->actual_amount !== null && $shift->shortfall !== null && $shift->shortfall > 0;
+    // shortfall = actual_amount - netBalance → negative means deficit
+    $hasShortfall = $shift->is_closed && $shift->actual_amount !== null && $shift->shortfall !== null && $shift->shortfall < 0;
+    $deficitAmount = $hasShortfall ? abs((float)$shift->shortfall) : 0;
 @endphp
 
 {{-- Header --}}
@@ -382,41 +384,48 @@
     @endif
 </div>
 
-{{-- Deficit / Cash Count Section --}}
+{{-- Settlement / Deficit Section --}}
 @if($shift->is_closed && $shift->actual_amount !== null)
-<div class="deficit-box">
-    <div class="deficit-title">
-        @if($hasShortfall)
-            عجز الوردية
-        @else
-            تسوية الوردية
-        @endif
+<div class="deficit-box" style="{{ $hasShortfall ? '' : 'border-color:#0F4C75;background:#f0f5ff;' }}">
+    <div class="deficit-title" style="{{ $hasShortfall ? '' : 'color:#0F4C75;border-color:#93c5fd;' }}">
+        {{ $hasShortfall ? 'عجز الوردية' : 'تسوية الوردية' }}
     </div>
     <table style="width:100%;border-collapse:collapse;font-size:9.5px;direction:rtl;" dir="rtl">
-        <tr style="background:#fef2f2;">
-            <td style="padding:5px 8px;border:1px solid #fca5a5;font-weight:bold;" class="net-blue">
-                {{ number_format($shift->actual_amount, 0) }} ر.ي
-            </td>
-            <td style="padding:5px 8px;border:1px solid #fca5a5;background:#fef2f2;">
-                المبلغ الفعلي عند الإقفال
-            </td>
-            <td style="padding:5px 8px;border:1px solid #fca5a5;font-weight:bold;" class="net-blue">
+        {{-- Row 1: Computed vs Actual --}}
+        <tr>
+            <td style="padding:5px 8px;border:1px solid #cdd8e3;background:#f8fafc;font-size:8.5px;color:#555;">المبلغ المحسوب (الصافي)</td>
+            <td style="padding:5px 8px;border:1px solid #cdd8e3;font-weight:bold;direction:ltr;text-align:left;" class="net-blue">
                 {{ number_format($netYer, 0) }} ر.ي
             </td>
-            <td style="padding:5px 8px;border:1px solid #fca5a5;background:#fef2f2;">
-                المبلغ المحسوب (الصافي)
+            <td style="padding:5px 8px;border:1px solid #cdd8e3;background:#f8fafc;font-size:8.5px;color:#555;">المبلغ الفعلي عند الإقفال</td>
+            <td style="padding:5px 8px;border:1px solid #cdd8e3;font-weight:bold;direction:ltr;text-align:left;" class="{{ $hasShortfall ? 'neg' : 'pos' }}">
+                {{ number_format($shift->actual_amount, 0) }} ر.ي
             </td>
         </tr>
+        {{-- Row 2: Deficit amount (if any) --}}
         @if($hasShortfall)
-        <tr>
-            <td colspan="2" style="padding:5px 8px;border:1px solid #fca5a5;font-weight:bold;font-size:11px;" class="neg">
-                {{ number_format($shift->shortfall, 0) }} ر.ي
+        <tr style="background:#fff0f0;">
+            <td style="padding:5px 8px;border:1px solid #fca5a5;background:#fef2f2;font-size:8.5px;font-weight:bold;" class="neg">العجز (الفرق المخصوم)</td>
+            <td style="padding:5px 8px;border:1px solid #fca5a5;font-weight:bold;font-size:12px;direction:ltr;text-align:left;" class="neg">
+                {{ number_format($deficitAmount, 0) }} ر.ي
             </td>
-            <td colspan="2" style="padding:5px 8px;border:1px solid #fca5a5;background:#fff5f5;font-weight:bold;" class="neg">
-                العجز (يُخصم من الراتب)
+            <td style="padding:5px 8px;border:1px solid #fca5a5;background:#fef2f2;font-size:8.5px;color:#555;">خصم من الراتب</td>
+            <td style="padding:5px 8px;border:1px solid #fca5a5;font-size:8.5px;">
                 @if($shift->salary_deducted_at)
-                    — تم الخصم في {{ $shift->salary_deducted_at->format('d/m/Y') }}
+                    <span class="pos" style="font-weight:bold;">تم الخصم</span>
+                    — {{ $shift->salary_deducted_at->format('d/m/Y') }}
+                @else
+                    <span style="color:#d97706;">لم يُخصم بعد</span>
                 @endif
+            </td>
+        </tr>
+        @endif
+        {{-- Row 3: Reason/Notes (if any) --}}
+        @if($shift->notes)
+        <tr>
+            <td style="padding:5px 8px;border:1px solid #cdd8e3;background:#f8fafc;font-size:8.5px;color:#555;white-space:nowrap;">سبب / ملاحظات الإقفال</td>
+            <td colspan="3" style="padding:5px 8px;border:1px solid #cdd8e3;font-size:9px;color:#374151;">
+                {{ $shift->notes }}
             </td>
         </tr>
         @endif
