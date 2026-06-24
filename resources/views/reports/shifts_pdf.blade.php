@@ -45,8 +45,6 @@
         <tr>
             <th>متبقي YER</th>
             <th>سحبيات YER</th>
-            <th>مستلم USD</th>
-            <th>مستلم SAR</th>
             <th>مستلم YER</th>
             <th>عدد الدفعات</th>
             <th>الحالة</th>
@@ -64,8 +62,6 @@
         <tr>
             <td style="font-weight:bold; color:{{ $netYER >= 0 ? '#16a34a' : '#dc2626' }};">{{ number_format($netYER, 0) }}</td>
             <td style="color:#dc2626;">{{ $shift->total_withdrawals_yer > 0 ? number_format($shift->total_withdrawals_yer, 0) : '—' }}</td>
-            <td>{{ $shift->total_received_usd > 0 ? number_format($shift->total_received_usd, 2) : '—' }}</td>
-            <td>{{ $shift->total_received_sar > 0 ? number_format($shift->total_received_sar, 0) : '—' }}</td>
             <td style="font-weight:bold; color:#0F4C75;">{{ number_format($shift->total_received_yer, 0) }}</td>
             <td class="c">{{ $shift->payments->count() }}</td>
             <td class="c">
@@ -84,8 +80,6 @@
         <tr class="total-row">
             <td>{{ number_format($shifts->sum('total_received_yer') - $shifts->sum('total_withdrawals_yer'), 0) }}</td>
             <td>{{ number_format($shifts->sum('total_withdrawals_yer'), 0) }}</td>
-            <td>{{ number_format($shifts->sum('total_received_usd'), 2) }}</td>
-            <td>{{ number_format($shifts->sum('total_received_sar'), 0) }}</td>
             <td>{{ number_format($shifts->sum('total_received_yer'), 0) }}</td>
             <td class="c">{{ $shifts->sum(fn($s) => $s->payments->count()) }}</td>
             <td colspan="5">الإجمالي</td>
