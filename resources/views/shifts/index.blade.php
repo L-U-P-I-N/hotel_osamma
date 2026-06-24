@@ -3,7 +3,7 @@
 @section('page-title', 'الوردية')
 
 @section('content')
-<div x-data="{ closeModal: false, editWithdrawal: null }">
+<div x-data="{ closeModal: {{ $errors->has('actual_amount') ? 'true' : 'false' }}, editWithdrawal: null }">
 
 @if(session('success'))
 <div class="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">{{ session('success') }}</div>
@@ -285,6 +285,7 @@
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الصافي (ر.ي)</th>
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الفعلي (ر.ي)</th>
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الفرق</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">ملاحظات الإقفال</th>
                 <th class="px-4 py-3"></th>
             </tr></thead>
             <tbody class="divide-y divide-gray-50">
@@ -301,6 +302,16 @@
                     </td>
                     <td class="px-4 py-3 font-medium text-gray-700">
                         {{ $s->actual_amount !== null ? number_format($s->actual_amount, 0) : '—' }}
+                    </td>
+                    <td class="px-4 py-3">
+                        @if($s->notes)
+                        <span class="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-0.5 max-w-[140px]" title="{{ $s->notes }}">
+                            <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
+                            <span class="truncate">{{ $s->notes }}</span>
+                        </span>
+                        @else
+                        <span class="text-gray-300 text-xs">—</span>
+                        @endif
                     </td>
                     <td class="px-4 py-3">
                         @if($s->shortfall !== null)
@@ -445,10 +456,17 @@
 
             {{-- المبلغ الفعلي --}}
             <div>
-                <label class="block text-xs font-semibold text-gray-700 mb-1.5">المبلغ الفعلي في الصندوق (ر.ي)</label>
+                <label class="block text-xs font-semibold text-gray-700 mb-1.5">
+                    المبلغ الفعلي في الصندوق (ر.ي)
+                    <span class="text-red-500">*</span>
+                </label>
                 <input type="number" name="actual_amount" x-model="actualAmount"
-                       step="1" min="0" placeholder="أدخل المبلغ الذي عددته فعلياً..."
-                       class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition">
+                       step="1" min="0" required
+                       placeholder="أدخل المبلغ الذي عددته فعلياً..."
+                       class="w-full border {{ $errors->has('actual_amount') ? 'border-red-400 bg-red-50' : 'border-gray-300' }} rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition">
+                @error('actual_amount')
+                <p class="text-red-600 text-xs mt-1">{{ $message }}</p>
+                @enderror
             </div>
 
             {{-- عرض الفرق --}}

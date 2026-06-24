@@ -107,7 +107,11 @@ class ShiftController extends Controller
     {
         $request->validate([
             'notes'         => 'nullable|string|max:1000',
-            'actual_amount' => 'nullable|numeric|min:0',
+            'actual_amount' => 'required|numeric|min:0',
+        ], [
+            'actual_amount.required' => 'يجب إدخال المبلغ الفعلي في الصندوق قبل الإقفال',
+            'actual_amount.numeric'  => 'المبلغ الفعلي يجب أن يكون رقماً',
+            'actual_amount.min'      => 'المبلغ الفعلي لا يمكن أن يكون سالباً',
         ]);
 
         $shift = $this->service->getActiveShift(auth()->user());
