@@ -128,10 +128,16 @@ class ShiftController extends Controller
         }
     }
 
-    public function reopen(Shift $shift)
+    public function reopen(Request $request, Shift $shift)
     {
+        $request->validate([
+            'reopen_notes' => 'required|string|max:1000',
+        ], [
+            'reopen_notes.required' => 'يجب كتابة سبب إعادة الفتح',
+        ]);
+
         try {
-            $this->service->reopenShift($shift, auth()->user());
+            $this->service->reopenShift($shift, auth()->user(), $request->reopen_notes);
             return redirect()->route('shifts.index')->with('success', 'تم فتح الإقفال بنجاح، يمكنك الآن إجراء التعديلات وإقفال الوردية مجدداً');
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()]);

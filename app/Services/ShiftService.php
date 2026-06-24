@@ -54,14 +54,14 @@ class ShiftService
         // Append this closing event to the history
         $closeEvents   = $shift->close_events ?? [];
         $closeEvents[] = [
-            'closed_at'     => now()->toDateTimeString(),
-            'actual_amount' => $actualAmount,
-            'net_balance'   => $netBalance,
-            'shortfall'     => $shortfall,
-            'notes'         => $notes ?: null,
-            'closed_by'     => auth()->id(),
-            'closed_by_name'=> auth()->user()?->name,
-            'event'         => 'close',
+            'closed_at'      => now()->toDateTimeString(),
+            'actual_amount'  => $actualAmount,
+            'net_balance'    => $netBalance,
+            'shortfall'      => $shortfall,
+            'notes'          => $notes ?: null,
+            'closed_by'      => auth()->id(),
+            'closed_by_name' => auth()->user()?->name,
+            'event'          => 'close',
         ];
 
         $shift->update([
@@ -77,7 +77,7 @@ class ShiftService
         AuditLogService::log('update', $shift, ['is_closed' => false], ['is_closed' => true], auth()->user());
     }
 
-    public function reopenShift(Shift $shift, User $requestingUser): void
+    public function reopenShift(Shift $shift, User $requestingUser, string $notes = ''): void
     {
         if (!$shift->is_closed) {
             throw new \RuntimeException('الوردية مفتوحة بالفعل');
@@ -98,7 +98,7 @@ class ShiftService
             'actual_amount'  => null,
             'net_balance'    => null,
             'shortfall'      => null,
-            'notes'          => null,
+            'notes'          => $notes ?: null,
             'closed_by'      => $requestingUser->id,
             'closed_by_name' => $requestingUser->name,
             'event'          => 'reopen',

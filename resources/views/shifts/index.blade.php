@@ -3,7 +3,7 @@
 @section('page-title', 'الوردية')
 
 @section('content')
-<div x-data="{ closeModal: {{ $errors->has('actual_amount') ? 'true' : 'false' }}, editWithdrawal: null }">
+<div x-data="{ closeModal: {{ $errors->has('actual_amount') ? 'true' : 'false' }}, editWithdrawal: null, reopenModal: null }">
 
 @if(session('success'))
 <div class="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">{{ session('success') }}</div>
@@ -286,11 +286,15 @@
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الفعلي (ر.ي)</th>
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الفرق</th>
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">ملاحظات الإقفال</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">إعادة الفتح</th>
                 <th class="px-4 py-3"></th>
             </tr></thead>
             <tbody class="divide-y divide-gray-50">
                 @foreach($recentShifts->where('is_closed', true) as $s)
-                @php $net = $s->total_received_yer - $s->total_withdrawals_yer; @endphp
+                @php
+                    $net = $s->total_received_yer - $s->total_withdrawals_yer;
+                    $reopenEvts = collect($s->close_events ?? [])->filter(fn($e) => ($e['event'] ?? '') === 'reopen');
+                @endphp
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 text-gray-600">{{ $s->shift_date->format('d/m/Y') }}</td>
                     <td class="px-4 py-3 text-gray-500 text-xs">{{ $s->started_at->format('H:i') }}</td>
@@ -304,6 +308,17 @@
                         {{ $s->actual_amount !== null ? number_format($s->actual_amount, 0) : '—' }}
                     </td>
                     <td class="px-4 py-3">
+                        @if($s->shortfall !== null)
+                            @php $sf = $s->shortfall; @endphp
+                            <span class="px-2 py-0.5 rounded-full text-xs font-semibold
+                                {{ $sf == 0 ? 'bg-green-100 text-green-700' : ($sf < 0 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700') }}">
+                                {{ $sf == 0 ? 'مطابق' : ($sf < 0 ? '▼ '.number_format(abs($sf), 0) : '▲ '.number_format($sf, 0)) }}
+                            </span>
+                        @else
+                            <span class="text-gray-300 text-xs">—</span>
+                        @endif
+                    </td>
+                    <td class="px-4 py-3">
                         @if($s->notes)
                         <span class="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-0.5 max-w-[140px]" title="{{ $s->notes }}">
                             <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
@@ -314,12 +329,18 @@
                         @endif
                     </td>
                     <td class="px-4 py-3">
-                        @if($s->shortfall !== null)
-                            @php $sf = $s->shortfall; @endphp
-                            <span class="px-2 py-0.5 rounded-full text-xs font-semibold
-                                {{ $sf == 0 ? 'bg-green-100 text-green-700' : ($sf < 0 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700') }}">
-                                {{ $sf == 0 ? 'مطابق' : ($sf < 0 ? '▼ '.number_format(abs($sf), 0) : '▲ '.number_format($sf, 0)) }}
-                            </span>
+                        @if($reopenEvts->isNotEmpty())
+                            @php $lastReopen = $reopenEvts->last(); @endphp
+                            <div class="space-y-1">
+                                <span class="inline-flex items-center gap-1 text-xs text-orange-700 bg-orange-50 border border-orange-200 rounded px-2 py-0.5 whitespace-nowrap">
+                                    <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
+                                    أُعيد فتحه@if($reopenEvts->count() > 1) ({{ $reopenEvts->count() }})@endif
+                                </span>
+                                <div class="text-xs text-gray-500">{{ $lastReopen['closed_by_name'] ?? '—' }}<span class="text-gray-300 mx-1">·</span>{{ isset($lastReopen['reopened_at']) ? \Carbon\Carbon::parse($lastReopen['reopened_at'])->format('d/m H:i') : '' }}</div>
+                                @if(!empty($lastReopen['notes']))
+                                <div class="text-xs text-orange-600 max-w-[140px] truncate" title="{{ $lastReopen['notes'] }}">{{ $lastReopen['notes'] }}</div>
+                                @endif
+                            </div>
                         @else
                             <span class="text-gray-300 text-xs">—</span>
                         @endif
@@ -333,15 +354,12 @@
                             </a>
                             @can('shifts.reopen')
                             @if(!$activeShift)
-                            <form method="POST" action="{{ route('shifts.reopen', $s) }}"
-                                  onsubmit="return confirm('هل تريد فتح إقفال هذه الوردية للتعديل عليها؟')">
-                                @csrf
-                                <button type="submit"
-                                        class="flex items-center gap-1 px-2 py-1 border border-amber-300 text-amber-700 rounded text-xs hover:bg-amber-50 transition">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
-                                    فتح
-                                </button>
-                            </form>
+                            <button type="button"
+                                    @click="reopenModal = { id: {{ $s->id }}, url: '{{ route('shifts.reopen', $s) }}', date: '{{ $s->shift_date->format('d/m/Y') }}' }"
+                                    class="flex items-center gap-1 px-2 py-1 border border-amber-300 text-amber-700 rounded text-xs hover:bg-amber-50 transition">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
+                                فتح
+                            </button>
                             @endif
                             @endcan
                             @if(auth()->user()->isAdmin() && $s->shortfall !== null && $s->shortfall < 0)
@@ -419,6 +437,7 @@
 @endcan
 
 {{-- Modal: إقفال الوردية --}}
+@if($activeShift)
 <div x-show="closeModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="closeModal=false">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm"
          x-data="{
@@ -504,6 +523,55 @@
     </div>
 </div>
 @endif
+
+{{-- Modal: إعادة فتح الوردية --}}
+@can('shifts.reopen')
+<div x-show="reopenModal !== null" x-cloak class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="reopenModal=null">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between" style="background:#92400e; border-radius: 1rem 1rem 0 0;">
+            <h3 class="font-bold text-white flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
+                إعادة فتح الوردية
+            </h3>
+            <button @click="reopenModal=null" class="text-white/70 hover:text-white">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <template x-if="reopenModal">
+        <form method="POST" :action="reopenModal.url" class="p-6 space-y-4">
+            @csrf
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">
+                <p class="font-semibold mb-1">تنبيه!</p>
+                <p class="text-xs leading-relaxed">إعادة الفتح تسمح بالتعديل على الوردية مجدداً. سيتم تسجيل هذه العملية باسم المستخدم والسبب في سجل الوردية للمراجعة.</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500 mb-2">الوردية: <span class="font-semibold text-gray-700" x-text="reopenModal.date"></span></p>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-700 mb-1.5">
+                    سبب إعادة الفتح <span class="text-red-500">*</span>
+                </label>
+                <textarea name="reopen_notes" rows="3" required
+                          placeholder="اكتب سبب إعادة فتح الوردية..."
+                          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none resize-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition"></textarea>
+            </div>
+            <div class="flex gap-3">
+                <button type="submit"
+                        class="flex-1 py-2.5 text-white rounded-lg text-sm font-semibold transition hover:opacity-90"
+                        style="background:#92400e;"
+                        onclick="return confirm('هل أنت متأكد من إعادة فتح هذه الوردية؟')">
+                    تأكيد إعادة الفتح
+                </button>
+                <button type="button" @click="reopenModal=null"
+                        class="flex-1 py-2.5 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition">
+                    إلغاء
+                </button>
+            </div>
+        </form>
+        </template>
+    </div>
+</div>
+@endcan
 
 </div>
 @endsection
