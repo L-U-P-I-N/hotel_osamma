@@ -192,6 +192,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/reports/monthly-expenses', [ReportController::class, 'monthlyExpenses'])->name('reports.monthlyExpenses');
         Route::get('/reports/financial-ratios', [ReportController::class, 'financialRatios'])->name('reports.financialRatios');
         Route::get('/reports/payment-methods-stats', [ReportController::class, 'paymentMethodsStats'])->name('reports.paymentMethodsStats');
+        Route::get('/reports/shifts-hub', [ReportController::class, 'shiftsHub'])->name('reports.shiftsHub');
+        Route::get('/reports/finance-hub', [ReportController::class, 'financeHub'])->name('reports.financeHub');
     });
 
     // Users
