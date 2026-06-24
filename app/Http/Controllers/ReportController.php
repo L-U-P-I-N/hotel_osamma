@@ -91,41 +91,33 @@ class ReportController extends Controller
             ->orderByDesc('total')
             ->get();
 
-        $rawTrend = DB::select("
-            SELECT
-                DATE_FORMAT(m.month_start, '%Y-%m') as month_key,
-                COALESCE(rev.revenue, 0) as revenue,
-                COALESCE(exp.expenses, 0) as expenses
-            FROM (
-                SELECT DATE_FORMAT(payment_date, '%Y-%m-01') as month_start
-                FROM payments
-                WHERE payment_date BETWEEN ? AND ? AND currency = 'YER' AND deleted_at IS NULL
-                GROUP BY DATE_FORMAT(payment_date, '%Y-%m-01')
-                UNION
-                SELECT DATE_FORMAT(expense_date, '%Y-%m-01') as month_start
-                FROM expenses
-                WHERE expense_date BETWEEN ? AND ? AND deleted_at IS NULL
-                GROUP BY DATE_FORMAT(expense_date, '%Y-%m-01')
-            ) m
-            LEFT JOIN (
-                SELECT DATE_FORMAT(payment_date, '%Y-%m-01') as mo, SUM(amount) as revenue
-                FROM payments WHERE payment_date BETWEEN ? AND ? AND currency = 'YER' AND deleted_at IS NULL
-                GROUP BY mo
-            ) rev ON rev.mo = m.month_start
-            LEFT JOIN (
-                SELECT DATE_FORMAT(expense_date, '%Y-%m-01') as mo, SUM(amount) as expenses
-                FROM expenses WHERE expense_date BETWEEN ? AND ? AND deleted_at IS NULL
-                GROUP BY mo
-            ) exp ON exp.mo = m.month_start
-            GROUP BY m.month_start
-            ORDER BY m.month_start
-        ", [$from, $to, $from, $to, $from, $to, $from, $to]);
+        $revenueByMonth = Payment::whereDate('payment_date', '>=', $from)
+            ->whereDate('payment_date', '<=', $to)
+            ->where('currency', 'YER')
+            ->get()
+            ->groupBy(fn($p) => \Carbon\Carbon::parse($p->payment_date)->format('Y-m'))
+            ->map(fn($g) => (float) $g->sum('amount'));
 
-        $monthlyTrend = collect($rawTrend)->map(function ($row) {
-            [$year, $month] = explode('-', $row->month_key);
-            $row->month_label = \App\Models\Salary::monthName((int)$month) . ' ' . $year;
-            return $row;
-        });
+        $expensesByMonth = \App\Models\Expense::whereDate('expense_date', '>=', $from)
+            ->whereDate('expense_date', '<=', $to)
+            ->get()
+            ->groupBy(fn($e) => \Carbon\Carbon::parse($e->expense_date)->format('Y-m'))
+            ->map(fn($g) => (float) $g->sum('amount'));
+
+        $monthlyTrend = $revenueByMonth->keys()
+            ->merge($expensesByMonth->keys())
+            ->unique()
+            ->sort()
+            ->values()
+            ->map(function ($monthKey) use ($revenueByMonth, $expensesByMonth) {
+                [$year, $month] = explode('-', $monthKey);
+                return (object) [
+                    'month_key'   => $monthKey,
+                    'revenue'     => $revenueByMonth->get($monthKey, 0),
+                    'expenses'    => $expensesByMonth->get($monthKey, 0),
+                    'month_label' => \App\Models\Salary::monthName((int) $month) . ' ' . $year,
+                ];
+            });
 
         return view('reports.profit-loss', compact(
             'from', 'to', 'totalRevenue', 'totalExpenses', 'netProfit',
