@@ -158,10 +158,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/reports/occupancy', [ReportController::class, 'occupancy'])->name('reports.occupancy');
         Route::get('/reports/occupancy/pdf', [ReportController::class, 'occupancyPdf'])->name('reports.occupancy.pdf');
         Route::get('/reports/occupancy/excel', [ReportController::class, 'occupancyExcel'])->name('reports.occupancy.excel');
-        Route::get('/reports/revenue', [ReportController::class, 'revenue'])->name('reports.revenue');
         Route::get('/reports/revenue/pdf', [ReportController::class, 'revenuePdf'])->name('reports.revenue.pdf');
         Route::get('/reports/revenue/excel', [ReportController::class, 'revenueExcel'])->name('reports.revenue.excel');
-        Route::get('/reports/staff', [ReportController::class, 'staffPerformance'])->name('reports.staff');
         Route::get('/reports/staff/pdf', [ReportController::class, 'staffPdf'])->name('reports.staff.pdf');
         Route::get('/reports/staff/excel', [ReportController::class, 'staffExcel'])->name('reports.staff.excel');
         Route::get('/reports/daily', [DailyReportController::class, 'index'])->name('reports.daily');
@@ -170,28 +168,18 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/reports/reservations', [ReportController::class, 'reservations'])->name('reports.reservations');
         Route::get('/reports/reservations/pdf', [ReportController::class, 'reservationsPdf'])->name('reports.reservations.pdf');
         Route::get('/reports/reservations/excel', [ReportController::class, 'reservationsExcel'])->name('reports.reservations.excel');
-        Route::get('/reports/rooms', [ReportController::class, 'rooms'])->name('reports.rooms');
         Route::get('/reports/rooms/pdf', [ReportController::class, 'roomsPdf'])->name('reports.rooms.pdf');
         Route::get('/reports/rooms/excel', [ReportController::class, 'roomsExcel'])->name('reports.rooms.excel');
-        Route::get('/reports/guests', [ReportController::class, 'guests'])->name('reports.guests');
         Route::get('/reports/guests/pdf', [ReportController::class, 'guestsPdf'])->name('reports.guests.pdf');
         Route::get('/reports/guests/excel', [ReportController::class, 'guestsExcel'])->name('reports.guests.excel');
         Route::get('/reports/debts', [ReportController::class, 'debts'])->name('reports.debts');
         Route::get('/reports/debts/pdf', [ReportController::class, 'debtsPdf'])->name('reports.debts.pdf');
         Route::get('/reports/debts/excel', [ReportController::class, 'debtsExcel'])->name('reports.debts.excel');
-        Route::get('/reports/salaries', [ReportController::class, 'salaries'])->name('reports.salaries');
         Route::get('/reports/salaries/pdf', [ReportController::class, 'salariesPdf'])->name('reports.salaries.pdf');
         Route::get('/reports/salaries/excel', [ReportController::class, 'salariesExcel'])->name('reports.salaries.excel');
-        Route::get('/reports/shifts', [ReportController::class, 'shifts'])->name('reports.shifts');
         Route::get('/reports/shifts/pdf', [ReportController::class, 'shiftsPdf'])->name('reports.shifts.pdf');
         Route::get('/reports/shifts/excel', [ReportController::class, 'shiftsExcel'])->name('reports.shifts.excel');
-        Route::get('/reports/shift-deficits', [ReportController::class, 'shiftDeficits'])->name('reports.shiftDeficits');
-        Route::get('/reports/daily-close', [ReportController::class, 'dailyClose'])->name('reports.dailyClose');
-        Route::get('/reports/aged-debts', [ReportController::class, 'agedDebts'])->name('reports.agedDebts');
         Route::get('/reports/profit-loss', [ReportController::class, 'profitLoss'])->name('reports.profitLoss');
-        Route::get('/reports/monthly-expenses', [ReportController::class, 'monthlyExpenses'])->name('reports.monthlyExpenses');
-        Route::get('/reports/financial-ratios', [ReportController::class, 'financialRatios'])->name('reports.financialRatios');
-        Route::get('/reports/payment-methods-stats', [ReportController::class, 'paymentMethodsStats'])->name('reports.paymentMethodsStats');
         Route::get('/reports/shifts-hub', [ReportController::class, 'shiftsHub'])->name('reports.shiftsHub');
         Route::get('/reports/finance-hub', [ReportController::class, 'financeHub'])->name('reports.financeHub');
         Route::get('/reports/hr-hub', [ReportController::class, 'hrHub'])->name('reports.hrHub');
@@ -328,14 +316,6 @@ Route::middleware(['auth'])->group(function () {
     });
     Route::middleware('permission:checkin.create')->group(function () {
         Route::post('/reservations/{reservation}/discount', [\App\Http\Controllers\ReservationController::class, 'applyDiscount'])->name('reservations.applyDiscount');
-    });
-
-    // ===== Reports: Financial Analysis =====
-    Route::middleware('permission:reports.view')->group(function () {
-        Route::get('/reports/room-revenue', [ReportController::class, 'roomRevenue'])->name('reports.roomRevenue');
-        Route::get('/reports/cash-flow', [ReportController::class, 'cashFlow'])->name('reports.cashFlow');
-        Route::get('/reports/monthly-expenses', [ReportController::class, 'monthlyExpenses'])->name('reports.monthlyExpenses');
-        Route::get('/reports/financial-ratios', [ReportController::class, 'financialRatios'])->name('reports.financialRatios');
     });
 
     // ===== Leaves: Report =====
