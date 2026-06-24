@@ -13,60 +13,7 @@ use Illuminate\Support\Facades\DB;
 
 class ReportController extends Controller
 {
-    public function occupancy(Request $request)
-    {
-        $from = $request->input('from', now()->subDays(30)->toDateString());
-        $to = $request->input('to', now()->toDateString());
 
-        $totalRooms = Room::count();
-
-        $dailyOccupancy = Reservation::select(
-            DB::raw('DATE(check_in_date) as date'),
-            DB::raw('COUNT(*) as count')
-        )
-        ->whereDate('check_in_date', '>=', $from)
-        ->whereDate('check_in_date', '<=', $to)
-        ->whereIn('status', ['checked_in', 'checked_out'])
-        ->groupBy('date')
-        ->orderBy('date')
-        ->get()
-        ->map(fn($r) => [
-            'date' => $r->date,
-            'percent' => $totalRooms > 0 ? round(($r->count / $totalRooms) * 100) : 0,
-        ]);
-
-        return view('reports.occupancy', compact('dailyOccupancy', 'from', 'to', 'totalRooms'));
-    }
-
-    public function reservations(Request $request)
-    {
-        $preset = $request->input('preset', 'custom');
-        $from   = match($preset) {
-            'today'  => now()->toDateString(),
-            'week'   => now()->subDays(6)->toDateString(),
-            default  => $request->input('from', now()->subDays(30)->toDateString()),
-        };
-        $to = match($preset) {
-            'today'  => now()->toDateString(),
-            'week'   => now()->toDateString(),
-            default  => $request->input('to', now()->toDateString()),
-        };
-
-        $reservations = Reservation::with(['guest', 'room.roomType'])
-            ->whereDate('check_in_date', '>=', $from)
-            ->whereDate('check_in_date', '<=', $to)
-            ->whereNotIn('status', ['cancelled'])
-            ->orderBy('check_in_date', 'desc')
-            ->orderBy('id', 'desc')
-            ->paginate(50)
-            ->withQueryString();
-
-        $total   = $reservations->total();
-        $checkedIn  = Reservation::whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to)->where('status', 'checked_in')->count();
-        $checkedOut = Reservation::whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to)->where('status', 'checked_out')->count();
-
-        return view('reports.reservations', compact('reservations', 'from', 'to', 'preset', 'total', 'checkedIn', 'checkedOut'));
-    }
 
     public function debts(Request $request)
     {
@@ -529,6 +476,16 @@ class ReportController extends Controller
             'week'  => now()->toDateString(),
             default => $request->input('to', now()->toDateString()),
         };
+
+        $days = \Carbon\Carbon::parse($from)->diffInDays(\Carbon\Carbon::parse($to)) + 1;
+        if ($days > 30) {
+            return redirect()->back()->with('pdf_warning',
+                "تقرير PDF يدعم حتى 30 يوماً — الفترة المحددة {$days} يوم. استخدم Excel لتصدير فترات أطول."
+            );
+        }
+
+        ini_set('memory_limit', '256M');
+
         $reservations = Reservation::with(['guest', 'room', 'payments'])
             ->whereDate('check_in_date', '>=', $from)
             ->whereDate('check_in_date', '<=', $to)
@@ -541,6 +498,78 @@ class ReportController extends Controller
         $pdf = $this->pdfOptions(pdf_load_view('reports.reservations_pdf', compact('reservations', 'from', 'to', 'total', 'checkedIn', 'checkedOut')));
         $pdf->setPaper('a4', 'landscape');
         return $pdf->download('reservations-' . $from . '-' . $to . '.pdf');
+    }
+
+    public function dailyHub(Request $request)
+    {
+        $tab    = $request->input('tab', 'daily');
+        $date   = $request->input('date', today()->toDateString());
+        $preset = $request->input('preset', 'custom');
+        $from   = $request->input('from', now()->subDays(30)->toDateString());
+        $to     = $request->input('to', now()->toDateString());
+
+        $dailyReservations = collect();
+        $totalRooms = 0;
+        $dailyOccupancy = collect();
+        $reservations = collect();
+        $total = $checkedIn = $checkedOut = 0;
+
+        if ($tab === 'daily') {
+            $dailyReservations = Reservation::with(['guest', 'room.roomType', 'companions', 'payments'])
+                ->whereDate('check_in_date', '<=', $date)
+                ->whereDate('check_out_date', '>=', $date)
+                ->where('status', 'checked_in')
+                ->orderBy('room_id')
+                ->get();
+
+        } elseif ($tab === 'occupancy') {
+            $totalRooms = Room::count();
+            $dailyOccupancy = Reservation::select(
+                DB::raw('DATE(check_in_date) as date'),
+                DB::raw('COUNT(*) as count')
+            )
+            ->whereDate('check_in_date', '>=', $from)
+            ->whereDate('check_in_date', '<=', $to)
+            ->whereIn('status', ['checked_in', 'checked_out'])
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get()
+            ->map(fn($r) => [
+                'date'    => $r->date,
+                'percent' => $totalRooms > 0 ? round(($r->count / $totalRooms) * 100) : 0,
+            ]);
+
+        } elseif ($tab === 'reservations') {
+            $from = match($preset) {
+                'today' => now()->toDateString(),
+                'week'  => now()->subDays(6)->toDateString(),
+                default => $from,
+            };
+            $to = match($preset) {
+                'today' => now()->toDateString(),
+                'week'  => now()->toDateString(),
+                default => $to,
+            };
+            $reservations = Reservation::with(['guest', 'room.roomType', 'payments'])
+                ->whereDate('check_in_date', '>=', $from)
+                ->whereDate('check_in_date', '<=', $to)
+                ->whereNotIn('status', ['cancelled'])
+                ->orderBy('check_in_date', 'desc')
+                ->orderBy('id', 'desc')
+                ->paginate(50)
+                ->withQueryString();
+            $total      = $reservations->total();
+            $checkedIn  = Reservation::whereDate('check_in_date', '>=', $from)
+                ->whereDate('check_in_date', '<=', $to)->where('status', 'checked_in')->count();
+            $checkedOut = Reservation::whereDate('check_in_date', '>=', $from)
+                ->whereDate('check_in_date', '<=', $to)->where('status', 'checked_out')->count();
+        }
+
+        return view('reports.daily-hub', compact(
+            'tab', 'date', 'from', 'to', 'preset',
+            'dailyReservations', 'totalRooms', 'dailyOccupancy',
+            'reservations', 'total', 'checkedIn', 'checkedOut'
+        ));
     }
 
     public function reservationsExcel(Request $request)

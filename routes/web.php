@@ -156,18 +156,16 @@ Route::middleware(['auth'])->group(function () {
 
     // Reports
     Route::middleware('permission:reports.view')->group(function () {
-        Route::get('/reports', fn() => redirect()->route('reports.occupancy'))->name('reports.index');
-        Route::get('/reports/occupancy', [ReportController::class, 'occupancy'])->name('reports.occupancy');
+        Route::get('/reports', fn() => redirect()->route('reports.dailyHub'))->name('reports.index');
+        Route::get('/reports/daily-hub', [ReportController::class, 'dailyHub'])->name('reports.dailyHub');
         Route::get('/reports/occupancy/pdf', [ReportController::class, 'occupancyPdf'])->name('reports.occupancy.pdf');
         Route::get('/reports/occupancy/excel', [ReportController::class, 'occupancyExcel'])->name('reports.occupancy.excel');
         Route::get('/reports/revenue/pdf', [ReportController::class, 'revenuePdf'])->name('reports.revenue.pdf');
         Route::get('/reports/revenue/excel', [ReportController::class, 'revenueExcel'])->name('reports.revenue.excel');
         Route::get('/reports/staff/pdf', [ReportController::class, 'staffPdf'])->name('reports.staff.pdf');
         Route::get('/reports/staff/excel', [ReportController::class, 'staffExcel'])->name('reports.staff.excel');
-        Route::get('/reports/daily', [DailyReportController::class, 'index'])->name('reports.daily');
         Route::get('/reports/daily/pdf', [DailyReportController::class, 'exportPdf'])->name('reports.daily.pdf');
         Route::get('/reports/daily/excel', [DailyReportController::class, 'exportExcel'])->name('reports.daily.excel');
-        Route::get('/reports/reservations', [ReportController::class, 'reservations'])->name('reports.reservations');
         Route::get('/reports/reservations/pdf', [ReportController::class, 'reservationsPdf'])->name('reports.reservations.pdf');
         Route::get('/reports/reservations/excel', [ReportController::class, 'reservationsExcel'])->name('reports.reservations.excel');
         Route::get('/reports/rooms/pdf', [ReportController::class, 'roomsPdf'])->name('reports.rooms.pdf');
