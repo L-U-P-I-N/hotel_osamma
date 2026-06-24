@@ -281,10 +281,15 @@ class ExpenseController extends Controller
 
         $expenses = $query->get();
 
-        $pdf = app('dompdf.wrapper');
-        $pdf->loadView('expenses.expense_pdf', compact('expenses', 'dateFrom', 'dateTo'));
-        $pdf->setPaper('a4', 'portrait');
+        $pdf = pdf_load_view('expenses.expense_pdf', compact('expenses', 'dateFrom', 'dateTo'));
 
+        $dompdf = $pdf->getDomPDF();
+        $opts   = $dompdf->getOptions();
+        $opts->setFontDir(storage_path('fonts'));
+        $opts->setFontCache(storage_path('fonts'));
+        $dompdf->setOptions($opts);
+
+        $pdf->setPaper('a4', 'portrait');
         return $pdf->download('المصروفات_' . now()->format('Y-m-d') . '.pdf');
     }
 
