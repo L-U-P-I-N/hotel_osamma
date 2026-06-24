@@ -3,7 +3,7 @@
 @section('page-title', 'الوردية')
 
 @section('content')
-<div x-data="{ withdrawalModal: false, closeModal: false, editWithdrawal: null }">
+<div x-data="{ closeModal: false, editWithdrawal: null }">
 
 @if(session('success'))
 <div class="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">{{ session('success') }}</div>
@@ -37,13 +37,6 @@
         </div>
     </div>
     <div class="flex gap-2 flex-wrap">
-        @can('withdrawal.create')
-        <button @click="withdrawalModal=true"
-                class="flex items-center gap-2 px-4 py-2 border border-red-300 text-red-600 rounded-lg text-sm hover:bg-red-50 transition">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>
-            تسجيل سحب
-        </button>
-        @endcan
         <a href="{{ route('shifts.pdf', $activeShift) }}" target="_blank"
            class="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
@@ -367,45 +360,6 @@
     </div>
 </div>
 @endif
-
-{{-- Modal: تسجيل سحب --}}
-@if($activeShift)
-@can('withdrawal.create')
-<div x-show="withdrawalModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="withdrawalModal=false">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h3 class="font-bold text-gray-800">تسجيل سحب</h3>
-            <button @click="withdrawalModal=false" class="text-gray-400 hover:text-gray-600">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
-        </div>
-        <form method="POST" action="{{ route('shifts.withdrawal') }}" class="p-6 space-y-4">
-            @csrf
-            <input type="hidden" name="withdrawal_type" value="expense">
-            <input type="hidden" name="currency" value="YER">
-
-            <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">المبلغ (ر.ي) *</label>
-                <input type="number" name="amount" step="0.01" min="0.01" required
-                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
-            </div>
-            <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">اسم المستلم *</label>
-                <input type="text" name="withdrawn_by_name" required
-                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
-            </div>
-            <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">السبب / البيان</label>
-                <input type="text" name="notes"
-                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
-            </div>
-            <button type="submit" class="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition">
-                تسجيل السحب
-            </button>
-        </form>
-    </div>
-</div>
-@endcan
 
 {{-- Modal: تعديل سحب --}}
 @can('withdrawal.edit')
