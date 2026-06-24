@@ -235,6 +235,15 @@
 @endsection
 
 @push('scripts')
+@php
+    $revenueLabels = $revenueByMethod->map(fn($r) => match($r->method) {
+        'cash' => 'نقداً',
+        'bank_transfer' => 'تحويل بنكي',
+        'pos' => 'POS',
+        default => $r->method,
+    });
+    $expenseLabels = $expensesByCategory->map(fn($r) => \App\Models\Expense::categoryLabel($r->category));
+@endphp
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <script>
 (function() {
@@ -244,12 +253,7 @@
         new Chart(revenueCtx, {
             type: 'doughnut',
             data: {
-                labels: @json($revenueByMethod->map(fn($r) => match($r->method) {
-                    'cash' => 'نقداً',
-                    'bank_transfer' => 'تحويل بنكي',
-                    'pos' => 'POS',
-                    default => $r->method
-                })),
+                labels: @json($revenueLabels),
                 datasets: [{
                     data: @json($revenueByMethod->pluck('total')),
                     backgroundColor: ['#10b981', '#3b82f6', '#f59e0b'],
@@ -272,7 +276,7 @@
         new Chart(expenseCtx, {
             type: 'doughnut',
             data: {
-                labels: @json($expensesByCategory->map(fn($r) => \App\Models\Expense::categoryLabel($r->category))),
+                labels: @json($expenseLabels),
                 datasets: [{
                     data: @json($expensesByCategory->pluck('total')),
                     backgroundColor: ['#ef4444', '#f97316', '#f59e0b', '#ec4899', '#8b5cf6', '#6366f1'],
