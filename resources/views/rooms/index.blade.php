@@ -150,7 +150,7 @@
                         class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition border-2"
                         style="border-color:#0F4C75; color:#0F4C75;">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-5 5a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a2 2 0 014-4z"/></svg>
-                    أسعار الجملة
+                    توحيد سعر الغرف
                 </button>
                 @endcan
                 @can('rooms.create')
@@ -372,7 +372,7 @@
         <div class="px-6 py-4 flex items-center justify-between" style="background:#0F4C75;">
             <h3 class="font-bold text-white flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-5 5a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a2 2 0 014-4z"/></svg>
-                تعديل الأسعار بالجملة
+                توحيد سعر الغرف
             </h3>
             <button @click="bulkPriceModal=false" class="text-white/70 hover:text-white transition">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
