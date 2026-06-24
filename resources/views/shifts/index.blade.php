@@ -211,7 +211,7 @@
 <div class="mt-5 bg-white rounded-xl shadow-sm border border-blue-100">
     <div class="px-5 py-3 border-b border-blue-100 bg-blue-50 rounded-t-xl flex items-center justify-between">
         <h3 class="font-semibold text-blue-800 text-sm">حالة صناديق الموظفين</h3>
-        <a href="{{ route('reports.shiftDeficits') }}" class="text-xs text-blue-600 hover:underline flex items-center gap-1">
+        <a href="{{ route('reports.shiftsHub', ['tab' => 'deficits']) }}" class="text-xs text-blue-600 hover:underline flex items-center gap-1">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
             تقرير العجز التراكمي
         </a>
