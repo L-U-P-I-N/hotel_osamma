@@ -256,6 +256,45 @@ class ReportController extends Controller
         return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\ShiftsReportExport($from, $to), 'shifts-' . $from . '-' . $to . '.xlsx');
     }
 
+    public function dailyClosePdf(Request $request)
+    {
+        $date = $request->input('date', today()->toDateString());
+
+        $payments = \App\Models\Payment::whereDate('payment_date', $date)->where('currency', 'YER')->get();
+        $totalRevenue     = $payments->sum('amount');
+        $paymentCount     = $payments->count();
+        $reservationCount = $payments->unique('reservation_id')->count();
+
+        $revenueByMethod = \App\Models\Payment::whereDate('payment_date', $date)
+            ->where('currency', 'YER')
+            ->select('method', DB::raw('SUM(amount) as total'), DB::raw('COUNT(*) as count'))
+            ->groupBy('method')->get();
+
+        $expenses = \App\Models\Expense::whereDate('expense_date', $date)->get();
+        $totalExpenses = $expenses->sum('amount');
+
+        $expensesByCategory = \App\Models\Expense::whereDate('expense_date', $date)
+            ->select('category', DB::raw('SUM(amount) as total'), DB::raw('COUNT(*) as count'))
+            ->groupBy('category')->get();
+
+        $dailyShifts      = Shift::with('user')->whereDate('shift_date', $date)->get();
+        $cashRevenue      = $payments->where('method', 'cash')->sum('amount');
+        $cashExpenses     = $expenses->where('payment_method', 'cash')->sum('amount');
+        $totalWithdrawals = $dailyShifts->sum('total_withdrawals_yer');
+        $expectedCash     = $cashRevenue - $cashExpenses;
+        $netDay           = $totalRevenue - $totalExpenses;
+
+        $pdf = $this->pdfOptions(pdf_load_view('reports.daily_close_pdf', compact(
+            'date', 'totalRevenue', 'totalExpenses', 'netDay',
+            'paymentCount', 'reservationCount',
+            'revenueByMethod', 'expensesByCategory',
+            'dailyShifts', 'cashRevenue', 'cashExpenses',
+            'totalWithdrawals', 'expectedCash'
+        )));
+        $pdf->setPaper('a4', 'portrait');
+        return $pdf->download('daily-close-' . $date . '.pdf');
+    }
+
     public function shiftsHub(Request $request)
     {
         $tab  = $request->input('tab', 'shifts');

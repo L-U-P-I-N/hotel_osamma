@@ -183,6 +183,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/reports/shifts/excel', [ReportController::class, 'shiftsExcel'])->name('reports.shifts.excel');
         Route::get('/reports/profit-loss', [ReportController::class, 'profitLoss'])->name('reports.profitLoss');
         Route::get('/reports/shifts-hub', [ReportController::class, 'shiftsHub'])->name('reports.shiftsHub');
+        Route::get('/reports/daily-close/pdf', [ReportController::class, 'dailyClosePdf'])->name('reports.dailyClose.pdf');
         Route::get('/reports/finance-hub', [ReportController::class, 'financeHub'])->name('reports.financeHub');
         Route::get('/reports/hr-hub', [ReportController::class, 'hrHub'])->name('reports.hrHub');
         Route::get('/reports/guests-rooms-hub', [ReportController::class, 'guestsRoomsHub'])->name('reports.guestsRoomsHub');
