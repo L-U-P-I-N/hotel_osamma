@@ -100,6 +100,10 @@ class DashboardController extends Controller
             ->orderBy('check_out_date', 'asc')
             ->get();
 
+        $overdueGuests = $expiringGuests->filter(
+            fn($r) => $r->check_out_date->startOfDay()->lt(now()->startOfDay())
+        )->values();
+
         $roomStatusCounts = Room::select('status', DB::raw('count(*) as count'))
             ->groupBy('status')
             ->pluck('count', 'status')
@@ -134,7 +138,7 @@ class DashboardController extends Controller
             'occupancyRate', 'adr',
             'debtReservations', 'totalOutstandingDebt',
             'upcomingArrivals', 'trendDays',
-            'expiringGuests', 'roomStatusCounts', 'alerts',
+            'expiringGuests', 'overdueGuests', 'roomStatusCounts', 'alerts',
             'weeklyRevenue', 'occupancyRateToday'
         ));
     }

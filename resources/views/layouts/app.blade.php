@@ -137,10 +137,16 @@
             @endcan
 
 @can('checkin.view')
-            <a href="{{ route('reservations.index') }}"
+            @php $_overdueCount = \App\Models\Reservation::where('status','checked_in')->whereDate('check_out_date','<',today())->count(); @endphp
+            <a href="{{ route('reservations.expiring') }}"
                class="nav-link {{ request()->routeIs('reservations.*') ? 'active' : '' }}">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                 الحجوزات
+                @if($_overdueCount > 0)
+                <span class="mr-auto bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 flex-shrink-0 animate-pulse">
+                    {{ $_overdueCount }}
+                </span>
+                @endif
             </a>
             @endcan
 
