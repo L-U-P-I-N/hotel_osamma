@@ -5,27 +5,76 @@
 @section('content')
 <div dir="rtl">
 
-<div class="flex items-center justify-between mb-5 flex-wrap gap-2">
+<div class="flex items-center justify-between mb-5 flex-wrap gap-2" x-data="{ withdrawalModal: false }">
     <div class="flex gap-2 flex-wrap">
         <a href="{{ route('expenses.report') }}" class="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50 transition">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
             تقرير المصروفات
         </a>
-        <button onclick="exportToExcel()" class="flex items-center gap-2 px-4 py-2 border border-green-300 text-green-700 rounded-lg text-sm hover:bg-green-50 transition">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        <a href="{{ route('expenses.excel', request()->query()) }}" class="flex items-center gap-2 px-4 py-2 border border-green-300 text-green-700 rounded-lg text-sm hover:bg-green-50 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
             تصدير Excel
+        </a>
+        <a href="{{ route('expenses.pdf', request()->query()) }}" class="flex items-center gap-2 px-4 py-2 border border-red-300 text-red-700 rounded-lg text-sm hover:bg-red-50 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+            تصدير PDF
+        </a>
+        @if($activeShift)
+        @can('withdrawal.create')
+        <button @click="withdrawalModal=true" class="flex items-center gap-2 px-4 py-2 border border-orange-300 text-orange-700 rounded-lg text-sm hover:bg-orange-50 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+            تسجيل سحب
         </button>
-        <button onclick="window.print()" class="flex items-center gap-2 px-4 py-2 border border-blue-300 text-blue-700 rounded-lg text-sm hover:bg-blue-50 transition">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2z"/></svg>
-            طباعة
-        </button>
+        @endcan
+        @endif
     </div>
-    @can('expenses.create')
-    <a href="{{ route('expenses.create') }}" class="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm transition" style="background:#0F4C75;">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-        تسجيل مصروف
-    </a>
+    <div class="flex gap-2">
+        @can('expenses.create')
+        <a href="{{ route('expenses.create') }}" class="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm transition" style="background:#0F4C75;">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            تسجيل مصروف
+        </a>
+        @endcan
+    </div>
+
+    {{-- Withdrawal Modal --}}
+    @if($activeShift)
+    @can('withdrawal.create')
+    <div x-show="withdrawalModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="withdrawalModal=false">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                <h3 class="font-bold text-gray-800">تسجيل سحب</h3>
+                <button @click="withdrawalModal=false" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <form method="POST" action="{{ route('shifts.withdrawal') }}" class="p-6 space-y-4">
+                @csrf
+                <input type="hidden" name="withdrawal_type" value="expense">
+                <input type="hidden" name="currency" value="YER">
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">المبلغ (ر.ي) *</label>
+                    <input type="number" name="amount" step="0.01" min="0.01" required
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">اسم المستلم *</label>
+                    <input type="text" name="withdrawn_by_name" required
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">السبب / البيان</label>
+                    <input type="text" name="notes"
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <button type="submit" class="w-full py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-semibold transition">
+                    تسجيل السحب
+                </button>
+            </form>
+        </div>
+    </div>
     @endcan
+    @endif
 </div>
 
 @if(session('success'))
@@ -242,36 +291,8 @@
     @endif
 </div>
 
-<style media="print">
-    .no-print { display: none; }
-    body { margin: 0; padding: 10px; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: right; }
-    th { background: #f5f5f5; }
-</style>
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
 <script>
-    function exportToExcel() {
-        const table = document.getElementById('expensesTable');
-        const csv = [];
-        const rows = table.querySelectorAll('tr');
-
-        rows.forEach(row => {
-            const cells = [];
-            row.querySelectorAll('td, th').forEach(cell => {
-                cells.push('"' + cell.textContent.trim().replace(/"/g, '""') + '"');
-            });
-            csv.push(cells.join(','));
-        });
-
-        const timestamp = new Date().toLocaleDateString('ar-SA');
-        const link = document.createElement('a');
-        link.href = 'data:text/csv;charset=utf-8,%EF%BB%BF' + encodeURIComponent(csv.join('\n'));
-        link.download = `المصروفات_${timestamp}.csv`;
-        link.click();
-    }
-
     @if($byCategory->count() > 0)
     const ctx = document.getElementById('categoryChart')?.getContext('2d');
     if (ctx) {

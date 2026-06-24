@@ -23,6 +23,7 @@ use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\RefundController;
 use App\Http\Controllers\SeasonalPriceController;
+use App\Http\Controllers\GuestController;
 
 Route::get('/', fn() => redirect()->route('login'));
 
@@ -268,6 +269,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/expenses', [ExpenseController::class, 'index'])->name('expenses.index');
         Route::get('/expenses/report', [ExpenseController::class, 'report'])->name('expenses.report');
         Route::get('/expenses/deferred', [ExpenseController::class, 'deferred'])->name('expenses.deferred');
+        Route::get('/expenses/export/excel', [ExpenseController::class, 'exportExcel'])->name('expenses.excel');
+        Route::get('/expenses/export/pdf', [ExpenseController::class, 'exportPdf'])->name('expenses.pdf');
     });
     Route::middleware('permission:expenses.edit')->group(function () {
         Route::patch('/expenses/{expense}/settle', [ExpenseController::class, 'settle'])->name('expenses.settle');

@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Exports\ExpenseExport;
 use App\Models\CashSettlement;
 use App\Models\CashWithdrawal;
 use App\Models\Expense;
@@ -8,6 +9,7 @@ use App\Models\Shift;
 use App\Models\User;
 use App\Services\CashSettlementService;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ExpenseController extends Controller
 {
@@ -82,7 +84,9 @@ class ExpenseController extends Controller
         }
         $availableShifts = $shiftsQuery->get();
 
-        return view('expenses.index', compact('expenses', 'categories', 'availableShifts', 'stats', 'byCategory'));
+        $activeShift = Shift::where('is_closed', false)->where('user_id', auth()->id())->latest()->first();
+
+        return view('expenses.index', compact('expenses', 'categories', 'availableShifts', 'stats', 'byCategory', 'activeShift'));
     }
 
     public function create()
@@ -236,6 +240,52 @@ class ExpenseController extends Controller
             'expenses', 'total', 'byCategory', 'byMethod',
             'dateFrom', 'dateTo', 'categories'
         ));
+    }
+
+    public function exportExcel(Request $request)
+    {
+        $export = new ExpenseExport(
+            $request->input('date_from'),
+            $request->input('date_to'),
+            $request->input('category'),
+            $request->input('payment_method'),
+            $request->input('search'),
+            $request->input('shift_id'),
+        );
+        $filename = 'المصروفات_' . now()->format('Y-m-d') . '.xlsx';
+        return Excel::download($export, $filename);
+    }
+
+    public function exportPdf(Request $request)
+    {
+        $query = Expense::with('paidBy')->orderBy('expense_date', 'desc')->orderBy('id', 'desc');
+
+        $dateFrom      = $request->input('date_from');
+        $dateTo        = $request->input('date_to');
+        $category      = $request->input('category');
+        $paymentMethod = $request->input('payment_method');
+        $search        = $request->input('search');
+        $shiftId       = $request->input('shift_id');
+
+        if ($dateFrom)      { $query->whereDate('expense_date', '>=', $dateFrom); }
+        if ($dateTo)        { $query->whereDate('expense_date', '<=', $dateTo); }
+        if ($category)      { $query->where('category', $category); }
+        if ($paymentMethod) { $query->where('payment_method', $paymentMethod); }
+        if ($shiftId)       { $query->where('shift_id', $shiftId); }
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('recipient_name', 'like', '%' . $search . '%')
+                  ->orWhere('description', 'like', '%' . $search . '%');
+            });
+        }
+
+        $expenses = $query->get();
+
+        $pdf = app('dompdf.wrapper');
+        $pdf->loadView('expenses.expense_pdf', compact('expenses', 'dateFrom', 'dateTo'));
+        $pdf->setPaper('a4', 'portrait');
+
+        return $pdf->download('المصروفات_' . now()->format('Y-m-d') . '.pdf');
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────

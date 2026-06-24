@@ -4,9 +4,135 @@
 
 @section('content')
 @php
-    $overdueCount = $expiringGuests->filter(fn($r) => $r->check_out_date->startOfDay()->lt(now()->startOfDay()))->count();
+    $overdueCount = $overdueGuests->count();
     $todayCount   = $expiringGuests->filter(fn($r) => $r->check_out_date->isToday())->count();
 @endphp
+
+{{-- ══════════════════════════════════════════════════════
+     تنبيه النزلاء المتأخرين — يظهر فقط عند وجود متأخرين
+     ══════════════════════════════════════════════════════ --}}
+@if($overdueGuests->count() > 0)
+@canany(['checkin.view', 'checkout.process', 'checkin.create'])
+<div class="mb-5" x-data="{ renewOpen: null }">
+    <div class="rounded-xl overflow-hidden shadow border border-red-300">
+
+        {{-- Header --}}
+        <div class="flex items-center gap-3 px-5 py-3.5 bg-red-600 text-white">
+            <div class="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0 animate-pulse">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <p class="font-bold text-sm">
+                    {{ $overdueGuests->count() }} {{ $overdueGuests->count() === 1 ? 'نزيل تجاوز' : 'نزلاء تجاوزوا' }} موعد المغادرة
+                </p>
+                <p class="text-xs text-red-200">يرجى اختيار تجديد الإقامة أو تسجيل المغادرة لكل نزيل</p>
+            </div>
+            <a href="{{ route('reservations.expiring') }}" class="text-xs bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition font-medium whitespace-nowrap">
+                عرض الكل
+            </a>
+        </div>
+
+        {{-- Guest list --}}
+        <div class="divide-y divide-red-100 bg-white">
+            @foreach($overdueGuests as $res)
+            @php $daysOver = (int) now()->startOfDay()->diffInDays($res->check_out_date->copy()->startOfDay(), false) * -1; @endphp
+            <div>
+                {{-- Guest row --}}
+                <div class="px-5 py-3 flex items-center gap-3 flex-wrap sm:flex-nowrap">
+                    <div class="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 font-bold text-red-700 text-sm">
+                        {{ mb_substr($res->guest?->full_name ?? '؟', 0, 1) }}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="font-semibold text-gray-800 text-sm truncate">{{ $res->guest?->full_name ?? '—' }}</p>
+                        <p class="text-xs text-gray-500">
+                            غرفة {{ $res->display_room_number }}
+                            &nbsp;•&nbsp; دخل: {{ $res->check_in_date->format('d/m/Y') }}
+                            &nbsp;•&nbsp; انتهى: {{ $res->check_out_date->format('d/m/Y') }}
+                        </p>
+                    </div>
+                    <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 flex-shrink-0">
+                        متأخر {{ $daysOver }} {{ $daysOver === 1 ? 'يوم' : 'أيام' }}
+                    </span>
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        @can('checkin.create')
+                        <button
+                            @click="renewOpen === {{ $res->id }} ? renewOpen = null : renewOpen = {{ $res->id }}"
+                            :class="renewOpen === {{ $res->id }} ? 'bg-green-800' : 'bg-green-600 hover:bg-green-700'"
+                            class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg text-white transition font-semibold whitespace-nowrap">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                            تجديد الإقامة
+                        </button>
+                        @endcan
+                        @can('checkout.process')
+                        <a href="{{ route('checkout.show', $res) }}"
+                           class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white transition font-semibold whitespace-nowrap">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7"/></svg>
+                            تسجيل المغادرة
+                        </a>
+                        @endcan
+                        <a href="{{ route('reservations.show', $res) }}"
+                           class="inline-flex items-center text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition whitespace-nowrap">
+                            تفاصيل
+                        </a>
+                    </div>
+                </div>
+
+                {{-- Inline renew form --}}
+                @can('checkin.create')
+                <div x-show="renewOpen === {{ $res->id }}" x-cloak
+                     class="px-5 pb-4 pt-3 bg-green-50 border-t border-green-100">
+                    <p class="text-xs font-semibold text-green-800 mb-3">تجديد إقامة: {{ $res->guest?->full_name }}</p>
+                    <form method="POST" action="{{ route('reservations.renew', $res) }}"
+                          class="flex items-end gap-3 flex-wrap">
+                        @csrf
+                        <div class="flex flex-col gap-1">
+                            <label class="text-xs font-medium text-gray-600">تاريخ الخروج الجديد *</label>
+                            <input type="date" name="new_check_out_date" required
+                                   min="{{ now()->addDay()->toDateString() }}"
+                                   value="{{ now()->addDay()->toDateString() }}"
+                                   class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-green-400 outline-none bg-white">
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-xs font-medium text-gray-600">دفعة مقدمة (ر.ي)</label>
+                            <input type="number" name="advance_payment" min="0" step="0.01" placeholder="0"
+                                   class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-32 focus:ring-2 focus:ring-green-400 outline-none bg-white">
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-xs font-medium text-gray-600">طريقة الدفع</label>
+                            <select name="payment_method"
+                                    class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-green-400 outline-none bg-white">
+                                <option value="cash">نقداً</option>
+                                <option value="pos">POS</option>
+                                <option value="bank_transfer">تحويل بنكي</option>
+                            </select>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-xs font-medium text-gray-600">ملاحظات</label>
+                            <input type="text" name="notes" placeholder="سبب التجديد..."
+                                   class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-40 focus:ring-2 focus:ring-green-400 outline-none bg-white">
+                        </div>
+                        <div class="flex gap-2">
+                            <button type="submit"
+                                    class="px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold transition">
+                                تأكيد التجديد
+                            </button>
+                            <button type="button" @click="renewOpen = null"
+                                    class="px-4 py-1.5 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition">
+                                إلغاء
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                @endcan
+            </div>
+            @endforeach
+        </div>
+    </div>
+</div>
+@endcanany
+@endif
 
 {{-- ── التنبيهات المهمة ── --}}
 @if(!empty($alerts))
