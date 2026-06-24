@@ -337,17 +337,20 @@
             @endcan
         </nav>
 
-        <!-- PWA Install Button (sidebar — يظهر لجميع الأجهزة) -->
-        <div id="pwa-sidebar-install" class="hidden px-3 pb-2 flex-shrink-0">
-            <button onclick="installPWA()"
+        <!-- PWA Install Button (sidebar) -->
+        <div id="pwa-sidebar-install" class="px-3 pb-2 flex-shrink-0">
+            <button onclick="installPWA()" id="pwa-sidebar-btn"
                     class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors"
-                    style="background:rgba(255,255,255,0.08); color:#a8c8e0;"
-                    title="تثبيت التطبيق على جهازك">
+                    style="background:rgba(255,255,255,0.08); color:#a8c8e0;">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                 </svg>
-                تثبيت التطبيق
+                <span id="pwa-sidebar-label">تثبيت التطبيق</span>
             </button>
+            <!-- رسالة مساعدة للمتصفحات التي لا يتوفر فيها الطلب التلقائي -->
+            <div id="pwa-manual-hint" class="hidden mt-1.5 px-2 py-1.5 rounded-lg text-xs" style="background:rgba(255,255,255,0.05);color:#6ea3c0;line-height:1.5;">
+                <span id="pwa-hint-text"></span>
+            </div>
         </div>
 
         <!-- User info -->
@@ -457,65 +460,77 @@ if ('serviceWorker' in navigator) {
 
 let deferredPrompt = null;
 
-// كشف نوع الجهاز والمتصفح
-const isIos     = /iphone|ipad|ipod/i.test(navigator.userAgent);
-const isSafari  = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+const isIos       = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isSafari    = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 const isIosSafari = isIos && isSafari;
 const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-                  || window.navigator.standalone === true;
+                   || window.navigator.standalone === true;
 
-function showInstallUI() {
-    document.getElementById('pwa-install-banner')?.classList.remove('hidden');
-    document.getElementById('pwa-sidebar-install')?.classList.remove('hidden');
-}
-
-function hideInstallUI() {
-    document.getElementById('pwa-install-banner')?.classList.add('hidden');
-    document.getElementById('pwa-safari-banner')?.classList.add('hidden');
+// إذا التطبيق مثبّت بالفعل → أخفِ كل عناصر التثبيت
+if (isStandalone) {
     document.getElementById('pwa-sidebar-install')?.classList.add('hidden');
 }
 
-// إذا التطبيق مثبّت بالفعل لا نعرض شيئاً
-if (isStandalone) {
-    hideInstallUI();
-}
-// Safari على iPhone/iPad — يعرض تعليمات يدوية
-else if (isIosSafari) {
-    setTimeout(() => {
-        document.getElementById('pwa-safari-banner')?.classList.remove('hidden');
-        document.getElementById('pwa-sidebar-install')?.classList.remove('hidden');
-    }, 2000);
-}
-
-// Chrome / Edge / Android — يستخدم beforeinstallprompt
+// Chrome/Edge/Android — احتجز الحدث قبل ظهور نافذة التثبيت التلقائية
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    showInstallUI();
+    // أظهر البانر الكبير عند أول مرة فقط
+    document.getElementById('pwa-install-banner')?.classList.remove('hidden');
 });
 
 function installPWA() {
-    // Safari iOS — فتح البانر مع التعليمات
+    // Safari iOS — أظهر التعليمات اليدوية
     if (isIosSafari) {
+        const hint  = document.getElementById('pwa-manual-hint');
+        const htext = document.getElementById('pwa-hint-text');
+        if (hint && htext) {
+            htext.textContent = 'اضغط على زر المشاركة ثم اختر "إضافة إلى الشاشة الرئيسية"';
+            hint.classList.toggle('hidden');
+        }
         document.getElementById('pwa-safari-banner')?.classList.remove('hidden');
         return;
     }
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    deferredPrompt.userChoice.then((choice) => {
-        deferredPrompt = null;
-        if (choice.outcome === 'accepted') {
-            hideInstallUI();
-        } else {
-            // رفض — أخفِ البانر الكبير وأبقِ الزر الجانبي
+
+    // Chrome/Edge — يوجد prompt محفوظ → افتحه مباشرة
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choice) => {
+            deferredPrompt = null;
             document.getElementById('pwa-install-banner')?.classList.add('hidden');
-        }
-    });
+            if (choice.outcome === 'accepted') {
+                document.getElementById('pwa-sidebar-install')?.classList.add('hidden');
+            }
+        });
+        return;
+    }
+
+    // لا يوجد prompt محفوظ (المستخدم رفض سابقاً أو المتصفح لا يدعمه)
+    // → أظهر تعليمة تشير لأيقونة التثبيت في شريط العنوان
+    const hint  = document.getElementById('pwa-manual-hint');
+    const htext = document.getElementById('pwa-hint-text');
+    if (!hint || !htext) return;
+    const isChromeLike = /chrome|chromium|edg/i.test(navigator.userAgent) && !isIos;
+    htext.innerHTML = isChromeLike
+        ? 'ابحث عن أيقونة <strong>⊕</strong> في شريط العنوان ثم اضغط عليها للتثبيت، أو أعد تحميل الصفحة.'
+        : 'افتح قائمة المتصفح واختر "تثبيت التطبيق" أو "إضافة إلى الشاشة الرئيسية".';
+    hint.classList.remove('hidden');
+    // أخفِ الرسالة تلقائياً بعد 6 ثوانٍ
+    setTimeout(() => hint.classList.add('hidden'), 6000);
+}
+
+// إذا ظهر بانر Safari بعد 2 ثانية للمستخدمين الجدد
+if (isIosSafari && !isStandalone) {
+    setTimeout(() => {
+        document.getElementById('pwa-safari-banner')?.classList.remove('hidden');
+    }, 2500);
 }
 
 window.addEventListener('appinstalled', () => {
-    hideInstallUI();
     deferredPrompt = null;
+    document.getElementById('pwa-install-banner')?.classList.add('hidden');
+    document.getElementById('pwa-safari-banner')?.classList.add('hidden');
+    document.getElementById('pwa-sidebar-install')?.classList.add('hidden');
 });
 </script>
 
