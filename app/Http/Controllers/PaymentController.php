@@ -50,7 +50,8 @@ class PaymentController extends Controller
         if ($request->expectsJson()) {
             return response()->json(['success' => true, 'payment' => $payment]);
         }
-        return back()->with('success', 'تم تسجيل الدفعة بنجاح');
+        return redirect()->route('reservations.show', $reservation)
+            ->with('success', 'تم تسجيل الدفعة بنجاح');
     }
 
     public function slip(\App\Models\Payment $payment)

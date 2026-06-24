@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>@yield('title', 'الفندق السعودي') - نظام إدارة الفندق</title>
 
     <!-- PWA -->
@@ -352,7 +355,6 @@
             </button>
             @hasSection('back-url')
             <a href="@yield('back-url')"
-               onclick="event.preventDefault(); history.length > 1 ? history.back() : (location=this.href);"
                class="lg:hidden w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors flex-shrink-0"
                title="رجوع">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -417,6 +419,15 @@
     </div>
 </div>
 @stack('scripts')
+
+<!-- BFCache: reload when page is restored from browser memory so data is always fresh -->
+<script>
+window.addEventListener('pageshow', function(e) {
+    if (e.persisted) {
+        window.location.reload();
+    }
+});
+</script>
 
 <!-- PWA Service Worker + Install Prompt -->
 <script>

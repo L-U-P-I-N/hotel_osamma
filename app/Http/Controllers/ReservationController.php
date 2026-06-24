@@ -437,7 +437,8 @@ class ReservationController extends Controller
             'discount_amount' => $discountAmount,
         ]);
 
-        return back()->with('success', 'تم تطبيق الخصم بنجاح — ' . number_format($discountAmount, 0) . ' ر.ي');
+        return redirect()->route('reservations.show', $reservation)
+            ->with('success', 'تم تطبيق الخصم بنجاح — ' . number_format($discountAmount, 0) . ' ر.ي');
     }
 
     private function nullIfEmpty(mixed $value): mixed
