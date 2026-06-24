@@ -49,6 +49,20 @@ class ShiftService
         $shift->refresh();
 
         $netBalance = $shift->total_received_yer - $shift->total_withdrawals_yer;
+        $shortfall  = $actualAmount !== null ? ($actualAmount - $netBalance) : null;
+
+        // Append this closing event to the history
+        $closeEvents   = $shift->close_events ?? [];
+        $closeEvents[] = [
+            'closed_at'      => now()->toDateTimeString(),
+            'actual_amount'  => $actualAmount,
+            'net_balance'    => $netBalance,
+            'shortfall'      => $shortfall,
+            'notes'          => $notes ?: null,
+            'closed_by'      => auth()->id(),
+            'closed_by_name' => auth()->user()?->name,
+            'event'          => 'close',
+        ];
 
         $shift->update([
             'is_closed'     => true,
@@ -56,7 +70,8 @@ class ShiftService
             'ended_at'      => now(),
             'notes'         => $notes ?: null,
             'actual_amount' => $actualAmount,
-            'shortfall'     => $actualAmount !== null ? ($actualAmount - $netBalance) : null,
+            'shortfall'     => $shortfall,
+            'close_events'  => $closeEvents,
         ]);
 
         AuditLogService::log('update', $shift, ['is_closed' => false], ['is_closed' => true], auth()->user());

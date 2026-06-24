@@ -250,40 +250,32 @@
 {{-- Summary --}}
 <div class="summary-box">
     <h3>ملخص الوردية</h3>
-    <table style="width:100%;border-collapse:collapse;font-size:9.5px;direction:rtl;" dir="rtl">
+    @php
+        $summaryRows = [];
+        foreach (['YER','SAR','USD'] as $c) {
+            $recv = (float)($shift->{'total_received_'    . strtolower($c)} ?? 0);
+            $wdr  = (float)($shift->{'total_withdrawals_' . strtolower($c)} ?? 0);
+            if ($recv > 0 || $wdr > 0) {
+                $summaryRows[] = ['cur' => $c, 'recv' => $recv, 'wdr' => $wdr, 'net' => $recv - $wdr];
+            }
+        }
+    @endphp
+    <table style="width:100%;border-collapse:collapse;font-size:9.5px;" dir="rtl">
         <thead>
             <tr style="background:#e8f0f7;">
-                <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;">العملة</th>
-                <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;">الإيرادات</th>
-                <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;">السحبيات</th>
-                <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;">الصافي المتبقي</th>
+                <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;width:20%;">العملة</th>
+                <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;width:27%;">الإيرادات</th>
+                <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;width:27%;">السحبيات</th>
+                <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;width:26%;">الصافي المتبقي</th>
             </tr>
         </thead>
         <tbody>
-            @php
-                $summaryRows = [];
-                foreach (['YER','SAR','USD'] as $c) {
-                    $recv = (float)($shift->{'total_received_'    . strtolower($c)} ?? 0);
-                    $wdr  = (float)($shift->{'total_withdrawals_' . strtolower($c)} ?? 0);
-                    if ($recv > 0 || $wdr > 0) {
-                        $summaryRows[] = ['cur' => $c, 'recv' => $recv, 'wdr' => $wdr, 'net' => $recv - $wdr];
-                    }
-                }
-            @endphp
             @forelse($summaryRows as $row)
             <tr>
-                <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;font-weight:bold;">
-                    {{ $curLabels[$row['cur']] }}
-                </td>
-                <td style="padding:4px 8px;border:1px solid #ddd;direction:ltr;text-align:left;" class="pos">
-                    {{ number_format($row['recv'], 0) }}
-                </td>
-                <td style="padding:4px 8px;border:1px solid #ddd;direction:ltr;text-align:left;" class="neg">
-                    {{ number_format($row['wdr'], 0) }}
-                </td>
-                <td style="padding:4px 8px;border:1px solid #ddd;direction:ltr;text-align:left;font-weight:bold;" class="net">
-                    {{ number_format($row['net'], 0) }}
-                </td>
+                <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;font-weight:bold;">{{ $curLabels[$row['cur']] }}</td>
+                <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;" class="pos">{{ number_format($row['recv'], 0) }}</td>
+                <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;" class="neg">{{ number_format($row['wdr'], 0) }}</td>
+                <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;font-weight:bold;" class="net">{{ number_format($row['net'], 0) }}</td>
             </tr>
             @empty
             <tr><td colspan="4" style="text-align:center;padding:8px;color:#999;">لا توجد بيانات</td></tr>
@@ -292,11 +284,115 @@
     </table>
 
     @if($shift->notes)
-    <div style="margin-top:8px;font-size:9px;color:#555;text-align:right;">
-        ملاحظات: {{ $shift->notes }}
+    <div style="margin-top:8px;font-size:9px;color:#555;text-align:right;padding:4px 0;">
+        <strong>ملاحظات الإقفال:</strong> {{ $shift->notes }}
     </div>
     @endif
 </div>
+
+{{-- عجز الوردية --}}
+@if($shift->actual_amount !== null)
+@php
+    $sysNet   = $shift->total_received_yer - $shift->total_withdrawals_yer;
+    $actual   = (float) $shift->actual_amount;
+    $deficit  = $shift->shortfall; // actual - sysNet
+@endphp
+<div style="border:2px solid #dc2626;border-radius:6px;padding:12px;margin-top:10px;">
+    <div style="font-size:11px;font-weight:bold;color:#dc2626;text-align:right;margin-bottom:8px;border-bottom:1px solid #fca5a5;padding-bottom:4px;">
+        عجز الوردية
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:9.5px;" dir="rtl">
+        <thead>
+            <tr style="background:#fef2f2;">
+                <th style="padding:5px 8px;border:1px solid #fca5a5;text-align:right;width:34%;">الصافي حسب النظام (ر.ي)</th>
+                <th style="padding:5px 8px;border:1px solid #fca5a5;text-align:right;width:33%;">المبلغ الفعلي في الصندوق (ر.ي)</th>
+                <th style="padding:5px 8px;border:1px solid #fca5a5;text-align:right;width:33%;">الفرق (ر.ي)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td style="padding:6px 8px;border:1px solid #fca5a5;text-align:right;font-weight:bold;font-size:11px;color:#1d4ed8;">
+                    {{ number_format($sysNet, 0) }}
+                </td>
+                <td style="padding:6px 8px;border:1px solid #fca5a5;text-align:right;font-weight:bold;font-size:11px;color:#374151;">
+                    {{ number_format($actual, 0) }}
+                </td>
+                <td style="padding:6px 8px;border:1px solid #fca5a5;text-align:right;font-weight:bold;font-size:11px;">
+                    @if($deficit === null)
+                        <span style="color:#6b7280;">—</span>
+                    @elseif($deficit == 0)
+                        <span style="color:#16a34a;">✓ مطابق</span>
+                    @elseif($deficit < 0)
+                        <span style="color:#dc2626;">▼ {{ number_format(abs($deficit), 0) }} (عجز)</span>
+                    @else
+                        <span style="color:#d97706;">▲ {{ number_format($deficit, 0) }} (زيادة)</span>
+                    @endif
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+@endif
+
+{{-- سجل أحداث الإقفال --}}
+@if(!empty($shift->close_events))
+@php $closeEvents = $shift->close_events; @endphp
+<div style="border:1px solid #cdd8e3;border-radius:6px;padding:10px;margin-top:10px;">
+    <div style="font-size:10px;font-weight:bold;color:#0F4C75;text-align:right;margin-bottom:7px;border-bottom:1px solid #e2e8f0;padding-bottom:4px;">
+        سجل الإقفال وإعادة الفتح
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:8.5px;" dir="rtl">
+        <thead>
+            <tr style="background:#e8f0f7;">
+                <th style="padding:3px 6px;border:1px solid #cdd8e3;text-align:right;width:18%;">الحدث</th>
+                <th style="padding:3px 6px;border:1px solid #cdd8e3;text-align:right;width:22%;">بواسطة</th>
+                <th style="padding:3px 6px;border:1px solid #cdd8e3;text-align:right;width:20%;">التاريخ والوقت</th>
+                <th style="padding:3px 6px;border:1px solid #cdd8e3;text-align:right;width:15%;">المبلغ الفعلي</th>
+                <th style="padding:3px 6px;border:1px solid #cdd8e3;text-align:right;width:25%;">الملاحظات</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($closeEvents as $evt)
+            @php
+                $isClose  = ($evt['event'] ?? '') === 'close';
+                $isReopen = ($evt['event'] ?? '') === 'reopen';
+                $evtTime  = $isClose  ? ($evt['closed_at']   ?? null) : ($evt['reopened_at'] ?? null);
+                $evtAmt   = $isClose  ? ($evt['actual_amount'] ?? null) : null;
+                $evtSf    = $isClose  ? ($evt['shortfall']    ?? null) : null;
+                $evtNotes = $evt['notes'] ?? null;
+                $evtBy    = $evt['closed_by_name'] ?? '—';
+            @endphp
+            <tr style="background:{{ $isReopen ? '#fff8e1' : '#fff' }};">
+                <td style="padding:3px 6px;border:1px solid #e0e7ef;text-align:right;">
+                    @if($isClose)
+                    <span style="color:#0F4C75;font-weight:bold;">إقفال</span>
+                    @else
+                    <span style="color:#d97706;font-weight:bold;">إعادة فتح</span>
+                    @endif
+                </td>
+                <td style="padding:3px 6px;border:1px solid #e0e7ef;text-align:right;">{{ $evtBy }}</td>
+                <td style="padding:3px 6px;border:1px solid #e0e7ef;text-align:right;">
+                    {{ $evtTime ? \Carbon\Carbon::parse($evtTime)->format('d/m/Y H:i') : '—' }}
+                </td>
+                <td style="padding:3px 6px;border:1px solid #e0e7ef;text-align:right;">
+                    @if($evtAmt !== null)
+                        <span style="font-weight:bold;">{{ number_format($evtAmt, 0) }}</span>
+                        @if($evtSf !== null)
+                        <br><span style="font-size:7.5px;color:{{ $evtSf < 0 ? '#dc2626' : ($evtSf > 0 ? '#d97706' : '#16a34a') }};">
+                            {{ $evtSf == 0 ? 'مطابق' : ($evtSf < 0 ? '▼'.number_format(abs($evtSf),0) : '▲'.number_format($evtSf,0)) }}
+                        </span>
+                        @endif
+                    @else
+                        <span style="color:#9ca3af;">—</span>
+                    @endif
+                </td>
+                <td style="padding:3px 6px;border:1px solid #e0e7ef;text-align:right;color:#555;">{{ $evtNotes ?? '—' }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+</div>
+@endif
 
 {{-- Signatures --}}
 <table style="width:100%;margin-top:24px;direction:rtl;" dir="rtl">
