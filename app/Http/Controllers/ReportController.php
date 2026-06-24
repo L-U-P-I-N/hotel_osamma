@@ -5,7 +5,6 @@ use App\Models\Expense;
 use App\Models\Payment;
 use App\Models\Reservation;
 use App\Models\Room;
-use App\Models\RoomType;
 use App\Models\Salary;
 use App\Models\Shift;
 use App\Models\User;
@@ -39,104 +38,6 @@ class ReportController extends Controller
         return view('reports.occupancy', compact('dailyOccupancy', 'from', 'to', 'totalRooms'));
     }
 
-    public function revenue(Request $request)
-    {
-        $from = $request->input('from', now()->subDays(30)->toDateString());
-        $to   = $request->input('to', now()->toDateString());
-
-        $baseQuery = fn() => Payment::whereDate('payment_date', '>=', $from)
-            ->whereDate('payment_date', '<=', $to)
-            ->where('currency', 'YER');
-
-        $totalRevenue     = $baseQuery()->sum('amount');
-        $paymentCount     = $baseQuery()->count();
-        $reservationCount = $baseQuery()->distinct('reservation_id')->count('reservation_id');
-        $avgPayment       = $paymentCount > 0 ? $totalRevenue / $paymentCount : 0;
-
-        $revenueByType = Payment::join('reservations', 'payments.reservation_id', '=', 'reservations.id')
-            ->join('rooms', 'reservations.room_id', '=', 'rooms.id')
-            ->join('room_types', 'rooms.room_type_id', '=', 'room_types.id')
-            ->whereDate('payments.payment_date', '>=', $from)
-            ->whereDate('payments.payment_date', '<=', $to)
-            ->where('payments.currency', 'YER')
-            ->select(
-                'room_types.name',
-                DB::raw('SUM(payments.amount) as total'),
-                DB::raw('COUNT(payments.id) as payment_count'),
-                DB::raw('COUNT(DISTINCT payments.reservation_id) as reservation_count')
-            )
-            ->groupBy('room_types.name')
-            ->orderByDesc('total')
-            ->get();
-
-        $revenueByMethod = $baseQuery()
-            ->select('method', DB::raw('SUM(amount) as total'), DB::raw('COUNT(*) as count'))
-            ->groupBy('method')
-            ->get();
-
-        $dailyRevenue = $baseQuery()
-            ->select(
-                DB::raw('DATE(payment_date) as date'),
-                DB::raw('SUM(amount) as total'),
-                DB::raw('COUNT(*) as count')
-            )
-            ->groupBy('date')
-            ->orderBy('date')
-            ->get();
-
-        $topRooms = Payment::join('reservations', 'payments.reservation_id', '=', 'reservations.id')
-            ->join('rooms', 'reservations.room_id', '=', 'rooms.id')
-            ->join('room_types', 'rooms.room_type_id', '=', 'room_types.id')
-            ->whereDate('payments.payment_date', '>=', $from)
-            ->whereDate('payments.payment_date', '<=', $to)
-            ->where('payments.currency', 'YER')
-            ->select(
-                'rooms.room_number',
-                'room_types.name as type_name',
-                DB::raw('SUM(payments.amount) as total'),
-                DB::raw('COUNT(DISTINCT payments.reservation_id) as reservation_count')
-            )
-            ->groupBy('rooms.room_number', 'room_types.name')
-            ->orderByDesc('total')
-            ->limit(10)
-            ->get();
-
-        $foreignPayments = Payment::whereDate('payment_date', '>=', $from)
-            ->whereDate('payment_date', '<=', $to)
-            ->whereIn('currency', ['SAR', 'USD'])
-            ->select('currency', DB::raw('SUM(amount) as total'), DB::raw('COUNT(*) as count'))
-            ->groupBy('currency')
-            ->get();
-
-        return view('reports.revenue', compact(
-            'revenueByType', 'revenueByMethod', 'totalRevenue',
-            'paymentCount', 'reservationCount', 'avgPayment',
-            'dailyRevenue', 'topRooms',
-            'from', 'to', 'foreignPayments'
-        ));
-    }
-
-    public function staffPerformance(Request $request)
-    {
-        $from = $request->input('from', now()->subDays(30)->toDateString());
-        $to = $request->input('to', now()->toDateString());
-
-        $staffData = User::with(['reservations' => function ($q) use ($from, $to) {
-            $q->whereDate('check_in_date', '>=', $from)
-              ->whereDate('check_in_date', '<=', $to)
-              ->with(['room.roomType', 'guest', 'payments']);
-        }])->where('is_active', true)->get()
-        ->map(fn($u) => [
-            'user'         => $u,
-            'checkins'     => $u->reservations->count(),
-            'checked_out'  => $u->reservations->where('status', 'checked_out')->count(),
-            'revenue'      => $u->reservations->sum(fn($r) => $r->payments->sum('amount')),
-            'reservations' => $u->reservations,
-        ]);
-
-        return view('reports.staff', compact('staffData', 'from', 'to'));
-    }
-
     public function reservations(Request $request)
     {
         $preset = $request->input('preset', 'custom');
@@ -167,170 +68,50 @@ class ReportController extends Controller
         return view('reports.reservations', compact('reservations', 'from', 'to', 'preset', 'total', 'checkedIn', 'checkedOut'));
     }
 
-    public function shifts(Request $request)
-    {
-        $from = $request->input('from', now()->subDays(30)->toDateString());
-        $to   = $request->input('to', now()->toDateString());
-
-        $shifts = Shift::with(['user', 'payments.reservation.room', 'withdrawals'])
-            ->whereDate('shift_date', '>=', $from)
-            ->whereDate('shift_date', '<=', $to)
-            ->orderBy('shift_date', 'desc')
-            ->orderBy('started_at', 'desc')
-            ->paginate(20)
-            ->withQueryString();
-
-        return view('reports.shifts', compact('shifts', 'from', 'to'));
-    }
-
-    public function rooms(Request $request)
-    {
-        $from = $request->input('from', now()->subDays(30)->toDateString());
-        $to   = $request->input('to', now()->toDateString());
-
-        $rooms = Room::with('roomType')
-            ->withCount(['reservations as total_reservations' => function ($q) use ($from, $to) {
-                $q->whereDate('check_in_date', '>=', $from)
-                  ->whereDate('check_in_date', '<=', $to)
-                  ->whereNotIn('status', ['cancelled']);
-            }])
-            ->withSum(['reservations as total_revenue' => function ($q) use ($from, $to) {
-                $q->whereDate('check_in_date', '>=', $from)
-                  ->whereDate('check_in_date', '<=', $to)
-                  ->whereNotIn('status', ['cancelled']);
-            }], 'total_amount')
-            ->orderByDesc('total_revenue')
-            ->get();
-
-        return view('reports.rooms', compact('rooms', 'from', 'to'));
-    }
-
-    public function guests(Request $request)
-    {
-        $from = $request->input('from', now()->subDays(30)->toDateString());
-        $to   = $request->input('to', now()->toDateString());
-
-        $totalGuests = \App\Models\Guest::count();
-
-        $newGuests = \App\Models\Guest::whereHas('reservations', function ($q) use ($from, $to) {
-            $q->whereDate('check_in_date', '>=', $from)
-              ->whereDate('check_in_date', '<=', $to);
-        })->whereDoesntHave('reservations', function ($q) use ($from) {
-            $q->whereDate('check_in_date', '<', $from);
-        })->count();
-
-        $returningGuests = \App\Models\Guest::whereHas('reservations', function ($q) use ($from, $to) {
-            $q->whereDate('check_in_date', '>=', $from)
-              ->whereDate('check_in_date', '<=', $to);
-        })->whereHas('reservations', function ($q) use ($from) {
-            $q->whereDate('check_in_date', '<', $from);
-        })->count();
-
-        $byNationality = \App\Models\Guest::select('nationality', DB::raw('count(*) as count'))
-            ->groupBy('nationality')
-            ->orderByDesc('count')
-            ->limit(10)
-            ->get();
-
-        $topGuests = \App\Models\Guest::withCount(['reservations as period_reservations' => function ($q) use ($from, $to) {
-            $q->whereDate('check_in_date', '>=', $from)
-              ->whereDate('check_in_date', '<=', $to)
-              ->whereNotIn('status', ['cancelled']);
-        }])
-        ->having('period_reservations', '>', 0)
-        ->orderByDesc('period_reservations')
-        ->limit(10)
-        ->get();
-
-        return view('reports.guests', compact(
-            'totalGuests', 'newGuests', 'returningGuests',
-            'byNationality', 'topGuests', 'from', 'to'
-        ));
-    }
-
     public function debts(Request $request)
     {
-        $reservations = Reservation::with(['guest', 'room.roomType'])
+        $search = $request->input('search', '');
+        $bucket = $request->input('bucket', '');
+
+        $allReservations = Reservation::with(['guest', 'room.roomType'])
             ->whereIn('status', ['checked_in', 'checked_out'])
             ->whereRaw('paid_amount < total_amount')
             ->orderByRaw('(total_amount - paid_amount) DESC')
             ->get();
 
-        $totalDebt = $reservations->sum(fn($r) => $r->total_amount - $r->paid_amount);
+        $totalDebt = $allReservations->sum(fn($r) => $r->total_amount - $r->paid_amount);
 
-        return view('reports.debts', compact('reservations', 'totalDebt'));
-    }
-
-    public function dailyClose(Request $request)
-    {
-        $date = $request->input('date', today()->toDateString());
-
-        $payments = Payment::whereDate('payment_date', $date)->where('currency', 'YER')->get();
-        $totalRevenue     = $payments->sum('amount');
-        $paymentCount     = $payments->count();
-        $reservationCount = $payments->unique('reservation_id')->count();
-
-        $revenueByMethod = Payment::whereDate('payment_date', $date)
-            ->where('currency', 'YER')
-            ->select('method', DB::raw('SUM(amount) as total'), DB::raw('COUNT(*) as count'))
-            ->groupBy('method')
-            ->get();
-
-        $expenses = \App\Models\Expense::whereDate('expense_date', $date)->get();
-        $totalExpenses = $expenses->sum('amount');
-
-        $expensesByCategory = \App\Models\Expense::whereDate('expense_date', $date)
-            ->select('category', DB::raw('SUM(amount) as total'), DB::raw('COUNT(*) as count'))
-            ->groupBy('category')
-            ->get();
-
-        $shifts = \App\Models\Shift::with('user')
-            ->whereDate('shift_date', $date)
-            ->get();
-
-        $cashRevenue     = $payments->where('method', 'cash')->sum('amount');
-        $cashExpenses    = $expenses->where('payment_method', 'cash')->sum('amount');
-        $totalWithdrawals = $shifts->sum('total_withdrawals_yer');
-        $expectedCash    = $cashRevenue - $cashExpenses;
-        $netDay          = $totalRevenue - $totalExpenses;
-
-        return view('reports.daily-close', compact(
-            'date', 'totalRevenue', 'paymentCount', 'reservationCount',
-            'revenueByMethod', 'totalExpenses', 'expensesByCategory',
-            'shifts', 'cashRevenue', 'cashExpenses', 'totalWithdrawals',
-            'expectedCash', 'netDay'
-        ));
-    }
-
-    public function agedDebts(Request $request)
-    {
-        $reservations = Reservation::with(['guest', 'room'])
-            ->whereIn('status', ['checked_in', 'checked_out'])
-            ->whereRaw('paid_amount < total_amount')
-            ->orderByRaw('(total_amount - paid_amount) DESC')
-            ->get();
-
-        $totalDebt = $reservations->sum(fn($r) => $r->total_amount - $r->paid_amount);
-
-        $buckets = [
-            'current' => ['count' => 0, 'total' => 0],
-            '30_60'   => ['count' => 0, 'total' => 0],
-            '60_90'   => ['count' => 0, 'total' => 0],
-            'over_90' => ['count' => 0, 'total' => 0],
-        ];
-
-        foreach ($reservations as $res) {
+        $buckets = ['current' => ['count' => 0, 'total' => 0], '30_60' => ['count' => 0, 'total' => 0], '60_90' => ['count' => 0, 'total' => 0], 'over_90' => ['count' => 0, 'total' => 0]];
+        foreach ($allReservations as $res) {
             $refDate = $res->actual_check_out ?? $res->check_out_date;
             $days    = $refDate ? now()->startOfDay()->diffInDays($refDate->startOfDay()) : 0;
             $balance = $res->total_amount - $res->paid_amount;
-
-            if ($days <= 30)      { $buckets['current']['count']++; $buckets['current']['total'] += $balance; }
-            elseif ($days <= 60)  { $buckets['30_60']['count']++;   $buckets['30_60']['total']   += $balance; }
-            elseif ($days <= 90)  { $buckets['60_90']['count']++;   $buckets['60_90']['total']   += $balance; }
-            else                  { $buckets['over_90']['count']++;  $buckets['over_90']['total']  += $balance; }
+            if ($days <= 30)     { $buckets['current']['count']++; $buckets['current']['total'] += $balance; }
+            elseif ($days <= 60) { $buckets['30_60']['count']++;   $buckets['30_60']['total']   += $balance; }
+            elseif ($days <= 90) { $buckets['60_90']['count']++;   $buckets['60_90']['total']   += $balance; }
+            else                 { $buckets['over_90']['count']++;  $buckets['over_90']['total']  += $balance; }
         }
 
-        return view('reports.aged-debts', compact('reservations', 'totalDebt', 'buckets'));
+        $agedReservations = $allReservations;
+        if ($search) {
+            $agedReservations = $agedReservations->filter(fn($r) => stripos($r->guest?->full_name ?? '', $search) !== false);
+        }
+        if ($bucket) {
+            $agedReservations = $agedReservations->filter(function ($r) use ($bucket) {
+                $refDate = $r->actual_check_out ?? $r->check_out_date;
+                $days    = $refDate ? now()->startOfDay()->diffInDays($refDate->startOfDay()) : 0;
+                return match ($bucket) {
+                    'current' => $days <= 30,
+                    '30_60'   => $days > 30 && $days <= 60,
+                    '60_90'   => $days > 60 && $days <= 90,
+                    'over_90' => $days > 90,
+                    default   => true,
+                };
+            });
+        }
+
+        $reservations = $allReservations;
+        return view('reports.debts', compact('reservations', 'agedReservations', 'totalDebt', 'buckets', 'search', 'bucket'));
     }
 
     public function profitLoss(Request $request)
@@ -405,131 +186,6 @@ class ReportController extends Controller
         ));
     }
 
-    public function roomRevenue(Request $request)
-    {
-        $from = $request->input('from', now()->startOfMonth()->toDateString());
-        $to   = $request->input('to', now()->toDateString());
-
-        $roomTypes = RoomType::with('rooms')->get();
-
-        $revenueByType = [];
-        foreach ($roomTypes as $type) {
-            $roomIds = $type->rooms->pluck('id');
-
-            $actualRevenue = Payment::whereHas('reservation', fn($q) => $q->whereIn('room_id', $roomIds))
-                ->whereDate('payment_date', '>=', $from)
-                ->whereDate('payment_date', '<=', $to)
-                ->where('currency', 'YER')
-                ->sum('amount');
-
-            $reservationCount = Reservation::whereIn('room_id', $roomIds)
-                ->whereDate('check_in_date', '>=', $from)
-                ->whereDate('check_in_date', '<=', $to)
-                ->whereIn('status', ['checked_in', 'checked_out'])
-                ->count();
-
-            $totalNights = Reservation::whereIn('room_id', $roomIds)
-                ->whereDate('check_in_date', '>=', $from)
-                ->whereDate('check_in_date', '<=', $to)
-                ->whereIn('status', ['checked_in', 'checked_out'])
-                ->selectRaw('SUM(DATEDIFF(check_out_date, check_in_date)) as nights')
-                ->value('nights') ?? 0;
-
-            $expectedRevenue = $totalNights * (float)$type->base_price;
-
-            $revenueByType[] = [
-                'type'             => $type,
-                'rooms_count'      => $type->rooms->count(),
-                'actual_revenue'   => (float)$actualRevenue,
-                'expected_revenue' => $expectedRevenue,
-                'reservation_count'=> $reservationCount,
-                'total_nights'     => (int)$totalNights,
-                'adr'              => $totalNights > 0 ? round($actualRevenue / $totalNights) : 0,
-                'achievement'      => $expectedRevenue > 0 ? round(($actualRevenue / $expectedRevenue) * 100) : 0,
-            ];
-        }
-
-        $totalActual   = array_sum(array_column($revenueByType, 'actual_revenue'));
-        $totalExpected = array_sum(array_column($revenueByType, 'expected_revenue'));
-
-        return view('reports.room-revenue', compact(
-            'from', 'to', 'revenueByType', 'totalActual', 'totalExpected'
-        ));
-    }
-
-    public function cashFlow(Request $request)
-    {
-        $from = $request->input('from', now()->startOfMonth()->toDateString());
-        $to   = $request->input('to', now()->toDateString());
-
-        // Build daily cash flow
-        $days = collect();
-        $period = \Carbon\CarbonPeriod::create($from, $to);
-
-        $allPayments = Payment::whereDate('payment_date', '>=', $from)
-            ->whereDate('payment_date', '<=', $to)
-            ->where('currency', 'YER')
-            ->selectRaw('DATE(payment_date) as day, SUM(amount) as total')
-            ->groupBy('day')
-            ->pluck('total', 'day');
-
-        $allExpenses = Expense::whereDate('expense_date', '>=', $from)
-            ->whereDate('expense_date', '<=', $to)
-            ->where('currency', 'YER')
-            ->selectRaw('DATE(expense_date) as day, SUM(amount) as total')
-            ->groupBy('day')
-            ->pluck('total', 'day');
-
-        $runningBalance = 0;
-        foreach ($period as $date) {
-            $d   = $date->format('Y-m-d');
-            $rev = (float)($allPayments[$d] ?? 0);
-            $exp = (float)($allExpenses[$d] ?? 0);
-            $runningBalance += $rev - $exp;
-            $days->push([
-                'date'    => $d,
-                'label'   => $date->format('d/m'),
-                'revenue' => $rev,
-                'expense' => $exp,
-                'net'     => $rev - $exp,
-                'balance' => $runningBalance,
-            ]);
-        }
-
-        $totalIn  = $days->sum('revenue');
-        $totalOut = $days->sum('expense');
-        $netFlow  = $totalIn - $totalOut;
-
-        return view('reports.cash-flow', compact(
-            'from', 'to', 'days', 'totalIn', 'totalOut', 'netFlow'
-        ));
-    }
-
-    public function salaries(Request $request)
-    {
-        $year = $request->input('year', now()->year);
-
-        $salaries = \App\Models\Salary::with('employee')
-            ->where('year', $year)
-            ->orderBy('month', 'desc')
-            ->get();
-
-        $byMonth = $salaries->groupBy('month')->map(fn($g) => [
-            'count'       => $g->count(),
-            'total_net'   => $g->sum('net_salary'),
-            'total_base'  => $g->sum('base_salary'),
-            'total_bonus' => $g->sum('bonuses'),
-            'total_ded'   => $g->sum('deductions'),
-            'paid'        => $g->where('status', 'paid')->count(),
-            'pending'     => $g->where('status', 'pending')->count(),
-        ]);
-
-        $years = \App\Models\Salary::selectRaw('DISTINCT year')->orderByDesc('year')->pluck('year');
-        $totalNet = $salaries->sum('net_salary');
-
-        return view('reports.salaries', compact('salaries', 'byMonth', 'year', 'years', 'totalNet'));
-    }
-
     public function occupancyPdf(Request $request)
     {
         $from = $request->input('from', now()->subDays(30)->toDateString());
@@ -598,6 +254,217 @@ class ReportController extends Controller
         $from = $request->input('from', now()->subDays(30)->toDateString());
         $to   = $request->input('to', now()->toDateString());
         return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\ShiftsReportExport($from, $to), 'shifts-' . $from . '-' . $to . '.xlsx');
+    }
+
+    public function shiftsHub(Request $request)
+    {
+        $tab  = $request->input('tab', 'shifts');
+        $from = $request->input('from', now()->subDays(30)->toDateString());
+        $to   = $request->input('to', now()->toDateString());
+        $date = $request->input('date', today()->toDateString());
+
+        $shifts = null;
+        $summary = null;
+        $totalRevenue = $paymentCount = $reservationCount = 0;
+        $revenueByMethod = collect();
+        $totalExpenses = $cashRevenue = $cashExpenses = $totalWithdrawals = $expectedCash = $netDay = 0;
+        $expensesByCategory = collect();
+        $dailyShifts = collect();
+
+        if ($tab === 'shifts') {
+            $shifts = Shift::with(['user', 'payments.reservation.room', 'withdrawals'])
+                ->whereDate('shift_date', '>=', $from)
+                ->whereDate('shift_date', '<=', $to)
+                ->orderBy('shift_date', 'desc')
+                ->orderBy('started_at', 'desc')
+                ->paginate(20)
+                ->withQueryString();
+
+        } elseif ($tab === 'deficits') {
+            $users = User::with(['shifts' => function ($q) use ($from, $to) {
+                $q->where('is_closed', true)
+                  ->whereDate('shift_date', '>=', $from)
+                  ->whereDate('shift_date', '<=', $to)
+                  ->orderBy('shift_date', 'desc');
+            }])->whereHas('shifts', function ($q) use ($from, $to) {
+                $q->where('is_closed', true)
+                  ->whereDate('shift_date', '>=', $from)
+                  ->whereDate('shift_date', '<=', $to);
+            })->get();
+
+            $summary = $users->map(function (User $user) {
+                $userShifts    = $user->shifts;
+                $deficitShifts = $userShifts->filter(fn($s) => $s->shortfall !== null && $s->shortfall < 0);
+                $surplusShifts = $userShifts->filter(fn($s) => $s->shortfall !== null && $s->shortfall > 0);
+                return [
+                    'user'            => $user,
+                    'shift_count'     => $userShifts->count(),
+                    'total_received'  => $userShifts->sum('total_received_yer'),
+                    'total_withdrawn' => $userShifts->sum('total_withdrawals_yer'),
+                    'total_deficit'   => $deficitShifts->sum(fn($s) => abs($s->shortfall)),
+                    'total_surplus'   => $surplusShifts->sum('shortfall'),
+                    'deficit_count'   => $deficitShifts->count(),
+                    'deducted_count'  => $deficitShifts->whereNotNull('salary_deducted_at')->count(),
+                    'shifts'          => $userShifts,
+                ];
+            })->sortByDesc('total_deficit')->values();
+
+        } elseif ($tab === 'daily') {
+            $payments = \App\Models\Payment::whereDate('payment_date', $date)->where('currency', 'YER')->get();
+            $totalRevenue     = $payments->sum('amount');
+            $paymentCount     = $payments->count();
+            $reservationCount = $payments->unique('reservation_id')->count();
+
+            $revenueByMethod = \App\Models\Payment::whereDate('payment_date', $date)
+                ->where('currency', 'YER')
+                ->select('method', DB::raw('SUM(amount) as total'), DB::raw('COUNT(*) as count'))
+                ->groupBy('method')->get();
+
+            $expenses = \App\Models\Expense::whereDate('expense_date', $date)->get();
+            $totalExpenses = $expenses->sum('amount');
+
+            $expensesByCategory = \App\Models\Expense::whereDate('expense_date', $date)
+                ->select('category', DB::raw('SUM(amount) as total'), DB::raw('COUNT(*) as count'))
+                ->groupBy('category')->get();
+
+            $dailyShifts = Shift::with('user')->whereDate('shift_date', $date)->get();
+
+            $cashRevenue      = $payments->where('method', 'cash')->sum('amount');
+            $cashExpenses     = $expenses->where('payment_method', 'cash')->sum('amount');
+            $totalWithdrawals = $dailyShifts->sum('total_withdrawals_yer');
+            $expectedCash     = $cashRevenue - $cashExpenses;
+            $netDay           = $totalRevenue - $totalExpenses;
+        }
+
+        return view('reports.shifts-hub', compact(
+            'tab', 'from', 'to', 'date',
+            'shifts', 'summary',
+            'totalRevenue', 'paymentCount', 'reservationCount',
+            'revenueByMethod', 'totalExpenses', 'expensesByCategory',
+            'dailyShifts', 'cashRevenue', 'cashExpenses', 'totalWithdrawals',
+            'expectedCash', 'netDay'
+        ));
+    }
+
+    public function financeHub(Request $request)
+    {
+        $tab    = $request->input('tab', 'revenue');
+        $from   = $request->input('from', now()->startOfMonth()->toDateString());
+        $to     = $request->input('to', now()->toDateString());
+        $month  = $request->input('month', now()->format('Y-m'));
+        $period = $request->input('period', 'month');
+
+        // Revenue tab
+        $totalRevenue = $paymentCount = $reservationCount = $avgPayment = 0;
+        $revenueByType = $revenueByMethod = $dailyRevenue = $topRooms = $foreignPayments = collect();
+
+        // Expenses tab
+        $totalExpenses = $expenseCount = 0;
+        $expensesByCategory = collect();
+        $monthFrom = $monthTo = '';
+
+        // Payment methods tab
+        $byMethod = collect();
+        $totalMethodAmount = $totalMethodCount = 0;
+        $dailyByMethod = collect();
+        $methodLabels = ['cash' => 'نقداً', 'bank_transfer' => 'تحويل بنكي', 'pos' => 'POS', 'check' => 'شيك', 'credit_card' => 'بطاقة ائتمان'];
+
+        // Financial ratios tab
+        $profitMargin = $costRatio = $occupancyRate = $revenuePerRoom = $adr = 0;
+        $revenuePerGuest = $avgStay = $guestCount = 0;
+        $dailyRevenueAvg = $dailyExpenseAvg = $dailyProfitAvg = $avgOccupiedRooms = 0;
+        $profitabilityScore = $efficiencyScore = $overallHealth = 0;
+
+        if ($tab === 'revenue') {
+            $bq = fn() => Payment::whereDate('payment_date', '>=', $from)->whereDate('payment_date', '<=', $to)->where('currency', 'YER');
+            $totalRevenue     = $bq()->sum('amount');
+            $paymentCount     = $bq()->count();
+            $reservationCount = $bq()->distinct('reservation_id')->count('reservation_id');
+            $avgPayment       = $paymentCount > 0 ? $totalRevenue / $paymentCount : 0;
+            $revenueByType = Payment::join('reservations', 'payments.reservation_id', '=', 'reservations.id')
+                ->join('rooms', 'reservations.room_id', '=', 'rooms.id')
+                ->join('room_types', 'rooms.room_type_id', '=', 'room_types.id')
+                ->whereDate('payments.payment_date', '>=', $from)->whereDate('payments.payment_date', '<=', $to)
+                ->where('payments.currency', 'YER')
+                ->select('room_types.name', DB::raw('SUM(payments.amount) as total'), DB::raw('COUNT(payments.id) as payment_count'), DB::raw('COUNT(DISTINCT payments.reservation_id) as reservation_count'))
+                ->groupBy('room_types.name')->orderByDesc('total')->get();
+            $revenueByMethod = $bq()->select('method', DB::raw('SUM(amount) as total'), DB::raw('COUNT(*) as count'))->groupBy('method')->get();
+            $dailyRevenue    = $bq()->select(DB::raw('DATE(payment_date) as date'), DB::raw('SUM(amount) as total'), DB::raw('COUNT(*) as count'))->groupBy('date')->orderBy('date')->get();
+            $topRooms = Payment::join('reservations', 'payments.reservation_id', '=', 'reservations.id')
+                ->join('rooms', 'reservations.room_id', '=', 'rooms.id')
+                ->join('room_types', 'rooms.room_type_id', '=', 'room_types.id')
+                ->whereDate('payments.payment_date', '>=', $from)->whereDate('payments.payment_date', '<=', $to)
+                ->where('payments.currency', 'YER')
+                ->select('rooms.room_number', 'room_types.name as type_name', DB::raw('SUM(payments.amount) as total'), DB::raw('COUNT(DISTINCT payments.reservation_id) as reservation_count'))
+                ->groupBy('rooms.room_number', 'room_types.name')->orderByDesc('total')->limit(10)->get();
+            $foreignPayments = Payment::whereDate('payment_date', '>=', $from)->whereDate('payment_date', '<=', $to)
+                ->whereIn('currency', ['SAR', 'USD'])
+                ->select('currency', DB::raw('SUM(amount) as total'), DB::raw('COUNT(*) as count'))->groupBy('currency')->get();
+
+        } elseif ($tab === 'expenses') {
+            [$year, $monthNum] = explode('-', $month);
+            $monthFrom = "{$year}-{$monthNum}-01";
+            $monthTo   = \Carbon\Carbon::parse($monthFrom)->endOfMonth()->toDateString();
+            $expItems  = \App\Models\Expense::whereDate('expense_date', '>=', $monthFrom)->whereDate('expense_date', '<=', $monthTo)->get();
+            $totalExpenses = $expItems->sum('amount');
+            $expenseCount  = $expItems->count();
+            $expensesByCategory = $expItems->groupBy('category')
+                ->map(fn($g) => (object)['category' => $g->first()->category, 'count' => $g->count(), 'total' => $g->sum('amount')])
+                ->sortByDesc('total')->values();
+
+        } elseif ($tab === 'methods') {
+            $allPayments = Payment::whereDate('payment_date', '>=', $from)->whereDate('payment_date', '<=', $to)->where('currency', 'YER')->get();
+            $byMethod = $allPayments->groupBy('method')->map(fn($g) => [
+                'count' => $g->count(), 'total' => $g->sum('amount'), 'average' => $g->count() > 0 ? $g->sum('amount') / $g->count() : 0,
+            ]);
+            $totalMethodAmount = $allPayments->sum('amount');
+            $totalMethodCount  = $allPayments->count();
+            $dailyByMethod     = $allPayments->groupBy(fn($p) => $p->payment_date->format('Y-m-d'))
+                ->map(fn($g) => $g->groupBy('method')->map(fn($gm) => $gm->sum('amount')));
+
+        } elseif ($tab === 'ratios') {
+            $ratioFrom = match ($period) {
+                'quarter' => now()->startOfQuarter()->toDateString(),
+                'year'    => now()->startOfYear()->toDateString(),
+                'all'     => Reservation::orderBy('check_in_date')->first()?->check_in_date->toDateString() ?? now()->subYear()->toDateString(),
+                default   => now()->startOfMonth()->toDateString(),
+            };
+            $ratioTo  = now()->toDateString();
+            $days     = \Carbon\Carbon::parse($ratioFrom)->diffInDays($ratioTo) + 1;
+            $rev      = Payment::whereDate('payment_date', '>=', $ratioFrom)->whereDate('payment_date', '<=', $ratioTo)->where('currency', 'YER')->sum('amount');
+            $exp      = \App\Models\Expense::whereDate('expense_date', '>=', $ratioFrom)->whereDate('expense_date', '<=', $ratioTo)->where('currency', 'YER')->sum('amount');
+            $profit   = $rev - $exp;
+            $profitMargin = $rev > 0 ? round(($profit / $rev) * 100, 1) : 0;
+            $costRatio    = $rev > 0 ? round(($exp / $rev) * 100, 1) : 0;
+            $totalRooms   = Room::count();
+            $ratioRes     = Reservation::whereDate('check_in_date', '>=', $ratioFrom)->whereDate('check_in_date', '<=', $ratioTo)->get();
+            $totalNights  = $ratioRes->sum('nights');
+            $occupancyRate   = ($totalRooms * $days) > 0 ? round(($totalNights / ($totalRooms * $days)) * 100) : 0;
+            $revenuePerRoom  = $totalRooms > 0 ? round($rev / $totalRooms) : 0;
+            $guestCount      = $ratioRes->count();
+            $revenuePerGuest = $guestCount > 0 ? round($rev / $guestCount) : 0;
+            $avgStay         = $guestCount > 0 ? round($totalNights / $guestCount, 2) : 0;
+            $dailyRevenueAvg  = round($rev / $days);
+            $dailyExpenseAvg  = round($exp / $days);
+            $dailyProfitAvg   = $dailyRevenueAvg - $dailyExpenseAvg;
+            $adr              = $totalNights > 0 ? round($rev / $totalNights) : 0;
+            $avgOccupiedRooms = round($totalNights / $days, 1);
+            $profitabilityScore = min(10, max(0, (int)($profitMargin / 3)));
+            $efficiencyScore    = min(10, max(0, round((100 - $costRatio) / 10)));
+            $overallHealth      = round(($profitabilityScore + $efficiencyScore) / 2);
+        }
+
+        return view('reports.finance-hub', compact(
+            'tab', 'from', 'to', 'month', 'period',
+            'totalRevenue', 'paymentCount', 'reservationCount', 'avgPayment',
+            'revenueByType', 'revenueByMethod', 'dailyRevenue', 'topRooms', 'foreignPayments',
+            'totalExpenses', 'expenseCount', 'expensesByCategory', 'monthFrom', 'monthTo',
+            'byMethod', 'totalMethodAmount', 'totalMethodCount', 'dailyByMethod', 'methodLabels',
+            'profitMargin', 'costRatio', 'occupancyRate', 'revenuePerRoom', 'adr',
+            'revenuePerGuest', 'avgStay', 'guestCount',
+            'dailyRevenueAvg', 'dailyExpenseAvg', 'dailyProfitAvg', 'avgOccupiedRooms',
+            'profitabilityScore', 'efficiencyScore', 'overallHealth'
+        ));
     }
 
     private function pdfOptions(\Barryvdh\DomPDF\PDF $pdf): \Barryvdh\DomPDF\PDF
@@ -739,11 +606,29 @@ class ReportController extends Controller
 
     public function debtsPdf(Request $request)
     {
+        $section = $request->input('section', 'list');
+
         $reservations = Reservation::with(['guest', 'room'])->whereIn('status', ['checked_in', 'checked_out'])->whereRaw('paid_amount < total_amount')->orderByRaw('(total_amount - paid_amount) DESC')->get();
         $totalDebt    = $reservations->sum(fn($r) => $r->total_amount - $r->paid_amount);
-        $pdf = $this->pdfOptions(pdf_load_view('reports.debts_pdf', compact('reservations', 'totalDebt')));
+
+        if ($section === 'aged') {
+            $buckets = ['current' => ['count' => 0, 'total' => 0], '30_60' => ['count' => 0, 'total' => 0], '60_90' => ['count' => 0, 'total' => 0], 'over_90' => ['count' => 0, 'total' => 0]];
+            foreach ($reservations as $res) {
+                $refDate = $res->actual_check_out ?? $res->check_out_date;
+                $days    = $refDate ? now()->startOfDay()->diffInDays($refDate->startOfDay()) : 0;
+                $balance = $res->total_amount - $res->paid_amount;
+                if ($days <= 30)     { $buckets['current']['count']++; $buckets['current']['total'] += $balance; }
+                elseif ($days <= 60) { $buckets['30_60']['count']++;   $buckets['30_60']['total']   += $balance; }
+                elseif ($days <= 90) { $buckets['60_90']['count']++;   $buckets['60_90']['total']   += $balance; }
+                else                 { $buckets['over_90']['count']++;  $buckets['over_90']['total']  += $balance; }
+            }
+            $pdf = $this->pdfOptions(pdf_load_view('reports.debts_pdf_aged', compact('reservations', 'totalDebt', 'buckets')));
+        } else {
+            $pdf = $this->pdfOptions(pdf_load_view('reports.debts_pdf', compact('reservations', 'totalDebt')));
+        }
+
         $pdf->setPaper('a4', 'portrait');
-        return $pdf->download('debts-' . now()->format('Y-m-d') . '.pdf');
+        return $pdf->download('debts-' . $section . '-' . now()->format('Y-m-d') . '.pdf');
     }
 
     public function debtsExcel(Request $request)
@@ -768,183 +653,90 @@ class ReportController extends Controller
         return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\SalariesReportExport($year), 'salaries-' . $year . '.xlsx');
     }
 
-    public function paymentMethodsStats(Request $request)
+    public function hrHub(Request $request)
     {
-        $from = $request->input('from', now()->startOfMonth()->toDateString());
+        $tab  = $request->input('tab', 'salaries');
+        $from = $request->input('from', now()->subDays(30)->toDateString());
         $to   = $request->input('to', now()->toDateString());
+        $year = (int) $request->input('year', now()->year);
 
-        $payments = Payment::whereDate('payment_date', '>=', $from)
-            ->whereDate('payment_date', '<=', $to)
-            ->where('currency', 'YER')
-            ->get();
+        $salaries  = collect();
+        $byMonth   = collect();
+        $years     = collect();
+        $totalNet  = 0;
+        $staffData = collect();
 
-        $byMethod = $payments->groupBy('method')->map(fn($group) => [
-            'count'   => $group->count(),
-            'total'   => $group->sum('amount'),
-            'average' => $group->count() > 0 ? $group->sum('amount') / $group->count() : 0,
-        ]);
-
-        $totalAmount = $payments->sum('amount');
-        $totalCount  = $payments->count();
-
-        $dailyByMethod = $payments->groupBy(fn($p) => $p->payment_date->format('Y-m-d'))
-            ->map(fn($group) => $group->groupBy('method')
-                ->map(fn($g) => $g->sum('amount'))
-            );
-
-        $methodLabels = [
-            'cash'          => 'نقداً',
-            'bank_transfer' => 'تحويل بنكي',
-            'pos'           => 'POS',
-            'check'         => 'شيك',
-            'credit_card'   => 'بطاقة ائتمان',
-        ];
-
-        return view('reports.payment-methods-stats', compact(
-            'byMethod', 'totalAmount', 'totalCount', 'dailyByMethod',
-            'from', 'to', 'methodLabels'
-        ));
-    }
-
-    public function shiftDeficits(Request $request)
-    {
-        $from = $request->input('from', now()->startOfMonth()->toDateString());
-        $to   = $request->input('to', now()->toDateString());
-
-        $users = User::with(['shifts' => function ($q) use ($from, $to) {
-            $q->where('is_closed', true)
-              ->whereDate('shift_date', '>=', $from)
-              ->whereDate('shift_date', '<=', $to)
-              ->orderBy('shift_date', 'desc');
-        }])->whereHas('shifts', function ($q) use ($from, $to) {
-            $q->where('is_closed', true)
-              ->whereDate('shift_date', '>=', $from)
-              ->whereDate('shift_date', '<=', $to);
-        })->get();
-
-        $summary = $users->map(function (User $user) {
-            $shifts       = $user->shifts;
-            $deficitShifts = $shifts->filter(fn($s) => $s->shortfall !== null && $s->shortfall < 0);
-            $surplusShifts = $shifts->filter(fn($s) => $s->shortfall !== null && $s->shortfall > 0);
-
-            return [
-                'user'            => $user,
-                'shift_count'     => $shifts->count(),
-                'total_received'  => $shifts->sum('total_received_yer'),
-                'total_withdrawn' => $shifts->sum('total_withdrawals_yer'),
-                'total_deficit'   => $deficitShifts->sum(fn($s) => abs($s->shortfall)),
-                'total_surplus'   => $surplusShifts->sum('shortfall'),
-                'deficit_count'   => $deficitShifts->count(),
-                'deducted_count'  => $deficitShifts->whereNotNull('salary_deducted_at')->count(),
-                'shifts'          => $shifts,
-            ];
-        })->sortByDesc('total_deficit')->values();
-
-        return view('reports.shift-deficits', compact('summary', 'from', 'to'));
-    }
-
-    public function monthlyExpenses(Request $request)
-    {
-        $month = $request->input('month', now()->format('Y-m'));
-        list($year, $monthNum) = explode('-', $month);
-
-        $fromDate = "{$year}-{$monthNum}-01";
-        $toDate   = \Carbon\Carbon::parse($fromDate)->endOfMonth()->toDateString();
-
-        $expenses = Expense::whereDate('expense_date', '>=', $fromDate)
-            ->whereDate('expense_date', '<=', $toDate)
-            ->get();
-
-        $totalExpenses = $expenses->sum('amount');
-        $expenseCount  = $expenses->count();
-
-        $expensesByCategory = $expenses->groupBy('category')
-            ->map(function ($group) {
-                return (object)[
-                    'category' => $group->first()->category,
-                    'count'    => $group->count(),
-                    'total'    => $group->sum('amount'),
-                ];
-            })
-            ->sortByDesc('total')
-            ->values();
-
-        return view('reports.monthly-expenses', compact('totalExpenses', 'expenseCount', 'expensesByCategory', 'month'));
-    }
-
-    public function financialRatios(Request $request)
-    {
-        $period = $request->input('period', 'month');
-
-        if ($period === 'month') {
-            $fromDate = now()->startOfMonth()->toDateString();
-            $toDate = now()->toDateString();
-        } elseif ($period === 'quarter') {
-            $fromDate = now()->startOfQuarter()->toDateString();
-            $toDate = now()->toDateString();
-        } elseif ($period === 'year') {
-            $fromDate = now()->startOfYear()->toDateString();
-            $toDate = now()->toDateString();
-        } else {
-            $fromDate = Reservation::orderBy('check_in_date')->first()?->check_in_date->toDateString() ?? now()->subYear()->toDateString();
-            $toDate = now()->toDateString();
+        if ($tab === 'salaries') {
+            $salaries = Salary::with('employee')->where('year', $year)->orderBy('month', 'desc')->get();
+            $byMonth  = $salaries->groupBy('month')->map(fn($g) => [
+                'count'       => $g->count(),
+                'total_net'   => $g->sum('net_salary'),
+                'total_base'  => $g->sum('base_salary'),
+                'total_bonus' => $g->sum('bonuses'),
+                'total_ded'   => $g->sum('deductions'),
+                'paid'        => $g->where('status', 'paid')->count(),
+                'pending'     => $g->where('status', 'pending')->count(),
+            ]);
+            $years    = Salary::selectRaw('DISTINCT year')->orderByDesc('year')->pluck('year');
+            $totalNet = $salaries->sum('net_salary');
+        } elseif ($tab === 'staff') {
+            $staffData = User::with(['reservations' => fn($q) => $q
+                ->whereDate('check_in_date', '>=', $from)
+                ->whereDate('check_in_date', '<=', $to)
+                ->with(['room.roomType', 'guest', 'payments'])
+            ])->where('is_active', true)->get()
+            ->map(fn($u) => [
+                'user'         => $u,
+                'checkins'     => $u->reservations->count(),
+                'checked_out'  => $u->reservations->where('status', 'checked_out')->count(),
+                'revenue'      => $u->reservations->sum(fn($r) => $r->payments->sum('amount')),
+                'reservations' => $u->reservations,
+            ]);
         }
 
-        $days = \Carbon\Carbon::parse($fromDate)->diffInDays(\Carbon\Carbon::parse($toDate)) + 1;
+        return view('reports.hr-hub', compact('tab', 'from', 'to', 'year', 'salaries', 'byMonth', 'years', 'totalNet', 'staffData'));
+    }
 
-        $revenue = Payment::whereDate('payment_date', '>=', $fromDate)
-            ->whereDate('payment_date', '<=', $toDate)
-            ->where('currency', 'YER')
-            ->sum('amount');
+    public function guestsRoomsHub(Request $request)
+    {
+        $tab  = $request->input('tab', 'guests');
+        $from = $request->input('from', now()->subDays(30)->toDateString());
+        $to   = $request->input('to', now()->toDateString());
 
-        $expenses = Expense::whereDate('expense_date', '>=', $fromDate)
-            ->whereDate('expense_date', '<=', $toDate)
-            ->where('currency', 'YER')
-            ->sum('amount');
+        $totalGuests     = 0;
+        $newGuests       = 0;
+        $returningGuests = 0;
+        $byNationality   = collect();
+        $topGuests       = collect();
+        $rooms           = collect();
 
-        $profit = $revenue - $expenses;
+        if ($tab === 'guests') {
+            $totalGuests     = \App\Models\Guest::count();
+            $newGuests       = \App\Models\Guest::whereHas('reservations', fn($q) => $q->whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to))
+                ->whereDoesntHave('reservations', fn($q) => $q->whereDate('check_in_date', '<', $from))->count();
+            $returningGuests = \App\Models\Guest::whereHas('reservations', fn($q) => $q->whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to))
+                ->whereHas('reservations', fn($q) => $q->whereDate('check_in_date', '<', $from))->count();
+            $byNationality   = \App\Models\Guest::select('nationality', DB::raw('count(*) as count'))
+                ->groupBy('nationality')->orderByDesc('count')->limit(10)->get();
+            $topGuests       = \App\Models\Guest::withCount(['reservations as period_reservations' => fn($q) => $q
+                ->whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to)
+                ->whereNotIn('status', ['cancelled'])])
+                ->having('period_reservations', '>', 0)->orderByDesc('period_reservations')->limit(10)->get();
+        } elseif ($tab === 'rooms') {
+            $rooms = Room::with('roomType')
+                ->withCount(['reservations as total_reservations' => fn($q) => $q
+                    ->whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to)
+                    ->whereNotIn('status', ['cancelled'])])
+                ->withSum(['reservations as total_revenue' => fn($q) => $q
+                    ->whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to)
+                    ->whereNotIn('status', ['cancelled'])], 'total_amount')
+                ->orderByDesc('total_revenue')->get();
+        }
 
-        // Main Ratios
-        $profitMargin = $revenue > 0 ? round(($profit / $revenue) * 100, 1) : 0;
-        $costRatio = $revenue > 0 ? round(($expenses / $revenue) * 100, 1) : 0;
-
-        // Room Metrics
-        $totalRooms = Room::count();
-        $reservations = Reservation::whereDate('check_in_date', '>=', $fromDate)
-            ->whereDate('check_in_date', '<=', $toDate)
-            ->get();
-
-        $totalNights = $reservations->sum('nights');
-        $occupiedRoomDays = $totalNights;
-        $totalRoomDays = $totalRooms * $days;
-        $occupancyRate = $totalRoomDays > 0 ? round(($occupiedRoomDays / $totalRoomDays) * 100) : 0;
-
-        $revenuePerRoom = $totalRooms > 0 ? round($revenue / $totalRooms) : 0;
-        $guestCount = $reservations->count();
-        $revenuePerGuest = $guestCount > 0 ? round($revenue / $guestCount) : 0;
-        $avgStay = $guestCount > 0 ? round($totalNights / $guestCount, 2) : 0;
-
-        // Daily Averages
-        $dailyRevenue = round($revenue / $days);
-        $dailyExpense = round($expenses / $days);
-        $dailyProfit = $dailyRevenue - $dailyExpense;
-
-        // ADR
-        $adr = $totalNights > 0 ? round($revenue / $totalNights) : 0;
-
-        // Occupancy
-        $avgOccupiedRooms = round($occupiedRoomDays / $days, 1);
-
-        // Scoring
-        $profitabilityScore = min(10, max(0, (int)($profitMargin / 3)));
-        $efficiencyScore = min(10, max(0, round((100 - $costRatio) / 10)));
-        $overallHealth = round(($profitabilityScore + $efficiencyScore) / 2);
-
-        return view('reports.financial-ratios', compact(
-            'profitMargin', 'costRatio', 'occupancyRate', 'revenuePerRoom', 'adr',
-            'revenuePerGuest', 'avgStay', 'guestCount',
-            'dailyRevenue', 'dailyExpense', 'dailyProfit', 'avgOccupiedRooms',
-            'profitabilityScore', 'efficiencyScore', 'overallHealth', 'period'
+        return view('reports.guests-rooms-hub', compact(
+            'tab', 'from', 'to',
+            'totalGuests', 'newGuests', 'returningGuests',
+            'byNationality', 'topGuests', 'rooms'
         ));
     }
 }
