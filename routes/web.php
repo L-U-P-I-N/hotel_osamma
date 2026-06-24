@@ -194,6 +194,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/reports/payment-methods-stats', [ReportController::class, 'paymentMethodsStats'])->name('reports.paymentMethodsStats');
         Route::get('/reports/shifts-hub', [ReportController::class, 'shiftsHub'])->name('reports.shiftsHub');
         Route::get('/reports/finance-hub', [ReportController::class, 'financeHub'])->name('reports.financeHub');
+        Route::get('/reports/hr-hub', [ReportController::class, 'hrHub'])->name('reports.hrHub');
+        Route::get('/reports/guests-rooms-hub', [ReportController::class, 'guestsRoomsHub'])->name('reports.guestsRoomsHub');
     });
 
     // Users

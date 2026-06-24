@@ -1183,4 +1183,91 @@ class ReportController extends Controller
             'profitabilityScore', 'efficiencyScore', 'overallHealth', 'period'
         ));
     }
+
+    public function hrHub(Request $request)
+    {
+        $tab  = $request->input('tab', 'salaries');
+        $from = $request->input('from', now()->subDays(30)->toDateString());
+        $to   = $request->input('to', now()->toDateString());
+        $year = (int) $request->input('year', now()->year);
+
+        $salaries  = collect();
+        $byMonth   = collect();
+        $years     = collect();
+        $totalNet  = 0;
+        $staffData = collect();
+
+        if ($tab === 'salaries') {
+            $salaries = Salary::with('employee')->where('year', $year)->orderBy('month', 'desc')->get();
+            $byMonth  = $salaries->groupBy('month')->map(fn($g) => [
+                'count'       => $g->count(),
+                'total_net'   => $g->sum('net_salary'),
+                'total_base'  => $g->sum('base_salary'),
+                'total_bonus' => $g->sum('bonuses'),
+                'total_ded'   => $g->sum('deductions'),
+                'paid'        => $g->where('status', 'paid')->count(),
+                'pending'     => $g->where('status', 'pending')->count(),
+            ]);
+            $years    = Salary::selectRaw('DISTINCT year')->orderByDesc('year')->pluck('year');
+            $totalNet = $salaries->sum('net_salary');
+        } elseif ($tab === 'staff') {
+            $staffData = User::with(['reservations' => fn($q) => $q
+                ->whereDate('check_in_date', '>=', $from)
+                ->whereDate('check_in_date', '<=', $to)
+                ->with(['room.roomType', 'guest', 'payments'])
+            ])->where('is_active', true)->get()
+            ->map(fn($u) => [
+                'user'         => $u,
+                'checkins'     => $u->reservations->count(),
+                'checked_out'  => $u->reservations->where('status', 'checked_out')->count(),
+                'revenue'      => $u->reservations->sum(fn($r) => $r->payments->sum('amount')),
+                'reservations' => $u->reservations,
+            ]);
+        }
+
+        return view('reports.hr-hub', compact('tab', 'from', 'to', 'year', 'salaries', 'byMonth', 'years', 'totalNet', 'staffData'));
+    }
+
+    public function guestsRoomsHub(Request $request)
+    {
+        $tab  = $request->input('tab', 'guests');
+        $from = $request->input('from', now()->subDays(30)->toDateString());
+        $to   = $request->input('to', now()->toDateString());
+
+        $totalGuests     = 0;
+        $newGuests       = 0;
+        $returningGuests = 0;
+        $byNationality   = collect();
+        $topGuests       = collect();
+        $rooms           = collect();
+
+        if ($tab === 'guests') {
+            $totalGuests     = \App\Models\Guest::count();
+            $newGuests       = \App\Models\Guest::whereHas('reservations', fn($q) => $q->whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to))
+                ->whereDoesntHave('reservations', fn($q) => $q->whereDate('check_in_date', '<', $from))->count();
+            $returningGuests = \App\Models\Guest::whereHas('reservations', fn($q) => $q->whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to))
+                ->whereHas('reservations', fn($q) => $q->whereDate('check_in_date', '<', $from))->count();
+            $byNationality   = \App\Models\Guest::select('nationality', DB::raw('count(*) as count'))
+                ->groupBy('nationality')->orderByDesc('count')->limit(10)->get();
+            $topGuests       = \App\Models\Guest::withCount(['reservations as period_reservations' => fn($q) => $q
+                ->whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to)
+                ->whereNotIn('status', ['cancelled'])])
+                ->having('period_reservations', '>', 0)->orderByDesc('period_reservations')->limit(10)->get();
+        } elseif ($tab === 'rooms') {
+            $rooms = Room::with('roomType')
+                ->withCount(['reservations as total_reservations' => fn($q) => $q
+                    ->whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to)
+                    ->whereNotIn('status', ['cancelled'])])
+                ->withSum(['reservations as total_revenue' => fn($q) => $q
+                    ->whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to)
+                    ->whereNotIn('status', ['cancelled'])], 'total_amount')
+                ->orderByDesc('total_revenue')->get();
+        }
+
+        return view('reports.guests-rooms-hub', compact(
+            'tab', 'from', 'to',
+            'totalGuests', 'newGuests', 'returningGuests',
+            'byNationality', 'topGuests', 'rooms'
+        ));
+    }
 }
