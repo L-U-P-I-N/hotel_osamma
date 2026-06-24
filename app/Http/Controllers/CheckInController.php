@@ -12,6 +12,7 @@ use App\Helpers\StorageHelper;
 use App\Services\CheckInService;
 use App\Services\GovernmentExportService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class CheckInController extends Controller
@@ -201,6 +202,12 @@ class CheckInController extends Controller
     public function serveGuestIdImage(\App\Models\Guest $guest)
     {
         if (!$guest->id_image_path || !StorageHelper::exists($guest->id_image_path)) {
+            Log::warning('Guest ID image not found', [
+                'guest_id' => $guest->id,
+                'path'     => $guest->id_image_path,
+                'disk'     => StorageHelper::privateDisk(),
+                'abs_path' => $guest->id_image_path ? StorageHelper::path($guest->id_image_path) : null,
+            ]);
             abort(404);
         }
         return StorageHelper::response($guest->id_image_path);
@@ -209,6 +216,12 @@ class CheckInController extends Controller
     public function serveCompanionIdImage(\App\Models\Companion $companion)
     {
         if (!$companion->id_image_path || !StorageHelper::exists($companion->id_image_path)) {
+            Log::warning('Companion ID image not found', [
+                'companion_id' => $companion->id,
+                'path'         => $companion->id_image_path,
+                'disk'         => StorageHelper::privateDisk(),
+                'abs_path'     => $companion->id_image_path ? StorageHelper::path($companion->id_image_path) : null,
+            ]);
             abort(404);
         }
         return StorageHelper::response($companion->id_image_path);
@@ -217,6 +230,12 @@ class CheckInController extends Controller
     public function serveMarriageDoc(\App\Models\Companion $companion)
     {
         if (!$companion->marriage_doc_path || !StorageHelper::exists($companion->marriage_doc_path)) {
+            Log::warning('Companion marriage doc not found', [
+                'companion_id' => $companion->id,
+                'path'         => $companion->marriage_doc_path,
+                'disk'         => StorageHelper::privateDisk(),
+                'abs_path'     => $companion->marriage_doc_path ? StorageHelper::path($companion->marriage_doc_path) : null,
+            ]);
             abort(404);
         }
         return StorageHelper::response($companion->marriage_doc_path);

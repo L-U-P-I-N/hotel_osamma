@@ -44,6 +44,8 @@ return [
             'driver' => 'local',
             'root' => storage_path('app/private'),
             'throw' => false,
+            'visibility' => 'public',
+            'directory_visibility' => 'public',
         ],
 
         // S3-compatible storage for persistent files (ID images, bank receipts...)
