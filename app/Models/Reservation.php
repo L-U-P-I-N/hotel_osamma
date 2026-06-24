@@ -122,8 +122,10 @@ class Reservation extends Model
     public function getStatusLabelAttribute(): string
     {
         return match($this->status) {
+            'confirmed'  => 'محجوز',
             'checked_in' => 'مسجل دخول',
             'checked_out' => 'مسجل خروج',
+            'cancelled'  => 'ملغى',
             default => $this->status,
         };
     }

@@ -351,6 +351,26 @@ class ReservationController extends Controller
         return redirect()->route('reservations.index')->with('success', 'تم حذف الحجز بنجاح');
     }
 
+    public function checkin(Reservation $reservation)
+    {
+        if ($reservation->status !== 'confirmed') {
+            return back()->withErrors(['error' => 'لا يمكن تسجيل دخول حجز بحالة "' . $reservation->status_label . '"']);
+        }
+
+        $old = $reservation->only(['status']);
+
+        $reservation->update(['status' => 'checked_in']);
+
+        if ($reservation->room) {
+            $reservation->room->update(['status' => 'occupied']);
+        }
+
+        AuditLogService::log('update', $reservation, $old, ['status' => 'checked_in'], auth()->user());
+
+        return redirect()->route('reservations.show', $reservation)
+            ->with('success', 'تم تسجيل الدخول بنجاح');
+    }
+
     public function expiring()
     {
         $reservations = \App\Models\Reservation::with(['guest', 'room.roomType'])

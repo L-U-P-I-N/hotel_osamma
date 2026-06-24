@@ -19,6 +19,7 @@
             <select name="status" onchange="this.form.submit()"
                     class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white min-w-[140px]">
                 <option value="">جميع الحالات</option>
+                <option value="confirmed" {{ request('status')=='confirmed'?'selected':'' }}>محجوز</option>
                 <option value="checked_in" {{ request('status')=='checked_in'?'selected':'' }}>مسجل دخول</option>
                 <option value="checked_out" {{ request('status')=='checked_out'?'selected':'' }}>مسجل خروج</option>
             </select>
@@ -91,7 +92,7 @@
             <tbody class="divide-y divide-gray-50">
                 @forelse($reservations as $res)
                 @php
-                    $statusColors = ['checked_in'=>'bg-green-100 text-green-800','checked_out'=>'bg-gray-100 text-gray-800'];
+                    $statusColors = ['confirmed'=>'bg-blue-100 text-blue-800','checked_in'=>'bg-green-100 text-green-800','checked_out'=>'bg-gray-100 text-gray-800'];
                     $payColors = ['unpaid'=>'bg-red-100 text-red-800','partial'=>'bg-yellow-100 text-yellow-800','paid'=>'bg-green-100 text-green-800','deferred'=>'bg-purple-100 text-purple-800'];
                 @endphp
                 <tr class="hover:bg-blue-50 transition-colors cursor-pointer select-none"
@@ -120,6 +121,14 @@
                     <td class="px-4 py-3">
                         <div class="flex items-center gap-2 flex-wrap">
                             <a href="{{ route('reservations.show', $res) }}" class="text-xs font-medium" style="color:#0F4C75;">عرض</a>
+                            @if($res->status === 'confirmed')
+                            @can('checkin.create')
+                            <form method="POST" action="{{ route('reservations.checkin', $res) }}" onsubmit="return confirm('تسجيل الدخول للحجز #{{ $res->id }}؟')">
+                                @csrf @method('PATCH')
+                                <button type="submit" class="text-xs font-medium text-green-600 hover:text-green-800">تسجيل الدخول</button>
+                            </form>
+                            @endcan
+                            @endif
                             @can('checkin.view')
                             @if($res->status === 'checked_in')
                             <a href="{{ route('reservations.edit', $res) }}" class="text-xs font-medium text-gray-600 hover:text-gray-800">تعديل</a>
