@@ -223,19 +223,6 @@
     </a>
     @endcan
 
-    @can('checkin.create')
-    <a href="{{ route('checkin.create', ['mode' => 'reserve']) }}"
-       class="flex items-center gap-3 rounded-xl p-4 text-white transition hover:opacity-90 shadow-sm bg-blue-600">
-        <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
-            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-        </div>
-        <div>
-            <p class="font-bold text-sm">حجز مسبق</p>
-            <p class="text-xs text-white/70">النزيل سيصل لاحقاً</p>
-        </div>
-    </a>
-    @endcan
-
     @can('checkin.view')
     <a href="{{ route('reservations.expiring') }}"
        class="flex items-center gap-3 rounded-xl p-4 transition hover:opacity-90 shadow-sm
