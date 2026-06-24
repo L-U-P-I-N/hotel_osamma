@@ -3,7 +3,7 @@
 @section('page-title', 'الوردية')
 
 @section('content')
-<div x-data="{ withdrawalModal: false, closeModal: false }">
+<div x-data="{ closeModal: {{ $errors->has('actual_amount') ? 'true' : 'false' }}, editWithdrawal: null, reopenModal: null }">
 
 @if(session('success'))
 <div class="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">{{ session('success') }}</div>
@@ -37,13 +37,6 @@
         </div>
     </div>
     <div class="flex gap-2 flex-wrap">
-        @can('withdrawal.create')
-        <button @click="withdrawalModal=true"
-                class="flex items-center gap-2 px-4 py-2 border border-red-300 text-red-600 rounded-lg text-sm hover:bg-red-50 transition">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>
-            تسجيل سحب
-        </button>
-        @endcan
         <a href="{{ route('shifts.pdf', $activeShift) }}" target="_blank"
            class="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
@@ -127,6 +120,9 @@
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">النوع</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">البيان</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">بواسطة</th>
+                @canany(['withdrawal.edit','withdrawal.delete'])
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">إجراءات</th>
+                @endcanany
             </tr></thead>
             <tbody class="divide-y divide-gray-50">
                 @foreach($activeShift->withdrawals as $w)
@@ -156,6 +152,27 @@
                         <span class="text-gray-300">—</span>
                         @endif
                     </td>
+                    @canany(['withdrawal.edit','withdrawal.delete'])
+                    <td class="px-4 py-2">
+                        <div class="flex items-center gap-1.5">
+                            @can('withdrawal.edit')
+                            @if(!$w->isExchange())
+                            <button type="button"
+                                @click="editWithdrawal = { id: {{ $w->id }}, amount: {{ $w->amount }}, name: '{{ addslashes($w->withdrawn_by_name) }}', notes: '{{ addslashes($w->notes ?? '') }}' }"
+                                class="text-xs px-2 py-1 rounded border border-gray-200 text-gray-600 hover:bg-gray-50 transition">
+                                تعديل
+                            </button>
+                            @endif
+                            @endcan
+                            @can('withdrawal.delete')
+                            <form method="POST" action="{{ route('shifts.withdrawal.destroy', $w) }}" onsubmit="return confirm('حذف هذا السحب؟')">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="text-xs px-2 py-1 rounded border border-red-200 text-red-600 hover:bg-red-50 transition">حذف</button>
+                            </form>
+                            @endcan
+                        </div>
+                    </td>
+                    @endcanany
                 </tr>
                 @endforeach
             </tbody>
@@ -187,7 +204,7 @@
 <div class="mt-5 bg-white rounded-xl shadow-sm border border-blue-100">
     <div class="px-5 py-3 border-b border-blue-100 bg-blue-50 rounded-t-xl flex items-center justify-between">
         <h3 class="font-semibold text-blue-800 text-sm">حالة صناديق الموظفين</h3>
-        <a href="{{ route('reports.shiftDeficits') }}" class="text-xs text-blue-600 hover:underline flex items-center gap-1">
+        <a href="{{ route('reports.shiftsHub', ['tab' => 'deficits']) }}" class="text-xs text-blue-600 hover:underline flex items-center gap-1">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
             تقرير العجز التراكمي
         </a>
@@ -268,11 +285,16 @@
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الصافي (ر.ي)</th>
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الفعلي (ر.ي)</th>
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الفرق</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">ملاحظات الإقفال</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">إعادة الفتح</th>
                 <th class="px-4 py-3"></th>
             </tr></thead>
             <tbody class="divide-y divide-gray-50">
                 @foreach($recentShifts->where('is_closed', true) as $s)
-                @php $net = $s->total_received_yer - $s->total_withdrawals_yer; @endphp
+                @php
+                    $net = $s->total_received_yer - $s->total_withdrawals_yer;
+                    $reopenEvts = collect($s->close_events ?? [])->filter(fn($e) => ($e['event'] ?? '') === 'reopen');
+                @endphp
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 text-gray-600">{{ $s->shift_date->format('d/m/Y') }}</td>
                     <td class="px-4 py-3 text-gray-500 text-xs">{{ $s->started_at->format('H:i') }}</td>
@@ -297,6 +319,33 @@
                         @endif
                     </td>
                     <td class="px-4 py-3">
+                        @if($s->notes)
+                        <span class="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-0.5 max-w-[140px]" title="{{ $s->notes }}">
+                            <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
+                            <span class="truncate">{{ $s->notes }}</span>
+                        </span>
+                        @else
+                        <span class="text-gray-300 text-xs">—</span>
+                        @endif
+                    </td>
+                    <td class="px-4 py-3">
+                        @if($reopenEvts->isNotEmpty())
+                            @php $lastReopen = $reopenEvts->last(); @endphp
+                            <div class="space-y-1">
+                                <span class="inline-flex items-center gap-1 text-xs text-orange-700 bg-orange-50 border border-orange-200 rounded px-2 py-0.5 whitespace-nowrap">
+                                    <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
+                                    أُعيد فتحه@if($reopenEvts->count() > 1) ({{ $reopenEvts->count() }})@endif
+                                </span>
+                                <div class="text-xs text-gray-500">{{ $lastReopen['closed_by_name'] ?? '—' }}<span class="text-gray-300 mx-1">·</span>{{ isset($lastReopen['reopened_at']) ? \Carbon\Carbon::parse($lastReopen['reopened_at'])->format('d/m H:i') : '' }}</div>
+                                @if(!empty($lastReopen['notes']))
+                                <div class="text-xs text-orange-600 max-w-[140px] truncate" title="{{ $lastReopen['notes'] }}">{{ $lastReopen['notes'] }}</div>
+                                @endif
+                            </div>
+                        @else
+                            <span class="text-gray-300 text-xs">—</span>
+                        @endif
+                    </td>
+                    <td class="px-4 py-3">
                         <div class="flex items-center gap-1.5 flex-wrap">
                             <a href="{{ route('shifts.pdf', $s) }}" target="_blank"
                                class="flex items-center gap-1 px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition">
@@ -305,15 +354,12 @@
                             </a>
                             @can('shifts.reopen')
                             @if(!$activeShift)
-                            <form method="POST" action="{{ route('shifts.reopen', $s) }}"
-                                  onsubmit="return confirm('هل تريد فتح إقفال هذه الوردية للتعديل عليها؟')">
-                                @csrf
-                                <button type="submit"
-                                        class="flex items-center gap-1 px-2 py-1 border border-amber-300 text-amber-700 rounded text-xs hover:bg-amber-50 transition">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
-                                    فتح
-                                </button>
-                            </form>
+                            <button type="button"
+                                    @click="reopenModal = { id: {{ $s->id }}, url: '{{ route('shifts.reopen', $s) }}', date: '{{ $s->shift_date->format('d/m/Y') }}' }"
+                                    class="flex items-center gap-1 px-2 py-1 border border-amber-300 text-amber-700 rounded text-xs hover:bg-amber-50 transition">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
+                                فتح
+                            </button>
                             @endif
                             @endcan
                             @if(auth()->user()->isAdmin() && $s->shortfall !== null && $s->shortfall < 0)
@@ -344,46 +390,54 @@
 </div>
 @endif
 
-{{-- Modal: تسجيل سحب --}}
-@if($activeShift)
-@can('withdrawal.create')
-<div x-show="withdrawalModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="withdrawalModal=false">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+{{-- Modal: تعديل سحب --}}
+@can('withdrawal.edit')
+<div x-show="editWithdrawal !== null" x-cloak class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="editWithdrawal=null">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
         <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h3 class="font-bold text-gray-800">تسجيل سحب</h3>
-            <button @click="withdrawalModal=false" class="text-gray-400 hover:text-gray-600">
+            <h3 class="font-bold text-gray-800">تعديل السحب</h3>
+            <button @click="editWithdrawal=null" class="text-gray-400 hover:text-gray-600">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>
-        <form method="POST" action="{{ route('shifts.withdrawal') }}" class="p-6 space-y-4">
+        <template x-if="editWithdrawal">
+        <form method="POST" :action="`/shifts/withdrawals/${editWithdrawal.id}`" class="p-6 space-y-4">
             @csrf
-            <input type="hidden" name="withdrawal_type" value="expense">
-            <input type="hidden" name="currency" value="YER">
-
+            @method('PATCH')
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1">المبلغ (ر.ي) *</label>
                 <input type="number" name="amount" step="0.01" min="0.01" required
+                       :value="editWithdrawal.amount"
                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
             </div>
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1">اسم المستلم *</label>
                 <input type="text" name="withdrawn_by_name" required
+                       :value="editWithdrawal.name"
                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
             </div>
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1">السبب / البيان</label>
                 <input type="text" name="notes"
+                       :value="editWithdrawal.notes"
                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
             </div>
-            <button type="submit" class="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition">
-                تسجيل السحب
-            </button>
+            <div class="flex gap-3">
+                <button type="submit" class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition">
+                    حفظ التعديلات
+                </button>
+                <button type="button" @click="editWithdrawal=null" class="flex-1 py-2.5 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition">
+                    إلغاء
+                </button>
+            </div>
         </form>
+        </template>
     </div>
 </div>
 @endcan
 
 {{-- Modal: إقفال الوردية --}}
+@if($activeShift)
 <div x-show="closeModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="closeModal=false">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm"
          x-data="{
@@ -421,10 +475,17 @@
 
             {{-- المبلغ الفعلي --}}
             <div>
-                <label class="block text-xs font-semibold text-gray-700 mb-1.5">المبلغ الفعلي في الصندوق (ر.ي)</label>
+                <label class="block text-xs font-semibold text-gray-700 mb-1.5">
+                    المبلغ الفعلي في الصندوق (ر.ي)
+                    <span class="text-red-500">*</span>
+                </label>
                 <input type="number" name="actual_amount" x-model="actualAmount"
-                       step="1" min="0" placeholder="أدخل المبلغ الذي عددته فعلياً..."
-                       class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition">
+                       step="1" min="0" required
+                       placeholder="أدخل المبلغ الذي عددته فعلياً..."
+                       class="w-full border {{ $errors->has('actual_amount') ? 'border-red-400 bg-red-50' : 'border-gray-300' }} rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition">
+                @error('actual_amount')
+                <p class="text-red-600 text-xs mt-1">{{ $message }}</p>
+                @enderror
             </div>
 
             {{-- عرض الفرق --}}
@@ -462,6 +523,55 @@
     </div>
 </div>
 @endif
+
+{{-- Modal: إعادة فتح الوردية --}}
+@can('shifts.reopen')
+<div x-show="reopenModal !== null" x-cloak class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="reopenModal=null">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between" style="background:#92400e; border-radius: 1rem 1rem 0 0;">
+            <h3 class="font-bold text-white flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
+                إعادة فتح الوردية
+            </h3>
+            <button @click="reopenModal=null" class="text-white/70 hover:text-white">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <template x-if="reopenModal">
+        <form method="POST" :action="reopenModal.url" class="p-6 space-y-4">
+            @csrf
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">
+                <p class="font-semibold mb-1">تنبيه!</p>
+                <p class="text-xs leading-relaxed">إعادة الفتح تسمح بالتعديل على الوردية مجدداً. سيتم تسجيل هذه العملية باسم المستخدم والسبب في سجل الوردية للمراجعة.</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500 mb-2">الوردية: <span class="font-semibold text-gray-700" x-text="reopenModal.date"></span></p>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-700 mb-1.5">
+                    سبب إعادة الفتح <span class="text-red-500">*</span>
+                </label>
+                <textarea name="reopen_notes" rows="3" required
+                          placeholder="اكتب سبب إعادة فتح الوردية..."
+                          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none resize-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition"></textarea>
+            </div>
+            <div class="flex gap-3">
+                <button type="submit"
+                        class="flex-1 py-2.5 text-white rounded-lg text-sm font-semibold transition hover:opacity-90"
+                        style="background:#92400e;"
+                        onclick="return confirm('هل أنت متأكد من إعادة فتح هذه الوردية؟')">
+                    تأكيد إعادة الفتح
+                </button>
+                <button type="button" @click="reopenModal=null"
+                        class="flex-1 py-2.5 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition">
+                    إلغاء
+                </button>
+            </div>
+        </form>
+        </template>
+    </div>
+</div>
+@endcan
 
 </div>
 @endsection

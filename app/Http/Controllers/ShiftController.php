@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Models\CashWithdrawal;
 use App\Models\Shift;
 use App\Services\ShiftService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -65,11 +66,52 @@ class ShiftController extends Controller
         }
     }
 
+    public function updateWithdrawal(Request $request, CashWithdrawal $withdrawal)
+    {
+        $request->validate([
+            'amount'            => 'required|numeric|min:0.01',
+            'withdrawn_by_name' => 'required|string|max:100',
+            'notes'             => 'nullable|string|max:500',
+        ]);
+
+        if ($withdrawal->shift && $withdrawal->shift->is_closed) {
+            return back()->withErrors(['error' => 'لا يمكن تعديل سحب لوردية مقفلة']);
+        }
+
+        $withdrawal->update($request->only(['amount', 'withdrawn_by_name', 'notes']));
+
+        if ($withdrawal->shift_id) {
+            $this->service->computeTotals(Shift::find($withdrawal->shift_id));
+        }
+
+        return back()->with('success', 'تم تعديل السحب بنجاح');
+    }
+
+    public function destroyWithdrawal(CashWithdrawal $withdrawal)
+    {
+        if ($withdrawal->shift && $withdrawal->shift->is_closed) {
+            return back()->withErrors(['error' => 'لا يمكن حذف سحب من وردية مقفلة']);
+        }
+
+        $shiftId = $withdrawal->shift_id;
+        $withdrawal->delete();
+
+        if ($shiftId) {
+            $this->service->computeTotals(Shift::find($shiftId));
+        }
+
+        return back()->with('success', 'تم حذف السحب بنجاح');
+    }
+
     public function close(Request $request)
     {
         $request->validate([
             'notes'         => 'nullable|string|max:1000',
-            'actual_amount' => 'nullable|numeric|min:0',
+            'actual_amount' => 'required|numeric|min:0',
+        ], [
+            'actual_amount.required' => 'يجب إدخال المبلغ الفعلي في الصندوق قبل الإقفال',
+            'actual_amount.numeric'  => 'المبلغ الفعلي يجب أن يكون رقماً',
+            'actual_amount.min'      => 'المبلغ الفعلي لا يمكن أن يكون سالباً',
         ]);
 
         $shift = $this->service->getActiveShift(auth()->user());
@@ -86,10 +128,16 @@ class ShiftController extends Controller
         }
     }
 
-    public function reopen(Shift $shift)
+    public function reopen(Request $request, Shift $shift)
     {
+        $request->validate([
+            'reopen_notes' => 'required|string|max:1000',
+        ], [
+            'reopen_notes.required' => 'يجب كتابة سبب إعادة الفتح',
+        ]);
+
         try {
-            $this->service->reopenShift($shift, auth()->user());
+            $this->service->reopenShift($shift, auth()->user(), $request->reopen_notes);
             return redirect()->route('shifts.index')->with('success', 'تم فتح الإقفال بنجاح، يمكنك الآن إجراء التعديلات وإقفال الوردية مجدداً');
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()]);
