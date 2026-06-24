@@ -35,6 +35,7 @@
     }
     table.main thead { display: table-header-group; }
     table.main tbody { display: table-row-group; }
+    table.main tfoot { display: table-footer-group; }
     table.main thead tr { background: #0F4C75; color: #fff; }
     table.main thead th {
         padding: 3px 3px;
@@ -53,8 +54,17 @@
         overflow: hidden;
         vertical-align: top;
     }
+    table.main tfoot td {
+        padding: 4px 5px;
+        border: 1.5px solid #ef4444;
+        background: #fef2f2;
+        font-weight: bold;
+        font-size: 8.5px;
+        color: #dc2626;
+    }
     table.main tbody td.c { text-align: center; }
     table.main tbody td.ltr { text-align: left; direction: ltr; }
+    table.main tfoot td.ltr { text-align: left; direction: ltr; }
 
     .badge { display: inline-block; padding: 1px 5px; border-radius: 9px; font-size: 7px; }
     .badge-cat  { background: #e0e7ff; color: #3730a3; }
@@ -62,7 +72,16 @@
     .badge-bank { background: #dbeafe; color: #1e40af; }
     .badge-later{ background: #f3f4f6; color: #4b5563; }
 
-    .footer { margin-top: 6px; border-top: 1px solid #eee; padding-top: 3px; font-size: 6.5px; color: #aaa; text-align: right; }
+    .total-box { margin-top: 8px; direction: rtl; }
+    .total-box table { border-collapse: collapse; float: left; }
+    .total-box td { padding: 5px 16px; border: 1px solid #ddd; font-size: 8.5px; }
+    .total-box .lbl { background: #f8fafc; color: #374151; text-align: right; }
+    .total-box .val { background: #fff; text-align: center; font-weight: bold; }
+    .total-box .lbl-r { background: #fef2f2; color: #991b1b; font-weight: bold; border-color: #ef4444; text-align: right; }
+    .total-box .val-r { background: #fef2f2; color: #dc2626; font-size: 13px; font-weight: bold; border-color: #ef4444; text-align: center; }
+    .clearfix::after { content: ''; display: table; clear: both; }
+
+    .footer { margin-top: 8px; border-top: 1px solid #eee; padding-top: 3px; font-size: 6.5px; color: #aaa; text-align: right; clear: both; }
 </style>
 </head>
 <body>
@@ -77,6 +96,8 @@
         'other'       => 'أخرى',
     ];
     $pmLabels = ['cash' => 'نقداً', 'bank_transfer' => 'تحويل بنكي', 'later' => 'لاحقاً'];
+    $grandTotal = $expenses->sum('amount');
+    $count      = $expenses->count();
 @endphp
 
 <div class="header">
@@ -93,8 +114,8 @@
 
 <table class="stats" dir="rtl">
     <tr>
-        <td><div class="num">{{ $expenses->count() }}</div><div class="lbl">عدد المصروفات</div></td>
-        <td><div class="num-r">{{ number_format($expenses->sum('amount'), 0) }}</div><div class="lbl">الإجمالي (ر.ي)</div></td>
+        <td><div class="num">{{ $count }}</div><div class="lbl">عدد المصروفات</div></td>
+        <td><div class="num-r">{{ number_format($grandTotal, 0) }}</div><div class="lbl">الإجمالي (ر.ي)</div></td>
     </tr>
 </table>
 
@@ -143,7 +164,28 @@
         </tr>
         @endforeach
     </tbody>
+    <tfoot>
+        <tr>
+            <td colspan="3" style="text-align:right;">الإجمالي الكلي ({{ $count }} مصروف)</td>
+            <td class="ltr" style="font-size:10px;">{{ number_format($grandTotal, 0) }}</td>
+            <td colspan="4" style="background:#fef2f2;border-color:#ef4444;"></td>
+        </tr>
+    </tfoot>
 </table>
+
+{{-- صندوق الإجمالي المنسق بعد الجدول --}}
+<div class="total-box clearfix">
+    <table>
+        <tr>
+            <td class="lbl">عدد المصروفات</td>
+            <td class="val" style="color:#0F4C75;font-size:11px;">{{ $count }}</td>
+        </tr>
+        <tr>
+            <td class="lbl-r">الإجمالي الكلي للمصروفات</td>
+            <td class="val-r">{{ number_format($grandTotal, 0) }} <span style="font-size:9px;">ر.ي</span></td>
+        </tr>
+    </table>
+</div>
 @endif
 
 <script type="text/php">
@@ -161,7 +203,7 @@
     }
 </script>
 
-<div class="footer">طُبع في: {{ now()->format('d/m/Y H:i') }} — إجمالي المصروفات: {{ number_format($expenses->sum('amount'), 0) }} ر.ي</div>
+<div class="footer">طُبع في: {{ now()->format('d/m/Y H:i') }}</div>
 
 </body>
 </html>
