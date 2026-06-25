@@ -235,7 +235,7 @@
                             'room_type_name'  => $room->roomType->name,
                             'sub_type'        => 'suite_b',
                         ] : null;
-                        $suiteActive = "(roomId=='{{ $room->id }}'||roomId=='{{ $info?$info[\"linked_id\"]:\"\" }}')";
+                        $suiteActive = "(roomId=='" . $room->id . "'||roomId=='" . ($info ? $info['linked_id'] : '') . "')";
                     @endphp
                     <div x-show="(floorFilter==='all'||floorFilter==='{{ $room->floor }}')&&(typeFilter==='all'||typeFilter==='suite')"
                          class="rounded-xl overflow-hidden border transition-all"
