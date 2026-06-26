@@ -113,9 +113,205 @@
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
 
     {{-- ═══════════════════════════════════════════
-         LEFT — Rooms + Guest + Companions
+         LEFT — Guest + Rooms + Companions
     ═══════════════════════════════════════════ --}}
     <div class="lg:col-span-2 space-y-5">
+
+        {{-- ── Guest Info ── --}}
+        <div class="card">
+            <div class="card-hd">
+                <div class="card-ico">
+                    <svg style="width:17px;height:17px;color:var(--p)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-bold text-gray-800">اختيار الغرفة <span class="text-red-400">*</span></p>
+                    <p class="text-xs text-gray-400">الغرف المتاحة — اضغط للاختيار</p>
+                </div>
+                <div x-show="selectedRoom" x-cloak
+                     class="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg text-white shrink-0"
+                     style="background:var(--p)">
+                    <svg style="width:11px;height:11px" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                    <span x-text="roomSelectionLabel()"></span>
+                </div>
+            </div>
+
+            <div class="p-4">
+
+                {{-- Selected room banner --}}
+                <div x-show="selectedRoom" x-cloak
+                     class="mb-4 rounded-xl text-white flex items-center justify-between px-4 py-3"
+                     style="background:var(--p)">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm border border-white/25"
+                             style="background:rgba(255,255,255,0.15)"
+                             x-text="selectedRoom?.room_number ?? ''"></div>
+                        <div>
+                            <div class="font-bold text-sm" x-text="roomSelectionLabel()"></div>
+                            <div class="text-xs mt-0.5" style="color:rgba(255,255,255,0.6)"
+                                 x-text="(selectedRoom?.room_type_name ?? '')"></div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="text-right">
+                            <div class="text-lg font-bold" x-text="formatNumber(effectiveRoomPrice())"></div>
+                            <div class="text-xs" style="color:rgba(255,255,255,0.6)">ر.ي / ليلة</div>
+                        </div>
+                        <button type="button" @click="clearRoomSelection()"
+                                class="text-xs px-3 py-1.5 rounded-lg transition"
+                                style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2)"
+                                onmouseover="this.style.background='rgba(255,255,255,0.22)'"
+                                onmouseout="this.style.background='rgba(255,255,255,0.12)'">تغيير</button>
+                    </div>
+                </div>
+
+                {{-- Suite alert --}}
+                <div x-show="selectedRoom && linkedInfo?.is_always_linked" x-cloak
+                     class="mb-4 flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 text-xs text-amber-800">
+                    <svg style="width:14px;height:14px;flex-shrink:0;color:#d97706" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    الشقة تُحجز كوحدة كاملة —
+                    <strong x-text="(selectedRoom?.room_number ?? '') + ' و ' + (linkedInfo?.linked_number ?? '')"></strong>
+                </div>
+
+                {{-- Filters --}}
+                <div class="p-3 mb-4 rounded-xl space-y-2" style="background:#f7f8fa">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span style="font-size:10px;font-weight:700;color:#9ca3af;letter-spacing:.07em;text-transform:uppercase">طابق:</span>
+                        <button type="button" @click="floorFilter='all'"
+                                :class="floorFilter==='all'?'text-white shadow-sm':'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'"
+                                :style="floorFilter==='all'?'background:var(--p)':''"
+                                class="px-2.5 py-1 rounded-md text-xs font-semibold transition">الكل</button>
+                        @foreach($floors as $floor)
+                        <button type="button" @click="floorFilter='{{ $floor }}'"
+                                :class="floorFilter==='{{ $floor }}'?'text-white shadow-sm':'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'"
+                                :style="floorFilter==='{{ $floor }}'?'background:var(--p)':''"
+                                class="px-2.5 py-1 rounded-md text-xs font-semibold transition">{{ $floor }}</button>
+                        @endforeach
+                    </div>
+                    <div class="h-px" style="background:#ebebeb"></div>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span style="font-size:10px;font-weight:700;color:#9ca3af;letter-spacing:.07em;text-transform:uppercase">نوع:</span>
+                        @foreach(['all'=>'الكل','regular'=>'عادية','double'=>'زوجية','suite'=>'جناح','hall'=>'صالة'] as $k=>$v)
+                        <button type="button" @click="typeFilter='{{ $k }}'"
+                                :class="typeFilter==='{{ $k }}'?'text-white shadow-sm':'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'"
+                                :style="typeFilter==='{{ $k }}'?'background:var(--p)':''"
+                                class="px-2.5 py-1 rounded-md text-xs font-semibold transition">{{ $v }}</button>
+                        @endforeach
+                    </div>
+                </div>
+
+                {{-- Room tiles --}}
+                <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                    @foreach($displayRooms as $room)
+                    @php
+                        $info = $linkedAvailability[$room->id] ?? null;
+                        $roomData = [
+                            'id'              => $room->id,
+                            'room_number'     => $room->room_number,
+                            'floor'           => $room->floor,
+                            'base_price'      => (float)$room->roomType->base_price,
+                            'prices'          => $room->pricesArray(),
+                            'suite_price_yer' => (float)($room->suite_price_yer ?? 0),
+                            'room_type_name'  => $room->roomType->name,
+                            'sub_type'        => $room->room_sub_type,
+                        ];
+                        $roomTypeKey = match($room->room_sub_type) {
+                            'suite_a','suite_b' => 'suite',
+                            'hall'              => 'hall',
+                            'double'            => 'double',
+                            default             => 'regular',
+                        };
+                    @endphp
+
+                    @if($room->room_sub_type === 'suite_a')
+                    @php
+                        $doorLabel = rtrim($room->room_number, 'AB');
+                        $linkedRoomData = $info ? [
+                            'id'              => $info['linked_id'],
+                            'room_number'     => $info['linked_number'],
+                            'floor'           => $room->floor,
+                            'base_price'      => (float)$room->roomType->base_price,
+                            'prices'          => $room->pricesArray(),
+                            'suite_price_yer' => (float)($room->suite_price_yer ?? 0),
+                            'room_type_name'  => $room->roomType->name,
+                            'sub_type'        => 'suite_b',
+                        ] : null;
+                        $suiteActive = "(roomId=='" . $room->id . "'||roomId=='" . ($info ? $info['linked_id'] : '') . "')";
+                    @endphp
+                    <div x-show="(floorFilter==='all'||floorFilter==='{{ $room->floor }}')&&(typeFilter==='all'||typeFilter==='suite')"
+                         class="rounded-xl overflow-hidden border transition-all"
+                         :style="{{ $suiteActive }}?'border-color:#4f46e5;box-shadow:0 4px 12px rgba(79,70,229,.2)':'border-color:#c7d2fe'">
+                        <div class="px-2.5 pt-2.5 pb-1.5 transition-colors"
+                             :style="{{ $suiteActive }}?'background:#4f46e5':'background:#eef2ff'">
+                            <div class="flex items-center justify-between">
+                                <span class="text-base font-bold transition-colors"
+                                      :style="{{ $suiteActive }}?'color:#fff':'color:#312e81'">{{ $doorLabel }}</span>
+                                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded transition-colors"
+                                      :style="{{ $suiteActive }}?'background:rgba(255,255,255,.2);color:#fff':'background:#c7d2fe;color:#4338ca'">جناح</span>
+                            </div>
+                            <div class="text-xs mt-0.5 transition-colors"
+                                 :style="{{ $suiteActive }}?'color:rgba(255,255,255,.65)':'color:#6b7280'">{{ number_format($room->roomType->base_price,0) }}</div>
+                        </div>
+                        <div class="flex border-t transition-colors"
+                             :style="{{ $suiteActive }}?'border-color:#6366f1':'border-color:#c7d2fe'">
+                            <button type="button"
+                                    @click="selectRoom({{ json_encode($roomData) }}, {{ json_encode($info) }}, 'a_only')"
+                                    class="flex-1 py-1.5 text-xs font-bold transition border-l"
+                                    :style="roomId=='{{ $room->id }}'&&suiteBookingType==='a_only'?'background:#4338ca;color:#fff;border-color:#6366f1':'background:#fff;color:#4f46e5;border-color:#c7d2fe'">A</button>
+                            @if($info && $info['linked_available'] && $linkedRoomData)
+                            <button type="button"
+                                    @click="selectRoom({{ json_encode($linkedRoomData) }}, null, 'b_only')"
+                                    class="flex-1 py-1.5 text-xs font-bold transition border-l"
+                                    :style="roomId=='{{ $info['linked_id'] }}'?'background:#7c3aed;color:#fff;border-color:#6366f1':'background:#fff;color:#7c3aed;border-color:#c7d2fe'">B</button>
+                            <button type="button"
+                                    @click="selectRoom({{ json_encode($roomData) }}, {{ json_encode($info) }}, 'both')"
+                                    class="flex-1 py-1.5 text-xs font-bold transition"
+                                    :style="roomId=='{{ $room->id }}'&&suiteBookingType==='both'?'background:#312e81;color:#fff':'background:#fff;color:#4f46e5'">A+B</button>
+                            @else
+                            <div class="flex-1 py-1.5 text-xs text-center border-l" style="color:#d1d5db;background:#f9fafb;border-color:#e5e7eb">B</div>
+                            @endif
+                        </div>
+                    </div>
+
+                    @else
+                    <div x-show="(floorFilter==='all'||floorFilter==='{{ $room->floor }}')&&(typeFilter==='all'||typeFilter==='{{ $roomTypeKey }}')"
+                         @click="selectRoom({{ json_encode($roomData) }}, {{ json_encode($info) }})"
+                         class="rtile select-none"
+                         :class="roomId=='{{ $room->id }}' ? 'rtile-on' : ''">
+                        <div class="flex items-start justify-between mb-1.5">
+                            <span class="text-base font-bold leading-none"
+                                  :style="roomId=='{{ $room->id }}' ? 'color:#fff' : 'color:#111827'">{{ $room->room_number }}</span>
+                            @if($room->room_sub_type === 'double')
+                            <span class="text-[9px] font-bold px-1 py-0.5 rounded leading-none"
+                                  :style="roomId=='{{ $room->id }}' ? 'background:rgba(255,255,255,.2);color:#fff' : 'background:#fce7f3;color:#9d174d'">زوجية</span>
+                            @elseif($room->room_sub_type === 'apartment')
+                            <span class="text-[9px] font-bold px-1 py-0.5 rounded leading-none"
+                                  :style="roomId=='{{ $room->id }}' ? 'background:rgba(255,255,255,.2);color:#fff' : 'background:#fef3c7;color:#92400e'">شقة</span>
+                            @elseif($room->room_sub_type === 'hall')
+                            <span class="text-[9px] font-bold px-1 py-0.5 rounded leading-none"
+                                  :style="roomId=='{{ $room->id }}' ? 'background:rgba(255,255,255,.2);color:#fff' : 'background:#f3f4f6;color:#374151'">صالة</span>
+                            @endif
+                        </div>
+                        <div class="text-[10px] truncate"
+                             :style="roomId=='{{ $room->id }}' ? 'color:rgba(255,255,255,.6)' : 'color:#9ca3af'">{{ $room->roomType->name }}</div>
+                        <div class="flex items-center justify-between mt-2">
+                            <span class="text-[10px]"
+                                  :style="roomId=='{{ $room->id }}' ? 'color:rgba(255,255,255,.5)' : 'color:#9ca3af'">ط{{ $room->floor }}</span>
+                            <span class="text-xs font-bold"
+                                  :style="roomId=='{{ $room->id }}' ? 'color:#fff' : 'color:#059669'">{{ number_format($room->roomType->base_price,0) }}</span>
+                        </div>
+                    </div>
+                    @endif
+                    @endforeach
+
+                    @if($displayRooms->isEmpty())
+                    <div class="col-span-full flex flex-col items-center justify-center py-12 text-gray-400">
+                        <svg style="width:48px;height:48px;color:#e5e7eb;margin-bottom:10px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16"/></svg>
+                        <p class="text-sm font-medium">لا توجد غرف متاحة حالياً</p>
+                    </div>
+                    @endif
+                </div>
+            </div>
+        </div>
 
         {{-- ── Room Selection ── --}}
         <div class="card">
@@ -708,19 +904,14 @@
                     {{-- Payment status --}}
                     <div>
                         <label class="lbl mb-2">حالة الدفع <span class="text-red-400">*</span></label>
-                        <div class="grid grid-cols-3 gap-2">
+                        <div class="grid grid-cols-2 gap-2">
 
                             {{-- Paid --}}
                             <label class="cursor-pointer" @click="paymentStatus='paid'">
                                 <input type="radio" name="payment_status" value="paid" x-model="paymentStatus" class="sr-only">
-                                <div class="pay-opt"
+                                <div class="pay-opt text-center"
                                      :style="paymentStatus==='paid'?'border-color:#10b981;background:#ecfdf5':'border-color:#e5e8ed;background:#fff'">
-                                    <svg style="width:18px;height:18px;margin:0 auto 4px;display:block;transition:color .15s"
-                                         :style="paymentStatus==='paid'?'color:#10b981':'color:#d1d5db'"
-                                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                    </svg>
-                                    <p class="text-xs font-semibold transition-colors"
+                                    <p class="text-sm font-semibold transition-colors"
                                        :style="paymentStatus==='paid'?'color:#065f46':'color:#6b7280'">مدفوع</p>
                                 </div>
                             </label>
@@ -728,30 +919,10 @@
                             {{-- Partial --}}
                             <label class="cursor-pointer" @click="paymentStatus='partial'">
                                 <input type="radio" name="payment_status" value="partial" x-model="paymentStatus" class="sr-only">
-                                <div class="pay-opt"
+                                <div class="pay-opt text-center"
                                      :style="paymentStatus==='partial'?'border-color:#3b82f6;background:#eff6ff':'border-color:#e5e8ed;background:#fff'">
-                                    <svg style="width:18px;height:18px;margin:0 auto 4px;display:block;transition:color .15s"
-                                         :style="paymentStatus==='partial'?'color:#3b82f6':'color:#d1d5db'"
-                                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                    </svg>
-                                    <p class="text-xs font-semibold transition-colors"
+                                    <p class="text-sm font-semibold transition-colors"
                                        :style="paymentStatus==='partial'?'color:#1e40af':'color:#6b7280'">جزئي</p>
-                                </div>
-                            </label>
-
-                            {{-- Deferred --}}
-                            <label class="cursor-pointer" @click="paymentStatus='deferred'">
-                                <input type="radio" name="payment_status" value="deferred" x-model="paymentStatus" class="sr-only">
-                                <div class="pay-opt"
-                                     :style="paymentStatus==='deferred'?'border-color:#f59e0b;background:#fffbeb':'border-color:#e5e8ed;background:#fff'">
-                                    <svg style="width:18px;height:18px;margin:0 auto 4px;display:block;transition:color .15s"
-                                         :style="paymentStatus==='deferred'?'color:#f59e0b':'color:#d1d5db'"
-                                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                    </svg>
-                                    <p class="text-xs font-semibold transition-colors"
-                                       :style="paymentStatus==='deferred'?'color:#92400e':'color:#6b7280'">آجل</p>
                                 </div>
                             </label>
 
@@ -765,7 +936,6 @@
                                :max="totalAmount" placeholder="0.00" class="inp">
                     </div>
                     <template x-if="paymentStatus === 'paid'"><input type="hidden" name="paid_amount" :value="totalAmount"></template>
-                    <template x-if="paymentStatus === 'deferred'"><input type="hidden" name="paid_amount" value="0"></template>
 
                     {{-- Payment method --}}
                     <div>
@@ -773,10 +943,8 @@
                         <div class="space-y-1.5">
                             @foreach(['cash'=>'نقدي','pos'=>'POS','bank_transfer'=>'تحويل بنكي'] as $val=>$lbl)
                             <label class="flex items-center gap-2.5 cursor-pointer p-2.5 rounded-lg transition"
-                                   :style="paymentStatus==='deferred' && '{{ $val }}' !== 'cash' ? 'opacity:.4;pointer-events:none' : ''"
                                    onmouseover="this.style.background='#f7f8fa'" onmouseout="this.style.background=''">
                                 <input type="radio" name="payment_method" value="{{ $val }}" x-model="paymentMethod"
-                                       :disabled="paymentStatus==='deferred' && '{{ $val }}' !== 'cash'"
                                        class="w-4 h-4" style="accent-color:var(--p)">
                                 <span class="text-sm text-gray-700 font-medium">{{ $lbl }}</span>
                             </label>
