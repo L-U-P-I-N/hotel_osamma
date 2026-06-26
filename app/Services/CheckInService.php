@@ -72,6 +72,7 @@ class CheckInService
                 'check_in_date'      => $data['check_in_date'],
                 'check_in_time'      => $data['check_in_time'] ?? null,
                 'check_out_date'     => $data['check_out_date'],
+                'check_out_time'     => $data['check_out_time'] ?? null,
                 'origin'             => $data['origin'] ?? null,
                 'purpose'            => $data['purpose'] ?? null,
                 'notes'              => $data['notes'] ?? null,

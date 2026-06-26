@@ -76,6 +76,7 @@ class CheckInController extends Controller
             'check_in_date'   => 'required|date',
             'check_in_time'   => 'nullable|regex:/^\d{2}:\d{2}$/',
             'check_out_date'  => 'required|date|after:check_in_date',
+            'check_out_time'  => 'nullable|regex:/^\d{2}:\d{2}$/',
             'payment_status'  => 'required|in:unpaid,partial,paid,deferred',
             'currency'        => 'nullable|in:YER',
             'bank_receipt' => 'required_if:payment_method,bank_transfer|nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',

@@ -592,6 +592,9 @@
                     <div>
                         <p class="text-xs text-gray-400">تاريخ الخروج</p>
                         <p class="font-semibold text-gray-800">{{ $reservation->check_out_date?->format('d/m/Y') ?? '—' }}</p>
+                        @if($reservation->check_out_time)
+                        <p class="text-xs text-gray-500">{{ $reservation->check_out_time }}</p>
+                        @endif
                         @if($reservation->status === 'checked_in' && $reservation->check_out_date?->isPast())
                         <span class="text-xs text-red-500 font-medium">متأخر!</span>
                         @endif

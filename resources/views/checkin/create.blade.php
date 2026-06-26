@@ -783,7 +783,8 @@
                         </div>
                         <input type="hidden" name="check_in_date" :value="checkInDate">
                         @else
-                        <input type="date" name="check_in_date" x-model="checkInDate" required :min="today()" @change="calcTotal()" class="fi">
+                        <input type="text" name="check_in_date" required placeholder="YYYY-MM-DD" autocomplete="off"
+                               x-init="initDatePicker($el, 'checkInDate')" class="fi">
                         @endif
                     </div>
 
@@ -806,12 +807,22 @@
                         </div>
                     </div>
 
-                    <div>
-                        <label class="fl text-xs">تاريخ المغادرة <span class="freq">*</span></label>
-                        <input type="date" name="check_out_date" x-model="checkOutDate" required
-                               :min="checkInDate || today()" @change="calcTotal()" class="fi">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="fl text-xs">تاريخ المغادرة <span class="freq">*</span></label>
+                            <input type="text" name="check_out_date" required placeholder="YYYY-MM-DD" autocomplete="off"
+                                   x-init="initDatePicker($el, 'checkOutDate')" class="fi">
+                        </div>
+                        <div>
+                            <label class="fl text-xs">وقت المغادرة</label>
+                            <input type="time" name="check_out_time" x-model="checkOutTime" class="fi">
+                        </div>
                     </div>
                 </div>
+                <p class="text-xs text-gray-400 mt-2 flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    يمكنك كتابة التاريخ يدوياً أو اختياره من التقويم
+                </p>
             </div>
 
             {{-- Price stats --}}
@@ -1006,6 +1017,7 @@
                     <div class="rev-row"><span>تاريخ الدخول</span><span x-text="checkInDate || '—'"></span></div>
                     <div class="rev-row" x-show="checkInTime"><span>وقت الوصول</span><span x-text="checkInTime"></span></div>
                     <div class="rev-row"><span>تاريخ الخروج</span><span x-text="checkOutDate || '—'"></span></div>
+                    <div class="rev-row" x-show="checkOutTime"><span>وقت المغادرة</span><span x-text="checkOutTime"></span></div>
                     <div class="rev-row"><span>عدد الليالي</span><span x-text="nights"></span></div>
                 </div>
 
@@ -1116,6 +1128,7 @@ function checkInForm() {
         checkInDate: '',
         checkInTime: '',
         checkOutDate: '',
+        checkOutTime: '12:00',
         nights: 0,
         nightsInput: 1,
         totalAmount: 0,
@@ -1170,6 +1183,7 @@ function checkInForm() {
                     checkInDate:     this.checkInDate,
                     checkInTime:     this.checkInTime,
                     checkOutDate:    this.checkOutDate,
+                    checkOutTime:    this.checkOutTime,
                     nightsInput:     this.nightsInput,
                     paymentStatus:   this.paymentStatus,
                     paymentMethod:   this.paymentMethod,
@@ -1194,6 +1208,7 @@ function checkInForm() {
                 this.checkInDate       = s.checkInDate        || this.checkInDate;
                 this.checkInTime       = s.checkInTime        || this.checkInTime;
                 this.checkOutDate      = s.checkOutDate       || this.checkOutDate;
+                this.checkOutTime      = s.checkOutTime        || this.checkOutTime;
                 this.nightsInput       = s.nightsInput        ?? 1;
                 this.paymentStatus     = s.paymentStatus      ?? 'paid';
                 this.paymentMethod     = s.paymentMethod      ?? 'cash';
@@ -1210,6 +1225,37 @@ function checkInForm() {
 
         today() {
             return new Date().toISOString().split('T')[0];
+        },
+
+        // Attach a flatpickr date-picker that supports BOTH typing and calendar selection,
+        // and keeps the Alpine state (`prop`) in two-way sync.
+        initDatePicker(el, prop) {
+            const self = this;
+            if (typeof window.flatpickr === 'undefined') {
+                // Graceful fallback: native date input + manual sync
+                el.type = 'date';
+                el.value = self[prop] || '';
+                el.addEventListener('change', () => { self[prop] = el.value; self.calcTotal(); });
+                return;
+            }
+            const fp = window.flatpickr(el, {
+                allowInput: true,
+                dateFormat: 'Y-m-d',
+                disableMobile: true,
+                defaultDate: self[prop] || null,
+                minDate: prop === 'checkOutDate' ? (self.checkInDate || self.today()) : self.today(),
+                onChange: (sel, str) => { self[prop] = str; self.calcTotal(); },
+            });
+            el._fp = fp;
+            // Reflect programmatic changes (e.g. nights stepper) back into the picker
+            this.$watch(prop, (val) => {
+                if (el._fp && val !== el.value) el._fp.setDate(val, false);
+            });
+            if (prop === 'checkOutDate') {
+                this.$watch('checkInDate', (val) => {
+                    if (el._fp) el._fp.set('minDate', val || self.today());
+                });
+            }
         },
 
         addCompanion() {
