@@ -35,6 +35,16 @@
             }
         }
     </script>
+    {{-- Flatpickr — date picker that supports typing OR calendar selection (loaded before Alpine) --}}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ar.js"></script>
+    <script>
+        // Apply Arabic locale globally (runs synchronously, before Alpine's deferred init)
+        if (window.flatpickr && flatpickr.l10ns && flatpickr.l10ns.ar) {
+            flatpickr.localize(flatpickr.l10ns.ar);
+        }
+    </script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
