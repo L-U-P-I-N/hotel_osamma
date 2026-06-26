@@ -138,7 +138,7 @@
 .pay-opt input:checked + .pay-opt-inner { box-shadow: 0 0 0 2px currentColor; }
 .pay-opt-paid input:checked + .pay-opt-inner { border-color: var(--emerald); background: var(--emerald-l); color: var(--emerald); }
 .pay-opt-partial input:checked + .pay-opt-inner { border-color: var(--navy-l); background: var(--navy-g); color: var(--navy); }
-.pay-opt-deferred input:checked + .pay-opt-inner { border-color: #7C3AED; background: #EDE9FE; color: #5B21B6; }
+
 
 /* ── Booking panel ── */
 .bpanel {
@@ -805,26 +805,19 @@
             </div>
 
             {{-- Payment Status --}}
-            <div class="grid grid-cols-3 gap-2 mb-4">
+            <div class="grid grid-cols-2 gap-2 mb-4">
                 <label class="pay-opt pay-opt-paid">
                     <input type="radio" name="payment_status" value="paid" x-model="paymentStatus">
                     <div class="pay-opt-inner">
                         <svg class="w-5 h-5 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        <div class="text-xs font-bold">كامل</div>
+                        <div class="text-xs font-bold">مدفوع كامل</div>
                     </div>
                 </label>
                 <label class="pay-opt pay-opt-partial">
                     <input type="radio" name="payment_status" value="partial" x-model="paymentStatus">
                     <div class="pay-opt-inner">
                         <svg class="w-5 h-5 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        <div class="text-xs font-bold">جزئي</div>
-                    </div>
-                </label>
-                <label class="pay-opt pay-opt-deferred">
-                    <input type="radio" name="payment_status" value="deferred" x-model="paymentStatus">
-                    <div class="pay-opt-inner">
-                        <svg class="w-5 h-5 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        <div class="text-xs font-bold">آجل</div>
+                        <div class="text-xs font-bold">دفعة جزئية</div>
                     </div>
                 </label>
             </div>
@@ -837,26 +830,16 @@
             <template x-if="paymentStatus === 'paid'">
                 <input type="hidden" name="paid_amount" :value="totalAmount">
             </template>
-            <template x-if="paymentStatus === 'deferred'">
-                <input type="hidden" name="paid_amount" value="0">
-            </template>
-
             {{-- Payment method --}}
             <div class="flex gap-4 mb-3">
                 <label class="flex items-center gap-2 cursor-pointer">
                     <input type="radio" name="payment_method" value="cash" x-model="paymentMethod" class="text-blue-600">
                     <span class="text-sm font-medium text-gray-700">نقدي</span>
                 </label>
-                <label class="flex items-center gap-2 cursor-pointer" :class="paymentStatus === 'deferred' ? 'opacity-40 cursor-not-allowed' : ''">
-                    <input type="radio" name="payment_method" value="bank_transfer" x-model="paymentMethod"
-                           :disabled="paymentStatus === 'deferred'">
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="payment_method" value="bank_transfer" x-model="paymentMethod">
                     <span class="text-sm font-medium text-gray-700">تحويل بنكي</span>
                 </label>
-            </div>
-
-            {{-- Deferred + bank_transfer warning --}}
-            <div x-show="paymentStatus === 'deferred' && paymentMethod === 'bank_transfer'" class="mb-3 p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
-                الدفع الآجل متاح للنقدي فقط.
             </div>
 
             {{-- Currency notes --}}
