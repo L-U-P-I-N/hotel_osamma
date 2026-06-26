@@ -84,16 +84,16 @@ Route::middleware(['auth'])->group(function () {
         ->name('checkin.exportGov')
         ->middleware('permission:government.export');
 
-    // Private ID images (secure serve)
+    // Private ID images & documents — visible to anyone who can view reservations
     Route::get('/guests/{guest}/id-image', [CheckInController::class, 'serveGuestIdImage'])
         ->name('guests.idImage')
-        ->middleware('permission:guests.sensitive');
+        ->middleware('permission:checkin.view');
     Route::get('/companions/{companion}/id-image', [CheckInController::class, 'serveCompanionIdImage'])
         ->name('companions.idImage')
-        ->middleware('permission:guests.sensitive');
+        ->middleware('permission:checkin.view');
     Route::get('/companions/{companion}/marriage-doc', [CheckInController::class, 'serveMarriageDoc'])
         ->name('companions.marriageDoc')
-        ->middleware('permission:guests.sensitive');
+        ->middleware('permission:checkin.view');
 
     // Guest name autocomplete (AJAX)
     Route::get('/guests/search', [CheckInController::class, 'guestSearch'])
