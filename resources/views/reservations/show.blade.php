@@ -208,7 +208,6 @@
                     </div>
 
                     {{-- ID Image --}}
-                    @can('guests.sensitive')
                     @if($reservation->guest?->id_image_path)
                     <div class="md:w-48 shrink-0" id="guestIdImageBox">
                         <p class="text-xs text-gray-400 mb-2 text-center">صورة الهوية</p>
@@ -234,7 +233,6 @@
                         @endif
                     </div>
                     @endif
-                    @endcan
                 </div>
 
                 @if($reservation->notes)
@@ -304,7 +302,6 @@
                         </div>
 
                         {{-- Companion Images --}}
-                        @can('guests.sensitive')
                         <div class="flex gap-3 md:flex-col md:w-36 shrink-0">
                             @if($c->id_image_path)
                             <div class="flex-1 md:flex-none">
@@ -345,7 +342,6 @@
                             </div>
                             @endif
                         </div>
-                        @endcan
                     </div>
                 </div>
                 @endforeach
