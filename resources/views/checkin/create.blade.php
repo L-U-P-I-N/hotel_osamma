@@ -261,6 +261,28 @@
 
 /* ── Divider ── */
 .sec-divider { height: 1.5px; background: linear-gradient(to right, transparent, #E5E7EB, transparent); margin: 1rem 0; }
+
+/* ════════ الوضع الليلي للنموذج (Dark mode) ════════ */
+html.dark .sec-card { background:#1e293b; border-color:#2f3e54; }
+html.dark .sec-hdr { background:linear-gradient(135deg, #16263c 0%, #1e293b 100%); border-color:#2f3e54; }
+html.dark .sec-title { color:#e6edf5; }
+html.dark .step-wrap { background:#1e293b; border-color:#2f3e54; }
+html.dark .bpanel { background:#1e293b; border-color:#2f3e54; }
+html.dark .fi { background:#0f1b2d; color:#e6edf5; border-color:#2f3e54; }
+html.dark .rtile { background:#0f1b2d; border-color:#2f3e54; }
+html.dark .rtile:hover { background:#172a40; }
+html.dark .rtile.active { background:linear-gradient(135deg,#16314c,#1e293b); }
+html.dark .rtile-suite { background:#13243a; border-color:#24456e; }
+html.dark .rtile .text-gray-800, html.dark .rtile .font-black { color:#e6edf5; }
+html.dark .comp-card { background:#172032; border-color:#2f3e54; }
+html.dark .rev-card { background:#172032; border-color:#2f3e54; }
+html.dark .rev-row span:last-child { color:#e6edf5; }
+html.dark .fpill-off { background:#172032; color:#aab6c6; border-color:#2f3e54; }
+html.dark .fpill-off:hover { background:#22344c; color:#cfe0f0; }
+html.dark .pay-opt-inner { background:#0f1b2d; border-color:#2f3e54; }
+html.dark .step-dot-idle { background:#172032; color:#7c8aa0; border-color:#2f3e54; }
+html.dark .step-track { background:#2f3e54; }
+html.dark .comp-card .border-gray-200 { border-color:#2f3e54 !important; }
 </style>
 @endpush
 
