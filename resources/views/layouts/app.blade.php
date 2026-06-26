@@ -9,6 +9,23 @@
     <meta http-equiv="Expires" content="0">
     <title>@yield('title', 'الفندق السعودي') - نظام إدارة الفندق</title>
 
+    {{-- Theme (الوضع الليلي/النهاري) — applied before paint to avoid flash --}}
+    <script>
+        (function () {
+            try {
+                var t = localStorage.getItem('theme');
+                if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                if (t === 'dark') document.documentElement.classList.add('dark');
+            } catch (e) {}
+        })();
+        function toggleTheme() {
+            var isDark = document.documentElement.classList.toggle('dark');
+            try { localStorage.setItem('theme', isDark ? 'dark' : 'light'); } catch (e) {}
+            var meta = document.querySelector('meta[name="theme-color"]');
+            if (meta) meta.setAttribute('content', isDark ? '#0f172a' : '#0F4C75');
+        }
+    </script>
+
     <!-- PWA -->
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0F4C75">
@@ -24,6 +41,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     fontFamily: { cairo: ['Cairo', 'sans-serif'] },
@@ -79,6 +97,67 @@
         .status-occupied        { background:#fee2e2; color:#991b1b; }
         .status-under_inspection{ background:#fef9c3; color:#854d0e; }
         .status-maintenance     { background:#f3f4f6; color:#374151; }
+
+        /* ════════════════ الوضع الليلي (Dark mode) ════════════════ */
+        html.dark body { background-color:#0f172a !important; color:#e2e8f0 !important; }
+
+        /* Surfaces */
+        html.dark .bg-white { background-color:#1e293b !important; }
+        html.dark .bg-slate-50, html.dark .bg-gray-50, html.dark .bg-gray-100,
+        html.dark .bg-slate-100 { background-color:#172032 !important; }
+        html.dark .bg-gray-200 { background-color:#334155 !important; }
+
+        /* Text */
+        html.dark .text-gray-900, html.dark .text-gray-800, html.dark .text-gray-700 { color:#e6edf5 !important; }
+        html.dark .text-gray-600, html.dark .text-gray-500 { color:#aab6c6 !important; }
+        html.dark .text-gray-400, html.dark .text-gray-300 { color:#7c8aa0 !important; }
+
+        /* Borders */
+        html.dark .border-gray-100, html.dark .border-gray-200, html.dark .border-gray-300,
+        html.dark .border-slate-100, html.dark .border-slate-200, html.dark .border { border-color:#2f3e54 !important; }
+
+        /* Inputs */
+        html.dark input, html.dark select, html.dark textarea, html.dark .fi {
+            background-color:#0f1b2d !important; color:#e6edf5 !important; border-color:#2f3e54 !important;
+        }
+        html.dark input::placeholder, html.dark textarea::placeholder, html.dark .fi::placeholder { color:#64748b !important; }
+
+        /* Top bar */
+        html.dark .app-topbar { background-color:#1e293b !important; border-color:#2f3e54 !important; box-shadow:0 1px 4px rgba(0,0,0,.4) !important; }
+
+        /* Tinted panels → dark translucent */
+        html.dark .bg-green-50, html.dark .bg-emerald-50 { background-color:rgba(34,197,94,.10) !important; }
+        html.dark .bg-red-50, html.dark .bg-rose-50 { background-color:rgba(239,68,68,.10) !important; }
+        html.dark .bg-amber-50, html.dark .bg-yellow-50 { background-color:rgba(245,158,11,.10) !important; }
+        html.dark .bg-blue-50, html.dark .bg-sky-50 { background-color:rgba(59,130,246,.10) !important; }
+        html.dark .bg-primary-50 { background-color:rgba(61,124,187,.13) !important; }
+        html.dark .bg-violet-50, html.dark .bg-purple-50, html.dark .bg-indigo-50 { background-color:rgba(139,92,246,.10) !important; }
+        html.dark .bg-pink-50 { background-color:rgba(236,72,153,.10) !important; }
+
+        /* Tinted text → lighten for contrast */
+        html.dark .text-green-800, html.dark .text-green-700, html.dark .text-emerald-700 { color:#4ade80 !important; }
+        html.dark .text-red-800, html.dark .text-red-700, html.dark .text-red-600 { color:#f87171 !important; }
+        html.dark .text-amber-800, html.dark .text-amber-700, html.dark .text-yellow-800 { color:#fbbf24 !important; }
+        html.dark .text-blue-800, html.dark .text-blue-700, html.dark .text-blue-600 { color:#60a5fa !important; }
+        html.dark .text-primary-800, html.dark .text-primary-700, html.dark .text-primary-600 { color:#7ab3e0 !important; }
+        html.dark .text-violet-700, html.dark .text-purple-700, html.dark .text-indigo-700 { color:#a78bfa !important; }
+
+        /* Hover surfaces */
+        html.dark .hover\:bg-gray-50:hover, html.dark .hover\:bg-gray-100:hover { background-color:#233248 !important; }
+
+        /* Dividers */
+        html.dark .divide-gray-50 > :not([hidden]) ~ :not([hidden]),
+        html.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
+        html.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color:#2f3e54 !important; }
+
+        /* Softer shadows */
+        html.dark .shadow-sm, html.dark .shadow, html.dark .shadow-md,
+        html.dark .shadow-lg, html.dark .shadow-xl { box-shadow:0 1px 3px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.28) !important; }
+
+        /* Theme toggle icon swap */
+        .theme-icon-sun  { display:none; }
+        html.dark .theme-icon-sun  { display:block; }
+        html.dark .theme-icon-moon { display:none; }
     </style>
     @stack('styles')
 </head>
@@ -361,7 +440,7 @@
     <div class="flex-1 flex flex-col overflow-hidden">
 
         <!-- Top bar -->
-        <header class="bg-white flex-shrink-0 flex items-center gap-4 px-6 py-3.5"
+        <header class="app-topbar bg-white flex-shrink-0 flex items-center gap-4 px-6 py-3.5"
                 style="border-bottom: 1px solid #e8edf2; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
             <button @click="sidebarOpen=!sidebarOpen"
                     class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
@@ -378,6 +457,16 @@
             @endif
             <h1 class="text-base font-semibold text-gray-800 flex-1">@yield('page-title', 'لوحة التحكم')</h1>
             <div class="flex items-center gap-3">
+                {{-- Theme toggle (الوضع الليلي/النهاري) --}}
+                <button type="button" onclick="toggleTheme()"
+                        title="تبديل الوضع الليلي / النهاري"
+                        class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
+                    {{-- moon: shown in light mode (click → dark) --}}
+                    <svg class="theme-icon-moon w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+                    {{-- sun: shown in dark mode (click → light) --}}
+                    <svg class="theme-icon-sun w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                </button>
+                <div class="w-px h-5 bg-gray-200 hidden sm:block"></div>
                 <span class="text-xs text-gray-400 hidden sm:block">{{ now()->isoFormat('dddd، D MMMM Y') }}</span>
                 <div class="w-px h-5 bg-gray-200 hidden sm:block"></div>
                 <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold"
