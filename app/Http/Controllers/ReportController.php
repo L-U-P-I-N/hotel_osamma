@@ -696,6 +696,42 @@ class ReportController extends Controller
         return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\DebtsReportExport(), 'debts-' . now()->format('Y-m-d') . '.xlsx');
     }
 
+    public function partialPayments(Request $request)
+    {
+        $from   = $request->input('from', now()->startOfYear()->toDateString());
+        $to     = $request->input('to', now()->toDateString());
+        $search = $request->input('search', '');
+        $status = $request->input('status', 'partial');
+
+        $query = Reservation::with(['guest', 'room.roomType', 'payments' => fn($q) => $q->with('receivedBy')->orderBy('payment_date')])
+            ->whereIn('status', ['checked_in', 'checked_out', 'reserved'])
+            ->whereDate('check_in_date', '>=', $from)
+            ->whereDate('check_in_date', '<=', $to);
+
+        if ($status === 'partial') {
+            $query->where('payment_status', 'partial');
+        } elseif ($status === 'all') {
+            $query->whereIn('payment_status', ['partial', 'paid', 'unpaid'])
+                  ->whereHas('payments');
+        }
+
+        if ($search) {
+            $query->whereHas('guest', fn($q) => $q->where('full_name', 'like', "%{$search}%"));
+        }
+
+        $reservations = $query->orderByRaw('(total_amount - paid_amount) DESC')->get();
+
+        $totalReservations = $reservations->count();
+        $totalCollected    = $reservations->sum('paid_amount');
+        $totalRemaining    = $reservations->sum(fn($r) => $r->total_amount - $r->paid_amount);
+        $totalTransactions = $reservations->sum(fn($r) => $r->payments->count());
+
+        return view('reports.partial-payments', compact(
+            'reservations', 'from', 'to', 'search', 'status',
+            'totalReservations', 'totalCollected', 'totalRemaining', 'totalTransactions'
+        ));
+    }
+
     public function salariesPdf(Request $request)
     {
         $year = (int) $request->input('year', now()->year);
