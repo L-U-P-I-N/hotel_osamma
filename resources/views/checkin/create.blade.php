@@ -85,6 +85,29 @@
 .sec-title { font-size: 1rem; font-weight: 700; color: var(--navy-d); }
 .sec-body { padding: 1.5rem; }
 
+/* ── Step indicator ── */
+.step-wrap {
+    background: #fff;
+    border-radius: var(--card-r);
+    box-shadow: var(--sh);
+    border: 1.5px solid #F0F4F8;
+    padding: 1.5rem 2rem;
+    margin-bottom: 1.5rem;
+}
+.step-track { position: absolute; top: 1.5rem; right: 0; left: 0; height: 3px; background: #E5E7EB; z-index: 0; border-radius: 3px; }
+.step-track-fill { height: 100%; background: linear-gradient(to left, var(--navy), var(--navy-l)); border-radius: 3px; transition: width .5s ease; }
+.step-dot {
+    width: 3rem; height: 3rem;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; font-weight: 800;
+    transition: all .3s ease;
+}
+.step-dot-done   { background: var(--emerald); color: #fff; box-shadow: 0 2px 10px rgba(5,150,105,.35); }
+.step-dot-active { background: var(--navy); color: #fff; box-shadow: 0 0 0 5px var(--navy-g), 0 4px 12px rgba(15,76,117,.3); }
+.step-dot-idle   { background: #F3F4F6; color: #9CA3AF; border: 1.5px solid #E5E7EB; }
+.step-label { font-size: .8125rem; font-weight: 600; margin-top: .625rem; transition: color .3s; }
+
 /* ── Room tiles ── */
 .rtile {
     border: 1.5px solid #E5E7EB;
@@ -139,7 +162,6 @@
 .pay-opt-paid input:checked + .pay-opt-inner { border-color: var(--emerald); background: var(--emerald-l); color: var(--emerald); }
 .pay-opt-partial input:checked + .pay-opt-inner { border-color: var(--navy-l); background: var(--navy-g); color: var(--navy); }
 
-
 /* ── Booking panel ── */
 .bpanel {
     background: #fff;
@@ -171,10 +193,9 @@
     padding: .875rem 1rem;
 }
 
-/* ── Submit button ── */
+/* ── Buttons ── */
 .btn-submit {
-    width: 100%;
-    padding: .9375rem;
+    padding: .8125rem 2rem;
     border-radius: .75rem;
     font-size: 1rem;
     font-weight: 700;
@@ -188,6 +209,33 @@
 }
 .btn-submit:hover:not(:disabled) { background: linear-gradient(135deg, #047857, #065f46); box-shadow: 0 6px 20px rgba(5,150,105,.4); transform: translateY(-1px); }
 .btn-submit:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+.btn-next {
+    padding: .8125rem 2rem;
+    border-radius: .75rem;
+    font-size: .9375rem;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: all .18s;
+    background: linear-gradient(135deg, var(--navy), var(--navy-l));
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(15,76,117,.28);
+    display: inline-flex; align-items: center; gap: .5rem;
+}
+.btn-next:hover { background: linear-gradient(135deg, var(--navy-d), var(--navy)); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(15,76,117,.38); }
+.btn-prev {
+    padding: .8125rem 1.75rem;
+    border-radius: .75rem;
+    font-size: .9375rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1.5px solid #D1D5DB;
+    background: #fff;
+    color: #4B5563;
+    transition: all .15s;
+    display: inline-flex; align-items: center; gap: .5rem;
+}
+.btn-prev:hover { background: #F9FAFB; border-color: #9CA3AF; }
 
 /* ── Mode banner ── */
 .mode-banner { border-radius: .875rem; padding: .875rem 1.25rem; display: flex; align-items: center; gap: .75rem; font-size: .875rem; font-weight: 500; margin-bottom: 1.5rem; }
@@ -205,18 +253,14 @@
 }
 .comp-card:hover { border-color: #CBD5E1; }
 
-/* ── Scrollbar styling for room grid ── */
-.room-grid-scroll::-webkit-scrollbar { height: 6px; }
-.room-grid-scroll::-webkit-scrollbar-track { background: #F3F4F6; border-radius: 3px; }
-.room-grid-scroll::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+/* ── Review rows ── */
+.rev-card { background: #F9FAFB; border: 1.5px solid #F0F4F8; border-radius: .875rem; padding: 1.25rem; }
+.rev-row { display: flex; justify-content: space-between; padding: .375rem 0; font-size: .875rem; }
+.rev-row span:first-child { color: #6B7280; }
+.rev-row span:last-child { font-weight: 600; color: #1F2937; }
 
 /* ── Divider ── */
 .sec-divider { height: 1.5px; background: linear-gradient(to right, transparent, #E5E7EB, transparent); margin: 1rem 0; }
-
-/* ── Responsive ── */
-@media (max-width: 1279px) {
-    .bpanel { position: static !important; top: auto !important; }
-}
 </style>
 @endpush
 
@@ -235,6 +279,29 @@
     <span><strong>حجز مسبق</strong> — سيتم تأكيد الحجز وتخصيص الغرفة للتاريخ المحدد</span>
 </div>
 @endif
+
+{{-- ════════ STEP INDICATOR (3 steps) ════════ --}}
+<div class="step-wrap">
+    <div class="relative flex items-start justify-between max-w-2xl mx-auto">
+        <div class="step-track">
+            <div class="step-track-fill" :style="`width: ${(currentStep-1)/2*100}%`"></div>
+        </div>
+        <template x-for="(label, i) in stepLabels" :key="i">
+            <div class="flex flex-col items-center z-10" style="flex:1">
+                <div class="step-dot"
+                     :class="currentStep > i+1 ? 'step-dot-done' : (currentStep === i+1 ? 'step-dot-active' : 'step-dot-idle')">
+                    <template x-if="currentStep > i+1">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                    </template>
+                    <template x-if="currentStep <= i+1">
+                        <span x-text="i+1"></span>
+                    </template>
+                </div>
+                <span class="step-label" :style="currentStep === i+1 ? 'color:var(--navy)' : 'color:#9CA3AF'" x-text="label"></span>
+            </div>
+        </template>
+    </div>
+</div>
 
 {{-- Backend Validation Errors --}}
 @if($errors->any())
@@ -255,17 +322,15 @@
 
 <form id="checkInMainForm" method="POST" action="{{ route('checkin.store') }}"
       enctype="multipart/form-data" autocomplete="off"
-      @submit="submitting = true">
+      @submit="handleSubmit($event)">
 @csrf
 
-<div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
-
 {{-- ════════════════════════════════════════════════════════════
-     LEFT COLUMN — Sections ① ② ③
+     STEP 1 — بيانات النزيل + المرافقون
      ════════════════════════════════════════════════════════════ --}}
-<div class="xl:col-span-2 space-y-6">
+<div x-show="currentStep === 1" class="space-y-6">
 
-    {{-- ─── ① بيانات النزيل ─── --}}
+    {{-- ① بيانات النزيل --}}
     <div class="sec-card">
         <div class="sec-hdr">
             <div class="sec-num">١</div>
@@ -273,7 +338,7 @@
                 <div class="sec-title">بيانات النزيل</div>
                 <div class="text-xs text-gray-500 mt-0.5">المعلومات الشخصية وبيانات الهوية</div>
             </div>
-            <svg class="w-6 h-6 text-navy-400 mr-auto opacity-40" style="color:var(--navy)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+            <svg class="w-6 h-6 mr-auto opacity-40" style="color:var(--navy)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
         </div>
         <div class="sec-body">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -344,7 +409,6 @@
                     <label class="fl">صورة الهوية <span class="freq">*</span></label>
                     <div class="border-2 border-dashed rounded-xl transition-all duration-200 cursor-pointer relative overflow-hidden group"
                          :class="idImagePreview ? 'border-emerald-300 bg-emerald-50' : 'border-gray-300 hover:border-navy-400 bg-gray-50 hover:bg-blue-50'"
-                         style="--tw-border-opacity:1"
                          @dragover.prevent @drop.prevent="handleIdImageDrop($event)">
                         <input type="file" name="id_image" accept="image/*,.pdf" class="absolute inset-0 opacity-0 cursor-pointer z-10" @change="handleIdImageChange($event)">
                         <template x-if="!idImagePreview">
@@ -387,7 +451,7 @@
         </div>
     </div>{{-- /sec-card ① --}}
 
-    {{-- ─── ② المرافقون ─── --}}
+    {{-- ② المرافقون --}}
     <div class="sec-card">
         <div class="sec-hdr">
             <div class="sec-num">٢</div>
@@ -486,7 +550,15 @@
         </div>
     </div>{{-- /sec-card ② --}}
 
-    {{-- ─── ③ اختيار الغرفة ─── --}}
+</div>{{-- /STEP 1 --}}
+
+{{-- ════════════════════════════════════════════════════════════
+     STEP 2 — الغرفة + التواريخ + الدفع
+     ════════════════════════════════════════════════════════════ --}}
+<div x-show="currentStep === 2" class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+
+    {{-- ③ اختيار الغرفة --}}
+    <div class="xl:col-span-2">
     <div class="sec-card">
         <div class="sec-hdr">
             <div class="sec-num">٣</div>
@@ -661,243 +733,347 @@
                 @endif
             </div>
         </div>
-    </div>{{-- /sec-card ③ --}}
-
-</div>{{-- /left col --}}
-
-{{-- ════════════════════════════════════════════════════════════
-     RIGHT PANEL — Dates ④, Payment ⑤, Submit
-     ════════════════════════════════════════════════════════════ --}}
-<div class="xl:col-span-1">
-<div class="bpanel sticky top-4">
-
-    {{-- Panel header --}}
-    <div class="bpanel-hdr">
-        <div class="flex items-center gap-2 mb-1">
-            <svg class="w-5 h-5 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-            <span class="font-bold text-base tracking-wide">ملخص الحجز</span>
-        </div>
-        <div class="text-xs opacity-60 mt-0.5">أدخل البيانات ليتم احتساب التكلفة تلقائياً</div>
-
-        {{-- Room mini-summary in header --}}
-        <div x-show="selectedRoom" class="mt-3 pt-3 border-t border-white/20">
-            <div class="flex items-center gap-2">
-                <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold bg-white/20" x-text="suiteBookingType === 'both' ? (selectedRoom?.room_number ?? '') + '+' : (selectedRoom?.room_number ?? '')"></div>
-                <div>
-                    <div class="text-sm font-semibold" x-text="roomSelectionLabel()"></div>
-                    <div class="text-xs opacity-70" x-text="selectedRoom?.room_type_name ?? ''"></div>
-                </div>
-            </div>
-        </div>
-        <div x-show="!selectedRoom" class="mt-3 pt-3 border-t border-white/20 text-xs opacity-50 flex items-center gap-1.5">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            لم يتم اختيار غرفة بعد
-        </div>
     </div>
+    </div>{{-- /room col --}}
 
-    <div class="bpanel-body space-y-5">
+    {{-- ④⑤ Booking panel: التواريخ + الدفع --}}
+    <div class="xl:col-span-1">
+    <div class="bpanel sticky top-4">
 
-        {{-- ④ التواريخ --}}
-        <div>
-            <div class="flex items-center gap-2 mb-3">
-                <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black text-white flex-shrink-0" style="background:var(--navy-l)">٤</div>
-                <span class="text-sm font-bold" style="color:var(--navy-d)">التواريخ</span>
+        {{-- Panel header --}}
+        <div class="bpanel-hdr">
+            <div class="flex items-center gap-2 mb-1">
+                <svg class="w-5 h-5 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                <span class="font-bold text-base tracking-wide">ملخص الحجز</span>
             </div>
+            <div class="text-xs opacity-60 mt-0.5">أدخل البيانات ليتم احتساب التكلفة تلقائياً</div>
 
-            <div class="space-y-3">
-                {{-- Check-in date --}}
-                <div>
-                    <label class="fl text-xs">تاريخ الوصول <span class="freq">*</span></label>
-                    @if($mode === 'checkin')
-                    <div class="fi flex items-center gap-2 bg-gray-50 text-gray-700 cursor-default">
-                        <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                        <span x-text="checkInDate" class="flex-1"></span>
-                        <span class="text-xs text-gray-400">(اليوم)</span>
-                    </div>
-                    <input type="hidden" name="check_in_date" :value="checkInDate">
-                    @else
-                    <input type="date" name="check_in_date" x-model="checkInDate" required :min="today()" @change="calcTotal()" class="fi">
-                    @endif
-                </div>
-
-                {{-- Nights stepper + checkout --}}
-                <div class="grid grid-cols-2 gap-3">
+            <div x-show="selectedRoom" class="mt-3 pt-3 border-t border-white/20">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold bg-white/20" x-text="suiteBookingType === 'both' ? (selectedRoom?.room_number ?? '') + '+' : (selectedRoom?.room_number ?? '')"></div>
                     <div>
-                        <label class="fl text-xs">الليالي</label>
-                        <div class="flex items-center border-1.5 rounded-xl overflow-hidden" style="border:1.5px solid #D1D5DB">
-                            <button type="button" @click="nightsInput = Math.max(1, nightsInput-1); updateCheckoutFromNights()"
-                                    class="w-9 h-9 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition font-bold text-lg flex-shrink-0">−</button>
-                            <input type="number" x-model.number="nightsInput" min="1" max="365"
-                                   @input="updateCheckoutFromNights()"
-                                   class="flex-1 text-center font-bold text-base border-none outline-none py-1.5 text-gray-800 bg-transparent">
-                            <button type="button" @click="nightsInput = Math.min(365, nightsInput+1); updateCheckoutFromNights()"
-                                    class="w-9 h-9 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition font-bold text-lg flex-shrink-0">+</button>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="fl text-xs">وقت الوصول</label>
-                        <input type="time" name="check_in_time" x-model="checkInTime" class="fi">
+                        <div class="text-sm font-semibold" x-text="roomSelectionLabel()"></div>
+                        <div class="text-xs opacity-70" x-text="selectedRoom?.room_type_name ?? ''"></div>
                     </div>
                 </div>
-
-                <div>
-                    <label class="fl text-xs">تاريخ المغادرة <span class="freq">*</span></label>
-                    <input type="date" name="check_out_date" x-model="checkOutDate" required
-                           :min="checkInDate || today()" @change="calcTotal()" class="fi">
-                </div>
+            </div>
+            <div x-show="!selectedRoom" class="mt-3 pt-3 border-t border-white/20 text-xs opacity-50 flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                لم يتم اختيار غرفة بعد
             </div>
         </div>
 
-        {{-- Price stats (show when room selected and dates set) --}}
-        <div x-show="nights > 0 && selectedRoom" x-transition class="space-y-3">
-            <div class="h-px bg-gray-100"></div>
-            <div class="flex gap-2">
-                <div class="stat-box bg-blue-50 border border-blue-100">
-                    <div class="text-xl font-black text-blue-700" x-text="nights"></div>
-                    <div class="text-xs text-blue-400 font-semibold mt-0.5">ليلة</div>
-                </div>
-                <div class="stat-box bg-amber-50 border border-amber-100 relative">
-                    <div class="text-lg font-black text-amber-700 leading-tight" x-text="formatNumber(effectiveRoomPrice())"></div>
-                    <div class="text-xs text-amber-400 font-semibold mt-0.5">ر.ي/ليلة</div>
-                    <div x-show="customPrice !== null && customPrice !== ''" class="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 text-xs font-bold rounded-full bg-amber-500 text-white">معدَّل</div>
-                </div>
-                <div class="stat-box border-2 relative" style="background:linear-gradient(135deg,var(--navy-g),#fff);border-color:var(--navy-l)">
-                    <div class="text-lg font-black leading-tight" style="color:var(--navy-d)" x-text="formatNumber(totalAmount)"></div>
-                    <div class="text-xs font-semibold mt-0.5" style="color:var(--navy-l)">الإجمالي ر.ي</div>
-                </div>
-            </div>
+        <div class="bpanel-body space-y-5">
 
-            {{-- Price Override --}}
+            {{-- ④ التواريخ --}}
             <div>
-                <button type="button" x-show="!showPriceOverride" @click="showPriceOverride = true"
-                        class="w-full py-2 px-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-700 text-xs font-semibold hover:bg-amber-100 transition flex items-center justify-center gap-1.5">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                    تعديل السعر (للتفاوض)
-                </button>
-                <div x-show="showPriceOverride" x-transition class="rounded-xl p-3 space-y-2 border border-amber-200 bg-amber-50">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-bold text-amber-800">سعر التفاوض (ر.ي/ليلة)</span>
-                        <button type="button" @click="showPriceOverride = false; customPrice = null; calcTotal()" class="text-xs text-gray-400 hover:text-red-500 underline">إلغاء</button>
-                    </div>
-                    <input type="number" min="3000" max="100000" step="100"
-                           :placeholder="'الأصلي: ' + formatNumber(roomBasePriceFor('YER'))"
-                           x-model.number="customPrice" @input="calcTotal()"
-                           class="fi text-sm border-amber-300 bg-white focus:border-amber-500">
-                    <p class="text-xs text-amber-600">النطاق المسموح: 3,000 إلى 100,000 ر.ي</p>
-                    <p x-show="customPrice !== null && customPrice !== '' && (parseFloat(customPrice) < 3000 || parseFloat(customPrice) > 100000)"
-                       class="text-xs text-red-600 font-semibold">⚠ السعر خارج النطاق المسموح</p>
+                <div class="flex items-center gap-2 mb-3">
+                    <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black text-white flex-shrink-0" style="background:var(--navy-l)">٤</div>
+                    <span class="text-sm font-bold" style="color:var(--navy-d)">التواريخ</span>
                 </div>
-            </div>
-        </div>
 
-        <input type="hidden" name="currency" value="YER">
-        <input type="hidden" name="total_amount" :value="totalAmount">
-        <input type="hidden" name="price_per_night" :value="effectiveRoomPrice()">
-        <input type="hidden" name="booking_mode" value="{{ $mode }}">
-
-        <div class="h-px bg-gray-100"></div>
-
-        {{-- ⑤ الدفع --}}
-        <div>
-            <div class="flex items-center gap-2 mb-3">
-                <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black text-white flex-shrink-0" style="background:var(--navy-l)">٥</div>
-                <span class="text-sm font-bold" style="color:var(--navy-d)">الدفع</span>
-            </div>
-
-            {{-- Payment Status --}}
-            <div class="grid grid-cols-2 gap-2 mb-4">
-                <label class="pay-opt pay-opt-paid">
-                    <input type="radio" name="payment_status" value="paid" x-model="paymentStatus">
-                    <div class="pay-opt-inner">
-                        <svg class="w-5 h-5 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        <div class="text-xs font-bold">مدفوع كامل</div>
+                <div class="space-y-3">
+                    <div>
+                        <label class="fl text-xs">تاريخ الوصول <span class="freq">*</span></label>
+                        @if($mode === 'checkin')
+                        <div class="fi flex items-center gap-2 bg-gray-50 text-gray-700 cursor-default">
+                            <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            <span x-text="checkInDate" class="flex-1"></span>
+                            <span class="text-xs text-gray-400">(اليوم)</span>
+                        </div>
+                        <input type="hidden" name="check_in_date" :value="checkInDate">
+                        @else
+                        <input type="date" name="check_in_date" x-model="checkInDate" required :min="today()" @change="calcTotal()" class="fi">
+                        @endif
                     </div>
-                </label>
-                <label class="pay-opt pay-opt-partial">
-                    <input type="radio" name="payment_status" value="partial" x-model="paymentStatus">
-                    <div class="pay-opt-inner">
-                        <svg class="w-5 h-5 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        <div class="text-xs font-bold">دفعة جزئية</div>
-                    </div>
-                </label>
-            </div>
 
-            {{-- Partial amount --}}
-            <div x-show="paymentStatus === 'partial'" class="mb-3">
-                <label class="fl text-xs">المبلغ المدفوع (ر.ي) <span class="freq">*</span></label>
-                <input type="number" name="paid_amount" x-model="paidAmount" step="0.01" min="0" :max="totalAmount" placeholder="0.00" class="fi">
-            </div>
-            <template x-if="paymentStatus === 'paid'">
-                <input type="hidden" name="paid_amount" :value="totalAmount">
-            </template>
-            {{-- Payment method --}}
-            <div class="flex gap-4 mb-3">
-                <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="payment_method" value="cash" x-model="paymentMethod" class="text-blue-600">
-                    <span class="text-sm font-medium text-gray-700">نقدي</span>
-                </label>
-                <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="payment_method" value="bank_transfer" x-model="paymentMethod">
-                    <span class="text-sm font-medium text-gray-700">تحويل بنكي</span>
-                </label>
-            </div>
-
-            {{-- Currency notes --}}
-            <div class="mb-3">
-                <label class="fl text-xs">ملاحظة العملة (اختياري)</label>
-                <input type="text" name="payment_notes"
-                       placeholder="مثال: 100 ر.س × 400 = 40,000 ر.ي"
-                       class="fi text-sm">
-            </div>
-
-            {{-- Bank transfer details --}}
-            <div x-show="paymentMethod === 'bank_transfer'" x-cloak
-                 class="rounded-xl p-3 space-y-2.5 border border-blue-200 bg-blue-50">
-                <p class="text-xs font-bold text-blue-800">بيانات التحويل البنكي</p>
-                <div>
-                    <label class="fl text-xs">رقم السند / المرجع</label>
-                    <input type="text" name="bank_transfer_ref" placeholder="أدخل رقم السند" class="fi text-sm bg-white">
-                </div>
-                <div x-data="{ receiptName: '' }">
-                    <label class="fl text-xs">سند التحويل (صورة/PDF)</label>
-                    <label class="flex items-center gap-2.5 cursor-pointer border-2 border-dashed border-blue-300 rounded-xl p-3 hover:border-blue-500 hover:bg-blue-100 transition">
-                        <input type="file" name="bank_receipt" accept="image/*,.pdf" class="hidden"
-                               @change="receiptName = $event.target.files[0]?.name ?? ''">
-                        <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="fl text-xs">الليالي</label>
+                            <div class="flex items-center rounded-xl overflow-hidden" style="border:1.5px solid #D1D5DB">
+                                <button type="button" @click="nightsInput = Math.max(1, nightsInput-1); updateCheckoutFromNights()"
+                                        class="w-9 h-9 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition font-bold text-lg flex-shrink-0">−</button>
+                                <input type="number" x-model.number="nightsInput" min="1" max="365"
+                                       @input="updateCheckoutFromNights()"
+                                       class="flex-1 text-center font-bold text-base border-none outline-none py-1.5 text-gray-800 bg-transparent" style="width:100%">
+                                <button type="button" @click="nightsInput = Math.min(365, nightsInput+1); updateCheckoutFromNights()"
+                                        class="w-9 h-9 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition font-bold text-lg flex-shrink-0">+</button>
+                            </div>
                         </div>
                         <div>
-                            <p class="text-xs font-semibold text-blue-800" x-text="receiptName || 'انقر لرفع السند'"></p>
-                            <p class="text-xs text-blue-500 mt-0.5" x-show="!receiptName">JPG · PNG · PDF</p>
-                            <p class="text-xs text-emerald-600 mt-0.5 font-medium" x-show="receiptName">تم الاختيار ✓</p>
+                            <label class="fl text-xs">وقت الوصول</label>
+                            <input type="time" name="check_in_time" x-model="checkInTime" class="fi">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="fl text-xs">تاريخ المغادرة <span class="freq">*</span></label>
+                        <input type="date" name="check_out_date" x-model="checkOutDate" required
+                               :min="checkInDate || today()" @change="calcTotal()" class="fi">
+                    </div>
+                </div>
+            </div>
+
+            {{-- Price stats --}}
+            <div x-show="nights > 0 && selectedRoom" x-transition class="space-y-3">
+                <div class="h-px bg-gray-100"></div>
+                <div class="flex gap-2">
+                    <div class="stat-box bg-blue-50 border border-blue-100">
+                        <div class="text-xl font-black text-blue-700" x-text="nights"></div>
+                        <div class="text-xs text-blue-400 font-semibold mt-0.5">ليلة</div>
+                    </div>
+                    <div class="stat-box bg-amber-50 border border-amber-100 relative">
+                        <div class="text-lg font-black text-amber-700 leading-tight" x-text="formatNumber(effectiveRoomPrice())"></div>
+                        <div class="text-xs text-amber-400 font-semibold mt-0.5">ر.ي/ليلة</div>
+                        <div x-show="customPrice !== null && customPrice !== ''" class="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 text-xs font-bold rounded-full bg-amber-500 text-white">معدَّل</div>
+                    </div>
+                    <div class="stat-box border-2 relative" style="background:linear-gradient(135deg,var(--navy-g),#fff);border-color:var(--navy-l)">
+                        <div class="text-lg font-black leading-tight" style="color:var(--navy-d)" x-text="formatNumber(totalAmount)"></div>
+                        <div class="text-xs font-semibold mt-0.5" style="color:var(--navy-l)">الإجمالي ر.ي</div>
+                    </div>
+                </div>
+
+                {{-- Price Override --}}
+                <div>
+                    <button type="button" x-show="!showPriceOverride" @click="showPriceOverride = true"
+                            class="w-full py-2 px-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-700 text-xs font-semibold hover:bg-amber-100 transition flex items-center justify-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        تعديل السعر (للتفاوض)
+                    </button>
+                    <div x-show="showPriceOverride" x-transition class="rounded-xl p-3 space-y-2 border border-amber-200 bg-amber-50">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-amber-800">سعر التفاوض (ر.ي/ليلة)</span>
+                            <button type="button" @click="showPriceOverride = false; customPrice = null; calcTotal()" class="text-xs text-gray-400 hover:text-red-500 underline">إلغاء</button>
+                        </div>
+                        <input type="number" min="3000" max="100000" step="100"
+                               :placeholder="'الأصلي: ' + formatNumber(roomBasePriceFor('YER'))"
+                               x-model.number="customPrice" @input="calcTotal()"
+                               class="fi text-sm border-amber-300 bg-white focus:border-amber-500">
+                        <p class="text-xs text-amber-600">النطاق المسموح: 3,000 إلى 100,000 ر.ي</p>
+                        <p x-show="customPrice !== null && customPrice !== '' && (parseFloat(customPrice) < 3000 || parseFloat(customPrice) > 100000)"
+                           class="text-xs text-red-600 font-semibold">⚠ السعر خارج النطاق المسموح</p>
+                    </div>
+                </div>
+            </div>
+
+            <input type="hidden" name="currency" value="YER">
+            <input type="hidden" name="total_amount" :value="totalAmount">
+            <input type="hidden" name="price_per_night" :value="effectiveRoomPrice()">
+            <input type="hidden" name="booking_mode" value="{{ $mode }}">
+
+            <div class="h-px bg-gray-100"></div>
+
+            {{-- ⑤ الدفع --}}
+            <div>
+                <div class="flex items-center gap-2 mb-3">
+                    <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black text-white flex-shrink-0" style="background:var(--navy-l)">٥</div>
+                    <span class="text-sm font-bold" style="color:var(--navy-d)">الدفع</span>
+                </div>
+
+                {{-- Payment Status --}}
+                <div class="grid grid-cols-2 gap-2 mb-4">
+                    <label class="pay-opt pay-opt-paid">
+                        <input type="radio" name="payment_status" value="paid" x-model="paymentStatus">
+                        <div class="pay-opt-inner">
+                            <svg class="w-5 h-5 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <div class="text-xs font-bold">مدفوع كامل</div>
+                        </div>
+                    </label>
+                    <label class="pay-opt pay-opt-partial">
+                        <input type="radio" name="payment_status" value="partial" x-model="paymentStatus">
+                        <div class="pay-opt-inner">
+                            <svg class="w-5 h-5 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <div class="text-xs font-bold">دفعة جزئية</div>
                         </div>
                     </label>
                 </div>
+
+                {{-- Partial amount --}}
+                <div x-show="paymentStatus === 'partial'" class="mb-3">
+                    <label class="fl text-xs">المبلغ المدفوع (ر.ي) <span class="freq">*</span></label>
+                    <input type="number" name="paid_amount" x-model="paidAmount" step="0.01" min="0" :max="totalAmount" placeholder="0.00" class="fi">
+                </div>
+                <template x-if="paymentStatus === 'paid'">
+                    <input type="hidden" name="paid_amount" :value="totalAmount">
+                </template>
+
+                {{-- Payment method --}}
+                <div class="flex gap-4 mb-3">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="payment_method" value="cash" x-model="paymentMethod" class="text-blue-600">
+                        <span class="text-sm font-medium text-gray-700">نقدي</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="payment_method" value="bank_transfer" x-model="paymentMethod">
+                        <span class="text-sm font-medium text-gray-700">تحويل بنكي</span>
+                    </label>
+                </div>
+
+                {{-- Currency notes --}}
+                <div class="mb-3">
+                    <label class="fl text-xs">ملاحظة العملة (اختياري)</label>
+                    <input type="text" name="payment_notes" placeholder="مثال: 100 ر.س × 400 = 40,000 ر.ي" class="fi text-sm">
+                </div>
+
+                {{-- Bank transfer details --}}
+                <div x-show="paymentMethod === 'bank_transfer'" x-cloak
+                     class="rounded-xl p-3 space-y-2.5 border border-blue-200 bg-blue-50">
+                    <p class="text-xs font-bold text-blue-800">بيانات التحويل البنكي</p>
+                    <div>
+                        <label class="fl text-xs">رقم السند / المرجع</label>
+                        <input type="text" name="bank_transfer_ref" placeholder="أدخل رقم السند" class="fi text-sm bg-white">
+                    </div>
+                    <div x-data="{ receiptName: '' }">
+                        <label class="fl text-xs">سند التحويل (صورة/PDF)</label>
+                        <label class="flex items-center gap-2.5 cursor-pointer border-2 border-dashed border-blue-300 rounded-xl p-3 hover:border-blue-500 hover:bg-blue-100 transition">
+                            <input type="file" name="bank_receipt" accept="image/*,.pdf" class="hidden"
+                                   @change="receiptName = $event.target.files[0]?.name ?? ''">
+                            <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                            </div>
+                            <div>
+                                <p class="text-xs font-semibold text-blue-800" x-text="receiptName || 'انقر لرفع السند'"></p>
+                                <p class="text-xs text-blue-500 mt-0.5" x-show="!receiptName">JPG · PNG · PDF</p>
+                                <p class="text-xs text-emerald-600 mt-0.5 font-medium" x-show="receiptName">تم الاختيار ✓</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Balance summary --}}
+            <div x-show="totalAmount > 0" x-transition class="rounded-xl overflow-hidden border" style="border-color: var(--navy-l)">
+                <div class="px-3 py-2 text-xs font-bold text-white" style="background:var(--navy)">ملخص المدفوعات</div>
+                <div class="px-3 py-2 space-y-1.5 text-sm bg-blue-50">
+                    <div class="flex justify-between text-gray-600">
+                        <span>الإجمالي</span>
+                        <span class="font-bold" style="color:var(--navy-d)" x-text="formatNumber(totalAmount) + ' ر.ي'"></span>
+                    </div>
+                    <div class="flex justify-between text-gray-600">
+                        <span>المدفوع</span>
+                        <span class="font-semibold text-emerald-700" x-text="formatNumber(effectivePaid) + ' ر.ي'"></span>
+                    </div>
+                    <div class="flex justify-between pt-1.5 border-t border-blue-200 font-bold">
+                        <span style="color:var(--navy-d)">المتبقي</span>
+                        <span :class="(totalAmount - effectivePaid) > 0 ? 'text-red-600' : 'text-emerald-600'"
+                              x-text="formatNumber(totalAmount - effectivePaid) + ' ر.ي'"></span>
+                    </div>
+                </div>
+            </div>
+
+        </div>{{-- /bpanel-body --}}
+    </div>{{-- /bpanel --}}
+    </div>{{-- /panel col --}}
+
+</div>{{-- /STEP 2 --}}
+
+{{-- ════════════════════════════════════════════════════════════
+     STEP 3 — المراجعة والتأكيد
+     ════════════════════════════════════════════════════════════ --}}
+<div x-show="currentStep === 3">
+    <div class="sec-card">
+        <div class="sec-hdr">
+            <div class="sec-num">✓</div>
+            <div>
+                <div class="sec-title">مراجعة وتأكيد البيانات</div>
+                <div class="text-xs text-gray-500 mt-0.5">راجع جميع البيانات قبل الحفظ النهائي</div>
             </div>
         </div>
+        <div class="sec-body">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-        {{-- Balance summary --}}
-        <div x-show="totalAmount > 0" x-transition class="rounded-xl overflow-hidden border" style="border-color: var(--navy-l)">
-            <div class="px-3 py-2 text-xs font-bold text-white" style="background:var(--navy)">ملخص المدفوعات</div>
-            <div class="px-3 py-2 space-y-1.5 text-sm bg-blue-50">
-                <div class="flex justify-between text-gray-600">
-                    <span>الإجمالي</span>
-                    <span class="font-bold" style="color:var(--navy-d)" x-text="formatNumber(totalAmount) + ' ر.ي'"></span>
+                {{-- Guest --}}
+                <div class="rev-card">
+                    <h3 class="font-bold text-sm mb-3 flex items-center gap-2" style="color:var(--navy-d)">
+                        <svg class="w-4 h-4" style="color:var(--navy-l)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                        بيانات النزيل
+                    </h3>
+                    <div class="rev-row"><span>الاسم</span><span x-text="guestData.full_name || '—'"></span></div>
+                    <div class="rev-row"><span>الجنسية</span><span x-text="guestData.nationality || '—'"></span></div>
+                    <div class="rev-row"><span>نوع الهوية</span><span x-text="idTypeLabel[guestData.id_type] || '—'"></span></div>
+                    <div class="rev-row"><span>رقم الهوية</span><span x-text="guestData.id_number || '—'"></span></div>
+                    <div class="rev-row"><span>الجوال</span><span x-text="guestData.phone || '—'"></span></div>
                 </div>
-                <div class="flex justify-between text-gray-600">
-                    <span>المدفوع</span>
-                    <span class="font-semibold text-emerald-700" x-text="formatNumber(effectivePaid) + ' ر.ي'"></span>
+
+                {{-- Booking --}}
+                <div class="rev-card">
+                    <h3 class="font-bold text-sm mb-3 flex items-center gap-2" style="color:var(--navy-d)">
+                        <svg class="w-4 h-4" style="color:var(--navy-l)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        بيانات الحجز
+                    </h3>
+                    <div class="rev-row"><span>الغرفة</span><span x-text="roomSelectionLabel() || '—'"></span></div>
+                    <div class="rev-row"><span>النوع</span><span x-text="selectedRoom?.room_type_name || '—'"></span></div>
+                    <div class="rev-row"><span>تاريخ الدخول</span><span x-text="checkInDate || '—'"></span></div>
+                    <div class="rev-row" x-show="checkInTime"><span>وقت الوصول</span><span x-text="checkInTime"></span></div>
+                    <div class="rev-row"><span>تاريخ الخروج</span><span x-text="checkOutDate || '—'"></span></div>
+                    <div class="rev-row"><span>عدد الليالي</span><span x-text="nights"></span></div>
                 </div>
-                <div class="flex justify-between pt-1.5 border-t border-blue-200 font-bold">
-                    <span style="color:var(--navy-d)">المتبقي</span>
-                    <span :class="(totalAmount - effectivePaid) > 0 ? 'text-red-600' : 'text-emerald-600'"
-                          x-text="formatNumber(totalAmount - effectivePaid) + ' ر.ي'"></span>
+
+                {{-- Companions --}}
+                <div class="rev-card">
+                    <h3 class="font-bold text-sm mb-3 flex items-center gap-2" style="color:var(--navy-d)">
+                        <svg class="w-4 h-4" style="color:var(--navy-l)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                        المرافقون
+                    </h3>
+                    <div class="text-sm text-gray-600" x-text="companions.length > 0 ? companions.length + ' مرافق' : 'لا يوجد مرافقون'"></div>
+                    <div class="mt-2 space-y-1">
+                        <template x-for="(comp, idx) in companions" :key="idx">
+                            <div class="text-xs text-gray-500 flex items-center gap-1.5">
+                                <span class="w-1.5 h-1.5 rounded-full" style="background:var(--navy-l)"></span>
+                                <span x-text="comp.full_name || 'مرافق ' + (idx+1)"></span>
+                            </div>
+                        </template>
+                    </div>
                 </div>
+
+                {{-- Payment --}}
+                <div class="rev-card" style="background:var(--navy-g); border-color:#B9D8F0">
+                    <h3 class="font-bold text-sm mb-3 flex items-center gap-2" style="color:var(--navy-d)">
+                        <svg class="w-4 h-4" style="color:var(--navy-l)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                        ملخص المدفوعات
+                    </h3>
+                    <div class="rev-row"><span>حالة الدفع</span><span x-text="paymentStatus === 'paid' ? 'مدفوع كامل' : 'دفعة جزئية'"></span></div>
+                    <div class="rev-row"><span>طريقة الدفع</span><span x-text="paymentMethod === 'cash' ? 'نقدي' : 'تحويل بنكي'"></span></div>
+                    <div class="rev-row"><span>الإجمالي</span><span class="font-bold" style="color:var(--navy-d)" x-text="formatNumber(totalAmount) + ' ر.ي'"></span></div>
+                    <div class="rev-row"><span>المدفوع</span><span class="text-emerald-700" x-text="formatNumber(effectivePaid) + ' ر.ي'"></span></div>
+                    <div class="rev-row" style="border-top:1.5px solid #B9D8F0; margin-top:.25rem; padding-top:.5rem">
+                        <span>المتبقي</span>
+                        <span class="font-bold" :class="(totalAmount - effectivePaid) > 0 ? 'text-red-600' : 'text-emerald-600'" x-text="formatNumber(totalAmount - effectivePaid) + ' ر.ي'"></span>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="mt-5 p-3.5 rounded-xl text-sm flex items-center gap-2" style="background:var(--gold-l); border:1.5px solid #F5E6A8; color:#92400E">
+                <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                يرجى مراجعة جميع البيانات قبل التأكيد — لا يمكن تعديل البيانات بعد التسجيل.
             </div>
         </div>
+    </div>
+</div>{{-- /STEP 3 --}}
 
-        {{-- Submit Button --}}
-        <button type="submit" :disabled="submitting" class="btn-submit">
+{{-- ════════ Step Error ════════ --}}
+<div x-show="stepError" x-transition
+     class="flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 mt-5 text-sm">
+    <svg class="w-5 h-5 flex-shrink-0 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+    <span x-text="stepError"></span>
+</div>
+
+{{-- ════════ Navigation Buttons ════════ --}}
+<div class="flex items-center justify-between mt-6">
+    <button type="button" @click="prevStep()" x-show="currentStep > 1" class="btn-prev">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        السابق
+    </button>
+    <div x-show="currentStep === 1"></div>
+
+    <div class="flex gap-3">
+        <button type="button" @click="nextStep()" x-show="currentStep < 3" class="btn-next">
+            التالي
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+
+        <button type="submit" x-show="currentStep === 3" :disabled="submitting" class="btn-submit">
             <template x-if="!submitting">
                 <div class="flex items-center justify-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -911,12 +1087,9 @@
                 </div>
             </template>
         </button>
+    </div>
+</div>
 
-    </div>{{-- /bpanel-body --}}
-</div>{{-- /bpanel --}}
-</div>{{-- /right col --}}
-
-</div>{{-- /grid --}}
 </form>
 </div>{{-- /x-data --}}
 @endsection
@@ -932,6 +1105,8 @@ const BOOKING_MODE        = '{{ $mode }}';
 
 function checkInForm() {
     return {
+        currentStep: 1,
+        stepLabels: ['النزيل والمرافقون', 'الغرفة والدفع', 'التأكيد'],
         guestData: { full_name:'', nationality:'', occupation:'', origin:'', purpose:'', id_type:'national_id', id_number:'', id_issuer:'', id_issue_date:'', phone:'', notes:'' },
         companions: [],
         selectedRoom: null,
@@ -956,6 +1131,7 @@ function checkInForm() {
         typeFilter: 'all',
         idTypeLabel: { national_id:'هوية وطنية', passport:'جواز سفر', residence:'إقامة' },
         submitting: false,
+        stepError: '',
 
         init() {
             const today = new Date().toISOString().split('T')[0];
@@ -968,15 +1144,23 @@ function checkInForm() {
             }
             if (HAS_BACKEND_ERRORS) {
                 this.restoreFromSession();
+                if (this.roomId) this.currentStep = 3;
             } else {
                 sessionStorage.removeItem(CHECKIN_SESSION_KEY);
             }
             this.$nextTick(() => this.calcTotal());
+
+            this.$watch('guestData',     () => { if (this.stepError) this.stepError = ''; }, { deep: true });
+            this.$watch('roomId',        () => { if (this.stepError) this.stepError = ''; });
+            this.$watch('checkInDate',   () => { if (this.stepError) this.stepError = ''; });
+            this.$watch('checkOutDate',  () => { if (this.stepError) this.stepError = ''; });
+            this.$watch('idImagePreview',() => { if (this.stepError) this.stepError = ''; });
         },
 
         saveToSession() {
             try {
                 sessionStorage.setItem(CHECKIN_SESSION_KEY, JSON.stringify({
+                    currentStep:     this.currentStep,
                     guestData:       this.guestData,
                     companions:      this.companions.map(c => ({ ...c, id_preview: null })),
                     roomId:          this.roomId,
@@ -1018,6 +1202,10 @@ function checkInForm() {
                 this.showPriceOverride = s.showPriceOverride  ?? false;
                 this.$nextTick(() => this.calcTotal());
             } catch(e) {}
+        },
+
+        handleSubmit(event) {
+            this.submitting = true;
         },
 
         today() {
@@ -1107,6 +1295,63 @@ function checkInForm() {
             if (this.paymentStatus === 'paid')    return this.totalAmount;
             if (this.paymentStatus === 'partial') return parseFloat(this.paidAmount) || 0;
             return 0;
+        },
+
+        getStepError() {
+            if (this.currentStep === 1) {
+                if (!this.guestData.full_name)  return 'الاسم الرباعي مطلوب';
+                if (!this.guestData.id_number)  return 'رقم الهوية مطلوب';
+                if (!this.guestData.phone)       return 'رقم الجوال مطلوب';
+                if (!this.idImagePreview && !this.idImageName) return 'صورة هوية النزيل مطلوبة';
+                for (let i = 0; i < this.companions.length; i++) {
+                    const c = this.companions[i]; const n = i + 1;
+                    if (!c.full_name || !c.full_name.trim())     return `مرافق ${n}: الاسم مطلوب`;
+                    if (!c.nationality || !c.nationality.trim()) return `مرافق ${n}: الجنسية مطلوبة`;
+                    if (!c.relationship)                          return `مرافق ${n}: صلة القرابة مطلوبة`;
+                    if (!c.id_preview)                            return `مرافق ${n}: صورة الهوية مطلوبة`;
+                }
+                return '';
+            }
+            if (this.currentStep === 2) {
+                if (!this.roomId)         return 'يرجى اختيار غرفة';
+                if (!this.checkInDate)    return 'تاريخ الدخول مطلوب';
+                if (!this.checkOutDate)   return 'تاريخ الخروج مطلوب';
+                if (this.nights <= 0)     return 'تاريخ الخروج يجب أن يكون بعد تاريخ الدخول';
+                if (this.customPrice !== null && this.customPrice !== '') {
+                    const cp = parseFloat(this.customPrice) || 0;
+                    if (cp < 3000)   return 'مبلغ التفاوض لا يمكن أن يقل عن 3,000 ر.ي';
+                    if (cp > 100000) return 'مبلغ التفاوض لا يمكن أن يتجاوز 100,000 ر.ي';
+                }
+                if (this.effectiveRoomPrice() <= 0) return 'لا يوجد سعر للغرفة — أدخل السعر يدوياً';
+                if (this.paymentStatus === 'partial' && (parseFloat(this.paidAmount) || 0) <= 0) return 'يرجى إدخال المبلغ المدفوع';
+                if (this.paymentStatus === 'partial' && (parseFloat(this.paidAmount) || 0) > this.totalAmount) return 'المبلغ المدفوع يتجاوز إجمالي الحجز';
+                return '';
+            }
+            return '';
+        },
+
+        canProceed() {
+            return this.getStepError() === '';
+        },
+
+        nextStep() {
+            const err = this.getStepError();
+            if (err) { this.stepError = err; return; }
+            this.stepError = '';
+            if (this.currentStep < 3) {
+                this.currentStep++;
+                this.saveToSession();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        },
+
+        prevStep() {
+            if (this.currentStep > 1) {
+                this.stepError = '';
+                this.currentStep--;
+                this.saveToSession();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
         },
 
         formatNumber(n) {
