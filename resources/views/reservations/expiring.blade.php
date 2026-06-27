@@ -6,7 +6,7 @@
 <div dir="rtl">
 
 <!-- Header -->
-<div class="flex items-center justify-between mb-5">
+<div class="flex items-center justify-between mb-4">
     <div>
         <p class="text-sm text-gray-500">
             إجمالي المسجلين: <strong>{{ $reservations->count() }}</strong>
@@ -27,6 +27,55 @@
         لوحة التحكم
     </a>
 </div>
+
+<!-- Filters -->
+<form method="GET" action="{{ route('reservations.expiring') }}" class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-5">
+    <div class="flex flex-wrap gap-3 items-end">
+
+        {{-- Search: name or room --}}
+        <div class="flex flex-col gap-1 flex-1 min-w-48">
+            <label class="text-xs font-medium text-gray-500">بحث باسم النزيل أو رقم الغرفة</label>
+            <div class="relative">
+                <span class="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                </span>
+                <input type="text" name="search" value="{{ request('search') }}"
+                       placeholder="اسم النزيل أو رقم الغرفة..."
+                       class="w-full border border-gray-200 rounded-lg pr-9 pl-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white">
+            </div>
+        </div>
+
+        {{-- Check-in date --}}
+        <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-500">تاريخ الدخول</label>
+            <input type="date" name="check_in_date" value="{{ request('check_in_date') }}"
+                   class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white">
+        </div>
+
+        {{-- Check-out date --}}
+        <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-500">تاريخ المغادرة</label>
+            <input type="date" name="check_out_date" value="{{ request('check_out_date') }}"
+                   class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white">
+        </div>
+
+        {{-- Buttons --}}
+        <div class="flex gap-2">
+            <button type="submit"
+                    class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/></svg>
+                تصفية
+            </button>
+            @if(request()->hasAny(['search','check_in_date','check_out_date']))
+            <a href="{{ route('reservations.expiring') }}"
+               class="inline-flex items-center gap-1.5 px-4 py-2 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                إلغاء الفلترة
+            </a>
+            @endif
+        </div>
+    </div>
+</form>
 
 <!-- Table -->
 <div class="bg-white rounded-xl shadow-sm border border-gray-100">
