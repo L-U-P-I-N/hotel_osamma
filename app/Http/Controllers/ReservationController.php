@@ -380,12 +380,29 @@ class ReservationController extends Controller
             ->with('success', 'تم تسجيل الدخول بنجاح');
     }
 
-    public function expiring()
+    public function expiring(\Illuminate\Http\Request $request)
     {
-        $reservations = \App\Models\Reservation::with(['guest', 'room.roomType'])
-            ->where('status', 'checked_in')
-            ->orderBy('check_out_date', 'asc')
-            ->get();
+        $query = \App\Models\Reservation::with(['guest', 'room.roomType'])
+            ->where('status', 'checked_in');
+
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('guest', fn($g) => $g->where('full_name', 'like', "%{$search}%"))
+                  ->orWhereHas('room', fn($r) => $r->where('room_number', 'like', "%{$search}%"))
+                  ->orWhere('suite_a_number', 'like', "%{$search}%")
+                  ->orWhere('suite_b_number', 'like', "%{$search}%");
+            });
+        }
+
+        if ($checkIn = $request->input('check_in_date')) {
+            $query->whereDate('check_in_date', $checkIn);
+        }
+
+        if ($checkOut = $request->input('check_out_date')) {
+            $query->whereDate('check_out_date', $checkOut);
+        }
+
+        $reservations = $query->orderBy('check_out_date', 'asc')->get();
 
         return view('reservations.expiring', compact('reservations'));
     }
