@@ -14,6 +14,13 @@
     src: url("{{ storage_path('fonts') }}/NotoNaskhArabic-Bold.ttf") format('truetype');
 }
 
+/*
+   تحسين بصري فقط (ألوان/خلفيات/حدود/مسافات بنظام فحمي + ذهبي مستوحى من الشعار). لم يُغيَّر أي
+   text-align ولا حجم خط ولا بنية محتوى — كلها كما هي لضمان عرض RTL الصحيح.
+
+   ملاحظة: dompdf يرتّب أعمدة الجداول يسار→يمين دائماً ولا يحترم direction:rtl
+   للأعمدة، لذلك تُكتب الأعمدة بترتيب معكوس ليظهر العمود الأول على اليمين.
+*/
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 @page { margin: 0; }
@@ -21,26 +28,20 @@
 body {
     font-family: 'Noto', sans-serif;
     font-size: 9.5pt;
-    color: #222;
+    color: #33302a;
     direction: rtl;
     text-align: right;
-    padding: 12mm 14mm;
+    padding: 11mm 13mm;
 }
-
-/*
-   ملاحظة مهمة: dompdf يرتّب أعمدة الجداول من اليسار لليمين دائماً ولا يحترم
-   direction:rtl لترتيب الأعمدة. لذلك تُكتب الأعمدة في الكود بترتيب معكوس
-   (الأخير منطقياً أولاً) ليظهر العمود الأول على اليمين كما هو مطلوب بالعربية.
-*/
 
 /* ── HEADER ── */
 table.head { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
 .title-cell, .brand-cell { vertical-align: middle; border: none; padding: 0; }
 
 .title-cell { text-align: left; width: 40%; }
-.title-cell .word { font-size: 20pt; font-weight: 700; color: #1f3a5f; }
-.title-cell .num  { font-size: 10pt; font-weight: 700; color: #1f3a5f; margin-top: 2px; }
-.title-cell .date { font-size: 8.5pt; color: #888; margin-top: 1px; }
+.title-cell .word { font-size: 20pt; font-weight: 700; color: #2e2a20; letter-spacing: 1px; }
+.title-cell .num  { font-size: 10pt; font-weight: 700; color: #b8973a; margin-top: 3px; }
+.title-cell .date { font-size: 8.5pt; color: #9c9484; margin-top: 1px; }
 
 .brand-cell { text-align: right; }
 table.brand { width: 100%; border-collapse: collapse; }
@@ -48,82 +49,90 @@ table.brand td { border: none; padding: 0; vertical-align: middle; }
 table.brand td.brand-name { width: 100%; }
 table.brand td.brand-logo { width: 64px; text-align: left; }
 .brand-name { text-align: right; padding-left: 10px; }
-.hotel-ar { font-size: 16pt; font-weight: 700; color: #1f3a5f; line-height: 1.2; }
-.hotel-en { font-size: 8pt; color: #999; letter-spacing: 1px; }
+.hotel-ar { font-size: 16pt; font-weight: 700; color: #9a7d2e; line-height: 1.2; }
+.hotel-en { font-size: 8pt; color: #b8973a; letter-spacing: 2px; }
 .brand-logo img { height: 58px; width: auto; display: block; }
 
-.rule { border: none; border-top: 2px solid #1f3a5f; margin: 4px 0 12px; }
+/* خط فاصل كحلي بلمسة ذهبية أسفله */
+.rule { border: none; border-top: 2.5px solid #2e2a20; border-bottom: 1px solid #c9a84e; height: 2px; margin: 5px 0 13px; }
 
 /* ── META ROW (guest + stay) ── */
-table.meta { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+table.meta { width: 100%; border-collapse: collapse; margin-bottom: 13px; }
 table.meta td {
     width: 50%;
     vertical-align: top;
-    padding: 8px 10px;
-    border: 1px solid #e3e3e3;
+    padding: 9px 11px;
+    border: 1px solid #e7e0ce;
+    background: #faf8f1;
     text-align: right;
 }
 .meta-h {
-    font-size: 8pt; font-weight: 700; color: #1f3a5f;
-    margin-bottom: 5px; padding-bottom: 3px; border-bottom: 1px solid #eee;
+    font-size: 8pt; font-weight: 700; color: #2e2a20;
+    margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1.5px solid #c9a84e;
     text-align: right;
 }
 /* كل حقل = صفّ بعمودين: القيمة (يسار) ثم التسمية (يمين) لضمان ترتيب RTL صحيح */
 table.kvt { width: 100%; border-collapse: collapse; }
-table.kvt td { border: none; padding: 1.5px 0; font-size: 9pt; vertical-align: top; }
-td.kv-k { color: #888; text-align: right; white-space: nowrap; width: 1%; padding-left: 6px; }
-td.kv-v { color: #222; font-weight: 700; text-align: right; }
+table.kvt td { border: none; padding: 2px 0; font-size: 9pt; vertical-align: top; }
+td.kv-k { color: #8f8779; text-align: right; white-space: nowrap; width: 1%; padding-left: 7px; }
+td.kv-v { color: #33302a; font-weight: 700; text-align: right; }
 
-/* ── SECTION LABEL ── */
+/* ── SECTION LABEL (شريط بلمسة ذهبية على اليمين) ── */
 .label {
-    font-size: 9pt; font-weight: 700; color: #1f3a5f;
-    margin-bottom: 4px; text-align: right;
+    font-size: 9pt; font-weight: 700; color: #2e2a20;
+    margin-bottom: 6px; text-align: right;
+    padding: 5px 9px 5px 0;
+    background: #f5f2ea;
+    border-right: 4px solid #b8973a;
 }
 
 /* ── DATA TABLE ── */
-table.data { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 9pt; }
+table.data { width: 100%; border-collapse: collapse; margin-bottom: 13px; font-size: 9pt; }
 table.data th {
-    background: #1f3a5f; color: #fff;
-    padding: 6px 8px; font-weight: 700; font-size: 8.5pt; text-align: right;
+    background: #2e2a20; color: #fff;
+    padding: 7px 9px; font-weight: 700; font-size: 8.5pt; text-align: right;
+    border-bottom: 2px solid #c9a84e;
 }
-table.data td { padding: 5px 8px; border-bottom: 1px solid #eee; text-align: right; }
-table.data tbody tr:last-child td { border-bottom: 1px solid #ddd; }
+table.data td { padding: 6px 9px; border-bottom: 1px solid #efe9da; text-align: right; }
+table.data tbody tr:nth-child(even) td { background: #faf6ec; }
+table.data tbody tr:last-child td { border-bottom: 1.5px solid #ddd4c1; }
 /* أعمدة رقمية/قصيرة → توسيط */
 .c { text-align: center !important; white-space: nowrap; }
 
 /* ── TOTALS ── */
 table.totals-wrap { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
 .tw-cell { border: none; padding: 0; vertical-align: top; }
-table.totals { width: 100%; border-collapse: collapse; }
-table.totals td { padding: 5px 10px; font-size: 9.5pt; }
-table.totals td.lbl { text-align: right; }
-table.totals td.amt { text-align: left; font-weight: 700; white-space: nowrap; }
-table.totals tr.line td { border-bottom: 1px solid #eee; }
+table.totals { width: 100%; border-collapse: collapse; border: 1px solid #e7e0ce; }
+table.totals td { padding: 6px 11px; font-size: 9.5pt; }
+table.totals td.lbl { text-align: right; color: #6b6557; }
+table.totals td.amt { text-align: left; font-weight: 700; white-space: nowrap; color: #33302a; }
+table.totals tr.line td { border-bottom: 1px solid #efe9da; }
 table.totals tr.grand td {
-    background: #1f3a5f; color: #fff; font-weight: 700; font-size: 11pt;
+    background: #2e2a20; color: #fff; font-weight: 700; font-size: 11pt;
+    border-top: 2px solid #c9a84e;
 }
 table.totals tr.paid td  { color: #15803d; }
-table.totals tr.due  td  { color: #b91c1c; font-weight: 700; }
+table.totals tr.due  td  { color: #b91c1c; font-weight: 700; background: #fdf4f4; }
 
 /* ── NOTES ── */
 .notes {
-    border: 1px solid #f0e0b0; background: #fffdf5;
-    border-radius: 3px; padding: 6px 10px; font-size: 8.5pt;
+    border: 1px solid #ecdfb4; border-right: 4px solid #c9a84e; background: #fdfaf0;
+    padding: 7px 11px; font-size: 8.5pt;
     color: #7a5c00; margin-bottom: 12px; text-align: right;
 }
 
 /* ── SIGN ── */
-table.sign { width: 100%; border-collapse: collapse; margin-top: 18px; }
+table.sign { width: 100%; border-collapse: collapse; margin-top: 20px; }
 table.sign td {
-    width: 45%; text-align: center; font-size: 8.5pt; color: #888;
-    padding-top: 26px; border-top: 1px solid #ccc;
+    width: 45%; text-align: center; font-size: 8.5pt; color: #6b6557;
+    padding-top: 28px; border-top: 1px solid #c8bda2;
 }
 table.sign td.gap { width: 10%; border: none; }
 
 /* ── FOOTER ── */
 .foot {
-    margin-top: 14px; padding-top: 6px; border-top: 1px solid #eee;
-    text-align: center; font-size: 7.5pt; color: #aaa;
+    margin-top: 15px; padding-top: 8px; border-top: 1.5px solid #c9a84e;
+    text-align: center; font-size: 7.5pt; color: #9c9484;
 }
 </style>
 </head>
