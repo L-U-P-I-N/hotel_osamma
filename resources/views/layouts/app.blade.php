@@ -140,12 +140,40 @@
         html.dark .bg-pink-50 { background-color:rgba(236,72,153,.10) !important; }
 
         /* Tinted text → lighten for contrast */
-        html.dark .text-green-800, html.dark .text-green-700, html.dark .text-emerald-700 { color:#4ade80 !important; }
-        html.dark .text-red-800, html.dark .text-red-700, html.dark .text-red-600 { color:#f87171 !important; }
-        html.dark .text-amber-800, html.dark .text-amber-700, html.dark .text-yellow-800 { color:#fbbf24 !important; }
-        html.dark .text-blue-800, html.dark .text-blue-700, html.dark .text-blue-600 { color:#60a5fa !important; }
+        html.dark .text-green-800, html.dark .text-green-700, html.dark .text-green-600,
+        html.dark .text-emerald-800, html.dark .text-emerald-700, html.dark .text-emerald-600,
+        html.dark .text-teal-700, html.dark .text-teal-600 { color:#4ade80 !important; }
+        html.dark .text-red-800, html.dark .text-red-700, html.dark .text-red-600,
+        html.dark .text-rose-800, html.dark .text-rose-700, html.dark .text-rose-600 { color:#f87171 !important; }
+        html.dark .text-amber-800, html.dark .text-amber-700, html.dark .text-amber-600,
+        html.dark .text-yellow-800, html.dark .text-yellow-700, html.dark .text-orange-700, html.dark .text-orange-600 { color:#fbbf24 !important; }
+        html.dark .text-blue-800, html.dark .text-blue-700, html.dark .text-blue-600,
+        html.dark .text-sky-800, html.dark .text-sky-700, html.dark .text-sky-600 { color:#60a5fa !important; }
         html.dark .text-primary-800, html.dark .text-primary-700, html.dark .text-primary-600 { color:#7ab3e0 !important; }
-        html.dark .text-violet-700, html.dark .text-purple-700, html.dark .text-indigo-700 { color:#a78bfa !important; }
+        html.dark .text-violet-700, html.dark .text-purple-700, html.dark .text-indigo-700,
+        html.dark .text-violet-600, html.dark .text-purple-600, html.dark .text-indigo-600 { color:#a78bfa !important; }
+        html.dark .text-pink-700, html.dark .text-pink-600 { color:#f472b6 !important; }
+
+        /* Tinted -100 badges → soft translucent (consistent, not washed-out) */
+        html.dark .bg-green-100, html.dark .bg-emerald-100, html.dark .bg-teal-100 { background-color:rgba(34,197,94,.16) !important; }
+        html.dark .bg-red-100, html.dark .bg-rose-100 { background-color:rgba(239,68,68,.16) !important; }
+        html.dark .bg-amber-100, html.dark .bg-yellow-100, html.dark .bg-orange-100 { background-color:rgba(245,158,11,.16) !important; }
+        html.dark .bg-blue-100, html.dark .bg-sky-100 { background-color:rgba(59,130,246,.16) !important; }
+        html.dark .bg-violet-100, html.dark .bg-purple-100, html.dark .bg-indigo-100 { background-color:rgba(139,92,246,.16) !important; }
+        html.dark .bg-pink-100 { background-color:rgba(236,72,153,.16) !important; }
+
+        /* Custom status badges (used in tables) */
+        html.dark .status-available        { background:rgba(34,197,94,.16) !important;  color:#4ade80 !important; }
+        html.dark .status-reserved         { background:rgba(59,130,246,.16) !important; color:#60a5fa !important; }
+        html.dark .status-occupied         { background:rgba(239,68,68,.16) !important;  color:#f87171 !important; }
+        html.dark .status-under_inspection { background:rgba(245,158,11,.16) !important; color:#fbbf24 !important; }
+        html.dark .status-maintenance      { background:rgba(148,163,184,.16) !important;color:#cbd5e1 !important; }
+
+        /* Inline navy accent (color:#0F4C75) is unreadable on dark surfaces → lighten.
+           Safe: no element uses background-color:#0F4C75 (buttons use background:#0F4C75). */
+        html.dark [style*="color:#0F4C75"], html.dark [style*="color: #0F4C75"] { color:#7ab3e0 !important; }
+        /* Light navy-tint inline background (#e8f0f7) → dark, so paired navy text stays readable */
+        html.dark [style*="background:#e8f0f7"], html.dark [style*="background: #e8f0f7"] { background:#16263c !important; }
 
         /* Hover surfaces */
         html.dark .hover\:bg-gray-50:hover, html.dark .hover\:bg-gray-100:hover { background-color:#233248 !important; }

@@ -42,6 +42,29 @@
     transition: background 0.15s; border: none; background: none;
     cursor: pointer;
 }
+
+/* ════════ الوضع الليلي ════════ */
+html.dark .room-card {
+    background: #1e293b;
+    border-color: #2f3e54;
+    box-shadow: 0 1px 3px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.25);
+}
+html.dark .room-card:hover { box-shadow: 0 6px 22px rgba(0,0,0,.5); }
+html.dark .room-card.selected { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.28); }
+/* رقم الغرفة + النصوص الداكنة داخل البطاقة */
+html.dark .room-card .text-gray-800 { color: #f1f5f9 !important; }
+html.dark .room-card .text-gray-600 { color: #cbd5e1 !important; }
+html.dark .room-card .text-gray-400 { color: #94a3b8 !important; }
+/* السعر (كان كحلي غامق غير مقروء على خلفية داكنة) */
+html.dark .room-card [style*="color:#0F4C75"],
+html.dark .room-card [style*="color: #0F4C75"] { color: #7ab3e0 !important; }
+/* شريط الأدوات السفلي + الفواصل */
+html.dark .room-card .border-gray-100,
+html.dark .room-card.divide-gray-100 > :not([hidden]) ~ :not([hidden]) { border-color: #2f3e54 !important; }
+html.dark .room-action-btn[style*="0F4C75"] { color: #7ab3e0 !important; }
+/* رقائق الإحصاء والفلاتر */
+html.dark .stat-chip.bg-white { background: #1e293b !important; }
+html.dark .filter-chip.bg-white { background: #1e293b !important; }
 </style>
 @endpush
 
