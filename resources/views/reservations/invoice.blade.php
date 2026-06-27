@@ -64,11 +64,13 @@ table.meta td {
     border: 1px solid #e3e3e3;
     text-align: right;
 }
+/* dompdf لا يورّث text-align من الخلية إلى الـ div الداخلي، لذا نصرّح به هنا */
 .meta-h {
     font-size: 8pt; font-weight: 700; color: #1f3a5f;
     margin-bottom: 5px; padding-bottom: 3px; border-bottom: 1px solid #eee;
+    text-align: right; direction: rtl;
 }
-.kv { margin-bottom: 3px; font-size: 9pt; }
+.kv { margin-bottom: 3px; font-size: 9pt; text-align: right; direction: rtl; }
 .k { color: #888; }
 .v { font-weight: 700; color: #222; }
 
