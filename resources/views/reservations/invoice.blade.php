@@ -64,15 +64,16 @@ table.meta td {
     border: 1px solid #e3e3e3;
     text-align: right;
 }
-/* dompdf لا يورّث text-align من الخلية إلى الـ div الداخلي، لذا نصرّح به هنا */
 .meta-h {
     font-size: 8pt; font-weight: 700; color: #1f3a5f;
     margin-bottom: 5px; padding-bottom: 3px; border-bottom: 1px solid #eee;
-    text-align: right; direction: rtl;
+    text-align: right;
 }
-.kv { margin-bottom: 3px; font-size: 9pt; text-align: right; direction: rtl; }
-.k { color: #888; }
-.v { font-weight: 700; color: #222; }
+/* كل حقل = صفّ بعمودين: القيمة (يسار) ثم التسمية (يمين) لضمان ترتيب RTL صحيح */
+table.kvt { width: 100%; border-collapse: collapse; }
+table.kvt td { border: none; padding: 1.5px 0; font-size: 9pt; vertical-align: top; }
+td.kv-k { color: #888; text-align: right; white-space: nowrap; width: 1%; padding-left: 6px; }
+td.kv-v { color: #222; font-weight: 700; text-align: right; }
 
 /* ── SECTION LABEL ── */
 .label {
@@ -179,24 +180,53 @@ table.sign td.gap { width: 10%; border: none; }
         {{-- left column: stay details --}}
         <td>
             <div class="meta-h">تفاصيل الإقامة</div>
-            <div class="kv"><span class="k">الغرفة: </span><span class="v">{{ $reservation->display_room_number }}</span>@if($reservation->room?->roomType?->name) <span class="k">({{ $reservation->room->roomType->name }})</span>@endif</div>
-            <div class="kv"><span class="k">الدخول: </span><span class="v">{{ $reservation->check_in_date?->format('Y/m/d') }}@if($reservation->check_in_time) <span class="k">— {{ $reservation->check_in_time }}</span>@endif</span></div>
-            <div class="kv"><span class="k">الخروج: </span><span class="v">{{ $reservation->check_out_date?->format('Y/m/d') }}@if($reservation->check_out_time) <span class="k">— {{ $reservation->check_out_time }}</span>@endif</span></div>
-            <div class="kv"><span class="k">المدة: </span><span class="v">{{ $nights }} {{ $nights == 1 ? 'ليلة' : 'ليالٍ' }}</span></div>
+            {{-- كل حقل صفّ بعمودين معكوسين: القيمة يسار، التسمية يمين (لأن dompdf لا يعيد ترتيب bidi) --}}
+            <table class="kvt">
+                <tr>
+                    <td class="kv-v">{{ $reservation->display_room_number }}@if($reservation->room?->roomType?->name) ({{ $reservation->room->roomType->name }})@endif</td>
+                    <td class="kv-k">الغرفة:</td>
+                </tr>
+                <tr>
+                    <td class="kv-v">{{ $reservation->check_in_date?->format('Y/m/d') }}@if($reservation->check_in_time) — {{ $reservation->check_in_time }}@endif</td>
+                    <td class="kv-k">الدخول:</td>
+                </tr>
+                <tr>
+                    <td class="kv-v">{{ $reservation->check_out_date?->format('Y/m/d') }}@if($reservation->check_out_time) — {{ $reservation->check_out_time }}@endif</td>
+                    <td class="kv-k">الخروج:</td>
+                </tr>
+                <tr>
+                    <td class="kv-v">{{ $nights }} {{ $nights == 1 ? 'ليلة' : 'ليالٍ' }}</td>
+                    <td class="kv-k">المدة:</td>
+                </tr>
+            </table>
         </td>
         {{-- right column: guest details --}}
         <td>
             <div class="meta-h">بيانات النزيل</div>
-            <div class="kv"><span class="k">الاسم: </span><span class="v">{{ $reservation->guest?->full_name ?? '—' }}</span></div>
-            @if($reservation->guest?->id_number)
-            <div class="kv"><span class="k">رقم الهوية: </span><span class="v">{{ $reservation->guest->id_number }}</span></div>
-            @endif
-            @if($reservation->guest?->nationality)
-            <div class="kv"><span class="k">الجنسية: </span><span class="v">{{ $reservation->guest->nationality }}</span></div>
-            @endif
-            @if($reservation->guest?->phone)
-            <div class="kv"><span class="k">الجوال: </span><span class="v">{{ $reservation->guest->phone }}</span></div>
-            @endif
+            <table class="kvt">
+                <tr>
+                    <td class="kv-v">{{ $reservation->guest?->full_name ?? '—' }}</td>
+                    <td class="kv-k">الاسم:</td>
+                </tr>
+                @if($reservation->guest?->id_number)
+                <tr>
+                    <td class="kv-v">{{ $reservation->guest->id_number }}</td>
+                    <td class="kv-k">رقم الهوية:</td>
+                </tr>
+                @endif
+                @if($reservation->guest?->nationality)
+                <tr>
+                    <td class="kv-v">{{ $reservation->guest->nationality }}</td>
+                    <td class="kv-k">الجنسية:</td>
+                </tr>
+                @endif
+                @if($reservation->guest?->phone)
+                <tr>
+                    <td class="kv-v">{{ $reservation->guest->phone }}</td>
+                    <td class="kv-k">الجوال:</td>
+                </tr>
+                @endif
+            </table>
         </td>
     </tr>
 </table>
