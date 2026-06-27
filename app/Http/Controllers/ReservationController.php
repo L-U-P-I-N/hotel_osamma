@@ -382,8 +382,17 @@ class ReservationController extends Controller
 
     public function expiring(\Illuminate\Http\Request $request)
     {
-        $query = \App\Models\Reservation::with(['guest', 'room.roomType'])
-            ->where('status', 'checked_in');
+        // فلتر الحالة: مقيم (الافتراضي) / غادر / الكل
+        $status = $request->input('status', 'checked_in');
+
+        $query = \App\Models\Reservation::with(['guest', 'room.roomType']);
+
+        if (in_array($status, ['checked_in', 'checked_out'], true)) {
+            $query->where('status', $status);
+        } else {
+            // "all" — المقيمون والمغادرون فقط (نستثني الملغاة)
+            $query->whereIn('status', ['checked_in', 'checked_out']);
+        }
 
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
@@ -404,7 +413,7 @@ class ReservationController extends Controller
 
         $reservations = $query->orderBy('check_out_date', 'asc')->get();
 
-        return view('reservations.expiring', compact('reservations'));
+        return view('reservations.expiring', compact('reservations', 'status'));
     }
 
     public function invoice(Reservation $reservation)

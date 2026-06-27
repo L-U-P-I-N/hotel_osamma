@@ -29,6 +29,7 @@
 <body>
 
 <div class="header">
+    @include('partials.pdf-logo')
     <h1>تقرير أعمار الديون</h1>
     <div class="sub">تاريخ الطباعة: {{ now()->format('d/m/Y') }} — إجمالي الديون: {{ number_format($totalDebt, 0) }} ر.ي — {{ $reservations->count() }} حجز</div>
 </div>

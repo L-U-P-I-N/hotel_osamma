@@ -9,16 +9,21 @@
 <div class="flex items-center justify-between mb-4">
     <div>
         <p class="text-sm text-gray-500">
-            إجمالي المسجلين: <strong>{{ $reservations->count() }}</strong>
+            @php $st = $status ?? 'checked_in'; @endphp
+            {{ $st === 'checked_out' ? 'إجمالي المغادرين' : ($st === 'all' ? 'إجمالي النزلاء' : 'إجمالي المسجلين') }}:
+            <strong>{{ $reservations->count() }}</strong>
+            @if($st !== 'checked_out')
             @php
-                $overdueCount = $reservations->filter(fn($r) => $r->check_out_date->startOfDay()->lt(now()->startOfDay()))->count();
-                $todayCount   = $reservations->filter(fn($r) => $r->check_out_date->isToday())->count();
+                $active       = $reservations->where('status', 'checked_in');
+                $overdueCount = $active->filter(fn($r) => $r->check_out_date->startOfDay()->lt(now()->startOfDay()))->count();
+                $todayCount   = $active->filter(fn($r) => $r->check_out_date->isToday())->count();
             @endphp
             @if($overdueCount > 0)
             — <span class="text-red-600 font-semibold">{{ $overdueCount }} متأخر</span>
             @endif
             @if($todayCount > 0)
             — <span class="text-orange-600 font-semibold">{{ $todayCount }} خروجهم اليوم</span>
+            @endif
             @endif
         </p>
     </div>
@@ -59,6 +64,17 @@
                    class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white">
         </div>
 
+        {{-- Status --}}
+        <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-500">الحالة</label>
+            <select name="status"
+                    class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white">
+                <option value="checked_in"  {{ ($status ?? 'checked_in') === 'checked_in'  ? 'selected' : '' }}>المقيمون حالياً</option>
+                <option value="checked_out" {{ ($status ?? '') === 'checked_out' ? 'selected' : '' }}>المغادرون</option>
+                <option value="all"         {{ ($status ?? '') === 'all'         ? 'selected' : '' }}>الكل</option>
+            </select>
+        </div>
+
         {{-- Buttons --}}
         <div class="flex gap-2">
             <button type="submit"
@@ -66,7 +82,7 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/></svg>
                 تصفية
             </button>
-            @if(request()->hasAny(['search','check_in_date','check_out_date']))
+            @if(request()->hasAny(['search','check_in_date','check_out_date','status']))
             <a href="{{ route('reservations.expiring') }}"
                class="inline-flex items-center gap-1.5 px-4 py-2 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -96,8 +112,13 @@
             <tbody class="divide-y divide-gray-100" x-data="{ renewOpen: null }">
                 @forelse($reservations as $res)
                 @php
+                    $isCheckedOut = $res->status === 'checked_out';
                     $daysLeft = (int) now()->startOfDay()->diffInDays($res->check_out_date->copy()->startOfDay(), false);
-                    if ($daysLeft < 0) {
+                    if ($isCheckedOut) {
+                        $badgeCls = 'bg-gray-100 text-gray-600 border border-gray-200';
+                        $badgeLabel = 'غادر';
+                        $rowCls = 'bg-gray-50/60';
+                    } elseif ($daysLeft < 0) {
                         $badgeCls = 'bg-red-100 text-red-700 border border-red-200';
                         $badgeLabel = 'متأخر ' . abs($daysLeft) . ' ' . (abs($daysLeft) === 1 ? 'يوم' : 'أيام');
                         $rowCls = 'bg-red-50';
@@ -141,7 +162,7 @@
                     <td class="px-4 py-3 text-gray-600 text-sm font-medium">{{ $res->check_out_date->format('d/m/Y') }}</td>
                     <td class="px-4 py-3">
                         <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold {{ $badgeCls }}">
-                            @if($daysLeft < 0)
+                            @if(!$isCheckedOut && $daysLeft < 0)
                             <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
                             @endif
                             {{ $badgeLabel }}
@@ -156,6 +177,7 @@
                     </td>
                     <td class="px-4 py-3">
                         <div class="flex items-center gap-2 flex-wrap">
+                            @unless($isCheckedOut)
                             @can('checkout.process')
                             <a href="{{ route('checkout.show', $res) }}"
                                class="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition font-medium">
@@ -172,6 +194,7 @@
                                 تجديد
                             </button>
                             @endcan
+                            @endunless
                             <a href="{{ route('reservations.show', $res) }}"
                                class="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition">
                                 تفاصيل

@@ -37,6 +37,7 @@
 <body>
 
 <div class="header">
+    @include('partials.pdf-logo')
     <h1>الفندق السعودي</h1>
     <p>نظام إدارة الفندق</p>
 </div>
