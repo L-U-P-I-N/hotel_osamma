@@ -88,6 +88,54 @@
                        value="{{ old('guest_phone', $reservation->guest?->phone) }}"
                        class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none" dir="ltr">
             </div>
+
+            {{-- Guest ID image (view current + replace) --}}
+            <div class="md:col-span-2" x-data="{ preview: null, isPdf: false }">
+                <label class="block text-xs font-medium text-gray-600 mb-1">صورة الهوية</label>
+                <div class="flex items-center gap-4 p-3 border border-gray-200 rounded-lg bg-gray-50">
+                    {{-- Thumbnail: new preview > current image > empty --}}
+                    <div class="shrink-0">
+                        <template x-if="preview && !isPdf">
+                            <img :src="preview" class="w-24 h-20 object-cover rounded-lg border border-gray-200">
+                        </template>
+                        <template x-if="preview && isPdf">
+                            <div class="w-24 h-20 rounded-lg border border-gray-200 bg-red-50 flex flex-col items-center justify-center text-xs text-red-500 font-medium">
+                                <svg class="w-6 h-6 mb-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5z"/></svg>
+                                PDF جديد
+                            </div>
+                        </template>
+                        <template x-if="!preview">
+                            <div>
+                                @if($reservation->guest?->id_image_path)
+                                    @php $gExt = strtolower(pathinfo($reservation->guest->id_image_path, PATHINFO_EXTENSION)); @endphp
+                                    @if($gExt === 'pdf')
+                                    <a href="{{ route('guests.idImage', $reservation->guest) }}" target="_blank"
+                                       class="w-24 h-20 rounded-lg border border-gray-200 bg-red-50 flex flex-col items-center justify-center text-xs text-red-500 font-medium">
+                                        <svg class="w-6 h-6 mb-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5z"/></svg>
+                                        PDF الحالي
+                                    </a>
+                                    @else
+                                    <a href="{{ route('guests.idImage', $reservation->guest) }}" target="_blank">
+                                        <img src="{{ route('guests.idImage', $reservation->guest) }}" alt="هوية النزيل"
+                                             class="w-24 h-20 object-cover rounded-lg border border-gray-200 hover:opacity-90 transition">
+                                    </a>
+                                    @endif
+                                @else
+                                    <div class="w-24 h-20 rounded-lg border-2 border-dashed border-gray-200 bg-white flex items-center justify-center text-xs text-gray-400 text-center px-2">لا توجد صورة</div>
+                                @endif
+                            </div>
+                        </template>
+                    </div>
+                    {{-- File input --}}
+                    <div class="flex-1">
+                        <input type="file" name="guest_id_image" accept="image/*,.pdf"
+                               @change="const f=$event.target.files[0]; if(!f){preview=null;return;} isPdf=!f.type.startsWith('image/'); if(isPdf){preview='pdf';}else{const r=new FileReader();r.onload=e=>preview=e.target.result;r.readAsDataURL(f);}"
+                               class="w-full text-sm text-gray-600 file:ml-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 cursor-pointer">
+                        <p class="text-xs text-gray-400 mt-1.5">JPG · PNG · PDF — حتى 5MB. اتركه فارغاً للإبقاء على الصورة الحالية.</p>
+                        @error('guest_id_image')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
