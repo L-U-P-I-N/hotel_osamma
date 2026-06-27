@@ -121,8 +121,17 @@ class CheckInController extends Controller
                 ->with('success', 'تم تسجيل الدخول بنجاح');
         } catch (BlacklistedException $e) {
             return back()->withErrors(['id_number' => $e->getMessage()])->withInput();
-        } catch (\Exception $e) {
-            return back()->withErrors(['error' => $e->getMessage()])->withInput();
+        } catch (\Throwable $e) {
+            // نلتقط Throwable (يشمل Error/TypeError) حتى لا تظهر صفحة 500 صمّاء،
+            // ونُسجّل التفاصيل الكاملة للتشخيص.
+            Log::error('فشل تسجيل الدخول (check-in)', [
+                'message' => $e->getMessage(),
+                'file'    => $e->getFile() . ':' . $e->getLine(),
+                'user_id' => auth()->id(),
+            ]);
+            return back()->withErrors([
+                'error' => 'تعذّر إتمام تسجيل الدخول: ' . $e->getMessage(),
+            ])->withInput();
         }
     }
 

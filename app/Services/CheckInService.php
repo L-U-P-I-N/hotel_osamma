@@ -149,7 +149,12 @@ class CheckInService
             }
 
             AuditLogService::log('create', $reservation, null, $reservation->toArray(), $user);
-            return $reservation->fresh();
+
+            // نُرجع النموذج مباشرة دون fresh()/refresh(): فهو محدّث بالكامل في
+            // الذاكرة بعد create/increment/updatePaymentStatus. هذا يتجنّب رمي
+            // TypeError (لو أرجعت fresh() القيمة null) أو ModelNotFoundException
+            // على البيئات ذات نسخ القراءة المتأخرة مثل Laravel Cloud.
+            return $reservation;
         });
     }
 }
