@@ -43,12 +43,13 @@ class StorageHelper
         return self::disk()->url($path);
     }
 
-    public static function response(string $filePath): \Symfony\Component\HttpFoundation\StreamedResponse|\Illuminate\Http\Response
+    public static function response(string $filePath): \Symfony\Component\HttpFoundation\Response
     {
         $disk   = self::privateDisk();
         $driver = config("filesystems.disks.{$disk}.driver", 'local');
 
         if ($driver === 'local') {
+            // BinaryFileResponse (extends Symfony Response) — serves the file inline
             return response()->file(Storage::disk($disk)->path($filePath));
         }
 
