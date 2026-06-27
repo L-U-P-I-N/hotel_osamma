@@ -76,19 +76,23 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
-            'employee_id' => 'required|string|unique:users',
+            'name'     => 'required|string|max:255',
             'username' => 'required|string|unique:users|alpha_dash',
-            'password' => 'required|string|min:8|confirmed',
-            'phone' => 'nullable|string',
-            'role' => 'nullable|exists:roles,name',
+            'password' => 'required|string|min:8',
+            'phone'    => 'nullable|string',
+            'role'     => 'nullable|exists:roles,name',
         ]);
+
+        $lastNum    = User::where('employee_id', 'like', 'EMP%')->get()
+            ->map(fn($u) => (int) preg_replace('/\D/', '', $u->employee_id))
+            ->max() ?? 0;
+        $employeeId = 'EMP' . str_pad($lastNum + 1, 3, '0', STR_PAD_LEFT);
 
         $plainCode = $this->generateBackupCode();
 
         $user = User::create([
-            'name' => $request->name,
-            'employee_id' => $request->employee_id,
+            'name'        => $request->name,
+            'employee_id' => $employeeId,
             'username' => $request->username,
             'password' => Hash::make($request->password),
             'phone' => $request->phone,
