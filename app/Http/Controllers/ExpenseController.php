@@ -27,6 +27,10 @@ class ExpenseController extends Controller
         $query = Expense::with('paidBy')->orderBy('expense_date', 'desc')->orderBy('id', 'desc');
         $statsQuery = Expense::query();
 
+        // غير الأدمن يرى مصروفاته فقط؛ الأدمن يرى مصروفات كل المستخدمين
+        $this->scopeOwn($query);
+        $this->scopeOwn($statsQuery);
+
         if ($request->filled('category')) {
             $query->where('category', $request->input('category'));
             $statsQuery->where('category', $request->input('category'));
@@ -168,23 +172,26 @@ class ExpenseController extends Controller
 
     public function deferred(Request $request)
     {
-        $deferredExpenses = Expense::with('paidBy')
+        $deferredQuery = Expense::with('paidBy')
             ->where('payment_method', 'later')
             ->whereNull('settled_at')
-            ->orderBy('expense_date', 'asc')
-            ->get();
+            ->orderBy('expense_date', 'asc');
+        $this->scopeOwn($deferredQuery);
+        $deferredExpenses = $deferredQuery->get();
 
-        $recentlySettled = Expense::with(['paidBy', 'settledBy'])
+        $settledQuery = Expense::with(['paidBy', 'settledBy'])
             ->where('payment_method', 'later')
             ->whereNotNull('settled_at')
             ->where('settled_at', '>=', now()->subDays(30))
-            ->orderBy('settled_at', 'desc')
-            ->get();
+            ->orderBy('settled_at', 'desc');
+        $this->scopeOwn($settledQuery);
+        $recentlySettled = $settledQuery->get();
+
+        $totalSettledQuery = Expense::where('payment_method', 'later')->whereNotNull('settled_at');
+        $this->scopeOwn($totalSettledQuery);
 
         $totalDeferred = $deferredExpenses->sum('amount');
-        $totalSettled  = Expense::where('payment_method', 'later')
-            ->whereNotNull('settled_at')
-            ->sum('amount');
+        $totalSettled  = $totalSettledQuery->sum('amount');
 
         return view('expenses.deferred', compact('deferredExpenses', 'recentlySettled', 'totalDeferred', 'totalSettled'));
     }
@@ -213,6 +220,7 @@ class ExpenseController extends Controller
         $query = Expense::with('paidBy')
             ->whereDate('expense_date', '>=', $dateFrom)
             ->whereDate('expense_date', '<=', $dateTo);
+        $this->scopeOwn($query);
 
         if ($request->filled('category')) {
             $query->where('category', $request->input('category'));
@@ -251,6 +259,7 @@ class ExpenseController extends Controller
             $request->input('payment_method'),
             $request->input('search'),
             $request->input('shift_id'),
+            auth()->user()->isAdmin() ? null : auth()->id(),
         );
         $filename = 'المصروفات_' . now()->format('Y-m-d') . '.xlsx';
         return Excel::download($export, $filename);
@@ -259,6 +268,7 @@ class ExpenseController extends Controller
     public function exportPdf(Request $request)
     {
         $query = Expense::with('paidBy')->orderBy('expense_date', 'desc')->orderBy('id', 'desc');
+        $this->scopeOwn($query);
 
         $dateFrom      = $request->input('date_from');
         $dateTo        = $request->input('date_to');
@@ -294,6 +304,18 @@ class ExpenseController extends Controller
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────
+
+    /**
+     * يقصر الاستعلام على مصروفات المستخدم الحالي فقط، إلا إن كان أدمن
+     * (الأدمن يرى مصروفات جميع المستخدمين).
+     */
+    private function scopeOwn($query): void
+    {
+        $user = auth()->user();
+        if ($user && !$user->isAdmin()) {
+            $query->where('paid_by', $user->id);
+        }
+    }
 
     private function syncWithdrawal(Expense $expense, ?Shift $shift): void
     {

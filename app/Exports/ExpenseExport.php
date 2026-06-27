@@ -26,6 +26,7 @@ class ExpenseExport implements FromCollection, WithHeadings, WithMapping, WithSt
         private ?string $paymentMethod,
         private ?string $search,
         private ?string $shiftId,
+        private ?int $paidBy = null,
     ) {}
 
     public function collection(): Collection
@@ -37,6 +38,7 @@ class ExpenseExport implements FromCollection, WithHeadings, WithMapping, WithSt
         if ($this->category)     { $query->where('category', $this->category); }
         if ($this->paymentMethod){ $query->where('payment_method', $this->paymentMethod); }
         if ($this->shiftId)      { $query->where('shift_id', $this->shiftId); }
+        if ($this->paidBy)       { $query->where('paid_by', $this->paidBy); }
         if ($this->search) {
             $query->where(function ($q) {
                 $q->where('recipient_name', 'like', '%' . $this->search . '%')
