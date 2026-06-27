@@ -81,6 +81,12 @@ class ExpenseController extends Controller
             ];
         });
 
+        // ملخص حسب طريقة الدفع (مدموج من صفحة التقرير السابقة)
+        $byMethod = $allExpenses->groupBy('payment_method')->map(fn($group) => [
+            'count' => $group->count(),
+            'total' => $group->sum('amount'),
+        ]);
+
         $user = auth()->user();
         $shiftsQuery = Shift::with('user')->orderBy('shift_date', 'desc')->orderBy('id', 'desc')->limit(60);
         if (!$user->isAdmin()) {
@@ -90,7 +96,7 @@ class ExpenseController extends Controller
 
         $activeShift = Shift::where('is_closed', false)->where('user_id', auth()->id())->latest()->first();
 
-        return view('expenses.index', compact('expenses', 'categories', 'availableShifts', 'stats', 'byCategory', 'activeShift'));
+        return view('expenses.index', compact('expenses', 'categories', 'availableShifts', 'stats', 'byCategory', 'byMethod', 'activeShift'));
     }
 
     public function create()
@@ -210,44 +216,6 @@ class ExpenseController extends Controller
         \App\Services\AuditLogService::log('expense_settled', $expense, null, ['amount' => $expense->amount]);
 
         return back()->with('success', 'تم تسوية المصروف بنجاح');
-    }
-
-    public function report(Request $request)
-    {
-        $dateFrom = $request->input('date_from', now()->startOfMonth()->toDateString());
-        $dateTo   = $request->input('date_to', now()->toDateString());
-
-        $query = Expense::with('paidBy')
-            ->whereDate('expense_date', '>=', $dateFrom)
-            ->whereDate('expense_date', '<=', $dateTo);
-        $this->scopeOwn($query);
-
-        if ($request->filled('category')) {
-            $query->where('category', $request->input('category'));
-        }
-        if ($request->filled('payment_method')) {
-            $query->where('payment_method', $request->input('payment_method'));
-        }
-
-        $expenses = $query->orderBy('expense_date', 'desc')->get();
-        $total    = $expenses->sum('amount');
-
-        $byCategory = $expenses->groupBy('category')->map(fn($g) => [
-            'count' => $g->count(),
-            'total' => $g->sum('amount'),
-        ]);
-
-        $byMethod = $expenses->groupBy('payment_method')->map(fn($g) => [
-            'count' => $g->count(),
-            'total' => $g->sum('amount'),
-        ]);
-
-        $categories = $this->categories;
-
-        return view('expenses.report', compact(
-            'expenses', 'total', 'byCategory', 'byMethod',
-            'dateFrom', 'dateTo', 'categories'
-        ));
     }
 
     public function exportExcel(Request $request)

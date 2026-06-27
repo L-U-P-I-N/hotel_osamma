@@ -269,7 +269,6 @@ Route::middleware(['auth'])->group(function () {
     // ===== Expense Module =====
     Route::middleware('permission:expenses.view')->group(function () {
         Route::get('/expenses', [ExpenseController::class, 'index'])->name('expenses.index');
-        Route::get('/expenses/report', [ExpenseController::class, 'report'])->name('expenses.report');
         Route::get('/expenses/deferred', [ExpenseController::class, 'deferred'])->name('expenses.deferred');
         Route::get('/expenses/export/excel', [ExpenseController::class, 'exportExcel'])->name('expenses.excel');
         Route::get('/expenses/export/pdf', [ExpenseController::class, 'exportPdf'])->name('expenses.pdf');
