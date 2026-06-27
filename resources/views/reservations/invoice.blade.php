@@ -39,8 +39,7 @@ table.head { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
 
 .title-cell { text-align: left; width: 40%; }
 .title-cell .word { font-size: 20pt; font-weight: 700; color: #1f3a5f; }
-.title-cell .num  { font-size: 10pt; color: #444; margin-top: 2px; }
-.title-cell .num strong { color: #1f3a5f; }
+.title-cell .num  { font-size: 10pt; font-weight: 700; color: #1f3a5f; margin-top: 2px; }
 .title-cell .date { font-size: 8.5pt; color: #888; margin-top: 1px; }
 
 .brand-cell { text-align: right; }
@@ -153,7 +152,7 @@ table.sign td.gap { width: 10%; border: none; }
         {{-- left column: invoice title --}}
         <td class="title-cell">
             <div class="word">فاتورة</div>
-            <div class="num">رقم: <strong>#{{ $invNo }}</strong></div>
+            <div class="num">رقم: #{{ $invNo }}</div>
             <div class="date">التاريخ: {{ now()->format('Y/m/d') }}</div>
         </td>
         {{-- right column: brand (name then logo so logo sits at the far right) --}}
