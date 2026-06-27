@@ -105,6 +105,7 @@
 @endphp
 
 <div class="header">
+    @include('partials.pdf-logo')
     <h1>القائمة اليومية للنزلاء</h1>
     <p>
         تاريخ: {{ \Carbon\Carbon::parse($date)->format('d/m/Y') }}

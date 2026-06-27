@@ -77,6 +77,7 @@
 @endphp
 
 <div class="header">
+    @include('partials.pdf-logo')
     <h1>تقرير الحجوزات</h1>
     <div class="sub">الفترة: {{ \Carbon\Carbon::parse($from)->format('d/m/Y') }} — {{ \Carbon\Carbon::parse($to)->format('d/m/Y') }}</div>
 </div>

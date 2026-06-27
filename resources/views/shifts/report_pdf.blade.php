@@ -127,6 +127,7 @@
 
 {{-- Header --}}
 <div class="header">
+    @include('partials.pdf-logo')
     <h1>تقرير الوردية</h1>
     <div class="sub">
         {{ $shift->shift_date->format('d/m/Y') }}

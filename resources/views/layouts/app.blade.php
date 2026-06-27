@@ -210,8 +210,14 @@
         <!-- Logo -->
         <div class="px-5 py-5 flex-shrink-0" style="border-bottom: 1px solid rgba(255,255,255,0.07);">
             <div class="flex items-center gap-3">
+                @if(file_exists(public_path('images/hotel-logo.png')))
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden bg-white">
+                    <img src="{{ asset('images/hotel-logo.png') }}" alt="شعار الفندق" class="w-full h-full object-contain">
+                </div>
+                @else
                 <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-primary-900 text-base"
                      style="background: linear-gradient(135deg, #D4A574, #c08d5a);">س</div>
+                @endif
                 <div class="min-w-0">
                     <div class="font-bold text-sm text-white leading-tight truncate">الفندق السعودي</div>
                     <div class="text-xs truncate" style="color:#4d7fa0;">نظام إدارة الفندق</div>
