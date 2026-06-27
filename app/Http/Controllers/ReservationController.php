@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Helpers\StorageHelper;
 use App\Models\Companion;
 use App\Models\Payment;
 use App\Models\Reservation;
@@ -109,6 +110,7 @@ class ReservationController extends Controller
             'guest_id_issuer'               => 'nullable|string|max:100',
             'guest_id_issue_date'           => 'nullable|date',
             'guest_phone'                   => 'nullable|string|max:30',
+            'guest_id_image'                => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
             // Companions
             'companions'                    => 'nullable|array',
             'companions.*.id'               => 'nullable|integer',
@@ -137,7 +139,7 @@ class ReservationController extends Controller
         try {
             // Update guest
             if ($reservation->guest) {
-                $reservation->guest->update([
+                $guestData = [
                     'full_name'     => $validated['guest_full_name'],
                     'nationality'   => $this->nullIfEmpty($validated['guest_nationality'] ?? null),
                     'occupation'    => $this->nullIfEmpty($validated['guest_occupation'] ?? null),
@@ -146,7 +148,14 @@ class ReservationController extends Controller
                     'id_issuer'     => $this->nullIfEmpty($validated['guest_id_issuer'] ?? null),
                     'id_issue_date' => $this->nullIfEmpty($validated['guest_id_issue_date'] ?? null),
                     'phone'         => $this->nullIfEmpty($validated['guest_phone'] ?? null),
-                ]);
+                ];
+
+                // Replace the guest ID image only when a new file is uploaded
+                if ($request->hasFile('guest_id_image')) {
+                    $guestData['id_image_path'] = StorageHelper::store($request->file('guest_id_image'), 'id_images/guests');
+                }
+
+                $reservation->guest->update($guestData);
             }
 
             // Update companions
@@ -168,14 +177,14 @@ class ReservationController extends Controller
                     'relationship'   => $this->nullIfEmpty($comp['relationship'] ?? null),
                 ];
 
-                // Handle ID image upload
+                // Handle ID image upload (replace only when a new file is provided)
                 if (!empty($compFiles[$idx]['id_image'])) {
-                    $data['id_image_path'] = $compFiles[$idx]['id_image']->store('id_images/companions', 'private');
+                    $data['id_image_path'] = StorageHelper::store($compFiles[$idx]['id_image'], 'id_images/companions');
                 }
 
                 // Handle marriage doc upload (for wife)
                 if (($comp['relationship'] ?? '') === 'wife' && !empty($compFiles[$idx]['marriage_doc'])) {
-                    $data['marriage_doc_path'] = $compFiles[$idx]['marriage_doc']->store('marriage_docs', 'private');
+                    $data['marriage_doc_path'] = StorageHelper::store($compFiles[$idx]['marriage_doc'], 'marriage_docs');
                 }
 
                 if (!empty($comp['id'])) {
