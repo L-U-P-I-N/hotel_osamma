@@ -45,7 +45,7 @@
 </div>
 
 <!-- Filters -->
-<form method="GET" action="{{ route('reservations.expiring') }}" class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-5">
+<form method="GET" action="{{ route('reservations.expiring') }}" id="filters" class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-5">
     <div class="flex flex-wrap gap-3 items-end">
 
         {{-- Search: name or room --}}
@@ -57,6 +57,7 @@
                 </span>
                 <input type="text" name="search" value="{{ request('search') }}"
                        placeholder="اسم النزيل أو رقم الغرفة..."
+                       oninput="clearTimeout(window._ft); window._ft = setTimeout(() => document.getElementById('filters').submit(), 600)"
                        class="w-full border border-gray-200 rounded-lg pr-9 pl-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white">
             </div>
         </div>
@@ -65,6 +66,7 @@
         <div class="flex flex-col gap-1">
             <label class="text-xs font-medium text-gray-500">تاريخ الدخول</label>
             <input type="date" name="check_in_date" value="{{ request('check_in_date') }}"
+                   onchange="this.form.submit()"
                    class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white">
         </div>
 
@@ -72,6 +74,7 @@
         <div class="flex flex-col gap-1">
             <label class="text-xs font-medium text-gray-500">تاريخ المغادرة</label>
             <input type="date" name="check_out_date" value="{{ request('check_out_date') }}"
+                   onchange="this.form.submit()"
                    class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white">
         </div>
 
@@ -79,6 +82,7 @@
         <div class="flex flex-col gap-1">
             <label class="text-xs font-medium text-gray-500">الحالة</label>
             <select name="status"
+                    onchange="this.form.submit()"
                     class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white">
                 <option value="checked_in"  {{ ($status ?? 'checked_in') === 'checked_in'  ? 'selected' : '' }}>المقيمون حالياً</option>
                 <option value="checked_out" {{ ($status ?? '') === 'checked_out' ? 'selected' : '' }}>المغادرون</option>
@@ -86,21 +90,13 @@
             </select>
         </div>
 
-        {{-- Buttons --}}
-        <div class="flex gap-2">
-            <button type="submit"
-                    class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/></svg>
-                تصفية
-            </button>
-            @if(request()->hasAny(['search','check_in_date','check_out_date','status']))
-            <a href="{{ route('reservations.expiring') }}"
-               class="inline-flex items-center gap-1.5 px-4 py-2 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                إلغاء الفلترة
-            </a>
-            @endif
-        </div>
+        @if(request()->hasAny(['search','check_in_date','check_out_date']) || (request('status') && request('status') !== 'checked_in'))
+        <a href="{{ route('reservations.expiring') }}"
+           class="inline-flex items-center gap-1.5 px-4 py-2 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition self-end">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            إلغاء الفلترة
+        </a>
+        @endif
     </div>
 </form>
 
