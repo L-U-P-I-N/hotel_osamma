@@ -20,7 +20,7 @@
 <div class="flex items-center justify-between mb-4">
     <div>
         <p class="text-sm text-gray-500">
-            @php $st = $status ?? 'checked_in'; @endphp
+            @php $st = $status ?? 'all'; @endphp
             {{ $st === 'checked_out' ? 'إجمالي المغادرين' : ($st === 'all' ? 'إجمالي النزلاء' : 'إجمالي المسجلين') }}:
             <strong>{{ $reservations->count() }}</strong>
             @if($st !== 'checked_out')
@@ -84,13 +84,13 @@
             <select name="status"
                     onchange="this.form.submit()"
                     class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white">
-                <option value="checked_in"  {{ ($status ?? 'checked_in') === 'checked_in'  ? 'selected' : '' }}>المقيمون حالياً</option>
+                <option value="all"         {{ ($status ?? 'all') === 'all'         ? 'selected' : '' }}>الكل</option>
+                <option value="checked_in"  {{ ($status ?? '') === 'checked_in'  ? 'selected' : '' }}>المقيمون حالياً</option>
                 <option value="checked_out" {{ ($status ?? '') === 'checked_out' ? 'selected' : '' }}>المغادرون</option>
-                <option value="all"         {{ ($status ?? '') === 'all'         ? 'selected' : '' }}>الكل</option>
             </select>
         </div>
 
-        @if(request()->hasAny(['search','check_in_date','check_out_date']) || (request('status') && request('status') !== 'checked_in'))
+        @if(request()->hasAny(['search','check_in_date','check_out_date']) || (request('status') && request('status') !== 'all'))
         <a href="{{ route('reservations.expiring') }}"
            class="inline-flex items-center gap-1.5 px-4 py-2 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition self-end">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>

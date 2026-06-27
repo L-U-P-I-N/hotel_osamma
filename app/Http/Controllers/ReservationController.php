@@ -383,7 +383,7 @@ class ReservationController extends Controller
     public function expiring(\Illuminate\Http\Request $request)
     {
         // فلتر الحالة: مقيم (الافتراضي) / غادر / الكل
-        $status = $request->input('status', 'checked_in');
+        $status = $request->input('status', 'all');
 
         $query = \App\Models\Reservation::with(['guest', 'room.roomType']);
 
