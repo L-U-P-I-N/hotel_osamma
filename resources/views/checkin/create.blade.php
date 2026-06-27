@@ -686,7 +686,7 @@ html.dark .comp-card .border-gray-200 { border-color:#2f3e54 !important; }
                         <span class="text-xs font-medium text-gray-400">ط{{ $room->floor }}</span>
                     </div>
                     <div class="text-xs text-gray-500 mb-0.5">{{ $room->roomType->name }}</div>
-                    <div class="text-xs font-bold mb-2.5" style="color:var(--emerald)">{{ number_format($room->roomType->base_price,0) }} ر.ي</div>
+                    <div class="text-xs font-bold mb-2.5" style="color:var(--emerald)">{{ number_format($room->priceFor('YER'),0) }} ر.ي</div>
                     <div class="flex gap-1">
                         {{-- A only --}}
                         <button type="button"
@@ -734,7 +734,7 @@ html.dark .comp-card .border-gray-200 { border-color:#2f3e54 !important; }
                         <span class="text-xs text-gray-400 font-medium">ط{{ $room->floor }}</span>
                     </div>
                     <div class="text-xs text-gray-500 mb-0.5">{{ $room->roomType->name }}</div>
-                    <div class="text-xs font-bold mt-1" style="color:var(--emerald)">{{ number_format($room->roomType->base_price,0) }} ر.ي</div>
+                    <div class="text-xs font-bold mt-1" style="color:var(--emerald)">{{ number_format($room->priceFor('YER'),0) }} ر.ي</div>
                     @if($info && $info['linked_available'])
                         <div class="text-xs text-blue-500 mt-0.5 font-medium">+ {{ $info['linked_number'] }} متاحة</div>
                     @endif
