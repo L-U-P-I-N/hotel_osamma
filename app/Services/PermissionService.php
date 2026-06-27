@@ -20,8 +20,12 @@ class PermissionService
         'checkin.create',
         'checkin.view',
         'checkout.process',
+        'guests.view',
+        'companions.manage',
         'payments.create',
+        'extra_charges.manage',
         'withdrawal.create',
+        'withdrawal.view',
         'shifts.view',
         'settlement.view', // backward compat alias
     ];
@@ -29,43 +33,41 @@ class PermissionService
     // جميع الصلاحيات القابلة للتعديل
     const ALL_PERMISSIONS = [
         // Reservations & Check-in/out
-        'checkin.create'        => ['label' => 'إضافة حجز جديد',             'default' => true,  'group' => '📋 الحجوزات والإقامة'],
-        'checkin.view'          => ['label' => 'عرض الحجوزات',                'default' => true,  'group' => '📋 الحجوزات والإقامة'],
-        'checkin.edit'          => ['label' => 'تعديل بيانات الحجز',          'default' => false, 'group' => '📋 الحجوزات والإقامة'],
-        'checkin.delete'        => ['label' => 'حذف / إلغاء الحجز',           'default' => false, 'group' => '📋 الحجوزات والإقامة'],
-        'checkout.process'      => ['label' => 'تسجيل الخروج',               'default' => true,  'group' => '📋 الحجوزات والإقامة'],
+        'checkin.create'        => ['label' => 'إضافة حجز جديد',              'default' => true,  'group' => '📋 الحجوزات والإقامة'],
+        'checkin.view'          => ['label' => 'عرض الحجوزات',                 'default' => true,  'group' => '📋 الحجوزات والإقامة'],
+        'checkout.process'      => ['label' => 'تسجيل الخروج',                'default' => true,  'group' => '📋 الحجوزات والإقامة'],
 
         // Guests
+        'guests.view'           => ['label' => 'عرض بيانات النزلاء',          'default' => true,  'group' => '👤 النزلاء'],
         'guests.sensitive'      => ['label' => 'عرض الهوية ورقم الجوال',     'default' => false, 'group' => '👤 النزلاء'],
-        'guests.create'         => ['label' => 'إضافة نزيل جديد',             'default' => false, 'group' => '👤 النزلاء'],
-        'guest.edit'            => ['label' => 'تعديل بيانات النزيل',         'default' => false, 'group' => '👤 النزلاء'],
-        'guests.delete'         => ['label' => 'حذف سجل النزيل',              'default' => false, 'group' => '👤 النزلاء'],
+        'companions.manage'     => ['label' => 'إدارة المرافقين',              'default' => true,  'group' => '👤 النزلاء'],
 
         // Rooms
-        'rooms.view'            => ['label' => 'عرض قائمة الغرف',                     'default' => true,  'group' => '🛏️ إدارة الغرف'],
-        'rooms.create'          => ['label' => 'إضافة غرفة جديدة',                    'default' => false, 'group' => '🛏️ إدارة الغرف'],
-        'rooms.edit'            => ['label' => 'تعديل بيانات الغرفة',                 'default' => false, 'group' => '🛏️ إدارة الغرف'],
-        'rooms.delete'          => ['label' => 'حذف الغرفة',                          'default' => false, 'group' => '🛏️ إدارة الغرف'],
-        'rooms.maintenance'     => ['label' => 'تغيير حالة الغرفة (صيانة/فحص/متاحة)', 'default' => true, 'group' => '🛏️ إدارة الغرف'],
-        'room.price.edit'       => ['label' => 'تعديل سعر الغرفة',           'default' => false, 'group' => '🛏️ إدارة الغرف'],
+        'rooms.view'            => ['label' => 'عرض قائمة الغرف',                      'default' => true,  'group' => '🛏️ إدارة الغرف'],
+        'rooms.create'          => ['label' => 'إضافة غرفة جديدة',                     'default' => false, 'group' => '🛏️ إدارة الغرف'],
+        'rooms.edit'            => ['label' => 'تعديل بيانات الغرفة',                  'default' => false, 'group' => '🛏️ إدارة الغرف'],
+        'rooms.delete'          => ['label' => 'حذف الغرفة',                           'default' => false, 'group' => '🛏️ إدارة الغرف'],
+        'rooms.maintenance'     => ['label' => 'تغيير حالة الغرفة (صيانة/فحص/متاحة)', 'default' => true,  'group' => '🛏️ إدارة الغرف'],
+        'room.price.edit'       => ['label' => 'تعديل سعر الغرفة',            'default' => false, 'group' => '🛏️ إدارة الغرف'],
 
         // Payments & Withdrawals
-        'payments.bank_receipt' => ['label' => 'عرض سندات التحويل',           'default' => false, 'group' => '💰 المالية'],
+        'payments.view'         => ['label' => 'عرض المستلمات',               'default' => false, 'group' => '💰 المالية'],
         'payments.create'       => ['label' => 'تسجيل المستلمات',             'default' => true,  'group' => '💰 المالية'],
-        'payments.edit'         => ['label' => 'تعديل المستلمات',             'default' => false, 'group' => '💰 المالية'],
-        'payments.delete'       => ['label' => 'حذف المستلمات',               'default' => false, 'group' => '💰 المالية'],
+        'payments.bank_receipt' => ['label' => 'عرض سندات التحويل',           'default' => false, 'group' => '💰 المالية'],
+        'extra_charges.manage'  => ['label' => 'إدارة الرسوم الإضافية',       'default' => true,  'group' => '💰 المالية'],
         'withdrawal.create'     => ['label' => 'تسجيل السحبيات',              'default' => true,  'group' => '💰 المالية'],
+        'withdrawal.view'       => ['label' => 'عرض السحبيات',                'default' => true,  'group' => '💰 المالية'],
+        'withdrawal.edit'       => ['label' => 'تعديل السحبيات',              'default' => false, 'group' => '💰 المالية'],
+        'withdrawal.delete'     => ['label' => 'حذف السحبيات',                'default' => false, 'group' => '💰 المالية'],
 
         // Shifts & Settlement
         'shifts.view'           => ['label' => 'عرض الوردية',                    'default' => true,  'group' => '⏰ الورديات'],
-        'shifts.create'         => ['label' => 'فتح وردية يدوياً',               'default' => false, 'group' => '⏰ الورديات'],
-        'shifts.edit'           => ['label' => 'تعديل بيانات الوردية',           'default' => false, 'group' => '⏰ الورديات'],
-        'shifts.delete'         => ['label' => 'حذف الوردية',                    'default' => false, 'group' => '⏰ الورديات'],
         'shifts.reopen'         => ['label' => 'فتح إقفال الوردية (إعادة فتح)', 'default' => false, 'group' => '⏰ الورديات'],
+        'settlement.manage'     => ['label' => 'إدارة التسوية النقدية',          'default' => false, 'group' => '⏰ الورديات'],
+        'settlement.lock'       => ['label' => 'إقفال التسوية',                  'default' => false, 'group' => '⏰ الورديات'],
 
         // Reports
         'reports.view'          => ['label' => 'عرض التقارير',                'default' => false, 'group' => '📊 التقارير'],
-        'report.monthly'        => ['label' => 'التقرير الشهري',              'default' => false, 'group' => '📊 التقارير'],
         'government.export'     => ['label' => 'التصدير للجهات الحكومية',    'default' => false, 'group' => '📊 التقارير'],
 
         // HR Module
@@ -83,8 +85,6 @@ class PermissionService
         // Attendance
         'attendance.view'       => ['label' => 'عرض كشف الحضور والغياب',   'default' => false, 'group' => '✅ الحضور والغياب'],
         'attendance.create'     => ['label' => 'تسجيل الحضور اليومي',       'default' => false, 'group' => '✅ الحضور والغياب'],
-        'attendance.edit'       => ['label' => 'تعديل سجل الحضور',          'default' => false, 'group' => '✅ الحضور والغياب'],
-        'attendance.delete'     => ['label' => 'حذف سجل الحضور',            'default' => false, 'group' => '✅ الحضور والغياب'],
     ];
 
     public static function userCan(User $user, string $permission): bool

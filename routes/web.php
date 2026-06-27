@@ -66,7 +66,7 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/rooms/{room}', [RoomController::class, 'destroy'])->name('rooms.destroy');
         Route::delete('/floors/{floor}', [FloorController::class, 'destroy'])->name('floors.destroy');
     });
-    Route::get('/floors/{floor}/room-numbers', [FloorController::class, 'availableRoomNumbers'])->name('floors.roomNumbers')->middleware('auth');
+    Route::get('/floors/{floor}/room-numbers', [FloorController::class, 'availableRoomNumbers'])->name('floors.roomNumbers')->middleware(['auth', 'permission:rooms.view']);
     Route::post('/rooms/bulk-price', [RoomController::class, 'bulkUpdatePrice'])
         ->name('rooms.bulkPrice')
         ->middleware('permission:rooms.edit');
