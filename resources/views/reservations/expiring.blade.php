@@ -2,6 +2,17 @@
 @section('title', 'النزلاء المسجلون - ترتيب حسب الخروج')
 @section('page-title', 'النزلاء المسجلون')
 
+@push('styles')
+<style>
+    /* صفّ النزيل المُغادِر: رمادي خفيف في الوضع النهاري، وشفاف يندمج مع
+       البطاقة في الوضع الليلي (بدل الأبيض). الـ hover يبقى كحركة لطيفة. */
+    .row-departed { background-color: rgba(249,250,251,.7); }
+    html.dark .row-departed { background-color: transparent !important; }
+    /* صفّ "اليوم" (كان غير مُعالَج في الوضع الليلي فيظهر برتقالياً فاتحاً) */
+    html.dark .bg-orange-50 { background-color: rgba(249,115,22,.10) !important; }
+</style>
+@endpush
+
 @section('content')
 <div dir="rtl">
 
@@ -117,7 +128,7 @@
                     if ($isCheckedOut) {
                         $badgeCls = 'bg-gray-100 text-gray-600 border border-gray-200';
                         $badgeLabel = 'غادر';
-                        $rowCls = 'bg-gray-50/60';
+                        $rowCls = 'row-departed';
                     } elseif ($daysLeft < 0) {
                         $badgeCls = 'bg-red-100 text-red-700 border border-red-200';
                         $badgeLabel = 'متأخر ' . abs($daysLeft) . ' ' . (abs($daysLeft) === 1 ? 'يوم' : 'أيام');
