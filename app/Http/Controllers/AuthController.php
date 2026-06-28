@@ -28,7 +28,7 @@ class AuthController extends Controller
             ->where('is_active', true)
             ->first();
 
-        if (!$user || !Auth::attempt(['username' => $request->username, 'password' => $request->password], $request->boolean('remember'))) {
+        if (!$user || !Auth::attempt(['username' => $request->username, 'password' => $request->password], false)) {
             return back()->withErrors(['username' => 'بيانات الدخول غير صحيحة'])->withInput();
         }
 

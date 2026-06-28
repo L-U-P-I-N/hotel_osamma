@@ -66,11 +66,12 @@
             </div>
             @endif
 
-            <form method="POST" action="{{ route('login.post') }}" class="space-y-5">
+            <form method="POST" action="{{ route('login.post') }}" class="space-y-5" autocomplete="off">
                 @csrf
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">اسم المستخدم</label>
                     <input type="text" name="username" value="{{ old('username') }}" required autofocus
+                           autocomplete="off"
                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition text-sm"
                            placeholder="أدخل اسم المستخدم">
                 </div>
@@ -78,6 +79,7 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">كلمة المرور</label>
                     <div class="relative">
                         <input type="password" name="password" id="password" required
+                               autocomplete="new-password"
                                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition text-sm"
                                placeholder="أدخل كلمة المرور">
                         <button type="button" onclick="togglePassword()"
@@ -91,10 +93,6 @@
                             </svg>
                         </button>
                     </div>
-                </div>
-                <div class="flex items-center gap-2">
-                    <input type="checkbox" name="remember" id="remember" class="w-4 h-4 text-primary-600 border-gray-300 rounded">
-                    <label for="remember" class="text-sm text-gray-600">تذكرني</label>
                 </div>
                 <button type="submit"
                         class="w-full bg-primary-800 text-white py-3 rounded-xl font-semibold hover:bg-primary-700 transition-colors duration-200 text-sm">
