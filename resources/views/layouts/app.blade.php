@@ -103,6 +103,54 @@
         .status-under_inspection{ background:#fef9c3; color:#854d0e; }
         .status-maintenance     { background:#f3f4f6; color:#374151; }
 
+        /* ════════════════ الوضع النهاري الهادئ (Soothing Light mode) ════════════════ */
+        /* خلفيات — warm linen بدل slate بارد */
+        html:not(.dark) body                        { background-color:#f0ede7 !important; color:#3c3930 !important; }
+        html:not(.dark) .bg-white                   { background-color:#faf8f4 !important; }
+        html:not(.dark) .bg-gray-50,
+        html:not(.dark) .bg-slate-50,
+        html:not(.dark) .bg-slate-100               { background-color:#eae6df !important; }
+        html:not(.dark) .bg-gray-100                { background-color:#e3dfd8 !important; }
+        html:not(.dark) .bg-gray-200                { background-color:#d9d4cc !important; }
+
+        /* نصوص — رمادي دافئ بدل رمادي أزرق بارد */
+        html:not(.dark) .text-gray-900,
+        html:not(.dark) .text-gray-800              { color:#3c3930 !important; }
+        html:not(.dark) .text-gray-700              { color:#524e47 !important; }
+        html:not(.dark) .text-gray-600              { color:#6a6560 !important; }
+        html:not(.dark) .text-gray-500              { color:#88837c !important; }
+        html:not(.dark) .text-gray-400              { color:#a5a09a !important; }
+
+        /* حدود */
+        html:not(.dark) .border,
+        html:not(.dark) .border-gray-100,
+        html:not(.dark) .border-gray-200,
+        html:not(.dark) .border-gray-300,
+        html:not(.dark) .border-slate-100,
+        html:not(.dark) .border-slate-200           { border-color:#dedad3 !important; }
+
+        /* حقول الإدخال */
+        html:not(.dark) input:not([type=checkbox]):not([type=radio]):not([type=range]),
+        html:not(.dark) select,
+        html:not(.dark) textarea,
+        html:not(.dark) .fi                         { background-color:#faf8f4 !important; border-color:#cdc9c2 !important; }
+
+        /* شريط العنوان */
+        html:not(.dark) .app-topbar                 { background-color:#faf8f4 !important; border-bottom-color:#dedad3 !important; }
+
+        /* الـ hover */
+        html:not(.dark) .hover\:bg-gray-50:hover,
+        html:not(.dark) .hover\:bg-gray-100:hover   { background-color:#e3dfd8 !important; }
+
+        /* الفواصل */
+        html:not(.dark) .divide-gray-50>:not([hidden])~:not([hidden]),
+        html:not(.dark) .divide-gray-100>:not([hidden])~:not([hidden]),
+        html:not(.dark) .divide-gray-200>:not([hidden])~:not([hidden]) { border-color:#dedad3 !important; }
+
+        /* أيقونة الـ primary تبقى قرائتها واضحة على خلفية دافئة */
+        html:not(.dark) [style*="background:#e8f0f7"],
+        html:not(.dark) [style*="background: #e8f0f7"] { background:#e5e0d8 !important; }
+
         /* ════════════════ الوضع الليلي (Dark mode) ════════════════ */
         html.dark body { background-color:#0f172a !important; color:#e2e8f0 !important; }
 
