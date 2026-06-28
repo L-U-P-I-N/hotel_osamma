@@ -4,30 +4,43 @@
 
 @section('content')
 @php
-    $overdueCount = $overdueGuests->count();
-    $todayCount   = $expiringGuests->filter(fn($r) => $r->check_out_date->isToday())->count();
+    $overdueCount        = $overdueGuests->count();
+    $strictOverdueCount  = $overdueGuests->filter(fn($r) => $r->check_out_date->copy()->startOfDay()->lt(now()->startOfDay()))->count();
+    $todayLeaveCount     = $overdueCount - $strictOverdueCount;
+    $headerBg            = $strictOverdueCount > 0 ? 'bg-red-600'    : 'bg-orange-500';
+    $headerBorder        = $strictOverdueCount > 0 ? 'border-red-300' : 'border-orange-300';
+    $iconBg              = $strictOverdueCount > 0 ? 'bg-red-500'     : 'bg-orange-400';
+    $subtitleColor       = $strictOverdueCount > 0 ? 'text-red-200'   : 'text-orange-100';
 @endphp
 
 {{-- ══════════════════════════════════════════════════════
      تنبيه النزلاء المتأخرين — يظهر فقط عند وجود متأخرين
      ══════════════════════════════════════════════════════ --}}
-@if($overdueGuests->count() > 0)
+@if($overdueCount > 0)
 @canany(['checkin.view', 'checkout.process', 'checkin.create'])
 <div class="mb-5" x-data="{ renewOpen: null }">
-    <div class="rounded-xl overflow-hidden shadow border border-red-300">
+    <div class="rounded-xl overflow-hidden shadow border {{ $headerBorder }}">
 
         {{-- Header --}}
-        <div class="flex items-center gap-3 px-5 py-3.5 bg-red-600 text-white">
-            <div class="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0 animate-pulse">
+        <div class="flex items-center gap-3 px-5 py-3.5 {{ $headerBg }} text-white">
+            <div class="w-8 h-8 rounded-full {{ $iconBg }} flex items-center justify-center flex-shrink-0 animate-pulse">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
             </div>
             <div class="flex-1">
                 <p class="font-bold text-sm">
-                    {{ $overdueGuests->count() }} {{ $overdueGuests->count() === 1 ? 'نزيل تجاوز' : 'نزلاء تجاوزوا' }} موعد المغادرة
+                    @if($strictOverdueCount > 0 && $todayLeaveCount > 0)
+                        {{ $strictOverdueCount }} {{ $strictOverdueCount === 1 ? 'متأخر' : 'متأخرون' }}
+                        &nbsp;·&nbsp;
+                        {{ $todayLeaveCount }} {{ $todayLeaveCount === 1 ? 'مغادرة اليوم' : 'مغادرات اليوم' }}
+                    @elseif($strictOverdueCount > 0)
+                        {{ $strictOverdueCount }} {{ $strictOverdueCount === 1 ? 'نزيل تجاوز' : 'نزلاء تجاوزوا' }} موعد المغادرة
+                    @else
+                        {{ $todayLeaveCount }} {{ $todayLeaveCount === 1 ? 'نزيل موعد مغادرته اليوم' : 'نزلاء موعد مغادرتهم اليوم' }}
+                    @endif
                 </p>
-                <p class="text-xs text-red-200">يرجى اختيار تجديد الإقامة أو تسجيل المغادرة لكل نزيل</p>
+                <p class="text-xs {{ $subtitleColor }}">يرجى اختيار تجديد الإقامة أو تسجيل المغادرة لكل نزيل</p>
             </div>
             <a href="{{ route('reservations.expiring') }}" class="text-xs bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition font-medium whitespace-nowrap">
                 عرض الكل
