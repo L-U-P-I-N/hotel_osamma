@@ -52,8 +52,8 @@
                             &nbsp;•&nbsp; انتهى: {{ $res->check_out_date->format('d/m/Y') }}
                         </p>
                     </div>
-                    <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 flex-shrink-0">
-                        متأخر {{ $daysOver }} {{ $daysOver === 1 ? 'يوم' : 'أيام' }}
+                    <span class="px-2.5 py-1 rounded-full text-xs font-bold flex-shrink-0 {{ $daysOver === 0 ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700' }}">
+                        {{ $daysOver === 0 ? 'موعد المغادرة اليوم' : 'متأخر '.$daysOver.' '.($daysOver === 1 ? 'يوم' : 'أيام') }}
                     </span>
                     <div class="flex items-center gap-2 flex-shrink-0">
                         @can('checkin.create')

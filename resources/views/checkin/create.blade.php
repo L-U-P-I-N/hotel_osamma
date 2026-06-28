@@ -1150,7 +1150,7 @@ function checkInForm() {
         checkInDate: '',
         checkInTime: '',
         checkOutDate: '',
-        checkOutTime: '12:00',
+        checkOutTime: '13:00',
         nights: 0,
         nightsInput: 1,
         totalAmount: 0,

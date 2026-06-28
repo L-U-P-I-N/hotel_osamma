@@ -101,7 +101,7 @@ class DashboardController extends Controller
             ->get();
 
         $overdueGuests = $expiringGuests->filter(
-            fn($r) => $r->check_out_date->startOfDay()->lt(now()->startOfDay())
+            fn($r) => $r->check_out_date->startOfDay()->lte(now()->startOfDay())
         )->values();
 
         $roomStatusCounts = Room::select('status', DB::raw('count(*) as count'))

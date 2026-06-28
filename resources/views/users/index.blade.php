@@ -357,24 +357,24 @@
         </div>
 
         <form method="POST" action="{{ route('users.store') }}" class="p-6 space-y-4 overflow-y-auto flex-1"
-              x-data="{ showPwd: false }">
+              x-data="{ showPwd: false }" autocomplete="off">
             @csrf
             <div class="grid grid-cols-2 gap-4">
                 <div class="col-span-2">
                     <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">الاسم الكامل <span class="text-red-500">*</span></label>
-                    <input type="text" name="name" required placeholder="محمد أحمد..."
+                    <input type="text" name="name" required placeholder="محمد أحمد..." autocomplete="off"
                            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition">
                 </div>
                 <div class="col-span-2">
                     <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">اسم الدخول <span class="text-red-500">*</span></label>
-                    <input type="text" name="username" required placeholder="username"
+                    <input type="text" name="username" required placeholder="username" autocomplete="off"
                            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition font-mono"
                            dir="ltr">
                 </div>
                 <div class="col-span-2">
                     <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">كلمة المرور <span class="text-red-500">*</span></label>
                     <div class="relative">
-                        <input :type="showPwd ? 'text' : 'password'" name="password" required minlength="8" placeholder="••••••••"
+                        <input :type="showPwd ? 'text' : 'password'" name="password" required minlength="8" placeholder="••••••••" autocomplete="new-password"
                                class="w-full border border-gray-200 rounded-xl px-4 py-2.5 pr-10 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition"
                                dir="ltr">
                         <button type="button" @click="showPwd = !showPwd"

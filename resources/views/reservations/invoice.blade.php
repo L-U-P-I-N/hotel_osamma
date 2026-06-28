@@ -318,6 +318,7 @@ table.sign td.gap { width: 10%; border: none; }
             <th>المستلم</th>
             <th>الطريقة</th>
             <th>النوع</th>
+            <th>ملاحظة</th>
             <th>التاريخ</th>
         </tr>
     </thead>
@@ -328,6 +329,7 @@ table.sign td.gap { width: 10%; border: none; }
             <td>{{ $p->receivedBy?->name ?? '—' }}</td>
             <td>{{ $methodMap[$p->method] ?? $p->method }}</td>
             <td>{{ $typeMap[$p->type] ?? $p->type }}</td>
+            <td style="font-size:9px;color:#555;">{{ $p->notes ?: '—' }}</td>
             <td>{{ $p->payment_date?->format('Y/m/d') }}</td>
         </tr>
         @endforeach
