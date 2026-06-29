@@ -44,9 +44,9 @@
         <input type="hidden" name="payment_method" value="cash">
 
         <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1.5">اسم المستلم</label>
-            <input type="text" name="recipient_name" value="{{ old('recipient_name') }}" placeholder="اسم الشخص الذي صُرف له المبلغ"
-                   class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-blue-400">
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">اسم المستلم *</label>
+            <input type="text" name="recipient_name" value="{{ old('recipient_name') }}" placeholder="اسم الشخص الذي صُرف له المبلغ" required
+                   class="w-full border @error('recipient_name') border-red-400 @else border-gray-300 @enderror rounded-lg px-4 py-2.5 text-sm outline-none focus:border-blue-400">
         </div>
 
         <div>

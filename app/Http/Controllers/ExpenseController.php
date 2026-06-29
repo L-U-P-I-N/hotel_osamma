@@ -110,7 +110,7 @@ class ExpenseController extends Controller
         $data = $request->validate([
             'amount'         => 'required|numeric|min:0.01',
             'category'       => 'required|in:maintenance,electricity,salary,cleaning,food,other',
-            'recipient_name' => 'nullable|string|max:255',
+            'recipient_name' => 'required|string|max:255',
             'description'    => 'nullable|string',
             'expense_date'   => 'required|date',
             'payment_method' => 'required|in:cash,bank_transfer,later',
@@ -145,7 +145,7 @@ class ExpenseController extends Controller
         $data = $request->validate([
             'amount'         => 'required|numeric|min:0.01',
             'category'       => 'required|in:maintenance,electricity,salary,cleaning,food,other',
-            'recipient_name' => 'nullable|string|max:255',
+            'recipient_name' => 'required|string|max:255',
             'description'    => 'nullable|string',
             'expense_date'   => 'required|date',
             'payment_method' => 'required|in:cash,bank_transfer,later',

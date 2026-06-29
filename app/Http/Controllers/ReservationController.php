@@ -58,7 +58,7 @@ class ReservationController extends Controller
 
     public function edit(Reservation $reservation)
     {
-        if ($reservation->status !== 'checked_in') {
+        if (!in_array($reservation->status, ['confirmed', 'checked_in'])) {
             return back()->with('error', 'لا يمكن تعديل هذا الحجز في حالته الحالية');
         }
 
@@ -91,13 +91,13 @@ class ReservationController extends Controller
 
     public function update(Request $request, Reservation $reservation)
     {
-        if ($reservation->status !== 'checked_in') {
+        if (!in_array($reservation->status, ['confirmed', 'checked_in'])) {
             return back()->with('error', 'لا يمكن تعديل هذا الحجز في حالته الحالية');
         }
 
         $validated = $request->validate([
             'check_in_date'                 => 'required|date',
-            'check_out_date'                => 'required|date|after:check_in_date',
+            'check_out_date'                => 'required|date|after_or_equal:check_in_date',
             'purpose'                       => 'nullable|string|max:255',
             'origin'                        => 'nullable|string|max:255',
             'notes'                         => 'nullable|string|max:1000',
@@ -130,7 +130,7 @@ class ReservationController extends Controller
             'check_in_date.date'         => 'تاريخ الدخول غير صالح',
             'check_out_date.required'    => 'تاريخ الخروج مطلوب',
             'check_out_date.date'        => 'تاريخ الخروج غير صالح',
-            'check_out_date.after'       => 'تاريخ الخروج يجب أن يكون بعد تاريخ الدخول',
+            'check_out_date.after_or_equal' => 'تاريخ الخروج لا يمكن أن يكون قبل تاريخ الدخول',
             'guest_full_name.required'   => 'اسم النزيل مطلوب',
         ]);
 

@@ -75,7 +75,7 @@ class CheckInController extends Controller
             'room_id'         => 'required|exists:rooms,id',
             'check_in_date'   => 'required|date',
             'check_in_time'   => 'nullable|regex:/^\d{2}:\d{2}$/',
-            'check_out_date'  => 'required|date|after:check_in_date',
+            'check_out_date'  => 'required|date|after_or_equal:check_in_date',
             'check_out_time'  => 'nullable|regex:/^\d{2}:\d{2}$/',
             'payment_status'  => 'required|in:unpaid,partial,paid,deferred',
             'currency'        => 'nullable|in:YER',
