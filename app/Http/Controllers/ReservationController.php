@@ -6,8 +6,10 @@ use App\Models\Companion;
 use App\Models\Payment;
 use App\Models\Reservation;
 use App\Models\Room;
+use App\Models\Shift;
 use App\Models\User;
 use App\Services\AuditLogService;
+use App\Services\ShiftService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -196,11 +198,12 @@ class ReservationController extends Controller
             }
 
             $nights = Carbon::parse($validated['check_in_date'])->diffInDays($validated['check_out_date']);
+            $billableNights = max($nights, 1); // المبيت في نفس اليوم يُحتسب ليلة واحدة كحد أدنى
             $submittedPrice = isset($validated['price_per_night']) && $validated['price_per_night'] > 0
                 ? (float) $validated['price_per_night']
                 : null;
-            $pricePerNight = $submittedPrice ?? $reservation->room?->roomType?->base_price ?? $reservation->total_amount / max($nights, 1);
-            $newTotal = $nights * $pricePerNight;
+            $pricePerNight = $submittedPrice ?? $reservation->room?->roomType?->base_price ?? $reservation->total_amount / $billableNights;
+            $newTotal = $billableNights * $pricePerNight;
 
             $reservation->update([
                 'check_in_date'  => $validated['check_in_date'],
@@ -210,6 +213,11 @@ class ReservationController extends Controller
                 'notes'          => $this->nullIfEmpty($validated['notes'] ?? null),
                 'total_amount'   => $newTotal,
             ]);
+
+            // إن أصبح الإجمالي الجديد أقل من المبلغ المسجَّل كمدفوع (تصحيح خطأ في السعر)،
+            // نُخفّض الدفعات المسجَّلة لتطابق الإجمالي الجديد ونُعيد حساب الورديات المتأثرة،
+            // وإلا ستبقى مستلمات الوردية محسوبة بالسعر القديم الخاطئ.
+            $this->reconcileOverpayment($reservation);
 
             AuditLogService::log('update', $reservation, $old, $reservation->fresh()->toArray(), auth()->user());
 
@@ -479,5 +487,61 @@ class ReservationController extends Controller
     private function nullIfEmpty(mixed $value): mixed
     {
         return ($value === '' || $value === null) ? null : $value;
+    }
+
+    /**
+     * عند تخفيض إجمالي الحجز إلى ما دون المبلغ المدفوع (تصحيح خطأ في السعر)،
+     * يُخفّض هذا التابع الدفعات المرتبطة بالحجز لتطابق الإجمالي الجديد بدءاً
+     * من الأحدث، ثم يُعيد حساب المبلغ المدفوع وحالة الدفع وإجماليات الورديات
+     * المتأثرة — حتى تعكس الوردية السعر المصحَّح لا القديم.
+     */
+    private function reconcileOverpayment(Reservation $reservation): void
+    {
+        $reservation->refresh();
+        $excess = round((float) $reservation->paid_amount - (float) $reservation->total_amount, 2);
+        if ($excess <= 0) {
+            return; // لا يوجد فائض — لا حاجة لأي تعديل على الدفعات أو الوردية
+        }
+
+        // نُخفّض الدفعات النقدية للحجز بدءاً من الأحدث حتى يُستوعب الفائض بالكامل
+        $payments = $reservation->payments()
+            ->where('currency', 'YER')
+            ->orderByDesc('payment_date')
+            ->orderByDesc('id')
+            ->get();
+
+        $affectedShiftIds = [];
+
+        foreach ($payments as $payment) {
+            if ($excess <= 0) {
+                break;
+            }
+
+            $affectedShiftIds[$payment->shift_id] = $payment->shift_id;
+            $amount = (float) $payment->amount;
+
+            if ($amount <= $excess) {
+                // الدفعة بالكامل ضمن الفائض → نحذفها
+                $excess = round($excess - $amount, 2);
+                $payment->delete();
+            } else {
+                // تخفيض جزئي يطابق ما تبقى من الفائض
+                $payment->update(['amount' => round($amount - $excess, 2)]);
+                $excess = 0;
+            }
+        }
+
+        // إعادة حساب المبلغ المدفوع من الدفعات المتبقية ثم تحديث حالة الدفع
+        $newPaid = (float) $reservation->payments()->where('currency', 'YER')->sum('amount');
+        $reservation->update(['paid_amount' => $newPaid]);
+        $reservation->updatePaymentStatus();
+
+        // إعادة حساب إجماليات كل وردية تأثّرت بتعديل دفعاتها
+        $shiftService = app(ShiftService::class);
+        foreach (array_filter($affectedShiftIds) as $shiftId) {
+            if ($shift = Shift::find($shiftId)) {
+                $shiftService->computeTotals($shift);
+            }
+        }
     }
 }
