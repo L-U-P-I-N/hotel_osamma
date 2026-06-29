@@ -70,7 +70,7 @@
     </script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="/css/app-theme.css">
+    <link rel="stylesheet" href="/css/app-theme.css?v={{ @filemtime(public_path('css/app-theme.css')) ?: '1' }}">
     @stack('styles')
 </head>
 <body class="bg-slate-50 text-gray-800">
