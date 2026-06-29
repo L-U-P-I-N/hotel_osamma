@@ -848,11 +848,11 @@ html.dark .comp-card .border-gray-200 { border-color:#2f3e54 !important; }
             </div>
 
             {{-- Price stats --}}
-            <div x-show="nights > 0 && selectedRoom" x-transition class="space-y-3">
+            <div x-show="checkOutDate >= checkInDate && checkOutDate && selectedRoom" x-transition class="space-y-3">
                 <div class="h-px bg-gray-100"></div>
                 <div class="flex gap-2">
                     <div class="stat-box bg-blue-50 border border-blue-100">
-                        <div class="text-xl font-black text-blue-700" x-text="nights"></div>
+                        <div class="text-xl font-black text-blue-700" x-text="nights || 1"></div>
                         <div class="text-xs text-blue-400 font-semibold mt-0.5">ليلة</div>
                     </div>
                     <div class="stat-box bg-amber-50 border border-amber-100 relative">
@@ -1354,7 +1354,7 @@ function checkInForm() {
                 const d1 = new Date(this.checkInDate), d2 = new Date(this.checkOutDate);
                 this.nights     = Math.max(0, Math.floor((d2 - d1) / 86400000));
                 this.nightsInput = this.nights || 1;
-                this.totalAmount = this.selectedRoom ? this.nights * this.effectiveRoomPrice() : 0;
+                this.totalAmount = this.selectedRoom ? (this.nights || 1) * this.effectiveRoomPrice() : 0;
                 this.saveToSession();
             }
         },
@@ -1384,7 +1384,7 @@ function checkInForm() {
                 if (!this.roomId)         return 'يرجى اختيار غرفة';
                 if (!this.checkInDate)    return 'تاريخ الدخول مطلوب';
                 if (!this.checkOutDate)   return 'تاريخ الخروج مطلوب';
-                if (this.nights <= 0)     return 'تاريخ الخروج يجب أن يكون بعد تاريخ الدخول';
+                if (this.checkOutDate < this.checkInDate) return 'تاريخ الخروج لا يمكن أن يكون قبل تاريخ الدخول';
                 if (this.customPrice !== null && this.customPrice !== '') {
                     const cp = parseFloat(this.customPrice) || 0;
                     if (cp < 3000)   return 'مبلغ التفاوض لا يمكن أن يقل عن 3,000 ر.ي';
