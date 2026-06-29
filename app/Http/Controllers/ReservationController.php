@@ -58,7 +58,7 @@ class ReservationController extends Controller
 
     public function edit(Reservation $reservation)
     {
-        if ($reservation->status !== 'checked_in') {
+        if (!in_array($reservation->status, ['confirmed', 'checked_in'])) {
             return back()->with('error', 'لا يمكن تعديل هذا الحجز في حالته الحالية');
         }
 
@@ -91,7 +91,7 @@ class ReservationController extends Controller
 
     public function update(Request $request, Reservation $reservation)
     {
-        if ($reservation->status !== 'checked_in') {
+        if (!in_array($reservation->status, ['confirmed', 'checked_in'])) {
             return back()->with('error', 'لا يمكن تعديل هذا الحجز في حالته الحالية');
         }
 

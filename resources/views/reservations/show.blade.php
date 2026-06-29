@@ -54,13 +54,15 @@
 
             {{-- Secondary Actions --}}
             @can('checkin.view')
-            @if($reservation->status === 'checked_in')
+            @if(in_array($reservation->status, ['confirmed', 'checked_in']))
             <a href="{{ route('reservations.edit', $reservation) }}"
                class="inline-flex items-center gap-1.5 px-4 py-2.5 border border-primary-600 text-primary-700 text-sm rounded-xl hover:bg-primary-50 transition font-medium">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                 تعديل
             </a>
+            @endif
 
+            @if($reservation->status === 'checked_in')
             <button onclick="document.getElementById('renewModal').classList.remove('hidden')"
                     class="inline-flex items-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white text-sm rounded-xl hover:bg-blue-700 transition font-medium">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
@@ -106,7 +108,7 @@
 
             {{-- Destructive Actions: Cancel --}}
             @can('checkin.view')
-            @if($reservation->status === 'checked_in')
+            @if(in_array($reservation->status, ['confirmed', 'checked_in']))
             <button onclick="deleteModal.open(document.getElementById('cancelForm'), 'هل أنت متأكد من إلغاء هذا الحجز نهائياً؟')"
                     class="inline-flex items-center gap-1.5 px-4 py-2.5 border-2 border-red-300 text-red-600 text-sm rounded-xl hover:bg-red-50 transition font-medium">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
