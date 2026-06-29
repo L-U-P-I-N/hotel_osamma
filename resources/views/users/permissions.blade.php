@@ -189,9 +189,9 @@ $totalCount   = count($pm);
                     <p class="text-2xl font-black text-green-700">{{ $grantedCount }}</p>
                     <p class="text-xs text-green-600 mt-0.5">مفعّلة</p>
                 </div>
-                <div class="text-center bg-gray-50 rounded-xl px-5 py-3 border border-gray-100">
-                    <p class="text-2xl font-black text-gray-400">{{ $totalCount - $grantedCount }}</p>
-                    <p class="text-xs text-gray-400 mt-0.5">موقوفة</p>
+                <div class="text-center bg-slate-50 rounded-xl px-5 py-3 border border-slate-200">
+                    <p class="text-2xl font-black text-slate-500">{{ $totalCount }}</p>
+                    <p class="text-xs text-slate-400 mt-0.5">إجمالي الصلاحيات</p>
                 </div>
                 <div class="text-center bg-purple-50 rounded-xl px-5 py-3 border border-purple-100">
                     <p class="text-2xl font-black text-purple-700">{{ collect($pm)->where('is_custom', true)->count() }}</p>
@@ -205,19 +205,15 @@ $totalCount   = count($pm);
     <div class="flex flex-wrap gap-3 text-xs">
         <div class="flex items-center gap-1.5 bg-white border border-gray-100 rounded-lg px-3 py-2 shadow-sm">
             <div class="w-2.5 h-2.5 rounded-full bg-green-500"></div>
-            <span class="text-gray-600">مفعّلة</span>
+            <span class="text-gray-600">مفعّلة — اضغط لإيقافها</span>
         </div>
         <div class="flex items-center gap-1.5 bg-white border border-gray-100 rounded-lg px-3 py-2 shadow-sm">
-            <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
-            <span class="text-gray-600">موقوفة</span>
+            <div class="w-2.5 h-2.5 rounded-full border-2 border-gray-300"></div>
+            <span class="text-gray-600">غير مفعّلة — اضغط لتفعيلها</span>
         </div>
         <div class="flex items-center gap-1.5 bg-white border border-gray-100 rounded-lg px-3 py-2 shadow-sm">
             <div class="w-2.5 h-2.5 rounded-full bg-purple-500"></div>
             <span class="text-gray-600">مخصّصة يدوياً</span>
-        </div>
-        <div class="flex items-center gap-1.5 bg-white border border-gray-100 rounded-lg px-3 py-2 shadow-sm">
-            <div class="w-2.5 h-2.5 rounded-full bg-gray-200 border border-dashed border-gray-400"></div>
-            <span class="text-gray-400">غير متاحة لهذه المجموعة</span>
         </div>
     </div>
 
