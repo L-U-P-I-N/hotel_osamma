@@ -217,11 +217,66 @@
         html.dark .status-under_inspection { background:rgba(245,158,11,.16) !important; color:#fbbf24 !important; }
         html.dark .status-maintenance      { background:rgba(148,163,184,.16) !important;color:#cbd5e1 !important; }
 
-        /* Inline navy accent (color:#0F4C75) is unreadable on dark surfaces → lighten.
-           Safe: no element uses background-color:#0F4C75 (buttons use background:#0F4C75). */
+        /* Inline navy accent (color:#0F4C75) is unreadable on dark surfaces → lighten */
         html.dark [style*="color:#0F4C75"], html.dark [style*="color: #0F4C75"] { color:#7ab3e0 !important; }
-        /* Light navy-tint inline background (#e8f0f7) → dark, so paired navy text stays readable */
+        /* Light navy-tint inline background (#e8f0f7) → dark */
         html.dark [style*="background:#e8f0f7"], html.dark [style*="background: #e8f0f7"] { background:#16263c !important; }
+
+        /* ── Report pages: palette & inline fixes ─────────────────────────── */
+
+        /* Orange -50 missing from global rules (bg-orange-50 and opacity variants) */
+        html.dark [class*="bg-orange-50"]      { background-color:rgba(249,115,22,.10) !important; }
+
+        /* Orange text: separate from amber so it looks actually orange, not yellow */
+        html.dark .text-orange-800,
+        html.dark .text-orange-700,
+        html.dark .text-orange-600             { color:#fb923c !important; }
+
+        /* Orange borders */
+        html.dark .border-orange-500,
+        html.dark .border-orange-400,
+        html.dark .border-orange-300,
+        html.dark .border-orange-200           { border-color:rgba(249,115,22,.40) !important; }
+
+        /* Purple / indigo 800 (existing rules stop at 700) */
+        html.dark .text-purple-800,
+        html.dark .text-indigo-800             { color:#c4b5fd !important; }
+
+        /* Teal 800 + 500 */
+        html.dark .text-teal-800,
+        html.dark .text-teal-500               { color:#5eead4 !important; }
+
+        /* Table row striping: even:/odd: modifiers generate different class names
+           (.even\:bg-gray-50) that the .bg-gray-50 dark rule cannot match */
+        html.dark .even\:bg-gray-50:nth-child(even),
+        html.dark .even\:bg-slate-50:nth-child(even),
+        html.dark .even\:bg-white:nth-child(even)  { background-color:#172032 !important; }
+        html.dark .odd\:bg-gray-50:nth-child(odd)  { background-color:#1e293b !important; }
+        html.dark .hover\:bg-white:hover            { background-color:#233248 !important; }
+
+        /* Inline background:#0F4C75 (progress bars, avatars) → visible blue on dark */
+        html.dark [style*="background:#0F4C75"],
+        html.dark [style*="background: #0F4C75"]   { background:#1d6295 !important; }
+
+        /* Inline border-color:#0F4C75 → softer navy */
+        html.dark [style*="border-color:#0F4C75"],
+        html.dark [style*="border-color: #0F4C75"] { border-color:#2a5f7a !important; }
+
+        /* Inline border-color:#9fbedd (light blue border) → dark-mode border */
+        html.dark [style*="border-color:#9fbedd"],
+        html.dark [style*="border-color: #9fbedd"] { border-color:#2f3e54 !important; }
+
+        /* Inline color:#5b90c5 (medium blue) → lighten */
+        html.dark [style*="color:#5b90c5"],
+        html.dark [style*="color: #5b90c5"]        { color:#7ab3e0 !important; }
+
+        /* Inline background:#fef2f2 (very light red) → dark translucent red */
+        html.dark [style*="background:#fef2f2"],
+        html.dark [style*="background: #fef2f2"]   { background:rgba(239,68,68,.12) !important; }
+
+        /* Inline border-color:#fecaca (light red border) */
+        html.dark [style*="border-color:#fecaca"],
+        html.dark [style*="border-color: #fecaca"] { border-color:rgba(239,68,68,.30) !important; }
 
         /* Hover surfaces */
         html.dark .hover\:bg-gray-50:hover, html.dark .hover\:bg-gray-100:hover { background-color:#233248 !important; }
