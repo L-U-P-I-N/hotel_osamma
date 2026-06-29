@@ -406,8 +406,7 @@ class ReservationController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->whereHas('guest', fn($g) => $g->where('full_name', 'like', "%{$search}%"))
                   ->orWhereHas('room', fn($r) => $r->where('room_number', 'like', "%{$search}%"))
-                  ->orWhere('suite_a_number', 'like', "%{$search}%")
-                  ->orWhere('suite_b_number', 'like', "%{$search}%");
+                  ->orWhereHas('linkedRoom', fn($r) => $r->where('room_number', 'like', "%{$search}%"));
             });
         }
 

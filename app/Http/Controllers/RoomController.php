@@ -252,7 +252,8 @@ class RoomController extends Controller
         AuditLogService::log('delete', $room, $room->toArray(), [], auth()->user());
         $room->delete();
 
-        return redirect()->route('rooms.index')->with('success', 'تم حذف الغرفة بنجاح');
+        // العودة إلى نفس الصفحة (قائمة غرف الطابق مع الفلاتر) بدل القفز للوحة التحكم
+        return redirect()->back()->with('success', 'تم حذف الغرفة ' . $room->room_number . ' بنجاح');
     }
 
     public function available()
