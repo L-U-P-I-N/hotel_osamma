@@ -262,27 +262,43 @@
 /* ── Divider ── */
 .sec-divider { height: 1.5px; background: linear-gradient(to right, transparent, #E5E7EB, transparent); margin: 1rem 0; }
 
-/* ════════ الوضع الليلي للنموذج (Dark mode) ════════ */
-html.dark .sec-card { background:#1e293b; border-color:#2f3e54; }
-html.dark .sec-hdr { background:linear-gradient(135deg, #16263c 0%, #1e293b 100%); border-color:#2f3e54; }
-html.dark .sec-title { color:#e6edf5; }
-html.dark .step-wrap { background:#1e293b; border-color:#2f3e54; }
-html.dark .bpanel { background:#1e293b; border-color:#2f3e54; }
-html.dark .fi { background:#0f1b2d; color:#e6edf5; border-color:#2f3e54; }
-html.dark .rtile { background:#0f1b2d; border-color:#2f3e54; }
-html.dark .rtile:hover { background:#172a40; }
-html.dark .rtile.active { background:linear-gradient(135deg,#16314c,#1e293b); }
-html.dark .rtile-suite { background:#13243a; border-color:#24456e; }
-html.dark .rtile .text-gray-800, html.dark .rtile .font-black { color:#e6edf5; }
-html.dark .comp-card { background:#172032; border-color:#2f3e54; }
-html.dark .rev-card { background:#172032; border-color:#2f3e54; }
-html.dark .rev-row span:last-child { color:#e6edf5; }
-html.dark .fpill-off { background:#172032; color:#aab6c6; border-color:#2f3e54; }
-html.dark .fpill-off:hover { background:#22344c; color:#cfe0f0; }
-html.dark .pay-opt-inner { background:#0f1b2d; border-color:#2f3e54; }
-html.dark .step-dot-idle { background:#172032; color:#7c8aa0; border-color:#2f3e54; }
-html.dark .step-track { background:#2f3e54; }
-html.dark .comp-card .border-gray-200 { border-color:#2f3e54 !important; }
+/* ════════ الوضع الليلي للنموذج — لوحة ألوان هادئة ومريحة للعين ════════ */
+html.dark .sec-card { background:#1e2738; border-color:#313d52; box-shadow:0 1px 3px rgba(0,0,0,.18); }
+html.dark .sec-hdr { background:linear-gradient(135deg, #243044 0%, #1e2738 100%); border-color:#313d52; }
+html.dark .sec-title { color:#e8edf4; }
+html.dark .step-wrap { background:#1e2738; border-color:#313d52; }
+html.dark .bpanel { background:#1e2738; border-color:#313d52; }
+
+/* الحقول: خلفية رمادية-زرقاء ناعمة بدل الأسود القاسي مع حدود واضحة */
+html.dark .fi { background:#273347; color:#eef2f7; border-color:#3a4862; }
+html.dark .fi::placeholder { color:#8a97aa; }
+html.dark .fi:focus { border-color:#5b90c5; box-shadow:0 0 0 3px rgba(91,144,197,.22); }
+html.dark .ci-form select option { background:#273347; color:#eef2f7; }
+
+/* التسميات: كانت داكنة وغير مرئية — الآن رمادي فاتح ناعم واضح */
+html.dark .fl { color:#c3cedd; }
+html.dark .freq { color:#f87171; }
+
+html.dark .rtile { background:#273347; border-color:#3a4862; }
+html.dark .rtile:hover { background:#2e3c54; }
+html.dark .rtile.active { background:linear-gradient(135deg,#244260,#1e2738); border-color:#5b90c5; }
+html.dark .rtile-suite { background:#243a55; border-color:#355f88; }
+html.dark .rtile .text-gray-800, html.dark .rtile .font-black { color:#eef2f7; }
+html.dark .comp-card { background:#222d40; border-color:#313d52; }
+html.dark .rev-card { background:#222d40; border-color:#313d52; }
+html.dark .rev-row span:first-child { color:#9aa7b8; }
+html.dark .rev-row span:last-child { color:#eef2f7; }
+html.dark .fpill-off { background:#222d40; color:#b4c0d0; border-color:#3a4862; }
+html.dark .fpill-off:hover { background:#2e3c54; color:#dce7f3; }
+html.dark .pay-opt-inner { background:#273347; border-color:#3a4862; }
+html.dark .step-dot-idle { background:#222d40; color:#8a97aa; border-color:#3a4862; }
+html.dark .step-track { background:#313d52; }
+html.dark .comp-card .border-gray-200 { border-color:#313d52 !important; }
+html.dark .sec-divider { background:linear-gradient(to right, transparent, #313d52, transparent); }
+
+/* حقول التاريخ/الوقت: اتجاه LTR حتى لا يظهر تنسيق التاريخ معكوساً (ةنس/رهش/موي) */
+.ci-form input[type="date"], .ci-form input[type="time"] { direction:ltr; text-align:right; }
+html.dark .ci-form input[type="date"], html.dark .ci-form input[type="time"] { color-scheme:dark; }
 </style>
 @endpush
 
