@@ -42,7 +42,8 @@
     $daysLabel = '';
     $daysClass = '';
     if ($reservation->status === 'checked_in' && $reservation->check_out_date) {
-        $diff = now()->diffInDays($reservation->check_out_date, false);
+        // نحسب الفرق بالأيام الكاملة (تقويمياً) بمقارنة بداية اليوم لتفادي الكسور العشرية
+        $diff = (int) round(now()->startOfDay()->diffInDays($reservation->check_out_date->copy()->startOfDay(), false));
         if ($diff < 0)       { $daysLabel = 'تجاوز الموعد بـ ' . abs($diff) . ' يوم'; $daysClass = 'bg-red-600 text-white'; }
         elseif ($diff === 0) { $daysLabel = 'الخروج اليوم'; $daysClass = 'bg-amber-500 text-white'; }
         else                 { $daysLabel = 'يتبقى ' . $diff . ' يوم'; $daysClass = 'bg-emerald-500 text-white'; }

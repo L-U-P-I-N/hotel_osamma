@@ -138,6 +138,13 @@ table.data tbody tr:nth-child(even) td { background: #f9fafb; }
 </div>
 
 {{-- Reservation Meta --}}
+@php
+    // الوقت بنظام 24 ساعة — قيمة الحقل مخزّنة أصلاً "HH:MM"
+    $inTime  = $reservation->check_in_time ?: ($reservation->check_in_date?->format('H:i'));
+    $outTime = $reservation->check_out_time ?: ($reservation->check_out_date?->format('H:i'));
+    $arrival   = $reservation->check_in_date  ? $reservation->check_in_date->format('d/m/Y')  . ($inTime  ? ' — ' . $inTime  : '') : '—';
+    $departure = $reservation->check_out_date ? $reservation->check_out_date->format('d/m/Y') . ($outTime ? ' — ' . $outTime : '') : '—';
+@endphp
 <div class="meta-box">
     <table>
         <tr>
@@ -147,18 +154,18 @@ table.data tbody tr:nth-child(even) td { background: #f9fafb; }
             <td class="lbl">رقم الغرفة</td>
             <td class="val">{{ now()->format('d/m/Y H:i') }}</td>
             <td class="lbl">تاريخ الإصدار</td>
-            <td class="val">#{{ $reservation->id }}</td>
+            <td class="val">#{{ str_pad($reservation->id, 5, '0', STR_PAD_LEFT) }}</td>
             <td class="lbl">رقم الحجز</td>
         </tr>
         <tr>
-            <td class="val">{{ $reservation->origin ?? '—' }}</td>
+            <td class="val">{{ $arrival }}</td>
+            <td class="lbl">الوصول</td>
+            <td class="val">{{ $departure }}</td>
+            <td class="lbl">المغادرة</td>
+            <td class="val">{{ $reservation->origin ?: '—' }}</td>
             <td class="lbl">جهة القدوم</td>
-            <td class="val">{{ $reservation->purpose ?? '—' }}</td>
+            <td class="val">{{ $reservation->purpose ?: '—' }}</td>
             <td class="lbl">الغرض</td>
-            <td class="val">{{ $reservation->check_out_date?->format('d/m/Y') ?? '—' }}</td>
-            <td class="lbl">تاريخ المغادرة</td>
-            <td class="val">{{ $reservation->check_in_date?->format('d/m/Y') ?? '—' }}</td>
-            <td class="lbl">تاريخ الوصول</td>
         </tr>
     </table>
 </div>

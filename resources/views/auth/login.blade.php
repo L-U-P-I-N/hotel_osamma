@@ -7,7 +7,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>tailwind.config={theme:{extend:{fontFamily:{cairo:['Cairo','sans-serif']},colors:{primary:{DEFAULT:'#0F4C75',800:'#0F4C75',700:'#1e578f',600:'#2d6aab',100:'#c5d8ea'},accent:{DEFAULT:'#D4A574'}}}}}</script>
-    <style>body{font-family:'Cairo',sans-serif;}</style>
+    <style>
+        /* الصفحة دائماً بنمط فاتح حتى لو كان نظام المستخدم في الوضع الليلي،
+           حتى لا تنقلب حقول الإدخال إلى ألوان داكنة تُخفي النص */
+        html { color-scheme: light; }
+        body { font-family:'Cairo',sans-serif; }
+        input { background-color:#fff !important; color:#111827 !important; }
+        input::placeholder { color:#9ca3af !important; }
+    </style>
 </head>
 <body class="min-h-screen bg-gradient-to-br from-primary-800 to-primary-900 flex items-center justify-center p-4">
     <div class="w-full max-w-md">

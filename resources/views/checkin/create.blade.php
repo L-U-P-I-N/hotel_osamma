@@ -343,7 +343,7 @@ html.dark .comp-card .border-gray-200 { border-color:#2f3e54 !important; }
 @endif
 
 <form id="checkInMainForm" method="POST" action="{{ route('checkin.store') }}"
-      enctype="multipart/form-data" autocomplete="off"
+      enctype="multipart/form-data" autocomplete="off" novalidate
       @submit="handleSubmit($event)">
 @csrf
 
@@ -365,9 +365,36 @@ html.dark .comp-card .border-gray-200 { border-color:#2f3e54 !important; }
         <div class="sec-body">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-                <div class="md:col-span-2">
+                <div class="md:col-span-2 relative">
                     <label class="fl">الاسم الرباعي <span class="freq">*</span></label>
-                    <input type="text" name="full_name" x-model="guestData.full_name" required placeholder="أدخل الاسم الكامل رباعياً" class="fi">
+                    <input type="text" name="full_name" x-model="guestData.full_name" required autocomplete="off"
+                           @input.debounce.350ms="searchGuests()"
+                           @focus="if (guestSuggestions.length) showSuggestions = true"
+                           @blur="setTimeout(() => showSuggestions = false, 200)"
+                           placeholder="ابدأ بكتابة الاسم — يظهر النزلاء العائدون تلقائياً" class="fi">
+
+                    {{-- اقتراحات النزلاء العائدين (بحث بالاسم) --}}
+                    <div x-show="showSuggestions && guestSuggestions.length" x-transition x-cloak
+                         class="absolute z-30 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl max-h-64 overflow-y-auto">
+                        <template x-for="g in guestSuggestions" :key="g.id">
+                            <button type="button" @click="selectGuest(g)"
+                                    class="w-full text-right px-4 py-2.5 hover:bg-blue-50 transition border-b border-gray-50 last:border-0 flex items-center justify-between gap-3">
+                                <div class="min-w-0">
+                                    <div class="font-semibold text-gray-800 text-sm truncate" x-text="g.full_name"></div>
+                                    <div class="text-xs text-gray-400 truncate" x-text="(g.nationality || '—') + (g.id_number ? ' • ' + g.id_number : '')"></div>
+                                </div>
+                                <span class="text-[11px] text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0">نزيل عائد</span>
+                            </button>
+                        </template>
+                    </div>
+
+                    {{-- شارة النزيل العائد بعد التعبئة --}}
+                    <div x-show="existingGuestId" x-cloak
+                         class="mt-2 flex items-center gap-2 text-xs bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg px-3 py-2">
+                        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span>نزيل عائد — تم تعبئة البيانات تلقائياً، تابع لاختيار الغرفة</span>
+                        <button type="button" @click="clearReturningGuest()" class="mr-auto text-emerald-600 hover:text-emerald-800 underline whitespace-nowrap">إدخال نزيل جديد</button>
+                    </div>
                 </div>
 
                 <div>
@@ -417,8 +444,8 @@ html.dark .comp-card .border-gray-200 { border-color:#2f3e54 !important; }
                 </div>
 
                 <div>
-                    <label class="fl">رقم الجوال <span class="freq">*</span></label>
-                    <input type="text" name="phone" x-model="guestData.phone" required placeholder="+967..." class="fi">
+                    <label class="fl">رقم الجوال <span class="text-gray-400 text-xs font-normal">(اختياري)</span></label>
+                    <input type="text" name="phone" x-model="guestData.phone" placeholder="اتركه فارغاً إن لم يوجد" class="fi">
                 </div>
 
                 <div class="md:col-span-2">
@@ -428,7 +455,10 @@ html.dark .comp-card .border-gray-200 { border-color:#2f3e54 !important; }
 
                 {{-- ID Image Upload --}}
                 <div class="md:col-span-2">
-                    <label class="fl">صورة الهوية <span class="freq">*</span></label>
+                    <label class="fl">صورة الهوية
+                        <span class="freq" x-show="!existingGuestHasImage">*</span>
+                        <span x-show="existingGuestHasImage" x-cloak class="text-emerald-600 text-xs font-normal">(محفوظة مسبقاً — ارفع صورة جديدة فقط للتحديث)</span>
+                    </label>
                     <div class="border-2 border-dashed rounded-xl transition-all duration-200 cursor-pointer relative overflow-hidden group"
                          :class="idImagePreview ? 'border-emerald-300 bg-emerald-50' : 'border-gray-300 hover:border-navy-400 bg-gray-50 hover:bg-blue-50'"
                          @dragover.prevent @drop.prevent="handleIdImageDrop($event)">
@@ -1142,6 +1172,10 @@ function checkInForm() {
         currentStep: 1,
         stepLabels: ['النزيل والمرافقون', 'الغرفة والدفع', 'التأكيد'],
         guestData: { full_name:'', nationality:'', occupation:'', origin:'', purpose:'', id_type:'national_id', id_number:'', id_issuer:'', id_issue_date:'', phone:'', notes:'' },
+        guestSuggestions: [],
+        showSuggestions: false,
+        existingGuestId: null,
+        existingGuestHasImage: false,
         companions: [],
         selectedRoom: null,
         linkedInfo: null,
@@ -1190,6 +1224,10 @@ function checkInForm() {
             this.$watch('checkInDate',   () => { if (this.stepError) this.stepError = ''; });
             this.$watch('checkOutDate',  () => { if (this.stepError) this.stepError = ''; });
             this.$watch('idImagePreview',() => { if (this.stepError) this.stepError = ''; });
+
+            // عند العودة للصفحة من ذاكرة المتصفح (زر رجوع) أعِد ضبط زر الحفظ
+            // حتى لا تبقى أيقونة التحميل "معلّقة" بعد تسجيل نزيل سابق
+            window.addEventListener('pageshow', (e) => { if (e.persisted) this.submitting = false; });
         },
 
         saveToSession() {
@@ -1197,6 +1235,8 @@ function checkInForm() {
                 sessionStorage.setItem(CHECKIN_SESSION_KEY, JSON.stringify({
                     currentStep:     this.currentStep,
                     guestData:       this.guestData,
+                    existingGuestId: this.existingGuestId,
+                    existingGuestHasImage: this.existingGuestHasImage,
                     companions:      this.companions.map(c => ({ ...c, id_preview: null })),
                     roomId:          this.roomId,
                     selectedRoom:    this.selectedRoom,
@@ -1222,6 +1262,8 @@ function checkInForm() {
                 if (!raw) return;
                 const s = JSON.parse(raw);
                 this.guestData         = s.guestData         ?? this.guestData;
+                this.existingGuestId   = s.existingGuestId    ?? null;
+                this.existingGuestHasImage = s.existingGuestHasImage ?? false;
                 this.companions        = s.companions         ?? [];
                 this.roomId            = s.roomId             ?? '';
                 this.selectedRoom      = s.selectedRoom       ?? null;
@@ -1243,6 +1285,54 @@ function checkInForm() {
 
         handleSubmit(event) {
             this.submitting = true;
+        },
+
+        // البحث عن نزيل عائد بالاسم لعرض اقتراحات تعبئة سريعة
+        searchGuests() {
+            // أي تعديل يدوي على الاسم يُلغي ارتباط "النزيل العائد" دون مسح الحقول
+            if (this.existingGuestId) { this.existingGuestId = null; this.existingGuestHasImage = false; }
+            const q = (this.guestData.full_name || '').trim();
+            if (q.length < 2) { this.guestSuggestions = []; this.showSuggestions = false; return; }
+            fetch(@json(route('guests.search')) + '?q=' + encodeURIComponent(q), { headers: { 'Accept': 'application/json' } })
+                .then(r => r.ok ? r.json() : [])
+                .then(list => {
+                    this.guestSuggestions = Array.isArray(list) ? list : [];
+                    this.showSuggestions  = this.guestSuggestions.length > 0;
+                })
+                .catch(() => { this.guestSuggestions = []; this.showSuggestions = false; });
+        },
+
+        // تعبئة كل بيانات النزيل من سجل سابق — يتبقى فقط اختيار الغرفة
+        selectGuest(g) {
+            this.guestData.full_name     = g.full_name || '';
+            this.guestData.nationality   = g.nationality || '';
+            this.guestData.occupation    = g.occupation || '';
+            this.guestData.id_type       = g.id_type || 'national_id';
+            this.guestData.id_number     = g.id_number || '';
+            this.guestData.id_issuer     = g.id_issuer || '';
+            this.guestData.id_issue_date = g.id_issue_date || '';
+            this.guestData.phone         = g.phone || '';
+            this.existingGuestId         = g.id;
+            this.existingGuestHasImage   = !!g.has_id_image;
+            this.guestSuggestions = [];
+            this.showSuggestions  = false;
+            this.saveToSession();
+        },
+
+        // إلغاء حالة النزيل العائد والبدء بنزيل جديد فارغ
+        clearReturningGuest() {
+            this.existingGuestId = null;
+            this.existingGuestHasImage = false;
+            this.guestData.full_name = '';
+            this.guestData.nationality = '';
+            this.guestData.occupation = '';
+            this.guestData.id_number = '';
+            this.guestData.id_issuer = '';
+            this.guestData.id_issue_date = '';
+            this.guestData.phone = '';
+            this.guestSuggestions = [];
+            this.showSuggestions = false;
+            this.saveToSession();
         },
 
         today() {
@@ -1369,8 +1459,8 @@ function checkInForm() {
             if (this.currentStep === 1) {
                 if (!this.guestData.full_name)  return 'الاسم الرباعي مطلوب';
                 if (!this.guestData.id_number)  return 'رقم الهوية مطلوب';
-                if (!this.guestData.phone)       return 'رقم الجوال مطلوب';
-                if (!this.idImagePreview && !this.idImageName) return 'صورة هوية النزيل مطلوبة';
+                // صورة الهوية مطلوبة إلا للنزيل العائد الذي لديه صورة محفوظة مسبقاً
+                if (!this.idImagePreview && !this.idImageName && !this.existingGuestHasImage) return 'صورة هوية النزيل مطلوبة';
                 for (let i = 0; i < this.companions.length; i++) {
                     const c = this.companions[i]; const n = i + 1;
                     if (!c.full_name || !c.full_name.trim())     return `مرافق ${n}: الاسم مطلوب`;

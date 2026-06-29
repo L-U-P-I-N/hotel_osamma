@@ -318,3 +318,25 @@ html.dark [style*="background:#fef2f2"],
 html.dark [style*="background: #fef2f2"]                { background:rgba(239,68,68,.12) !important; }
 html.dark [style*="border-color:#fecaca"],
 html.dark [style*="border-color: #fecaca"]              { border-color:rgba(239,68,68,.30) !important; }
+
+/* ── Native date / time inputs ────────────────────────────────────────
+   In an RTL page the browser renders the localized date-format hint with
+   reversed letters (e.g. ةنس/رهش/موي بدل سنة/شهر/يوم). Forcing the field
+   to LTR fixes the segment order while text-align:right keeps it placed
+   correctly within the RTL layout. */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
+    direction: ltr;
+    text-align: right;
+}
+/* Dark mode: render native pickers with a dark color-scheme so the text
+   and the calendar/clock icon stay visible. */
+html.dark input[type="date"],
+html.dark input[type="time"],
+html.dark input[type="datetime-local"] { color-scheme: dark; }
+html.dark input[type="date"]::-webkit-calendar-picker-indicator,
+html.dark input[type="time"]::-webkit-calendar-picker-indicator,
+html.dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    filter: invert(1) opacity(0.75);
+}

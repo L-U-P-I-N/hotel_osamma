@@ -62,13 +62,24 @@ class CheckInController extends Controller
 
     public function store(Request $request)
     {
+        // نزيل عائد: إن كانت هويته مسجّلة مسبقاً ولها صورة محفوظة فلا نُلزمه برفع صورة جديدة
+        $existingGuest = Guest::where('id_number', $request->input('id_number'))->first();
+        $idImageRule = ($existingGuest && $existingGuest->id_image_path)
+            ? 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120'
+            : 'required|file|mimes:jpg,jpeg,png,pdf|max:5120';
+
+        // رقم الجوال اختياري — إن تُرك فارغاً نُسجّل "لا يوجد"
+        if (!$request->filled('phone')) {
+            $request->merge(['phone' => 'لا يوجد']);
+        }
+
         $request->validate([
             'full_name'   => 'required|string|max:255',
             'occupation'  => 'nullable|string|max:255',
-            'phone'       => 'required|string|max:30',
+            'phone'       => 'nullable|string|max:30',
             'id_type'     => 'required|in:passport,national_id,residence',
             'id_number'   => 'required|string',
-            'id_image'    => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'id_image'    => $idImageRule,
             'nationality' => 'nullable|string|max:100',
             'origin'      => 'nullable|string|max:255',
             'purpose'     => 'nullable|string|max:255',
@@ -165,7 +176,7 @@ class CheckInController extends Controller
             ->orderBy('full_name')
             ->limit(8)
             ->get(['id', 'full_name', 'nationality', 'occupation', 'id_type', 'id_number',
-                   'id_issuer', 'id_issue_date', 'phone']);
+                   'id_issuer', 'id_issue_date', 'phone', 'id_image_path']);
 
         return response()->json($guests->map(fn($g) => [
             'id'            => $g->id,
@@ -177,6 +188,7 @@ class CheckInController extends Controller
             'id_issuer'     => $g->id_issuer ?? '',
             'id_issue_date' => $g->id_issue_date?->format('Y-m-d') ?? '',
             'phone'         => $g->phone ?? '',
+            'has_id_image'  => (bool) $g->id_image_path,
         ]));
     }
 
