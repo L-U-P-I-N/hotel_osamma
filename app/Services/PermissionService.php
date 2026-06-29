@@ -6,12 +6,6 @@ use App\Models\UserPermission;
 
 class PermissionService
 {
-    // صلاحيات للمدير فقط — لا يمكن منحها للموظفين
-    const ADMIN_ONLY = [
-        'users.manage',
-        'audit_log.view',
-    ];
-
     // صلاحيات مفعّلة افتراضياً للموظف
     const RECEPTIONIST_DEFAULTS = [
         'dashboard.view',
@@ -85,16 +79,16 @@ class PermissionService
         // Attendance
         'attendance.view'       => ['label' => 'عرض كشف الحضور والغياب',   'default' => false, 'group' => '✅ الحضور والغياب'],
         'attendance.create'     => ['label' => 'تسجيل الحضور اليومي',       'default' => false, 'group' => '✅ الحضور والغياب'],
+
+        // System Management
+        'users.manage'          => ['label' => 'إدارة المستخدمين والصلاحيات', 'default' => false, 'group' => '⚙️ إدارة النظام'],
+        'audit_log.view'        => ['label' => 'عرض سجل المراجعة',            'default' => false, 'group' => '⚙️ إدارة النظام'],
     ];
 
     public static function userCan(User $user, string $permission): bool
     {
         if ($user->isAdmin()) {
             return true;
-        }
-
-        if (in_array($permission, self::ADMIN_ONLY)) {
-            return false;
         }
 
         // Check explicit record

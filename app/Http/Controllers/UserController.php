@@ -57,10 +57,6 @@ class UserController extends Controller
             return back()->withErrors(['error' => 'لا يمكن تعديل صلاحيات المدير']);
         }
 
-        if (in_array($request->permission, PermissionService::ADMIN_ONLY)) {
-            return back()->withErrors(['error' => 'هذه الصلاحية للمدير فقط']);
-        }
-
         PermissionService::toggle($user, $request->permission, (bool)$request->grant, auth()->user());
         AuditLogService::log('update', $user, [], [
             'permission' => $request->permission,
