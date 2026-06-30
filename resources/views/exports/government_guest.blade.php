@@ -148,7 +148,7 @@ table.data tbody tr:nth-child(even) td { background: #f9fafb; }
 <div class="meta-box">
     <table>
         <tr>
-            <td class="val">{{ $reservation->room?->roomType?->name ?? '—' }}</td>
+            <td class="val">{{ $reservation->room_type_label }}</td>
             <td class="lbl">نوع الغرفة</td>
             <td class="val">{{ $reservation->display_room_number }}</td>
             <td class="lbl">رقم الغرفة</td>

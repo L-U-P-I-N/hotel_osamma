@@ -119,6 +119,22 @@ class Reservation extends Model
         return $this->room->room_number;
     }
 
+    /**
+     * تصنيف الغرفة كما يظهر للنزيل/في التقارير — يعكس النوع الفعلي
+     * (عادية/زوجية/جناح/شقة/صالة) بدل اسم فئة التسعير العام.
+     */
+    public function getRoomTypeLabelAttribute(): string
+    {
+        if (!$this->room) {
+            return '—';
+        }
+        // جناح محجوز بالكامل A+B
+        if ($this->suite_booking_type === 'both') {
+            return 'جناح كامل (A+B)';
+        }
+        return $this->room->sub_type_label;
+    }
+
     public function getStatusLabelAttribute(): string
     {
         return match($this->status) {

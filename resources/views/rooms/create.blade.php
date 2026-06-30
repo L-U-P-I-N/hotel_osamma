@@ -3,6 +3,16 @@
 @section('page-title', 'إضافة غرفة جديدة')
 @section('back-url', route('rooms.index'))
 
+@push('styles')
+<style>
+/* تناسق بطاقات اختيار نوع الغرفة مع الوضع الليلي */
+html.dark .room-type-card { border-color:#3a4862; background-color:#222d40; }
+html.dark .peer:checked ~ .room-type-card { border-color:#5b90c5; background-color:rgba(91,144,197,.20); }
+html.dark .room-type-card .rt-label { color:#c3cedd; }
+html.dark .peer:checked ~ .room-type-card .rt-label { color:#dbeafe; }
+</style>
+@endpush
+
 @section('content')
 <div class="max-w-2xl mx-auto">
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
@@ -123,9 +133,9 @@
                         <input type="radio" name="room_sub_type" value="{{ $value }}"
                                {{ old('room_sub_type', 'regular') === $value ? 'checked' : '' }}
                                class="sr-only peer">
-                        <div class="border-2 border-gray-200 peer-checked:border-primary-600 peer-checked:bg-primary-50 rounded-xl p-3 text-center transition-all">
+                        <div class="room-type-card border-2 border-gray-200 peer-checked:border-primary-600 peer-checked:bg-primary-50 rounded-xl p-3 text-center transition-all">
                             <div class="text-lg mb-0.5">{{ $opt['icon'] }}</div>
-                            <div class="text-xs font-semibold text-gray-700 peer-checked:text-primary-800">{{ $opt['label'] }}</div>
+                            <div class="rt-label text-xs font-semibold text-gray-700 peer-checked:text-primary-800">{{ $opt['label'] }}</div>
                         </div>
                     </label>
                     @endforeach

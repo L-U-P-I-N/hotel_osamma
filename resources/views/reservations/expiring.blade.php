@@ -161,9 +161,7 @@
                     </td>
                     <td class="px-4 py-3">
                         <span class="font-medium text-gray-800">{{ $res->display_room_number }}</span>
-                        @if($res->room?->roomType)
-                        <div class="text-xs text-gray-400">{{ $res->room->roomType->name }}</div>
-                        @endif
+                        <div class="text-xs text-gray-400">{{ $res->room_type_label }}</div>
                     </td>
                     <td class="px-4 py-3 text-gray-600 text-sm">{{ $res->check_in_date->format('d/m/Y') }}</td>
                     <td class="px-4 py-3 text-gray-600 text-sm font-medium">{{ $res->check_out_date->format('d/m/Y') }}</td>

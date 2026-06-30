@@ -137,6 +137,16 @@ html.dark input::placeholder,
 html.dark textarea::placeholder,
 html.dark .fi::placeholder                              { color:#64748b !important; }
 
+/* القوائم المنسدلة الأصلية: اجعل قائمة الخيارات داكنة بدل النافذة البيضاء التي تُخفي النص */
+html.dark select                                        { color-scheme: dark; }
+html.dark select option,
+html.dark select optgroup                               { background-color:#1e293b !important; color:#e6edf5 !important; }
+
+/* نص اللون الأساسي (عناوين) يصبح أزرق فاتح ليُقرأ على الخلفية الداكنة */
+html.dark .text-primary-700,
+html.dark .text-primary-800,
+html.dark .text-primary-900                             { color:#7ab3e0 !important; }
+
 /* ── Top bar ──────────────────────────────────────────────────────── */
 html.dark .app-topbar                                   { background-color:#1e293b !important; border-color:#2f3e54 !important; box-shadow:0 1px 4px rgba(0,0,0,.4) !important; }
 

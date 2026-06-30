@@ -35,7 +35,7 @@
     <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">
         <p class="text-xs text-gray-400 mb-1">الغرفة</p>
         <p class="text-2xl font-bold text-primary-800">{{ $reservation->display_room_number }}</p>
-        <p class="text-xs text-gray-500">{{ $reservation->room?->roomType?->name }}</p>
+        <p class="text-xs text-gray-500">{{ $reservation->room_type_label }}</p>
     </div>
     <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">
         <p class="text-xs text-gray-400 mb-1">الليالي</p>

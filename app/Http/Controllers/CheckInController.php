@@ -32,28 +32,47 @@ class CheckInController extends Controller
             ->orderBy('room_number')
             ->get();
 
+        // خريطة الغرف المتاحة حسب رقمها — لاشتقاق زوج الجناح (301A↔301B)
+        // حتى عند غياب linked_room_id، فيظهر خيار حجز الجناح كاملاً A+B دائماً.
+        $byNumber = $availableRooms->keyBy('room_number');
+        $partnerOf = function (Room $room) use ($byNumber) {
+            if ($room->linkedRoom) {
+                return $room->linkedRoom;
+            }
+            if (in_array($room->room_sub_type, ['suite_a', 'suite_b'], true)) {
+                $base = rtrim($room->room_number, 'ABab');
+                $pairNumber = $base . ($room->room_sub_type === 'suite_a' ? 'B' : 'A');
+                return $byNumber->get($pairNumber);
+            }
+            return null;
+        };
+
         // Build a map of linked-room availability for the JS wizard
         $linkedAvailability = [];
+        $pairedBIds = [];
         foreach ($availableRooms as $room) {
-            if ($room->linked_room_id) {
-                $linkedAvailability[$room->id] = [
-                    'linked_id'        => $room->linked_room_id,
-                    'linked_available' => $room->isLinkedRoomAvailable(),
-                    'linked_number'    => $room->linkedRoom?->room_number,
-                    'sub_type'         => $room->room_sub_type,
-                    'is_always_linked' => (bool)$room->is_always_linked,
-                ];
+            $partner = $partnerOf($room);
+            if (!$partner) {
+                continue;
+            }
+            $linkedAvailability[$room->id] = [
+                'linked_id'        => $partner->id,
+                'linked_available' => $partner->status === 'available',
+                'linked_number'    => $partner->room_number,
+                'sub_type'         => $room->room_sub_type,
+                'is_always_linked' => (bool)$room->is_always_linked,
+            ];
+            if ($room->room_sub_type === 'suite_a' && $partner->room_sub_type === 'suite_b') {
+                $pairedBIds[] = $partner->id;
             }
         }
 
         $admins = User::role('admin')->where('is_active', true)->get();
         $nationalities = $this->getNationalities();
 
-        // Filter display rooms: hide suite_b when its suite_a pair is available
-        $linkedBIds = $availableRooms->where('room_sub_type', 'suite_a')
-            ->pluck('linked_room_id')->filter()->toArray();
+        // Filter display rooms: hide suite_b when its suite_a pair is shown
         $displayRooms = $availableRooms->filter(
-            fn($r) => !($r->room_sub_type === 'suite_b' && in_array($r->id, $linkedBIds))
+            fn($r) => !($r->room_sub_type === 'suite_b' && in_array($r->id, $pairedBIds))
         );
         $floors = $displayRooms->pluck('floor')->unique()->sort()->values();
 
