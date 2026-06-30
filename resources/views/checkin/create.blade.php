@@ -503,7 +503,7 @@ html.dark [style*="background:var(--gold-l)"] {
                                     <svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                                 </div>
                                 <p class="text-sm font-medium text-gray-600">اسحب الصورة هنا أو <span class="text-blue-600 font-semibold">انقر لاختيار ملف</span></p>
-                                <p class="text-xs text-gray-400 mt-1">JPG · PNG · PDF — حتى 5MB</p>
+                                <p class="text-xs text-gray-400 mt-1">JPG · PNG · WebP · HEIC · PDF — حتى 5MB</p>
                             </div>
                         </template>
                         <template x-if="idImagePreview && idImagePreview !== '__pdf__'">
@@ -1202,6 +1202,47 @@ html.dark [style*="background:var(--gold-l)"] {
 </div>
 
 </form>
+
+{{-- ════════ نافذة تصحيح سريع: أعد رفع صورة الهوية وأكمل دون العودة للخطوات ════════ --}}
+@if($errors->has('id_image'))
+<div id="errorFixModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div class="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            </div>
+            <div>
+                <h3 class="font-bold text-gray-800">إكمال صورة الهوية</h3>
+                <p class="text-xs text-gray-500">لم تُقبل الصورة — أعد رفعها فقط وأكمل، دون إعادة إدخال البيانات</p>
+            </div>
+        </div>
+        <div class="p-5 space-y-4">
+            <ul class="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl p-3 list-disc list-inside space-y-0.5">
+                @foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach
+            </ul>
+            <div>
+                <label class="fl">صورة الهوية <span class="freq">*</span></label>
+                <input type="file" id="modalIdImage" accept="image/*,.pdf"
+                       onchange="var n=document.getElementById('modalImgName'); n.textContent=this.files[0]?('✓ '+this.files[0].name):''; n.className='text-xs text-emerald-600 mt-1';"
+                       class="w-full text-sm text-gray-600 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200">
+                <p id="modalImgName" class="text-xs text-emerald-600 mt-1"></p>
+                <p class="text-xs text-gray-400 mt-1">الصيغ المقبولة: JPG · PNG · WebP · HEIC · PDF — حتى 5MB</p>
+            </div>
+        </div>
+        <div class="flex gap-3 px-5 pb-5">
+            <button type="button" onclick="resubmitWithFixes()"
+                    class="flex-1 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition">
+                تأكيد وإكمال التسجيل
+            </button>
+            <button type="button" onclick="document.getElementById('errorFixModal').remove()"
+                    class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl text-sm hover:bg-gray-50 transition">
+                تعديل يدوي
+            </button>
+        </div>
+    </div>
+</div>
+@endif
+
 </div>{{-- /x-data --}}
 @endsection
 
@@ -1213,6 +1254,26 @@ html.dark [style*="background:var(--gold-l)"] {
 const CHECKIN_SESSION_KEY = 'hotel_checkin_form';
 const HAS_BACKEND_ERRORS  = {{ $errors->any() ? 'true' : 'false' }};
 const BOOKING_MODE        = '{{ $mode }}';
+
+// نافذة التصحيح السريع: تنقل الصورة المُعاد رفعها إلى النموذج وتُعيد الإرسال فوراً
+function resubmitWithFixes() {
+    const form = document.getElementById('checkInMainForm');
+    const modalImg = document.getElementById('modalIdImage');
+    const nameEl = document.getElementById('modalImgName');
+    if (!modalImg || !modalImg.files || !modalImg.files.length) {
+        if (nameEl) { nameEl.textContent = 'الرجاء اختيار صورة الهوية أولاً'; nameEl.className = 'text-xs text-red-600 mt-1'; }
+        return;
+    }
+    try {
+        const dt = new DataTransfer();
+        dt.items.add(modalImg.files[0]);
+        const formImg = form.querySelector('input[name="id_image"]');
+        if (formImg) formImg.files = dt.files;
+    } catch (e) {}
+    const modal = document.getElementById('errorFixModal');
+    if (modal) modal.remove();
+    if (typeof form.requestSubmit === 'function') form.requestSubmit(); else form.submit();
+}
 
 function checkInForm() {
     return {
