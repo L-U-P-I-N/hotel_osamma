@@ -134,7 +134,7 @@ table.data tbody tr:nth-child(even) td { background: #f9fafb; }
     @include('partials.pdf-logo')
     <h1>{{ $hotel->name ?? 'فندق السعودي' }}</h1>
     <div class="sub">{{ $hotel->address ?? '' }}{{ $hotel->phone ? ' | ' . $hotel->phone : '' }}</div>
-    <div class="doc-title">نموذج بيانات النزلاء للجهات الحكومية</div>
+    <div class="doc-title">نموذج بيانات النزلاء</div>
 </div>
 
 {{-- Reservation Meta --}}
