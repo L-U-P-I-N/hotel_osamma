@@ -62,11 +62,14 @@ class CheckInController extends Controller
 
     public function store(Request $request)
     {
+        // صيغ الصور المقبولة — تشمل صيغ هواتف الجوال الحديثة (HEIC/WebP) حتى لا تُرفض
+        $imgMimes = 'jpg,jpeg,png,webp,gif,bmp,heic,heif,pdf';
+
         // نزيل عائد: إن كانت هويته مسجّلة مسبقاً ولها صورة محفوظة فلا نُلزمه برفع صورة جديدة
         $existingGuest = Guest::where('id_number', $request->input('id_number'))->first();
         $idImageRule = ($existingGuest && $existingGuest->id_image_path)
-            ? 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120'
-            : 'required|file|mimes:jpg,jpeg,png,pdf|max:5120';
+            ? "nullable|file|mimes:{$imgMimes}|max:5120"
+            : "required|file|mimes:{$imgMimes}|max:5120";
 
         // رقم الجوال اختياري — إن تُرك فارغاً نُسجّل "لا يوجد"
         if (!$request->filled('phone')) {
@@ -90,12 +93,12 @@ class CheckInController extends Controller
             'check_out_time'  => 'nullable|regex:/^\d{2}:\d{2}$/',
             'payment_status'  => 'required|in:unpaid,partial,paid,deferred',
             'currency'        => 'nullable|in:YER',
-            'bank_receipt' => 'required_if:payment_method,bank_transfer|nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
+            'bank_receipt' => "required_if:payment_method,bank_transfer|nullable|file|mimes:{$imgMimes}|max:10240",
             'companions.*.full_name' => 'required_with:companions.*.relationship|string',
             'companions.*.relationship' => 'nullable|in:wife,son,daughter,brother,sister,father,mother,other',
             'companions.*.nationality' => 'required_with:companions.*.full_name|nullable|string|max:100',
-            'companions.*.id_image'    => 'required_with:companions.*.full_name|nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
-            'companions.*.marriage_doc' => 'required_if:companions.*.relationship,wife|nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'companions.*.id_image'    => "required_with:companions.*.full_name|nullable|file|mimes:{$imgMimes}|max:5120",
+            'companions.*.marriage_doc' => "required_if:companions.*.relationship,wife|nullable|file|mimes:{$imgMimes}|max:5120",
             'suite_booking_type'        => 'nullable|in:a_only,b_only,both',
         ]);
 
