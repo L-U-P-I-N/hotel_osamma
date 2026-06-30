@@ -361,7 +361,7 @@ html.dark [style*="background:var(--gold-l)"] {
 
 {{-- Backend Validation Errors --}}
 @if($errors->any())
-<div class="mb-6 bg-red-50 border border-red-200 rounded-xl p-4">
+<div id="backendErrorBox" class="mb-6 bg-red-50 border-2 border-red-300 rounded-xl p-4 scroll-mt-24">
     <div class="flex items-start gap-3">
         <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
         <div>
@@ -474,9 +474,7 @@ html.dark [style*="background:var(--gold-l)"] {
 
                 <div>
                     <label class="fl">تاريخ الإصدار</label>
-                    <input type="text" name="id_issue_date" placeholder="dd/mm/yyyy" autocomplete="off" class="fi"
-                           x-init="$el._fp = initEnDatePicker($el, v => guestData.id_issue_date = v, guestData.id_issue_date);
-                                   $watch('guestData.id_issue_date', v => { if ($el._fp) $el._fp.setDate(v || null, false); })">
+                    <input type="date" name="id_issue_date" x-model="guestData.id_issue_date" class="fi">
                 </div>
 
                 <div>
@@ -615,8 +613,7 @@ html.dark [style*="background:var(--gold-l)"] {
                             </div>
                             <div>
                                 <label class="fl text-xs">تاريخ الإصدار</label>
-                                <input type="text" :name="`companions[${idx}][id_issue_date]`" placeholder="dd/mm/yyyy" autocomplete="off" class="fi text-sm"
-                                       x-init="initEnDatePicker($el, v => comp.id_issue_date = v, comp.id_issue_date)">
+                                <input type="date" :name="`companions[${idx}][id_issue_date]`" x-model="comp.id_issue_date" class="fi text-sm">
                             </div>
                             <div class="md:col-span-2">
                                 <label class="fl text-xs">صورة الهوية <span class="freq">*</span></label>
@@ -1160,6 +1157,19 @@ html.dark [style*="background:var(--gold-l)"] {
     <span x-text="stepError"></span>
 </div>
 
+{{-- ════════ Backend errors repeated near the submit button (so the reason is visible on step 3) ════════ --}}
+@if($errors->any())
+<div class="mt-5 bg-red-50 border-2 border-red-300 rounded-xl px-4 py-3 text-sm text-red-700">
+    <p class="font-semibold text-red-800 mb-1 flex items-center gap-2">
+        <svg class="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+        تعذّر إتمام تسجيل الدخول — صحّح ما يلي:
+    </p>
+    <ul class="list-disc list-inside space-y-0.5">
+        @foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach
+    </ul>
+</div>
+@endif
+
 {{-- ════════ Navigation Buttons ════════ --}}
 <div class="flex items-center justify-between mt-6">
     <button type="button" @click="prevStep()" x-show="currentStep > 1" class="btn-prev">
@@ -1251,6 +1261,11 @@ function checkInForm() {
             if (HAS_BACKEND_ERRORS) {
                 this.restoreFromSession();
                 if (this.roomId) this.currentStep = 3;
+                // أظهر سبب الفشل للمستخدم بالتمرير إلى صندوق الأخطاء (يكون أعلى الصفحة)
+                this.$nextTick(() => {
+                    const box = document.getElementById('backendErrorBox');
+                    if (box) box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                });
             } else {
                 sessionStorage.removeItem(CHECKIN_SESSION_KEY);
             }
