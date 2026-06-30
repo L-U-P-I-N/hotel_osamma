@@ -299,6 +299,24 @@ html.dark .sec-divider { background:linear-gradient(to right, transparent, #313d
 /* حقول التاريخ/الوقت: اتجاه LTR حتى لا يظهر تنسيق التاريخ معكوساً (ةنس/رهش/موي) */
 .ci-form input[type="date"], .ci-form input[type="time"] { direction:ltr; text-align:right; }
 html.dark .ci-form input[type="date"], html.dark .ci-form input[type="time"] { color-scheme:dark; }
+
+/* ════════ الوضع الليلي لصفحة المراجعة (الخطوة 3) ════════
+   عناصر هذه الصفحة تستخدم أنماطاً مضمّنة (inline) لا تتأثر بقواعد .rev-card،
+   لذا نتجاوزها بمحددات السمة + !important لتصبح واضحة ومريحة في الوضع الليلي. */
+html.dark .rev-card h3[style*="color:var(--navy-d)"],
+html.dark .rev-card span[style*="color:var(--navy-d)"]      { color:#9fc6ec !important; }
+html.dark .rev-card svg[style*="color:var(--navy-l)"]        { color:#7ab3e0 !important; }
+html.dark .rev-card[style*="background:var(--navy-g)"]       { background:#22344c !important; border-color:#34567c !important; }
+html.dark .rev-card [style*="border-top:1.5px solid #B9D8F0"]{ border-top-color:#34567c !important; }
+html.dark .rev-card .text-gray-600,
+html.dark .rev-card .text-gray-500                           { color:#aab6c6 !important; }
+html.dark .rev-card .text-emerald-700                        { color:#6ee7b7 !important; }
+/* لافتة التنبيه السفلية (خلفية ذهبية فاتحة → كهرماني داكن هادئ) */
+html.dark [style*="background:var(--gold-l)"] {
+    background:rgba(212,160,23,.14) !important;
+    border-color:rgba(212,160,23,.34) !important;
+    color:#e6c574 !important;
+}
 </style>
 @endpush
 
@@ -456,7 +474,9 @@ html.dark .ci-form input[type="date"], html.dark .ci-form input[type="time"] { c
 
                 <div>
                     <label class="fl">تاريخ الإصدار</label>
-                    <input type="date" name="id_issue_date" x-model="guestData.id_issue_date" class="fi">
+                    <input type="text" name="id_issue_date" placeholder="dd/mm/yyyy" autocomplete="off" class="fi"
+                           x-init="$el._fp = initEnDatePicker($el, v => guestData.id_issue_date = v, guestData.id_issue_date);
+                                   $watch('guestData.id_issue_date', v => { if ($el._fp) $el._fp.setDate(v || null, false); })">
                 </div>
 
                 <div>
@@ -595,7 +615,8 @@ html.dark .ci-form input[type="date"], html.dark .ci-form input[type="time"] { c
                             </div>
                             <div>
                                 <label class="fl text-xs">تاريخ الإصدار</label>
-                                <input type="date" :name="`companions[${idx}][id_issue_date]`" x-model="comp.id_issue_date" class="fi text-sm">
+                                <input type="text" :name="`companions[${idx}][id_issue_date]`" placeholder="dd/mm/yyyy" autocomplete="off" class="fi text-sm"
+                                       x-init="initEnDatePicker($el, v => comp.id_issue_date = v, comp.id_issue_date)">
                             </div>
                             <div class="md:col-span-2">
                                 <label class="fl text-xs">صورة الهوية <span class="freq">*</span></label>
@@ -1368,12 +1389,15 @@ function checkInForm() {
             }
             const fp = window.flatpickr(el, {
                 allowInput: true,
-                dateFormat: 'Y-m-d',
+                dateFormat: 'Y-m-d',        // القيمة المُرسَلة للخادم (آمنة)
+                altInput: true,             // حقل ظاهر منفصل
+                altFormat: 'd/m/Y',         // العرض بالإنجليزية يوم/شهر/سنة (25/04/2026)
                 disableMobile: true,
                 defaultDate: self[prop] || null,
                 minDate: prop === 'checkOutDate' ? (self.checkInDate || self.today()) : self.today(),
                 onChange: (sel, str) => { self[prop] = str; self.calcTotal(); },
             });
+            if (fp.altInput) fp.altInput.setAttribute('placeholder', 'dd/mm/yyyy');
             el._fp = fp;
             // Reflect programmatic changes (e.g. nights stepper) back into the picker
             this.$watch(prop, (val) => {
@@ -1384,6 +1408,28 @@ function checkInForm() {
                     if (el._fp) el._fp.set('minDate', val || self.today());
                 });
             }
+        },
+
+        // منتقي تاريخ بصيغة إنجليزية (dd/mm/yyyy) لحقول تاريخ الإصدار،
+        // يُرسل للخادم بصيغة Y-m-d الآمنة ويكتب القيمة عبر setter
+        initEnDatePicker(el, setter, initialVal) {
+            if (typeof window.flatpickr === 'undefined') {
+                el.type = 'date';
+                if (initialVal) el.value = initialVal;
+                el.addEventListener('change', e => setter(e.target.value));
+                return null;
+            }
+            const fp = window.flatpickr(el, {
+                allowInput: true,
+                dateFormat: 'Y-m-d',
+                altInput: true,
+                altFormat: 'd/m/Y',
+                disableMobile: true,
+                defaultDate: initialVal || null,
+                onChange: (sel, str) => setter(str),
+            });
+            if (fp.altInput) fp.altInput.setAttribute('placeholder', 'dd/mm/yyyy');
+            return fp;
         },
 
         addCompanion() {
