@@ -67,6 +67,51 @@
         if (window.flatpickr && flatpickr.l10ns && flatpickr.l10ns.ar) {
             flatpickr.localize(flatpickr.l10ns.ar);
         }
+
+        // ── توحيد كل حقول التاريخ في النظام لتُعرض بالإنجليزية dd/mm/yyyy ──
+        // يحوّل كل <input type="date"> إلى منتقي flatpickr يعرض d/m/Y بينما
+        // يُرسل للخادم القيمة الآمنة Y-m-d، ويطلق حدثَي input + change حتى تعمل
+        // روابط Alpine (x-model) ومرشّحات onchange="this.form.submit()" كما هي.
+        (function () {
+            function convertDateInput(el) {
+                if (typeof window.flatpickr === 'undefined' || el.dataset.fpInit) return;
+                el.dataset.fpInit = '1';
+                var opts = {
+                    allowInput: true,
+                    dateFormat: 'Y-m-d',
+                    altInput: true,
+                    altFormat: 'd/m/Y',
+                    disableMobile: true,
+                    onChange: function (selected, str, inst) {
+                        inst.input.dispatchEvent(new Event('input',  { bubbles: true }));
+                        inst.input.dispatchEvent(new Event('change', { bubbles: true }));
+                    },
+                };
+                if (el.getAttribute('min')) opts.minDate = el.getAttribute('min');
+                if (el.getAttribute('max')) opts.maxDate = el.getAttribute('max');
+                var fp = window.flatpickr(el, opts);
+                if (fp && fp.altInput) fp.altInput.setAttribute('placeholder', 'dd/mm/yyyy');
+            }
+            function scan(root) {
+                (root || document).querySelectorAll('input[type="date"]:not([data-fp-init])').forEach(convertDateInput);
+            }
+            // مسح أولي بعد جاهزية Alpine (لعناصر x-for) ثم احتياطي على DOMContentLoaded
+            document.addEventListener('alpine:initialized', function () { scan(); });
+            document.addEventListener('DOMContentLoaded', function () {
+                scan();
+                // التقاط الحقول المُضافة ديناميكياً (مرافقون، نوافذ منبثقة…)
+                var mo = new MutationObserver(function (muts) {
+                    muts.forEach(function (m) {
+                        m.addedNodes.forEach(function (n) {
+                            if (n.nodeType !== 1) return;
+                            if (n.matches && n.matches('input[type="date"]')) convertDateInput(n);
+                            else if (n.querySelectorAll) scan(n);
+                        });
+                    });
+                });
+                if (document.body) mo.observe(document.body, { childList: true, subtree: true });
+            });
+        })();
     </script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
