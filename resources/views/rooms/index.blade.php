@@ -303,7 +303,7 @@ html.dark .filter-chip.bg-white { background: #1e293b !important; }
             </div>
 
             {{-- Type --}}
-            <div class="text-xs font-semibold text-gray-600 mb-1">{{ $room->roomType?->name ?? '' }}</div>
+            <div class="text-xs font-semibold text-gray-600 mb-1">{{ $room->sub_type_label }}</div>
 
             {{-- Floor --}}
             <div class="flex items-center gap-1 text-xs text-gray-400 mb-2">

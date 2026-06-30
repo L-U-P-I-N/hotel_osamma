@@ -191,7 +191,7 @@ table.sign td.gap { width: 10%; border: none; }
             {{-- كل حقل صفّ بعمودين معكوسين: القيمة يسار، التسمية يمين (لأن dompdf لا يعيد ترتيب bidi) --}}
             <table class="kvt">
                 <tr>
-                    <td class="kv-v">{{ $reservation->display_room_number }}@if($reservation->room?->roomType?->name) ({{ $reservation->room->roomType->name }})@endif</td>
+                    <td class="kv-v">{{ $reservation->display_room_number }} ({{ $reservation->room_type_label }})</td>
                     <td class="kv-k">الغرفة:</td>
                 </tr>
                 <tr>

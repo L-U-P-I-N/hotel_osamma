@@ -82,7 +82,7 @@
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
                             غرفة {{ $reservation->display_room_number }}
                             @if($reservation->suite_booking_type === 'both') <span class="text-amber-300">(A+B)</span> @endif
-                            @if($reservation->room?->roomType) &mdash; {{ $reservation->room->roomType->name }} @endif
+                            &mdash; {{ $reservation->room_type_label }}
                         </span>
                         <span class="flex items-center gap-1.5">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
@@ -181,10 +181,7 @@
             </div>
         </div>
         <p class="text-3xl font-black text-gray-900">{{ $reservation->display_room_number }}</p>
-        <p class="text-xs text-gray-400 mt-1">
-            {{ $reservation->room?->roomType?->name ?? '' }}
-            @if($reservation->suite_booking_type === 'both') <span class="text-blue-500 font-semibold">(A+B)</span> @endif
-        </p>
+        <p class="text-xs text-gray-400 mt-1">{{ $reservation->room_type_label }}</p>
     </div>
 
     {{-- Nights --}}

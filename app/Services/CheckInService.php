@@ -28,8 +28,26 @@ class CheckInService
 
             if ($room->isSuiteA() || $room->isSuiteB()) {
                 $suiteBookingType = $data['suite_booking_type'] ?? 'a_only';
-                if ($suiteBookingType === 'both' && $room->linked_room_id) {
-                    $linkedRoom = Room::findOrFail($room->linked_room_id);
+                if ($suiteBookingType === 'both') {
+                    // ابحث عن القسم المقابل عبر الربط، وإلا عبر رقم الغرفة (301A↔301B)
+                    $linkedRoom = $room->linkedRoom;
+                    if (!$linkedRoom) {
+                        $base = rtrim($room->room_number, 'ABab');
+                        $pairNumber = $base . ($room->isSuiteA() ? 'B' : 'A');
+                        $linkedRoom = Room::where('room_number', $pairNumber)
+                            ->whereIn('room_sub_type', ['suite_a', 'suite_b'])
+                            ->first();
+                        // أصلح الربط المفقود لتعمل العمليات اللاحقة
+                        if ($linkedRoom && !$room->linked_room_id) {
+                            $room->update(['linked_room_id' => $linkedRoom->id]);
+                            if (!$linkedRoom->linked_room_id) {
+                                $linkedRoom->update(['linked_room_id' => $room->id]);
+                            }
+                        }
+                    }
+                    if (!$linkedRoom) {
+                        throw new \RuntimeException('تعذّر العثور على القسم المقابل للجناح ' . $room->room_number);
+                    }
                     if ($linkedRoom->status !== 'available') {
                         throw new \RuntimeException('الغرفة المقابلة ' . $linkedRoom->room_number . ' غير متاحة');
                     }

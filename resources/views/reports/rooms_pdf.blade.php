@@ -56,7 +56,7 @@
             <td class="ltr">{{ number_format($room->total_revenue ?? 0, 0) }}</td>
             <td class="ltr" style="text-align:center;">{{ $room->total_reservations ?? 0 }}</td>
             <td>{{ $statusLabels[$room->status] ?? $room->status }}</td>
-            <td>{{ $room->roomType->name ?? '—' }}</td>
+            <td>{{ $room->sub_type_label }}</td>
             <td style="font-weight:bold;">{{ $room->room_number }}</td>
         </tr>
         @empty
