@@ -13,127 +13,91 @@
     font-weight: 700;
     src: url("{{ storage_path('fonts') }}/NotoNaskhArabic-Bold.ttf") format('truetype');
 }
-
 /*
-   تحسين بصري فقط (ألوان/خلفيات/حدود/مسافات بنظام فحمي + ذهبي مستوحى من الشعار). لم يُغيَّر أي
-   text-align ولا حجم خط ولا بنية محتوى — كلها كما هي لضمان عرض RTL الصحيح.
-
-   ملاحظة: dompdf يرتّب أعمدة الجداول يسار→يمين دائماً ولا يحترم direction:rtl
-   للأعمدة، لذلك تُكتب الأعمدة بترتيب معكوس ليظهر العمود الأول على اليمين.
+   إعادة هيكلة كاملة: تخطيط قائم على العناصر (float) بدل تكديس الجداول.
+   الجداول تُستخدم فقط للبيانات المجدولة (الرسوم/المدفوعات/المرافقون)، ولأن
+   dompdf يرتّب أعمدة الجداول يسار→يمين تُكتب الأعمدة معكوسة ليظهر الأول يميناً.
 */
 * { margin: 0; padding: 0; box-sizing: border-box; }
-
 @page { margin: 0; }
 
 body {
     font-family: 'Noto', sans-serif;
     font-size: 9.5pt;
-    color: #33302a;
+    color: #2b2b2b;
     direction: rtl;
     text-align: right;
-    padding: 11mm 13mm;
+    padding: 10mm 14mm;
+    line-height: 1.4;
 }
+.clear { clear: both; height: 0; font-size: 0; line-height: 0; }
 
-/* ── HEADER ── */
-table.head { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
-.title-cell, .brand-cell { vertical-align: middle; border: none; padding: 0; }
+/* ─── HEADER ─── */
+.brand { float: right; width: 60%; }
+.brand .logo { float: right; height: 52px; width: auto; margin-left: 12px; }
+.brand .hotel-ar { font-size: 17pt; font-weight: 700; color: #0F4C75; line-height: 1.15; padding-top: 3px; }
+.brand .hotel-en { font-size: 7.5pt; color: #b8973a; letter-spacing: 2px; }
 
-.title-cell { text-align: left; width: 40%; }
-.title-cell .word { font-size: 20pt; font-weight: 700; color: #2e2a20; letter-spacing: 1px; }
-.title-cell .num  { font-size: 10pt; font-weight: 700; color: #b8973a; margin-top: 3px; }
-.title-cell .date { font-size: 8.5pt; color: #9c9484; margin-top: 1px; }
+.invmeta { float: left; width: 38%; text-align: left; }
+.invmeta .w { font-size: 21pt; font-weight: 700; color: #1f2937; letter-spacing: 2px; }
+.invmeta .n { font-size: 10pt; font-weight: 700; color: #b8973a; margin-top: 1px; }
+.invmeta .d { font-size: 8pt; color: #9ca3af; }
+.pill { display: inline-block; margin-top: 5px; padding: 2px 12px; border-radius: 11px; font-size: 8pt; font-weight: 700; }
+.pill-paid { background: #dcfce7; color: #15803d; }
+.pill-due  { background: #fee2e2; color: #b91c1c; }
 
-.brand-cell { text-align: right; }
-table.brand { width: 100%; border-collapse: collapse; }
-table.brand td { border: none; padding: 0; vertical-align: middle; }
-table.brand td.brand-name { width: 100%; }
-table.brand td.brand-logo { width: 64px; text-align: left; }
-.brand-name { text-align: right; padding-left: 10px; }
-.hotel-ar { font-size: 16pt; font-weight: 700; color: #9a7d2e; line-height: 1.2; }
-.hotel-en { font-size: 8pt; color: #b8973a; letter-spacing: 2px; }
-.brand-logo img { height: 58px; width: auto; display: block; }
+.rule  { clear: both; height: 0; border-top: 2.5px solid #0F4C75; margin: 10px 0 0; }
+.rule2 { height: 0; border-top: 1px solid #c9a84e; margin: 0 0 15px; }
 
-/* خط فاصل كحلي بلمسة ذهبية أسفله */
-.rule { border: none; border-top: 2.5px solid #2e2a20; border-bottom: 1px solid #c9a84e; height: 2px; margin: 5px 0 13px; }
+/* ─── INFO CARDS (guest + stay) — floats, no nested tables ─── */
+.card   { border: 1px solid #e6e1d5; background: #fbfaf6; border-radius: 5px; padding: 10px 13px; }
+.card-r { float: right; width: 49%; }
+.card-l { float: left;  width: 49%; }
+.card-h { font-size: 8pt; font-weight: 700; color: #0F4C75; border-bottom: 1.5px solid #c9a84e; padding-bottom: 5px; margin-bottom: 6px; }
+.kv { font-size: 9pt; line-height: 1.75; }
+.kv .k { color: #928a78; }
+.kv .v { color: #2b2b2b; font-weight: 700; }
 
-/* ── META ROW (guest + stay) ── */
-table.meta { width: 100%; border-collapse: collapse; margin-bottom: 13px; }
-table.meta td {
-    width: 50%;
-    vertical-align: top;
-    padding: 9px 11px;
-    border: 1px solid #e7e0ce;
-    background: #faf8f1;
-    text-align: right;
-}
-.meta-h {
-    font-size: 8pt; font-weight: 700; color: #2e2a20;
-    margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1.5px solid #c9a84e;
-    text-align: right;
-}
-/* كل حقل = صفّ بعمودين: القيمة (يسار) ثم التسمية (يمين) لضمان ترتيب RTL صحيح */
-table.kvt { width: 100%; border-collapse: collapse; }
-table.kvt td { border: none; padding: 2px 0; font-size: 9pt; vertical-align: top; }
-td.kv-k { color: #8f8779; text-align: right; white-space: nowrap; width: 1%; padding-left: 7px; }
-td.kv-v { color: #33302a; font-weight: 700; text-align: right; }
+/* ─── SECTION HEADING ─── */
+.sec { font-size: 9pt; font-weight: 700; color: #1f2937; background: #f3f4f6;
+       border-right: 4px solid #b8973a; padding: 6px 11px; margin: 12px 0 7px; }
 
-/* ── SECTION LABEL (شريط بلمسة ذهبية على اليمين) ── */
-.label {
-    font-size: 9pt; font-weight: 700; color: #2e2a20;
-    margin-bottom: 6px; text-align: right;
-    padding: 5px 9px 5px 0;
-    background: #f5f2ea;
-    border-right: 4px solid #b8973a;
-}
+/* ─── DATA TABLES ─── */
+table.items, table.mini { width: 100%; border-collapse: collapse; }
+table.items { font-size: 9pt; }
+table.items th { background: #0F4C75; color: #fff; padding: 8px 10px; font-size: 8.5pt; font-weight: 700; text-align: right; }
+table.items td { padding: 7px 10px; border-bottom: 1px solid #eee; text-align: right; }
+table.items tbody tr:nth-child(even) td { background: #f8fafc; }
 
-/* ── DATA TABLE ── */
-table.data { width: 100%; border-collapse: collapse; margin-bottom: 13px; font-size: 9pt; }
-table.data th {
-    background: #2e2a20; color: #fff;
-    padding: 7px 9px; font-weight: 700; font-size: 8.5pt; text-align: right;
-    border-bottom: 2px solid #c9a84e;
-}
-table.data td { padding: 6px 9px; border-bottom: 1px solid #efe9da; text-align: right; }
-table.data tbody tr:nth-child(even) td { background: #faf6ec; }
-table.data tbody tr:last-child td { border-bottom: 1.5px solid #ddd4c1; }
-/* أعمدة رقمية/قصيرة → توسيط */
+table.mini { font-size: 8.5pt; }
+table.mini th { background: #efeadd; color: #4b4636; padding: 5px 9px; font-size: 8pt; font-weight: 700; text-align: right; }
+table.mini td { padding: 5px 9px; border-bottom: 1px solid #f0ece0; text-align: right; }
+
 .c { text-align: center !important; white-space: nowrap; }
+.muted { color: #9a927f; font-size: 8pt; }
 
-/* ── TOTALS ── */
-table.totals-wrap { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
-.tw-cell { border: none; padding: 0; vertical-align: top; }
-table.totals { width: 100%; border-collapse: collapse; border: 1px solid #e7e0ce; }
-table.totals td { padding: 6px 11px; font-size: 9.5pt; }
-table.totals td.lbl { text-align: right; color: #6b6557; }
-table.totals td.amt { text-align: left; font-weight: 700; white-space: nowrap; color: #33302a; }
-table.totals tr.line td { border-bottom: 1px solid #efe9da; }
-table.totals tr.grand td {
-    background: #2e2a20; color: #fff; font-weight: 700; font-size: 11pt;
-    border-top: 2px solid #c9a84e;
-}
-table.totals tr.paid td  { color: #15803d; }
-table.totals tr.due  td  { color: #b91c1c; font-weight: 700; background: #fdf4f4; }
+/* ─── SUMMARY (totals) — floated left, columns reversed (amount left) ─── */
+table.summary { float: left; width: 55%; border-collapse: collapse; border: 1px solid #e6e1d5; border-radius: 5px; }
+table.summary td { padding: 7px 13px; font-size: 9.5pt; border-bottom: 1px solid #efeadd; }
+table.summary td.sv { text-align: left; font-weight: 700; white-space: nowrap; }
+table.summary td.sk { text-align: right; color: #6b6557; }
+table.summary tr.grand td { background: #0F4C75; color: #fff; font-size: 11.5pt; font-weight: 700; border-top: 2px solid #c9a84e; border-bottom: none; }
+table.summary tr.paid td.sv { color: #15803d; }
+table.summary tr.due  td { background: #fdf4f4; border-bottom: none; }
+table.summary tr.due  td.sv { color: #b91c1c; }
 
-/* ── NOTES ── */
-.notes {
-    border: 1px solid #ecdfb4; border-right: 4px solid #c9a84e; background: #fdfaf0;
-    padding: 7px 11px; font-size: 8.5pt;
-    color: #7a5c00; margin-bottom: 12px; text-align: right;
-}
+/* ─── NOTES ─── */
+.notes { clear: both; border-right: 4px solid #c9a84e; background: #fdfaf0;
+         padding: 8px 12px; font-size: 8.5pt; color: #7a5c00; margin: 15px 0 0; }
 
-/* ── SIGN ── */
-table.sign { width: 100%; border-collapse: collapse; margin-top: 20px; }
-table.sign td {
-    width: 45%; text-align: center; font-size: 8.5pt; color: #6b6557;
-    padding-top: 28px; border-top: 1px solid #c8bda2;
-}
-table.sign td.gap { width: 10%; border: none; }
+/* ─── SIGNATURES ─── */
+.signs { margin-top: 20px; }
+.sign-r { float: right; width: 42%; text-align: center; border-top: 1px solid #c8bda2; padding-top: 6px; font-size: 8.5pt; color: #6b6557; }
+.sign-l { float: left;  width: 42%; text-align: center; border-top: 1px solid #c8bda2; padding-top: 6px; font-size: 8.5pt; color: #6b6557; }
 
-/* ── FOOTER ── */
-.foot {
-    margin-top: 15px; padding-top: 8px; border-top: 1.5px solid #c9a84e;
-    text-align: center; font-size: 7.5pt; color: #9c9484;
-}
+/* ─── FOOTER ─── */
+.foot { margin-top: 12px; padding-top: 9px; border-top: 1px solid #c9a84e;
+        text-align: center; font-size: 7.5pt; color: #9ca3af; }
 </style>
 </head>
 <body>
@@ -142,6 +106,7 @@ table.sign td.gap { width: 10%; border: none; }
     $pricePerNight = $nights > 0 ? round($reservation->total_amount / $nights, 0) : 0;
     $roomTotal     = $pricePerNight * $nights;
     $extraTotal    = $reservation->extraCharges->sum('amount');
+    $subtotal      = $roomTotal + $extraTotal;
     $discount      = (float)($reservation->discount_amount ?? 0);
     $total         = (float)$reservation->total_amount;
     $paid          = (float)$reservation->paid_amount;
@@ -155,106 +120,62 @@ table.sign td.gap { width: 10%; border: none; }
     $typeMap   = ['reservation'=>'دفعة حجز','renewal'=>'تجديد','compensation'=>'تعويض','extra_service'=>'خدمة إضافية'];
 @endphp
 
-{{-- ═══ HEADER (logo + name on the RIGHT, invoice title on the LEFT) ═══ --}}
-<table class="head">
-    <tr>
-        {{-- left column: invoice title --}}
-        <td class="title-cell">
-            <div class="word">فاتورة</div>
-            <div class="num">رقم: #{{ $invNo }}</div>
-            <div class="date">التاريخ: {{ now()->format('Y/m/d') }}</div>
-        </td>
-        {{-- right column: brand (name then logo so logo sits at the far right) --}}
-        <td class="brand-cell">
-            <table class="brand">
-                <tr>
-                    <td class="brand-name">
-                        <div class="hotel-ar">الفندق السعودي</div>
-                        <div class="hotel-en">THE SAUDI HOTEL</div>
-                    </td>
-                    @if($hasLogo)
-                    <td class="brand-logo"><img src="{{ $logoPath }}" alt="شعار"></td>
-                    @endif
-                </tr>
-            </table>
-        </td>
-    </tr>
-</table>
-<hr class="rule">
+{{-- ═══ HEADER ═══ --}}
+<div class="brand">
+    @if($hasLogo)<img class="logo" src="{{ $logoPath }}" alt="">@endif
+    <div class="hotel-ar">الفندق السعودي</div>
+    <div class="hotel-en">THE SAUDI HOTEL</div>
+</div>
+<div class="invmeta">
+    <div class="w">فاتورة</div>
+    <div class="n">#{{ $invNo }}</div>
+    <div class="d">{{ now()->format('Y/m/d') }}</div>
+    <span class="pill {{ $isPaid ? 'pill-paid' : 'pill-due' }}">
+        {{ $isPaid ? 'مسدّدة بالكامل' : 'متبقٍ ' . number_format(abs($balance), 0) . ' ' . $cur }}
+    </span>
+</div>
+<div class="rule"></div>
+<div class="rule2"></div>
 
-{{-- ═══ GUEST + STAY (guest on the RIGHT) ═══ --}}
-<table class="meta">
-    <tr>
-        {{-- left column: stay details --}}
-        <td>
-            <div class="meta-h">تفاصيل الإقامة</div>
-            {{-- كل حقل صفّ بعمودين معكوسين: القيمة يسار، التسمية يمين (لأن dompdf لا يعيد ترتيب bidi) --}}
-            <table class="kvt">
-                <tr>
-                    <td class="kv-v">{{ $reservation->display_room_number }} ({{ $reservation->room_type_label }})</td>
-                    <td class="kv-k">الغرفة:</td>
-                </tr>
-                <tr>
-                    <td class="kv-v">{{ $reservation->check_in_date?->format('Y/m/d') }}@if($reservation->check_in_time) — {{ $reservation->check_in_time }}@endif</td>
-                    <td class="kv-k">الدخول:</td>
-                </tr>
-                <tr>
-                    <td class="kv-v">{{ $reservation->check_out_date?->format('Y/m/d') }}@if($reservation->check_out_time) — {{ $reservation->check_out_time }}@endif</td>
-                    <td class="kv-k">الخروج:</td>
-                </tr>
-                <tr>
-                    <td class="kv-v">{{ $nights }} {{ $nights == 1 ? 'ليلة' : 'ليالٍ' }}</td>
-                    <td class="kv-k">المدة:</td>
-                </tr>
-            </table>
-        </td>
-        {{-- right column: guest details --}}
-        <td>
-            <div class="meta-h">بيانات النزيل</div>
-            <table class="kvt">
-                <tr>
-                    <td class="kv-v">{{ $reservation->guest?->full_name ?? '—' }}</td>
-                    <td class="kv-k">الاسم:</td>
-                </tr>
-                @if($reservation->guest?->id_number)
-                <tr>
-                    <td class="kv-v">{{ $reservation->guest->id_number }}</td>
-                    <td class="kv-k">رقم الهوية:</td>
-                </tr>
-                @endif
-                @if($reservation->guest?->nationality)
-                <tr>
-                    <td class="kv-v">{{ $reservation->guest->nationality }}</td>
-                    <td class="kv-k">الجنسية:</td>
-                </tr>
-                @endif
-                @if($reservation->guest?->phone)
-                <tr>
-                    <td class="kv-v">{{ $reservation->guest->phone }}</td>
-                    <td class="kv-k">الجوال:</td>
-                </tr>
-                @endif
-            </table>
-        </td>
-    </tr>
-</table>
+{{-- ═══ GUEST + STAY (floated cards, block key/value) ═══ --}}
+<div class="card card-r">
+    <div class="card-h">بيانات النزيل</div>
+    <div class="kv"><span class="k">الاسم: </span><span class="v">{{ $reservation->guest?->full_name ?? '—' }}</span></div>
+    @if($reservation->guest?->id_number)
+    <div class="kv"><span class="k">رقم الهوية: </span><span class="v">{{ $reservation->guest->id_number }}</span></div>
+    @endif
+    @if($reservation->guest?->nationality)
+    <div class="kv"><span class="k">الجنسية: </span><span class="v">{{ $reservation->guest->nationality }}</span></div>
+    @endif
+    @if($reservation->guest?->phone)
+    <div class="kv"><span class="k">الجوال: </span><span class="v">{{ $reservation->guest->phone }}</span></div>
+    @endif
+</div>
+<div class="card card-l">
+    <div class="card-h">تفاصيل الإقامة</div>
+    <div class="kv"><span class="k">الغرفة: </span><span class="v">{{ $reservation->display_room_number }} ({{ $reservation->room_type_label }})</span></div>
+    <div class="kv"><span class="k">الدخول: </span><span class="v">{{ $reservation->check_in_date?->format('Y/m/d') }}@if($reservation->check_in_time) — {{ $reservation->check_in_time }}@endif</span></div>
+    <div class="kv"><span class="k">الخروج: </span><span class="v">{{ $reservation->check_out_date?->format('Y/m/d') }}@if($reservation->check_out_time) — {{ $reservation->check_out_time }}@endif</span></div>
+    <div class="kv"><span class="k">المدة: </span><span class="v">{{ $nights }} {{ $nights == 1 ? 'ليلة' : 'ليالٍ' }}</span></div>
+</div>
+<div class="clear"></div>
 
-{{-- ═══ CHARGES (البيان on the RIGHT) — columns reversed for RTL ═══ --}}
-<div class="label">تفاصيل الرسوم</div>
-<table class="data">
+{{-- ═══ CHARGES (columns reversed for RTL) ═══ --}}
+<div class="sec">تفاصيل الرسوم</div>
+<table class="items">
     <thead>
         <tr>
-            <th class="c" style="width:19%;">الإجمالي</th>
-            <th class="c" style="width:19%;">سعر الوحدة</th>
-            <th class="c" style="width:16%;">الكمية</th>
-            <th style="width:46%;">البيان</th>
+            <th class="c" style="width:20%;">الإجمالي</th>
+            <th class="c" style="width:18%;">سعر الوحدة</th>
+            <th class="c" style="width:14%;">الكمية</th>
+            <th style="width:48%;">البيان</th>
         </tr>
     </thead>
     <tbody>
         <tr>
             <td class="c">{{ number_format($roomTotal, 0) }} {{ $cur }}</td>
             <td class="c">{{ number_format($pricePerNight, 0) }} {{ $cur }}</td>
-            <td class="c">{{ $nights }} ليلة</td>
+            <td class="c">{{ $nights }} × ليلة</td>
             <td>إقامة — غرفة {{ $reservation->display_room_number }}</td>
         </tr>
         @foreach($reservation->extraCharges as $charge)
@@ -262,64 +183,57 @@ table.sign td.gap { width: 10%; border: none; }
             <td class="c">{{ number_format($charge->amount, 0) }} {{ $cur }}</td>
             <td class="c">{{ number_format($charge->amount, 0) }} {{ $cur }}</td>
             <td class="c">1</td>
-            <td>{{ $charge->description ?: $charge->type }} <span style="color:#999;font-size:8pt;">— رسوم إضافية</span></td>
+            <td>{{ $charge->description ?: $charge->type }} <span class="muted">— رسوم إضافية</span></td>
         </tr>
         @endforeach
     </tbody>
 </table>
 
-{{-- ═══ TOTALS (box on the RIGHT; label right, amount left) ═══ --}}
-<table class="totals-wrap">
+{{-- ═══ SUMMARY (floated left; amount left, label right) ═══ --}}
+<table class="summary">
     <tr>
-        <td class="tw-cell" style="width:48%;"></td>
-        <td class="tw-cell" style="width:52%;">
-            <table class="totals">
-                <tr class="line">
-                    <td class="amt">{{ number_format($roomTotal + $extraTotal, 0) }} {{ $cur }}</td>
-                    <td class="lbl">المجموع الفرعي</td>
-                </tr>
-                @if($discount > 0)
-                <tr class="line">
-                    <td class="amt" style="color:#b91c1c;">- {{ number_format($discount, 0) }} {{ $cur }}</td>
-                    <td class="lbl">الخصم</td>
-                </tr>
-                @endif
-                <tr class="grand">
-                    <td class="amt">{{ number_format($total, 0) }} {{ $cur }}</td>
-                    <td class="lbl">الإجمالي</td>
-                </tr>
-                <tr class="paid line">
-                    <td class="amt">{{ number_format($paid, 0) }} {{ $cur }}</td>
-                    <td class="lbl">المدفوع</td>
-                </tr>
-                @if($isPaid)
-                <tr class="paid">
-                    <td class="amt">مسدّد بالكامل ✓</td>
-                    <td class="lbl">الحالة</td>
-                </tr>
-                @else
-                <tr class="due">
-                    <td class="amt">{{ number_format(abs($balance), 0) }} {{ $cur }}</td>
-                    <td class="lbl">المتبقي</td>
-                </tr>
-                @endif
-            </table>
-        </td>
+        <td class="sv">{{ number_format($subtotal, 0) }} {{ $cur }}</td>
+        <td class="sk">المجموع الفرعي</td>
     </tr>
+    @if($discount > 0)
+    <tr>
+        <td class="sv" style="color:#b91c1c;">- {{ number_format($discount, 0) }} {{ $cur }}</td>
+        <td class="sk">الخصم</td>
+    </tr>
+    @endif
+    <tr class="grand">
+        <td class="sv">{{ number_format($total, 0) }} {{ $cur }}</td>
+        <td class="sk">الإجمالي</td>
+    </tr>
+    <tr class="paid">
+        <td class="sv">{{ number_format($paid, 0) }} {{ $cur }}</td>
+        <td class="sk">المدفوع</td>
+    </tr>
+    @if($isPaid)
+    <tr class="paid">
+        <td class="sv">✓ مسدّدة بالكامل</td>
+        <td class="sk">الحالة</td>
+    </tr>
+    @else
+    <tr class="due">
+        <td class="sv">{{ number_format(abs($balance), 0) }} {{ $cur }}</td>
+        <td class="sk">المتبقي</td>
+    </tr>
+    @endif
 </table>
+<div class="clear"></div>
 
-{{-- ═══ PAYMENTS (التاريخ on the RIGHT) — columns reversed ═══ --}}
+{{-- ═══ PAYMENTS (columns reversed) ═══ --}}
 @if($reservation->payments->count() > 0)
-<div class="label">سجل المدفوعات</div>
-<table class="data">
+<div class="sec">سجل المدفوعات</div>
+<table class="mini">
     <thead>
         <tr>
-            <th class="c">المبلغ</th>
-            <th>المستلم</th>
-            <th>الطريقة</th>
-            <th>النوع</th>
-            <th>ملاحظة</th>
-            <th>التاريخ</th>
+            <th class="c" style="width:20%;">المبلغ</th>
+            <th style="width:22%;">المستلم</th>
+            <th style="width:16%;">الطريقة</th>
+            <th style="width:18%;">النوع</th>
+            <th style="width:24%;">التاريخ</th>
         </tr>
     </thead>
     <tbody>
@@ -329,35 +243,32 @@ table.sign td.gap { width: 10%; border: none; }
             <td>{{ $p->receivedBy?->name ?? '—' }}</td>
             <td>{{ $methodMap[$p->method] ?? $p->method }}</td>
             <td>{{ $typeMap[$p->type] ?? $p->type }}</td>
-            <td style="font-size:9px;color:#555;">{{ $p->notes ?: '—' }}</td>
-            <td>{{ $p->payment_date?->format('Y/m/d') }}</td>
+            <td>{{ $p->payment_date?->format('Y/m/d H:i') }}</td>
         </tr>
         @endforeach
     </tbody>
 </table>
 @endif
 
-{{-- ═══ COMPANIONS (# on the RIGHT) — columns reversed ═══ --}}
+{{-- ═══ COMPANIONS (columns reversed) ═══ --}}
 @if($reservation->companions->count() > 0)
-<div class="label">المرافقون ({{ $reservation->companions->count() }})</div>
-<table class="data">
+<div class="sec">المرافقون ({{ $reservation->companions->count() }})</div>
+<table class="mini">
     <thead>
         <tr>
-            <th>رقم الهوية</th>
-            <th>الجنسية</th>
-            <th>صلة القرابة</th>
-            <th>الاسم</th>
-            <th class="c" style="width:8%;">#</th>
+            <th style="width:26%;">رقم الهوية</th>
+            <th style="width:20%;">الجنسية</th>
+            <th style="width:20%;">صلة القرابة</th>
+            <th style="width:34%;">الاسم</th>
         </tr>
     </thead>
     <tbody>
-        @foreach($reservation->companions as $i => $c)
+        @foreach($reservation->companions as $c)
         <tr>
             <td>{{ $c->id_number ?? '—' }}</td>
             <td>{{ $c->nationality ?: '—' }}</td>
             <td>{{ $c->getRelationshipLabel() }}</td>
             <td>{{ $c->full_name }}</td>
-            <td class="c">{{ $i + 1 }}</td>
         </tr>
         @endforeach
     </tbody>
@@ -369,14 +280,12 @@ table.sign td.gap { width: 10%; border: none; }
 <div class="notes"><strong>ملاحظات:</strong> {{ $reservation->notes }}</div>
 @endif
 
-{{-- ═══ SIGNATURES (guest signature on the RIGHT) ═══ --}}
-<table class="sign">
-    <tr>
-        <td>ختم وتوقيع الفندق</td>
-        <td class="gap"></td>
-        <td>توقيع النزيل</td>
-    </tr>
-</table>
+{{-- ═══ SIGNATURES ═══ --}}
+<div class="signs">
+    <div class="sign-r">ختم وتوقيع الفندق</div>
+    <div class="sign-l">توقيع النزيل</div>
+    <div class="clear"></div>
+</div>
 
 {{-- ═══ FOOTER ═══ --}}
 <div class="foot">
