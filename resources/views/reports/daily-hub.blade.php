@@ -268,14 +268,14 @@
                     </div>
                 </div>
             </form>
-            <div class="flex flex-col gap-1 mr-auto">
+            <div class="flex flex-col gap-1 mr-auto" x-data="reservationsColumnPicker()">
                 <div class="flex gap-2">
-                    <a href="{{ route('reports.reservations.pdf', ['from' => $from, 'to' => $to]) }}"
+                    <button type="button" @click="open = true"
                        class="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition"
                        title="PDF يدعم حتى 30 يوماً — استخدم Excel للفترات الأطول">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
                         PDF
-                    </a>
+                    </button>
                     <a href="{{ route('reports.reservations.excel', ['from' => $from, 'to' => $to]) }}"
                        class="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
@@ -286,6 +286,41 @@
                 @if($days > 30)
                 <p class="text-xs text-amber-600 mt-1">⚠ الفترة {{ $days }} يوم — PDF يدعم حتى 30 يوماً، استخدم Excel</p>
                 @endif
+
+                {{-- نافذة اختيار أعمدة تقرير PDF --}}
+                <div x-show="open" x-cloak style="display:none;"
+                     class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                     @click.self="open = false">
+                    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col">
+                        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+                            <h3 class="font-bold text-gray-800">اختر أعمدة تقرير الحجوزات (PDF)</h3>
+                            <button type="button" @click="open = false" class="text-gray-400 hover:text-gray-600">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                        <div class="p-6 overflow-y-auto">
+                            <div class="flex gap-2 mb-4">
+                                <button type="button" @click="selectAll()" class="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">تحديد الكل</button>
+                                <button type="button" @click="selectNone()" class="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">إلغاء الكل</button>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2.5">
+                                @foreach(\App\Http\Controllers\ReportController::RESERVATIONS_PDF_COLUMNS as $key => $label)
+                                <label class="flex items-center gap-2 text-sm text-gray-700 border border-gray-100 rounded-lg px-3 py-2 hover:bg-gray-50 cursor-pointer">
+                                    <input type="checkbox" value="{{ $key }}" x-model="columns" class="rounded border-gray-300">
+                                    {{ $label }}
+                                </label>
+                                @endforeach
+                            </div>
+                        </div>
+                        <div class="flex gap-3 px-6 py-4 border-t border-gray-100 flex-shrink-0">
+                            <button type="button" @click="download()" :disabled="columns.length === 0"
+                                    class="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-bold transition disabled:opacity-40">
+                                تصدير PDF (<span x-text="columns.length"></span> عمود)
+                            </button>
+                            <button type="button" @click="open = false" class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-xl text-sm hover:bg-gray-50 transition">إلغاء</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -393,6 +428,28 @@
 @endsection
 
 @push('scripts')
+@if($tab === 'reservations')
+<script>
+const RESERVATIONS_PDF_COLUMNS = @json(array_keys(\App\Http\Controllers\ReportController::RESERVATIONS_PDF_COLUMNS));
+function reservationsColumnPicker() {
+    return {
+        open: false,
+        columns: [...RESERVATIONS_PDF_COLUMNS],
+        selectAll()  { this.columns = [...RESERVATIONS_PDF_COLUMNS]; },
+        selectNone() { this.columns = []; },
+        download() {
+            if (this.columns.length === 0) return;
+            const params = new URLSearchParams();
+            params.set('from', @json($from));
+            params.set('to', @json($to));
+            this.columns.forEach(c => params.append('columns[]', c));
+            window.location.href = @json(route('reports.reservations.pdf')) + '?' + params.toString();
+            this.open = false;
+        },
+    }
+}
+</script>
+@endif
 @if($tab === 'occupancy')
 <script>
 new Chart(document.getElementById('occupancyChart'), {

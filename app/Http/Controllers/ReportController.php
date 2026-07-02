@@ -13,7 +13,31 @@ use Illuminate\Support\Facades\DB;
 
 class ReportController extends Controller
 {
-
+    /**
+     * الأعمدة المتاحة لاختيار الأدمن في تقرير الحجوزات (PDF) — المفتاح والتسمية فقط؛
+     * الترتيب والعرض والمحتوى الفعلي معرّفة في reports.reservations_pdf.
+     */
+    public const RESERVATIONS_PDF_COLUMNS = [
+        'id'             => '#',
+        'room'           => 'الغرفة',
+        'guest_name'     => 'اسم النزيل',
+        'nationality'    => 'الجنسية',
+        'occupation'     => 'المهنة',
+        'origin'         => 'جهة القدوم',
+        'check_in_date'  => 'تاريخ الدخول',
+        'check_in_time'  => 'الوقت',
+        'purpose'        => 'الغرض',
+        'id_type'        => 'نوع الهوية',
+        'id_number'      => 'رقم الهوية',
+        'id_issuer'      => 'صادر من',
+        'id_issue_date'  => 'تاريخ الإصدار',
+        'phone'          => 'رقم الجوال',
+        'payment_status' => 'حالة الدفع',
+        'paid_amount'    => 'المدفوع',
+        'total_amount'   => 'الإجمالي',
+        'balance'        => 'المتبقي',
+        'notes'          => 'ملاحظات',
+    ];
 
     public function debts(Request $request)
     {
@@ -487,7 +511,17 @@ class ReportController extends Controller
         $total      = $reservations->count();
         $checkedIn  = $reservations->where('status', 'checked_in')->count();
         $checkedOut = $reservations->where('status', 'checked_out')->count();
-        $pdf = $this->pdfOptions(pdf_load_view('reports.reservations_pdf', compact('reservations', 'from', 'to', 'total', 'checkedIn', 'checkedOut')));
+
+        // الأعمدة التي اختارها الأدمن — كل الأعمدة افتراضياً إن لم يُحدَّد شيء
+        $selectedColumns = array_values(array_intersect(
+            $request->input('columns', array_keys(self::RESERVATIONS_PDF_COLUMNS)),
+            array_keys(self::RESERVATIONS_PDF_COLUMNS)
+        ));
+        if (empty($selectedColumns)) {
+            $selectedColumns = array_keys(self::RESERVATIONS_PDF_COLUMNS);
+        }
+
+        $pdf = $this->pdfOptions(pdf_load_view('reports.reservations_pdf', compact('reservations', 'from', 'to', 'total', 'checkedIn', 'checkedOut', 'selectedColumns')));
         $pdf->setPaper('a3', 'landscape');
         return $pdf->download('reservations-' . $from . '-' . $to . '.pdf');
     }

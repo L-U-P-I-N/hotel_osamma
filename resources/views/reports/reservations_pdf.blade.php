@@ -66,6 +66,13 @@
     table.main tbody td.c   { text-align: center; }
     table.main tbody td.ltr { text-align: left; direction: ltr; }
 
+    /* Payment status badges — تمييز واضح دون الحاجة لقراءة النص */
+    .badge { display: inline-block; padding: 1px 5px; border-radius: 3px; font-weight: bold; }
+    .badge-paid    { background: #dcfce7; color: #166534; }
+    .badge-partial { background: #fef9c3; color: #854d0e; }
+    .badge-pending { background: #fee2e2; color: #991b1b; }
+    .badge-deferred{ background: #e0e7ff; color: #3730a3; }
+
     .footer { margin-top: 6px; border-top: 1px solid #eee; padding-top: 3px; font-size: 6.5px; color: #aaa; text-align: right; }
 </style>
 </head>
@@ -73,7 +80,77 @@
 
 @php
     $idTypeMap = ['national_id' => 'بطاقة', 'passport' => 'جواز', 'residence' => 'إقامة'];
-    $psLabels  = ['paid' => 'مدفوع', 'partial' => 'جزئي', 'pending' => 'معلق'];
+    $psLabels  = ['paid' => 'مدفوع', 'partial' => 'جزئي', 'pending' => 'معلق', 'unpaid' => 'غير مدفوع', 'deferred' => 'مؤجل'];
+    $psBadge   = ['paid' => 'badge-paid', 'partial' => 'badge-partial', 'pending' => 'badge-pending', 'unpaid' => 'badge-pending', 'deferred' => 'badge-deferred'];
+    $strip     = fn($s) => $s ? preg_replace('/[^\x{0000}-\x{FFFF}]/u', '', $s) : null;
+
+    // تعريف الأعمدة كلها بترتيبها المنطقي الصحيح (الأول = أقصى اليمين عربياً).
+    // كل عمود: تسمية، وزن نسبي للعرض، محاذاة، ودالة لاستخراج محتوى الخلية.
+    $columnDefs = [
+        'id'             => ['label' => '#',              'weight' => 3,  'class' => 'c',
+            'render' => fn($r, $g) => $r->id],
+        'room'           => ['label' => 'الغرفة',          'weight' => 4,  'class' => 'c', 'bold' => true,
+            'render' => fn($r, $g) => $r->display_room_number],
+        'guest_name'     => ['label' => 'اسم النزيل',      'weight' => 10, 'class' => '',
+            'render' => fn($r, $g) => $g?->full_name ?? '—'],
+        'nationality'    => ['label' => 'الجنسية',         'weight' => 6,  'class' => '',
+            'render' => fn($r, $g) => $g?->nationality ?? '—'],
+        'occupation'     => ['label' => 'المهنة',          'weight' => 6,  'class' => '',
+            'render' => fn($r, $g) => $g?->occupation ?? '—'],
+        'origin'         => ['label' => 'جهة القدوم',      'weight' => 6,  'class' => '',
+            'render' => fn($r, $g) => $r->origin ?? '—'],
+        'check_in_date'  => ['label' => 'تاريخ الدخول',    'weight' => 6,  'class' => 'ltr',
+            'render' => fn($r, $g) => $r->check_in_date?->format('d/m/Y') ?? '—'],
+        'check_in_time'  => ['label' => 'الوقت',           'weight' => 4,  'class' => 'ltr c',
+            'render' => fn($r, $g) => $r->check_in_time ?? '—'],
+        'purpose'        => ['label' => 'الغرض',           'weight' => 5,  'class' => '',
+            'render' => fn($r, $g) => $r->purpose ?? '—'],
+        'id_type'        => ['label' => 'نوع الهوية',      'weight' => 4,  'class' => 'c',
+            'render' => fn($r, $g) => $idTypeMap[$g?->id_type] ?? $g?->id_type ?? '—'],
+        'id_number'      => ['label' => 'رقم الهوية',      'weight' => 7,  'class' => 'ltr',
+            'render' => fn($r, $g) => $g?->id_number ?? '—'],
+        'id_issuer'      => ['label' => 'صادر من',         'weight' => 7,  'class' => '',
+            'render' => fn($r, $g) => $g?->id_issuer ?? '—'],
+        'id_issue_date'  => ['label' => 'تاريخ الإصدار',   'weight' => 6,  'class' => 'ltr',
+            'render' => fn($r, $g) => $g?->id_issue_date?->format('d/m/Y') ?? '—'],
+        'phone'          => ['label' => 'رقم الجوال',      'weight' => 7,  'class' => 'ltr',
+            'render' => fn($r, $g) => $g?->phone ?? '—'],
+        'payment_status' => ['label' => 'حالة الدفع',      'weight' => 5,  'class' => 'c', 'raw' => true,
+            'render' => function ($r, $g) use ($psLabels, $psBadge) {
+                $ps = $r->payment_status ?? 'pending';
+                $cls = $psBadge[$ps] ?? 'badge-pending';
+                // القيم هنا من قائمة ثابتة (لا تأتي من إدخال المستخدم) فالمخرج HTML آمن دون تهريب
+                return '<span class="badge ' . $cls . '">' . e($psLabels[$ps] ?? $ps) . '</span>';
+            }],
+        'paid_amount'    => ['label' => 'المدفوع (ر.ي)',   'weight' => 6,  'class' => 'ltr',
+            'render' => fn($r, $g) => number_format($r->paid_amount, 0)],
+        'total_amount'   => ['label' => 'الإجمالي (ر.ي)',  'weight' => 6,  'class' => 'ltr',
+            'render' => fn($r, $g) => number_format($r->total_amount, 0)],
+        'balance'        => ['label' => 'المتبقي (ر.ي)',   'weight' => 6,  'class' => 'ltr',
+            'render' => fn($r, $g) => number_format(max(0, (float)$r->total_amount - (float)$r->paid_amount), 0)],
+        'notes'          => ['label' => 'ملاحظات',         'weight' => 9,  'class' => '',
+            'render' => function ($r, $g) use ($strip) {
+                $rNote   = $strip($r->notes);
+                $payNote = $strip($r->payments->first(fn($p) => $p->notes)?->notes);
+                if (!$rNote && !$payNote) return '—';
+                return trim(($rNote ?? '') . ($rNote && $payNote ? ' | ' : '') . ($payNote ? '[دفع] ' . $payNote : ''));
+            }],
+    ];
+
+    // الأعمدة التي اختارها الأدمن (أو كل الأعمدة افتراضياً إن لم يُحدَّد شيء)
+    $selected = collect($selectedColumns ?? array_keys($columnDefs))
+        ->filter(fn($k) => isset($columnDefs[$k]))
+        ->values();
+    if ($selected->isEmpty()) {
+        $selected = collect(array_keys($columnDefs));
+    }
+    $activeColumns = collect($columnDefs)->only($selected->all());
+    $totalWeight   = $activeColumns->sum('weight');
+
+    // dompdf لا يعكس ترتيب أعمدة الجدول بحسب dir="rtl" — فقط اتجاه النص داخل كل خلية.
+    // لذا نكتب الأعمدة هنا بترتيب معكوس (الأخير منطقياً أولاً في HTML) حتى يظهر
+    // العمود الأول منطقياً (#) في أقصى اليمين كما يُقرأ عربياً، بدل أقصى اليسار.
+    $htmlOrder = $activeColumns->reverse();
 @endphp
 
 <div class="header">
@@ -93,85 +170,26 @@
 @if($reservations->isEmpty())
 <p style="text-align:center;color:#999;padding:20px;">لا توجد حجوزات في هذه الفترة</p>
 @else
-{{--
-    dompdf لا يعكس ترتيب أعمدة الجدول بحسب dir="rtl" — فقط اتجاه النص داخل كل خلية.
-    لذا نكتب الأعمدة هنا بترتيب معكوس (الأخير منطقياً أولاً في HTML) حتى يظهر
-    العمود الأول منطقياً (#) في أقصى اليمين كما يُقرأ عربياً، بدل أقصى اليسار.
---}}
 <table class="main" dir="rtl">
     <colgroup>
-        <col style="width:11%">  {{-- ملاحظات --}}
-        <col style="width:8%">   {{-- حالة الدفع --}}
-        <col style="width:7%">   {{-- رقم الجوال --}}
-        <col style="width:6%">   {{-- تاريخ الإصدار --}}
-        <col style="width:7%">   {{-- صادر من --}}
-        <col style="width:7%">   {{-- رقم الهوية --}}
-        <col style="width:4%">   {{-- نوع الهوية --}}
-        <col style="width:5%">   {{-- الغرض --}}
-        <col style="width:4%">   {{-- الوقت --}}
-        <col style="width:6%">   {{-- تاريخ الدخول --}}
-        <col style="width:6%">   {{-- جهة القدوم --}}
-        <col style="width:6%">   {{-- المهنة --}}
-        <col style="width:6%">   {{-- الجنسية --}}
-        <col style="width:10%">  {{-- الاسم --}}
-        <col style="width:4%">   {{-- الغرفة --}}
-        <col style="width:3%">   {{-- # --}}
+        @foreach($htmlOrder as $key => $col)
+        <col style="width:{{ round($col['weight'] / $totalWeight * 100, 2) }}%">   {{-- {{ $col['label'] }} --}}
+        @endforeach
     </colgroup>
     <thead>
         <tr>
-            <th>ملاحظات</th>
-            <th>حالة الدفع</th>
-            <th>رقم الجوال</th>
-            <th>تاريخ الإصدار</th>
-            <th>صادر من</th>
-            <th>رقم الهوية</th>
-            <th>نوع الهوية</th>
-            <th>الغرض</th>
-            <th>الوقت</th>
-            <th>تاريخ الدخول</th>
-            <th>جهة القدوم</th>
-            <th>المهنة</th>
-            <th>الجنسية</th>
-            <th>اسم النزيل</th>
-            <th>الغرفة</th>
-            <th>#</th>
+            @foreach($htmlOrder as $key => $col)
+            <th>{{ $col['label'] }}</th>
+            @endforeach
         </tr>
     </thead>
     <tbody>
         @foreach($reservations as $r)
-        @php
-            $g        = $r->guest;
-            $ps       = $r->payment_status ?? 'pending';
-            $payNote  = $r->payments->first(fn($p) => $p->notes)?->notes;
-            $strip    = fn($s) => $s ? preg_replace('/[^\x{0000}-\x{FFFF}]/u', '', $s) : null;
-            $rNote    = $strip($r->notes);
-            $payNote  = $strip($payNote);
-        @endphp
+        @php $g = $r->guest; @endphp
         <tr>
-            <td>
-                @if($rNote){{ $rNote }}@endif
-                @if($rNote && $payNote) | @endif
-                @if($payNote)[دفع] {{ $payNote }}@endif
-                @if(!$rNote && !$payNote)—@endif
-            </td>
-            <td class="c">
-                {{ $psLabels[$ps] ?? $ps }}
-                <div style="font-size:6px;color:#888;direction:ltr;text-align:left;margin-top:1px;">{{ number_format($r->paid_amount,0) }}/{{ number_format($r->total_amount,0) }}</div>
-            </td>
-            <td class="ltr">{{ $g?->phone ?? '—' }}</td>
-            <td class="ltr">{{ $g?->id_issue_date?->format('d/m/Y') ?? '—' }}</td>
-            <td>{{ $g?->id_issuer ?? '—' }}</td>
-            <td class="ltr">{{ $g?->id_number ?? '—' }}</td>
-            <td class="c">{{ $idTypeMap[$g?->id_type] ?? $g?->id_type ?? '—' }}</td>
-            <td>{{ $r->purpose ?? '—' }}</td>
-            <td class="ltr c">{{ $r->check_in_time ?? '—' }}</td>
-            <td class="ltr">{{ $r->check_in_date?->format('d/m/Y') ?? '—' }}</td>
-            <td>{{ $r->origin ?? '—' }}</td>
-            <td>{{ $g?->occupation ?? '—' }}</td>
-            <td>{{ $g?->nationality ?? '—' }}</td>
-            <td>{{ $g?->full_name ?? '—' }}</td>
-            <td class="c" style="font-weight:bold;">{{ $r->display_room_number }}</td>
-            <td class="c">{{ $r->id }}</td>
+            @foreach($htmlOrder as $key => $col)
+            <td class="{{ $col['class'] }}" @if(!empty($col['bold'])) style="font-weight:bold;" @endif>@if(!empty($col['raw'])){!! $col['render']($r, $g) !!}@else{{ $col['render']($r, $g) }}@endif</td>
+            @endforeach
         </tr>
         @endforeach
     </tbody>
