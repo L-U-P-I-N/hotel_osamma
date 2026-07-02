@@ -93,43 +93,48 @@
 @if($reservations->isEmpty())
 <p style="text-align:center;color:#999;padding:20px;">لا توجد حجوزات في هذه الفترة</p>
 @else
+{{--
+    dompdf لا يعكس ترتيب أعمدة الجدول بحسب dir="rtl" — فقط اتجاه النص داخل كل خلية.
+    لذا نكتب الأعمدة هنا بترتيب معكوس (الأخير منطقياً أولاً في HTML) حتى يظهر
+    العمود الأول منطقياً (#) في أقصى اليمين كما يُقرأ عربياً، بدل أقصى اليسار.
+--}}
 <table class="main" dir="rtl">
     <colgroup>
-        <col style="width:3%">   {{-- # --}}
-        <col style="width:4%">   {{-- الغرفة --}}
-        <col style="width:10%">  {{-- الاسم --}}
-        <col style="width:6%">   {{-- الجنسية --}}
-        <col style="width:6%">   {{-- المهنة --}}
-        <col style="width:6%">   {{-- جهة القدوم --}}
-        <col style="width:6%">   {{-- تاريخ الدخول --}}
-        <col style="width:4%">   {{-- الوقت --}}
-        <col style="width:5%">   {{-- الغرض --}}
-        <col style="width:4%">   {{-- نوع الهوية --}}
-        <col style="width:7%">   {{-- رقم الهوية --}}
-        <col style="width:7%">   {{-- صادر من --}}
-        <col style="width:6%">   {{-- تاريخ الإصدار --}}
-        <col style="width:7%">   {{-- رقم الجوال --}}
-        <col style="width:8%">   {{-- حالة الدفع --}}
         <col style="width:11%">  {{-- ملاحظات --}}
+        <col style="width:8%">   {{-- حالة الدفع --}}
+        <col style="width:7%">   {{-- رقم الجوال --}}
+        <col style="width:6%">   {{-- تاريخ الإصدار --}}
+        <col style="width:7%">   {{-- صادر من --}}
+        <col style="width:7%">   {{-- رقم الهوية --}}
+        <col style="width:4%">   {{-- نوع الهوية --}}
+        <col style="width:5%">   {{-- الغرض --}}
+        <col style="width:4%">   {{-- الوقت --}}
+        <col style="width:6%">   {{-- تاريخ الدخول --}}
+        <col style="width:6%">   {{-- جهة القدوم --}}
+        <col style="width:6%">   {{-- المهنة --}}
+        <col style="width:6%">   {{-- الجنسية --}}
+        <col style="width:10%">  {{-- الاسم --}}
+        <col style="width:4%">   {{-- الغرفة --}}
+        <col style="width:3%">   {{-- # --}}
     </colgroup>
     <thead>
         <tr>
-            <th>#</th>
-            <th>الغرفة</th>
-            <th>اسم النزيل</th>
-            <th>الجنسية</th>
-            <th>المهنة</th>
-            <th>جهة القدوم</th>
-            <th>تاريخ الدخول</th>
-            <th>الوقت</th>
-            <th>الغرض</th>
-            <th>نوع الهوية</th>
-            <th>رقم الهوية</th>
-            <th>صادر من</th>
-            <th>تاريخ الإصدار</th>
-            <th>رقم الجوال</th>
-            <th>حالة الدفع</th>
             <th>ملاحظات</th>
+            <th>حالة الدفع</th>
+            <th>رقم الجوال</th>
+            <th>تاريخ الإصدار</th>
+            <th>صادر من</th>
+            <th>رقم الهوية</th>
+            <th>نوع الهوية</th>
+            <th>الغرض</th>
+            <th>الوقت</th>
+            <th>تاريخ الدخول</th>
+            <th>جهة القدوم</th>
+            <th>المهنة</th>
+            <th>الجنسية</th>
+            <th>اسم النزيل</th>
+            <th>الغرفة</th>
+            <th>#</th>
         </tr>
     </thead>
     <tbody>
@@ -143,30 +148,30 @@
             $payNote  = $strip($payNote);
         @endphp
         <tr>
-            <td class="c">{{ $r->id }}</td>
-            <td class="c" style="font-weight:bold;">{{ $r->display_room_number }}</td>
-            <td>{{ $g?->full_name ?? '—' }}</td>
-            <td>{{ $g?->nationality ?? '—' }}</td>
-            <td>{{ $g?->occupation ?? '—' }}</td>
-            <td>{{ $r->origin ?? '—' }}</td>
-            <td class="ltr">{{ $r->check_in_date?->format('d/m/Y') ?? '—' }}</td>
-            <td class="ltr c">{{ $r->check_in_time ?? '—' }}</td>
-            <td>{{ $r->purpose ?? '—' }}</td>
-            <td class="c">{{ $idTypeMap[$g?->id_type] ?? $g?->id_type ?? '—' }}</td>
-            <td class="ltr">{{ $g?->id_number ?? '—' }}</td>
-            <td>{{ $g?->id_issuer ?? '—' }}</td>
-            <td class="ltr">{{ $g?->id_issue_date?->format('d/m/Y') ?? '—' }}</td>
-            <td class="ltr">{{ $g?->phone ?? '—' }}</td>
-            <td class="c">
-                {{ $psLabels[$ps] ?? $ps }}
-                <div style="font-size:6px;color:#888;direction:ltr;text-align:left;margin-top:1px;">{{ number_format($r->paid_amount,0) }}/{{ number_format($r->total_amount,0) }}</div>
-            </td>
             <td>
                 @if($rNote){{ $rNote }}@endif
                 @if($rNote && $payNote) | @endif
                 @if($payNote)[دفع] {{ $payNote }}@endif
                 @if(!$rNote && !$payNote)—@endif
             </td>
+            <td class="c">
+                {{ $psLabels[$ps] ?? $ps }}
+                <div style="font-size:6px;color:#888;direction:ltr;text-align:left;margin-top:1px;">{{ number_format($r->paid_amount,0) }}/{{ number_format($r->total_amount,0) }}</div>
+            </td>
+            <td class="ltr">{{ $g?->phone ?? '—' }}</td>
+            <td class="ltr">{{ $g?->id_issue_date?->format('d/m/Y') ?? '—' }}</td>
+            <td>{{ $g?->id_issuer ?? '—' }}</td>
+            <td class="ltr">{{ $g?->id_number ?? '—' }}</td>
+            <td class="c">{{ $idTypeMap[$g?->id_type] ?? $g?->id_type ?? '—' }}</td>
+            <td>{{ $r->purpose ?? '—' }}</td>
+            <td class="ltr c">{{ $r->check_in_time ?? '—' }}</td>
+            <td class="ltr">{{ $r->check_in_date?->format('d/m/Y') ?? '—' }}</td>
+            <td>{{ $r->origin ?? '—' }}</td>
+            <td>{{ $g?->occupation ?? '—' }}</td>
+            <td>{{ $g?->nationality ?? '—' }}</td>
+            <td>{{ $g?->full_name ?? '—' }}</td>
+            <td class="c" style="font-weight:bold;">{{ $r->display_room_number }}</td>
+            <td class="c">{{ $r->id }}</td>
         </tr>
         @endforeach
     </tbody>

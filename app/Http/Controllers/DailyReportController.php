@@ -32,7 +32,8 @@ class DailyReportController extends Controller
         $reservations = $this->getReservations($date);
 
         $pdf = pdf_load_view('reports.daily_pdf', compact('reservations', 'date'));
-        $pdf->setPaper('a4', 'landscape');
+        // A3 عرضي — الطابعة المستخدمة تطبع A3 فعلياً، فاستخدام A4 كان يترك جزءاً كبيراً من الورقة فارغاً
+        $pdf->setPaper('a3', 'landscape');
 
         // Point DomPDF at our fonts directory so it can find NotoNaskhArabic
         $dompdf = $pdf->getDomPDF();
