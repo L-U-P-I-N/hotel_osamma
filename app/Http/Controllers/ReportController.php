@@ -632,7 +632,7 @@ class ReportController extends Controller
             ->withSum(['reservations as total_revenue' => fn($q) => $q->whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to)->whereNotIn('status', ['cancelled'])], 'total_amount')
             ->orderByDesc('total_revenue')->get();
         $pdf = $this->pdfOptions(pdf_load_view('reports.rooms_pdf', compact('rooms', 'from', 'to')));
-        $pdf->setPaper('a4', 'portrait');
+        $pdf->setPaper('a4', 'landscape');
         return $pdf->download('rooms-' . $from . '-' . $to . '.pdf');
     }
 
@@ -653,7 +653,7 @@ class ReportController extends Controller
         $byNationality   = \App\Models\Guest::select('nationality', DB::raw('count(*) as count'))->groupBy('nationality')->orderByDesc('count')->limit(10)->get();
         $topGuests       = \App\Models\Guest::withCount(['reservations as period_reservations' => fn($q) => $q->whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to)->whereNotIn('status', ['cancelled'])])->having('period_reservations', '>', 0)->orderByDesc('period_reservations')->limit(10)->get();
         $pdf = $this->pdfOptions(pdf_load_view('reports.guests_pdf', compact('totalGuests', 'newGuests', 'returningGuests', 'byNationality', 'topGuests', 'from', 'to')));
-        $pdf->setPaper('a4', 'portrait');
+        $pdf->setPaper('a4', 'landscape');
         return $pdf->download('guests-' . $from . '-' . $to . '.pdf');
     }
 
@@ -687,7 +687,7 @@ class ReportController extends Controller
             $pdf = $this->pdfOptions(pdf_load_view('reports.debts_pdf', compact('reservations', 'totalDebt')));
         }
 
-        $pdf->setPaper('a4', 'portrait');
+        $pdf->setPaper('a4', 'landscape');
         return $pdf->download('debts-' . $section . '-' . now()->format('Y-m-d') . '.pdf');
     }
 
