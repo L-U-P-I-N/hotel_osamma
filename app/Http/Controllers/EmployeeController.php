@@ -72,4 +72,37 @@ class EmployeeController extends Controller
         $employee->delete();
         return redirect()->route('employees.index')->with('success', 'تم حذف الموظف بنجاح');
     }
+
+    /**
+     * كشف مسحوبات الموظف: كل مبلغ صُرف له من الصندوق (التاريخ والوقت والمبلغ)،
+     * مع إجمالي مسحوبات الشهر المحدد وخصمها من راتبه وعرض المتبقي منه.
+     */
+    public function withdrawals(Request $request, Employee $employee)
+    {
+        $month = (int) $request->input('month', now()->month);
+        $year  = (int) $request->input('year', now()->year);
+
+        $withdrawals = $employee->expenses()
+            ->whereMonth('expense_date', $month)
+            ->whereYear('expense_date', $year)
+            ->orderBy('expense_date', 'desc')
+            ->orderBy('id', 'desc')
+            ->get();
+
+        $monthTotal      = (float) $withdrawals->sum('amount');
+        $allTimeTotal    = (float) $employee->expenses()->sum('amount');
+        $baseSalary      = (float) $employee->base_salary;
+        $remainingSalary = $baseSalary - $monthTotal;
+
+        // قسيمة راتب الشهر إن كانت قد أُنشئت — لعرض حالة الخصم الفعلي
+        $salary = $employee->salaries()
+            ->where('month', $month)
+            ->where('year', $year)
+            ->first();
+
+        return view('employees.withdrawals', compact(
+            'employee', 'withdrawals', 'month', 'year',
+            'monthTotal', 'allTimeTotal', 'baseSalary', 'remainingSalary', 'salary'
+        ));
+    }
 }

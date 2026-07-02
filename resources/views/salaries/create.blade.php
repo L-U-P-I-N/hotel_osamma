@@ -66,6 +66,16 @@
             </div>
         </div>
 
+        <label class="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-lg p-3 cursor-pointer">
+            <input type="checkbox" name="include_withdrawals" value="1" class="mt-0.5"
+                   {{ old('include_withdrawals', '1') ? 'checked' : '' }}>
+            <span class="text-xs text-amber-800">
+                <strong>خصم مسحوبات الموظف تلقائياً:</strong>
+                تُضاف كل المبالغ المصروفة لهذا الموظف خلال الشهر المحدد (من شاشة المصروفات) إلى الخصومات،
+                ويُحتسب صافي الراتب بعدها. راجع «كشف المسحوبات» من صفحة الموظفين للتفاصيل.
+            </span>
+        </label>
+
         <!-- Net salary display -->
         <div class="bg-gray-50 rounded-lg p-4 flex justify-between items-center">
             <span class="text-sm font-medium text-gray-700">صافي الراتب:</span>

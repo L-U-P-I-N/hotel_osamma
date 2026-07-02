@@ -274,7 +274,14 @@
                             {{ \App\Models\Expense::paymentMethodLabel($pm) }}
                         </span>
                     </td>
-                    <td class="px-4 py-3 text-gray-700">{{ $expense->recipient_name ?? '—' }}</td>
+                    <td class="px-4 py-3 text-gray-700">
+                        {{ $expense->recipient_name ?? '—' }}
+                        @if($expense->employee_id)
+                        <a href="{{ route('employees.withdrawals', $expense->employee_id) }}"
+                           class="inline-block mr-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 hover:bg-amber-200"
+                           title="مصروف لموظف — يُخصم من راتبه">موظف</a>
+                        @endif
+                    </td>
                     <td class="px-4 py-3 text-gray-500 max-w-xs truncate">{{ $expense->description ?? '—' }}</td>
                     <td class="px-4 py-3 text-gray-500">{{ $expense->paidBy?->name ?? '—' }}</td>
                     @canany(['expenses.edit','expenses.delete'])

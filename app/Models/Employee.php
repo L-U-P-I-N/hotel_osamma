@@ -51,4 +51,23 @@ class Employee extends Model
     {
         return $this->attendances()->where('date', $date)->first();
     }
+
+    /**
+     * المصروفات المصروفة لهذا الموظف (مسحوباته من الصندوق).
+     */
+    public function expenses()
+    {
+        return $this->hasMany(Expense::class);
+    }
+
+    /**
+     * إجمالي مسحوبات الموظف خلال شهر معيّن — يُخصم من راتب ذلك الشهر.
+     */
+    public function withdrawalsTotalForMonth(int $month, int $year): float
+    {
+        return (float) $this->expenses()
+            ->whereMonth('expense_date', $month)
+            ->whereYear('expense_date', $year)
+            ->sum('amount');
+    }
 }

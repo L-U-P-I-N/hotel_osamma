@@ -110,6 +110,43 @@ class Room extends Model
     public function isHall(): bool     { return $this->room_sub_type === 'hall'; }
     public function isDouble(): bool   { return $this->room_sub_type === 'double'; }
 
+    /**
+     * القسم المقابل للجناح (301A ↔ 301B) — عبر الربط المباشر، وإلا عبر رقم الغرفة.
+     */
+    public function suitePartner(): ?Room
+    {
+        if ($this->linkedRoom) {
+            return $this->linkedRoom;
+        }
+        if (!$this->isSuite()) {
+            return null;
+        }
+        $base = rtrim($this->room_number, 'ABab');
+        $pairNumber = $base . ($this->isSuiteA() ? 'B' : 'A');
+        return static::where('room_number', $pairNumber)
+            ->whereIn('room_sub_type', ['suite_a', 'suite_b'])
+            ->first();
+    }
+
+    /**
+     * سعر الجناح كاملاً (A+B) لليلة الواحدة بالريال اليمني.
+     * يُؤخذ من suite_price_yer لهذا القسم أو للقسم المقابل،
+     * وإلا يُحتسب كمجموع سعرَي القسمين.
+     */
+    public function fullSuitePrice(): float
+    {
+        $price = (float) ($this->suite_price_yer ?? 0);
+        if ($price > 0) {
+            return $price;
+        }
+        $partner = $this->suitePartner();
+        $partnerSuitePrice = (float) ($partner?->suite_price_yer ?? 0);
+        if ($partnerSuitePrice > 0) {
+            return $partnerSuitePrice;
+        }
+        return $this->priceFor('YER') + ($partner?->priceFor('YER') ?? 0);
+    }
+
     public function isLinkedRoomAvailable(): bool
     {
         if (!$this->linked_room_id) return false;

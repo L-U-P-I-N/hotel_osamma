@@ -102,7 +102,8 @@ class ExpenseController extends Controller
     public function create()
     {
         $categories = $this->categories;
-        return view('expenses.create', compact('categories'));
+        $employees  = \App\Models\Employee::where('is_active', true)->orderBy('name')->get();
+        return view('expenses.create', compact('categories', 'employees'));
     }
 
     public function store(Request $request)
@@ -111,6 +112,7 @@ class ExpenseController extends Controller
             'amount'         => 'required|numeric|min:0.01',
             'category'       => 'required|in:maintenance,electricity,salary,cleaning,food,other',
             'recipient_name' => 'required|string|max:255',
+            'employee_id'    => 'nullable|exists:employees,id',
             'description'    => 'nullable|string',
             'expense_date'   => 'required|date',
             'payment_method' => 'required|in:cash,bank_transfer,later',
@@ -137,7 +139,8 @@ class ExpenseController extends Controller
     public function edit(Expense $expense)
     {
         $categories = $this->categories;
-        return view('expenses.edit', compact('expense', 'categories'));
+        $employees  = \App\Models\Employee::where('is_active', true)->orderBy('name')->get();
+        return view('expenses.edit', compact('expense', 'categories', 'employees'));
     }
 
     public function update(Request $request, Expense $expense)
@@ -146,6 +149,7 @@ class ExpenseController extends Controller
             'amount'         => 'required|numeric|min:0.01',
             'category'       => 'required|in:maintenance,electricity,salary,cleaning,food,other',
             'recipient_name' => 'required|string|max:255',
+            'employee_id'    => 'nullable|exists:employees,id',
             'description'    => 'nullable|string',
             'expense_date'   => 'required|date',
             'payment_method' => 'required|in:cash,bank_transfer,later',

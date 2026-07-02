@@ -42,6 +42,19 @@ class SalaryController extends Controller
 
         $data['bonuses']    = $data['bonuses'] ?? 0;
         $data['deductions'] = $data['deductions'] ?? 0;
+
+        // خصم مسحوبات الموظف (المصروفات المصروفة له) من راتب هذا الشهر تلقائياً
+        if ($request->boolean('include_withdrawals')) {
+            $employee = Employee::findOrFail($data['employee_id']);
+            $withdrawalsTotal = $employee->withdrawalsTotalForMonth((int) $data['month'], (int) $data['year']);
+            if ($withdrawalsTotal > 0) {
+                $data['deductions'] += $withdrawalsTotal;
+                $withdrawalNote = 'خصم مسحوبات ' . Salary::monthName((int) $data['month']) . ' ' . $data['year']
+                    . ': ' . number_format($withdrawalsTotal, 0) . ' ر.ي';
+                $data['notes'] = trim(($data['notes'] ?? '') . "\n" . $withdrawalNote);
+            }
+        }
+
         $data['net_salary'] = $data['base_salary'] + $data['bonuses'] - $data['deductions'];
         $data['created_by'] = auth()->id();
 

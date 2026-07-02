@@ -38,7 +38,11 @@
                 @forelse($employees as $employee)
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 text-gray-500">{{ $employee->id }}</td>
-                    <td class="px-4 py-3 font-semibold text-gray-800">{{ $employee->name }}</td>
+                    <td class="px-4 py-3">
+                        <span class="font-semibold text-gray-800">{{ $employee->name }}</span>
+                        <a href="{{ route('employees.withdrawals', $employee) }}"
+                           class="block text-xs text-blue-600 hover:text-blue-800 hover:underline mt-0.5">كشف المسحوبات</a>
+                    </td>
                     <td class="px-4 py-3 text-gray-600">{{ $employee->position }}</td>
                     <td class="px-4 py-3 font-medium" style="color:#0F4C75;">{{ number_format($employee->base_salary, 2) }}</td>
                     <td class="px-4 py-3 text-gray-600">{{ $employee->phone ?? '-' }}</td>

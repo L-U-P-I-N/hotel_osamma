@@ -1035,20 +1035,31 @@
                     <p class="text-xs mt-1.5 text-amber-600">ستنتقل الغرفة الحالية إلى وضع <strong>تحت الفحص</strong> بعد النقل</p>
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">الغرفة الجديدة <span class="text-red-500">*</span></label>
-                    <select name="new_room_id" required
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">الغرفة / الجناح الجديد <span class="text-red-500">*</span></label>
+                    <select name="new_room_selection" id="transferRoomSelect" required onchange="updateTransferPreview(this)"
                             class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                        <option value="">اختر غرفة متاحة...</option>
-                        @foreach($availableRooms as $room)
-                        <option value="{{ $room->id }}">
-                            غرفة {{ $room->room_number }} — الطابق {{ $room->floor }}
-                            @if($room->roomType) ({{ $room->roomType->name }}) @endif
+                        <option value="">اختر غرفة أو جناحاً متاحاً...</option>
+                        @foreach($transferOptions as $opt)
+                        <option value="{{ $opt['value'] }}" data-price="{{ $opt['price'] }}">
+                            {{ $opt['label'] }} — {{ number_format($opt['price'], 0) }} ر.ي/ليلة
                         </option>
                         @endforeach
                     </select>
-                    @if($availableRooms->isEmpty())
+                    @if($transferOptions->isEmpty())
                     <p class="text-xs text-red-500 mt-1.5 font-medium">لا توجد غرف متاحة حالياً</p>
                     @endif
+                </div>
+                @php
+                    $trNights    = max(1, $reservation->nights);
+                    $trStayed    = (int) min(max($reservation->check_in_date->diffInDays(today(), false), 0), $trNights);
+                    $trRemaining = $trNights - $trStayed;
+                    $trOldPpn    = round((float) $reservation->total_amount / $trNights, 2);
+                @endphp
+                <div id="transferPricePreview" class="hidden bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm text-blue-800 space-y-1">
+                    <p>الليالي المتبقية: <strong>{{ $trRemaining }}</strong> ليلة × <strong id="tpNewPrice">0</strong> ر.ي
+                       (الليالي الماضية {{ $trStayed }} تبقى بالسعر الحالي {{ number_format($trOldPpn, 0) }} ر.ي)</p>
+                    <p>الإجمالي الجديد للحجز: <strong id="tpNewTotal" class="text-blue-900">0</strong> ر.ي
+                       <span class="text-xs">(بدلاً من {{ number_format($reservation->total_amount, 0) }} ر.ي)</span></p>
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">سبب التغيير</label>
@@ -1057,7 +1068,7 @@
                 </div>
             </div>
             <div class="flex gap-3 px-6 pb-6">
-                <button type="submit" {{ $availableRooms->isEmpty() ? 'disabled' : '' }}
+                <button type="submit" {{ $transferOptions->isEmpty() ? 'disabled' : '' }}
                         class="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-bold transition shadow-sm disabled:opacity-50">
                     تأكيد النقل
                 </button>
@@ -1075,6 +1086,21 @@
 
 @push('scripts')
 <script>
+// معاينة السعر عند تغيير الغرفة: الليالي الماضية بالسعر القديم + المتبقية بسعر الاختيار الجديد
+const TR_STAYED    = {{ $trStayed ?? 0 }};
+const TR_REMAINING = {{ $trRemaining ?? 0 }};
+const TR_OLD_PPN   = {{ $trOldPpn ?? 0 }};
+function updateTransferPreview(sel) {
+    const box = document.getElementById('transferPricePreview');
+    const opt = sel.options[sel.selectedIndex];
+    const newPpn = parseFloat(opt?.dataset?.price || 0);
+    if (!sel.value || newPpn <= 0) { box.classList.add('hidden'); return; }
+    const newTotal = TR_STAYED * TR_OLD_PPN + TR_REMAINING * newPpn;
+    document.getElementById('tpNewPrice').textContent = newPpn.toLocaleString('ar-YE');
+    document.getElementById('tpNewTotal').textContent = newTotal.toLocaleString('ar-YE');
+    box.classList.remove('hidden');
+}
+
 function renewForm() {
     return {
         newDate: '',

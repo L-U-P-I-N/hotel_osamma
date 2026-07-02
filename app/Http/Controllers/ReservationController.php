@@ -55,7 +55,62 @@ class ReservationController extends Controller
         $availableRooms = $reservation->status === 'checked_in'
             ? Room::with('roomType')->where('status', 'available')->orderBy('floor')->orderBy('room_number')->get()
             : collect();
-        return view('reservations.show', compact('reservation', 'availableRooms'));
+        $transferOptions = $reservation->status === 'checked_in'
+            ? $this->buildTransferOptions($reservation, $availableRooms)
+            : collect();
+        return view('reservations.show', compact('reservation', 'availableRooms', 'transferOptions'));
+    }
+
+    /**
+     * خيارات النقل: كل غرفة/قسم متاح منفرداً، بالإضافة إلى خيار "جناح كامل A+B"
+     * عندما يكون القسمان متاحين — مع سعر الليلة لكل خيار لإعادة احتساب الإجمالي.
+     */
+    private function buildTransferOptions(Reservation $reservation, $availableRooms)
+    {
+        $options = collect();
+
+        // الأقسام والغرف المتاحة منفردة
+        foreach ($availableRooms as $room) {
+            $label = ($room->isSuite() ? 'جناح ' : 'غرفة ') . $room->room_number
+                . ' — الطابق ' . $room->floor
+                . ($room->roomType ? ' (' . $room->roomType->name . ')' : '');
+            $options->push([
+                'value' => (string) $room->id,
+                'label' => $label,
+                'price' => $room->priceFor('YER'),
+            ]);
+        }
+
+        // الأجنحة الكاملة A+B: قسم A متاح وقسمه المقابل متاح أيضاً
+        foreach ($availableRooms as $room) {
+            if (!$room->isSuiteA()) {
+                continue;
+            }
+            $partner = $room->suitePartner();
+            if (!$partner || $partner->status !== 'available') {
+                continue;
+            }
+            $options->push([
+                'value' => $room->id . ':both',
+                'label' => 'جناح كامل ' . rtrim($room->room_number, 'ABab') . ' (A+B) — الطابق ' . $room->floor,
+                'price' => $room->fullSuitePrice(),
+            ]);
+        }
+
+        // ترقية في نفس المكان: النزيل في قسم جناح وقسمه المقابل متاح → جناح كامل
+        $current = $reservation->room;
+        if ($current && $current->isSuite() && $reservation->suite_booking_type !== 'both') {
+            $partner = $current->suitePartner();
+            if ($partner && $partner->status === 'available') {
+                $options->push([
+                    'value' => $current->id . ':both',
+                    'label' => 'ترقية للجناح الكامل ' . rtrim($current->room_number, 'ABab') . ' (A+B) — نفس الموقع',
+                    'price' => $current->fullSuitePrice(),
+                ]);
+            }
+        }
+
+        return $options->unique('value')->values();
     }
 
     public function edit(Reservation $reservation)
@@ -268,12 +323,16 @@ class ReservationController extends Controller
 
         $old = $reservation->only(['check_out_date', 'total_amount']);
 
+        // نُلحق ملاحظة المستخدم دائماً بعلامة التجديد (كانت تُهمل سابقاً إن وُجدت ملاحظات قديمة)
+        $renewalNote = "[تجديد +{$extraNights} ليلة]"
+            . (!empty($validated['notes']) ? ': ' . $validated['notes'] : '');
+
         $reservation->update([
             'check_out_date' => $validated['new_check_out_date'],
             'total_amount'   => $reservation->total_amount + $extraAmount,
             'notes'          => $reservation->notes
-                                    ? $reservation->notes . "\n[تجديد +{$extraNights} ليلة]"
-                                    : "[تجديد +{$extraNights} ليلة]" . ($validated['notes'] ? ': ' . $validated['notes'] : ''),
+                                    ? $reservation->notes . "\n" . $renewalNote
+                                    : $renewalNote,
         ]);
 
         if (!empty($validated['advance_payment']) && $validated['advance_payment'] > 0) {
@@ -307,41 +366,118 @@ class ReservationController extends Controller
             return back()->with('error', 'تغيير الغرفة متاح فقط للحجوزات النشطة (مسجل دخول)');
         }
 
+        // القيمة إما رقم غرفة "12" أو جناح كامل "12:both"
         $validated = $request->validate([
-            'new_room_id' => 'required|exists:rooms,id|different:' . $reservation->room_id,
-            'notes'       => 'nullable|string|max:500',
+            'new_room_selection' => ['required', 'string', 'regex:/^\d+(:both)?$/'],
+            'notes'              => 'nullable|string|max:500',
         ], [
-            'new_room_id.required'  => 'يرجى اختيار الغرفة الجديدة',
-            'new_room_id.different' => 'الغرفة الجديدة يجب أن تختلف عن الغرفة الحالية',
+            'new_room_selection.required' => 'يرجى اختيار الغرفة الجديدة',
+            'new_room_selection.regex'    => 'اختيار الغرفة غير صالح',
         ]);
 
-        $newRoom = Room::findOrFail($validated['new_room_id']);
+        [$newRoomId, $scope] = array_pad(explode(':', $validated['new_room_selection']), 2, null);
+        $wantsFullSuite = $scope === 'both';
 
-        if ($newRoom->status !== 'available') {
-            return back()->withErrors(['new_room_id' => 'الغرفة المختارة غير متاحة']);
+        $newRoom = Room::with('roomType')->find($newRoomId);
+        if (!$newRoom) {
+            return back()->withErrors(['new_room_selection' => 'الغرفة المختارة غير موجودة']);
         }
 
-        $oldRoom = $reservation->room;
-        $old = ['room_id' => $reservation->room_id];
+        $wasFullSuite = $reservation->suite_booking_type === 'both';
+        if ($newRoom->id === $reservation->room_id && $wantsFullSuite === $wasFullSuite) {
+            return back()->withErrors(['new_room_selection' => 'الغرفة الجديدة يجب أن تختلف عن الغرفة الحالية']);
+        }
 
-        // Move guest to new room
+        // القسم المقابل عند اختيار جناح كامل
+        $partner = null;
+        if ($wantsFullSuite) {
+            if (!$newRoom->isSuite()) {
+                return back()->withErrors(['new_room_selection' => 'الغرفة المختارة ليست جناحاً']);
+            }
+            $partner = $newRoom->suitePartner();
+            if (!$partner) {
+                return back()->withErrors(['new_room_selection' => 'تعذّر العثور على القسم المقابل للجناح ' . $newRoom->room_number]);
+            }
+        }
+
+        // التحقق من الإتاحة — يُسمح بالغرف المشغولة بهذا الحجز نفسه (ترقية في نفس المكان)
+        $currentIds = array_filter([$reservation->room_id, $reservation->linked_room_id]);
+        foreach (array_filter([$newRoom, $partner]) as $target) {
+            if ($target->status !== 'available' && !in_array($target->id, $currentIds)) {
+                return back()->withErrors(['new_room_selection' => 'الغرفة ' . $target->room_number . ' غير متاحة']);
+            }
+        }
+
+        // ── إعادة احتساب الإجمالي: الليالي الماضية بالسعر القديم + المتبقية بسعر الغرفة/الجناح الجديد ──
+        $nights = max(1, $reservation->nights);
+        $stayedNights = (int) min(max($reservation->check_in_date->diffInDays(today(), false), 0), $nights);
+        $remainingNights = $nights - $stayedNights;
+
+        $oldPricePerNight = round((float) $reservation->total_amount / $nights, 2);
+        $newPricePerNight = $wantsFullSuite ? $newRoom->fullSuitePrice() : $newRoom->priceFor('YER');
+        if ($newPricePerNight <= 0) {
+            // لا سعر معرّف للغرفة الجديدة → نُبقي السعر الحالي دون تغيير
+            $newPricePerNight = $oldPricePerNight;
+        }
+        $newTotal = round($stayedNights * $oldPricePerNight + $remainingNights * $newPricePerNight, 2);
+
+        $oldRoom       = $reservation->room;
+        $oldLinkedRoom = $reservation->linkedRoom;
+        $oldLabel      = ($wasFullSuite ? 'جناح كامل ' : 'غرفة ') . $reservation->display_room_number;
+        $newLabel      = $wantsFullSuite
+            ? 'جناح كامل ' . rtrim($newRoom->room_number, 'ABab') . ' (A+B)'
+            : 'غرفة ' . $newRoom->room_number;
+
+        $old = $reservation->only(['room_id', 'linked_room_id', 'suite_booking_type', 'total_amount']);
+
+        // نُلحق سبب النقل دائماً بعلامة النقل (كان يُهمل سابقاً إن وُجدت ملاحظات قديمة)
+        $transferNote = "[نقل من {$oldLabel} إلى {$newLabel}]"
+            . (!empty($validated['notes']) ? ': ' . $validated['notes'] : '');
+        if (round($newTotal - (float) $reservation->total_amount, 2) != 0.0) {
+            $transferNote .= ' — تعديل الإجمالي من ' . number_format((float) $reservation->total_amount, 0)
+                . ' إلى ' . number_format($newTotal, 0) . ' ر.ي'
+                . " ({$remainingNights} ليلة متبقية × " . number_format($newPricePerNight, 0) . ')';
+        }
+
+        // نوع حجز الجناح بعد النقل
+        $suiteBookingType = $wantsFullSuite
+            ? 'both'
+            : ($newRoom->isSuiteA() ? 'a_only' : ($newRoom->isSuiteB() ? 'b_only' : null));
+
+        // Move guest to new room(s)
         $reservation->update([
-            'room_id' => $newRoom->id,
-            'notes'   => $reservation->notes
-                            ? $reservation->notes . "\n[نقل من غرفة {$oldRoom->room_number} إلى {$newRoom->room_number}]"
-                            : "[نقل من غرفة {$oldRoom->room_number} إلى {$newRoom->room_number}]" . ($validated['notes'] ? ': ' . $validated['notes'] : ''),
+            'room_id'            => $newRoom->id,
+            'linked_room_id'     => $partner?->id,
+            'suite_booking_type' => $suiteBookingType,
+            'total_amount'       => $newTotal,
+            'notes'              => $reservation->notes
+                                        ? $reservation->notes . "\n" . $transferNote
+                                        : $transferNote,
         ]);
+        $reservation->refresh()->updatePaymentStatus();
 
-        // New room becomes occupied
+        // الغرف الجديدة تصبح مشغولة، والقديمة (غير المشمولة بالحجز الجديد) تذهب للفحص
+        $newIds = array_filter([$newRoom->id, $partner?->id]);
+        foreach (array_filter([$oldRoom, $oldLinkedRoom]) as $released) {
+            if (!in_array($released->id, $newIds)) {
+                $released->update(['status' => 'under_inspection']);
+            }
+        }
         $newRoom->update(['status' => 'occupied']);
+        $partner?->update(['status' => 'occupied']);
 
-        // Old room goes to inspection
-        $oldRoom->update(['status' => 'under_inspection']);
-
-        AuditLogService::log('update', $reservation, $old, ['room_id' => $newRoom->id, 'action' => 'room_transfer'], auth()->user());
+        AuditLogService::log('update', $reservation, $old, [
+            'room_id'            => $newRoom->id,
+            'linked_room_id'     => $partner?->id,
+            'suite_booking_type' => $suiteBookingType,
+            'total_amount'       => $newTotal,
+            'action'             => 'room_transfer',
+        ], auth()->user());
 
         return redirect()->route('reservations.show', $reservation)
-            ->with('success', "تم نقل النزيل من غرفة {$oldRoom->room_number} إلى غرفة {$newRoom->room_number} — الغرفة القديمة في وضع الفحص");
+            ->with('success', "تم نقل النزيل من {$oldLabel} إلى {$newLabel}" .
+                ($newTotal != (float) $old['total_amount'] ? ' — الإجمالي الجديد: ' . number_format($newTotal, 0) . ' ر.ي' : '') .
+                ' — الغرفة القديمة في وضع الفحص');
     }
 
     public function cancel(Reservation $reservation)

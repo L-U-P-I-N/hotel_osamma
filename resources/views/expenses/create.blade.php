@@ -44,8 +44,25 @@
         <input type="hidden" name="payment_method" value="cash">
 
         <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">صرف لموظف في الفندق؟</label>
+            <select name="employee_id" id="employee_select"
+                    onchange="var o=this.options[this.selectedIndex]; var r=document.getElementById('recipient_field'); if(this.value){ r.value=o.dataset.name; } document.getElementById('employee_hint').classList.toggle('hidden', !this.value);"
+                    class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-blue-400">
+                <option value="">— لا، مستلم خارجي —</option>
+                @foreach($employees as $emp)
+                <option value="{{ $emp->id }}" data-name="{{ $emp->name }}" {{ old('employee_id') == $emp->id ? 'selected' : '' }}>
+                    {{ $emp->name }} — {{ $emp->position }}
+                </option>
+                @endforeach
+            </select>
+            <p id="employee_hint" class="{{ old('employee_id') ? '' : 'hidden' }} text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 mt-1.5">
+                سيُقيَّد هذا المبلغ كمسحوبات على الموظف ويُخصم تلقائياً من راتبه الشهري.
+            </p>
+        </div>
+
+        <div>
             <label class="block text-sm font-medium text-gray-700 mb-1.5">اسم المستلم *</label>
-            <input type="text" name="recipient_name" value="{{ old('recipient_name') }}" placeholder="اسم الشخص الذي صُرف له المبلغ" required
+            <input type="text" name="recipient_name" id="recipient_field" value="{{ old('recipient_name') }}" placeholder="اسم الشخص الذي صُرف له المبلغ" required
                    class="w-full border @error('recipient_name') border-red-400 @else border-gray-300 @enderror rounded-lg px-4 py-2.5 text-sm outline-none focus:border-blue-400">
         </div>
 

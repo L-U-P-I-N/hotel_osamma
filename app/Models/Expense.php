@@ -18,6 +18,7 @@ class Expense extends Model
         'description',
         'expense_date',
         'paid_by',
+        'employee_id',
         'shift_id',
         'payment_method',
         'settled_at',
@@ -33,6 +34,14 @@ class Expense extends Model
     public function paidBy()
     {
         return $this->belongsTo(User::class, 'paid_by');
+    }
+
+    /**
+     * الموظف الذي صُرف له المبلغ (مسحوبات موظف تُخصم من راتبه).
+     */
+    public function employee()
+    {
+        return $this->belongsTo(Employee::class);
     }
 
     public function settledBy()

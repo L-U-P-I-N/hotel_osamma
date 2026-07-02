@@ -208,6 +208,7 @@ Route::middleware(['auth'])->group(function () {
     // Employees
     Route::middleware('permission:hr.view')->group(function () {
         Route::get('/employees', [EmployeeController::class, 'index'])->name('employees.index');
+        Route::get('/employees/{employee}/withdrawals', [EmployeeController::class, 'withdrawals'])->name('employees.withdrawals');
     });
     Route::middleware('permission:hr.create')->group(function () {
         Route::get('/employees/create', [EmployeeController::class, 'create'])->name('employees.create');
