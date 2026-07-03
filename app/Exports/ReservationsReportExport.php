@@ -14,16 +14,18 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 class ReservationsReportExport extends StringValueBinder implements
     FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithCustomValueBinder
 {
-    public function __construct(private string $from, private string $to) {}
+    public function __construct(private string $from, private string $to, private string $status = 'all') {}
 
     public function collection()
     {
-        return Reservation::with(['guest', 'room', 'payments'])
+        $query = Reservation::with(['guest', 'room', 'payments'])
             ->whereDate('check_in_date', '>=', $this->from)
             ->whereDate('check_in_date', '<=', $this->to)
-            ->whereNotIn('status', ['cancelled'])
-            ->orderBy('check_in_date', 'desc')
-            ->get();
+            ->whereNotIn('status', ['cancelled']);
+        if (in_array($this->status, ['checked_in', 'checked_out'], true)) {
+            $query->where('status', $this->status);
+        }
+        return $query->orderBy('check_in_date', 'desc')->get();
     }
 
     public function headings(): array

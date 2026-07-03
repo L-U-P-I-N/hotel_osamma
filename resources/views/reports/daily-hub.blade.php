@@ -267,6 +267,23 @@
                                class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white">
                     </div>
                 </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1.5">حالة الحجز</label>
+                    <div class="flex gap-1.5">
+                        <button type="submit" name="status" value="all"
+                                class="px-3 py-1.5 rounded-lg text-xs font-medium transition border
+                                       {{ $status==='all' ? 'text-white border-transparent' : 'text-gray-600 border-gray-200 hover:bg-gray-50' }}"
+                                style="{{ $status==='all' ? 'background:#0F4C75' : '' }}">الكل</button>
+                        <button type="submit" name="status" value="checked_in"
+                                class="px-3 py-1.5 rounded-lg text-xs font-medium transition border
+                                       {{ $status==='checked_in' ? 'text-white border-transparent' : 'text-gray-600 border-gray-200 hover:bg-gray-50' }}"
+                                style="{{ $status==='checked_in' ? 'background:#16a34a' : '' }}">لم يغادروا</button>
+                        <button type="submit" name="status" value="checked_out"
+                                class="px-3 py-1.5 rounded-lg text-xs font-medium transition border
+                                       {{ $status==='checked_out' ? 'text-white border-transparent' : 'text-gray-600 border-gray-200 hover:bg-gray-50' }}"
+                                style="{{ $status==='checked_out' ? 'background:#2563eb' : '' }}">غادروا</button>
+                    </div>
+                </div>
             </form>
             <div class="flex flex-col gap-1 mr-auto" x-data="reservationsColumnPicker()">
                 <div class="flex gap-2">
@@ -276,12 +293,16 @@
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
                         PDF
                     </button>
-                    <a href="{{ route('reports.reservations.excel', ['from' => $from, 'to' => $to]) }}"
+                    <a href="{{ route('reports.reservations.excel', ['from' => $from, 'to' => $to, 'status' => $status]) }}"
                        class="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
                         Excel
                     </a>
                 </div>
+                <p class="text-xs text-gray-500 mt-1">
+                    سيُصدَّر حسب الفلتر الحالي:
+                    <strong>{{ ['all' => 'كل الحجوزات', 'checked_in' => 'من لم يغادروا فقط', 'checked_out' => 'من غادروا فقط'][$status] }}</strong>
+                </p>
                 @php $days = \Carbon\Carbon::parse($from)->diffInDays(\Carbon\Carbon::parse($to)) + 1; @endphp
                 @if($days > 30)
                 <p class="text-xs text-amber-600 mt-1">⚠ الفترة {{ $days }} يوم — PDF يدعم حتى 30 يوماً، استخدم Excel</p>
@@ -343,7 +364,7 @@
             <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
                 <h3 class="font-semibold text-gray-700 text-sm">
                     قائمة الحجوزات
-                    <span class="text-gray-400 font-normal mr-2 text-xs">({{ $total }} حجز)</span>
+                    <span class="text-gray-400 font-normal mr-2 text-xs">({{ $printedCount }} حجز)</span>
                 </h3>
             </div>
 
@@ -442,6 +463,7 @@ function reservationsColumnPicker() {
             const params = new URLSearchParams();
             params.set('from', @json($from));
             params.set('to', @json($to));
+            params.set('status', @json($status));
             this.columns.forEach(c => params.append('columns[]', c));
             window.location.href = @json(route('reports.reservations.pdf')) + '?' + params.toString();
             this.open = false;

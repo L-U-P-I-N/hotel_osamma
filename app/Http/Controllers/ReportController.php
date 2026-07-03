@@ -502,15 +502,30 @@ class ReportController extends Controller
 
         ini_set('memory_limit', '256M');
 
-        $reservations = Reservation::with(['guest', 'room', 'payments'])
+        // فلتر الحالة: الكل (افتراضي) / لم يغادر (مقيم) / غادر
+        $status = $request->input('status', 'all');
+        if (!in_array($status, ['checked_in', 'checked_out'], true)) {
+            $status = 'all';
+        }
+
+        $reservationsQuery = Reservation::with(['guest', 'room', 'payments'])
             ->whereDate('check_in_date', '>=', $from)
             ->whereDate('check_in_date', '<=', $to)
-            ->whereNotIn('status', ['cancelled'])
-            ->orderBy('check_in_date', 'desc')
-            ->get();
-        $total      = $reservations->count();
-        $checkedIn  = $reservations->where('status', 'checked_in')->count();
-        $checkedOut = $reservations->where('status', 'checked_out')->count();
+            ->whereNotIn('status', ['cancelled']);
+        if ($status !== 'all') {
+            $reservationsQuery->where('status', $status);
+        }
+        $reservations = $reservationsQuery->orderBy('check_in_date', 'desc')->get();
+        // عدد الصفوف المطبوعة فعلياً — يعكس فلتر الحالة، بخلاف بطاقات الملخص أدناه
+        $printedCount = $reservations->count();
+
+        // إجماليات الفترة كاملة (بغضّ النظر عن فلتر الحالة) — لبطاقات الملخص أعلى التقرير فقط
+        $total      = Reservation::whereDate('check_in_date', '>=', $from)
+            ->whereDate('check_in_date', '<=', $to)->whereNotIn('status', ['cancelled'])->count();
+        $checkedIn  = Reservation::whereDate('check_in_date', '>=', $from)
+            ->whereDate('check_in_date', '<=', $to)->where('status', 'checked_in')->count();
+        $checkedOut = Reservation::whereDate('check_in_date', '>=', $from)
+            ->whereDate('check_in_date', '<=', $to)->where('status', 'checked_out')->count();
 
         // الأعمدة التي اختارها الأدمن — كل الأعمدة افتراضياً إن لم يُحدَّد شيء
         $selectedColumns = array_values(array_intersect(
@@ -521,9 +536,10 @@ class ReportController extends Controller
             $selectedColumns = array_keys(self::RESERVATIONS_PDF_COLUMNS);
         }
 
-        $pdf = $this->pdfOptions(pdf_load_view('reports.reservations_pdf', compact('reservations', 'from', 'to', 'total', 'checkedIn', 'checkedOut', 'selectedColumns')));
+        $pdf = $this->pdfOptions(pdf_load_view('reports.reservations_pdf', compact('reservations', 'from', 'to', 'total', 'checkedIn', 'checkedOut', 'printedCount', 'selectedColumns', 'status')));
         $pdf->setPaper('a3', 'landscape');
-        return $pdf->download('reservations-' . $from . '-' . $to . '.pdf');
+        $filenameSuffix = $status !== 'all' ? '-' . $status : '';
+        return $pdf->download('reservations-' . $from . '-' . $to . $filenameSuffix . '.pdf');
     }
 
     public function dailyHub(Request $request)
@@ -539,6 +555,7 @@ class ReportController extends Controller
         $dailyOccupancy = collect();
         $reservations = collect();
         $total = $checkedIn = $checkedOut = 0;
+        $status = 'all';
 
         if ($tab === 'daily') {
             $dailyReservations = Reservation::with(['guest', 'room.roomType', 'companions', 'payments'])
@@ -576,33 +593,54 @@ class ReportController extends Controller
                 'week'  => now()->toDateString(),
                 default => $to,
             };
-            $reservations = Reservation::with(['guest', 'room.roomType', 'payments'])
+            // فلتر الحالة: الكل (افتراضي) / لم يغادر (مقيم) / غادر
+            $status = $request->input('status', 'all');
+            if (!in_array($status, ['checked_in', 'checked_out'], true)) {
+                $status = 'all';
+            }
+
+            $query = Reservation::with(['guest', 'room.roomType', 'payments'])
                 ->whereDate('check_in_date', '>=', $from)
                 ->whereDate('check_in_date', '<=', $to)
-                ->whereNotIn('status', ['cancelled'])
-                ->orderBy('check_in_date', 'desc')
+                ->whereNotIn('status', ['cancelled']);
+            if ($status !== 'all') {
+                $query->where('status', $status);
+            }
+            $reservations = $query->orderBy('check_in_date', 'desc')
                 ->orderBy('id', 'desc')
                 ->paginate(50)
                 ->withQueryString();
-            $total      = $reservations->total();
+            // عدد الحجوزات المطابقة لفلتر الحالة الحالي (يظهر فوق الجدول)، بخلاف بطاقات الملخص أدناه
+            $printedCount = $reservations->total();
+
+            // إجماليات الفترة كاملة (بغضّ النظر عن فلتر الحالة) — للبطاقات التعريفية فقط
+            $total      = Reservation::whereDate('check_in_date', '>=', $from)
+                ->whereDate('check_in_date', '<=', $to)->whereNotIn('status', ['cancelled'])->count();
             $checkedIn  = Reservation::whereDate('check_in_date', '>=', $from)
                 ->whereDate('check_in_date', '<=', $to)->where('status', 'checked_in')->count();
             $checkedOut = Reservation::whereDate('check_in_date', '>=', $from)
                 ->whereDate('check_in_date', '<=', $to)->where('status', 'checked_out')->count();
+        } else {
+            $printedCount = 0;
         }
 
         return view('reports.daily-hub', compact(
             'tab', 'date', 'from', 'to', 'preset',
             'dailyReservations', 'totalRooms', 'dailyOccupancy',
-            'reservations', 'total', 'checkedIn', 'checkedOut'
+            'reservations', 'total', 'checkedIn', 'checkedOut', 'status', 'printedCount'
         ));
     }
 
     public function reservationsExcel(Request $request)
     {
-        $from = $request->input('from', now()->subDays(30)->toDateString());
-        $to   = $request->input('to', now()->toDateString());
-        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\ReservationsReportExport($from, $to), 'reservations-' . $from . '-' . $to . '.xlsx');
+        $from   = $request->input('from', now()->subDays(30)->toDateString());
+        $to     = $request->input('to', now()->toDateString());
+        $status = $request->input('status', 'all');
+        if (!in_array($status, ['checked_in', 'checked_out'], true)) {
+            $status = 'all';
+        }
+        $suffix = $status !== 'all' ? '-' . $status : '';
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\ReservationsReportExport($from, $to, $status), 'reservations-' . $from . '-' . $to . $suffix . '.xlsx');
     }
 
     public function revenuePdf(Request $request)

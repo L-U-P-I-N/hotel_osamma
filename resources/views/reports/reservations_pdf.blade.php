@@ -163,16 +163,26 @@
     $htmlOrder = $activeColumns->reverse();
 @endphp
 
+@php
+    $statusFilterLabel = match($status ?? 'all') {
+        'checked_in'  => 'المقيمون فقط (لم يغادروا)',
+        'checked_out' => 'المغادرون فقط',
+        default       => 'كل الحجوزات (المقيمون والمغادرون)',
+    };
+@endphp
 <div class="header">
     @include('partials.pdf-logo')
     <h1>تقرير الحجوزات</h1>
-    <div class="sub">الفترة: {{ \Carbon\Carbon::parse($from)->format('d/m/Y') }} — {{ \Carbon\Carbon::parse($to)->format('d/m/Y') }}</div>
+    <div class="sub">
+        الفترة: {{ \Carbon\Carbon::parse($from)->format('d/m/Y') }} — {{ \Carbon\Carbon::parse($to)->format('d/m/Y') }}
+        — الفلتر: <strong>{{ $statusFilterLabel }}</strong>
+    </div>
 </div>
 
 <table class="stats" dir="rtl">
     <tr>
-        <td><div class="num">{{ $total }}</div><div class="lbl">إجمالي الحجوزات</div></td>
-        <td><div class="num-g">{{ $checkedIn }}</div><div class="lbl">مقيم حالياً</div></td>
+        <td><div class="num">{{ $total }}</div><div class="lbl">إجمالي الحجوزات في الفترة</div></td>
+        <td><div class="num-g">{{ $checkedIn }}</div><div class="lbl">مقيم حالياً (لم يغادر)</div></td>
         <td><div class="num-b">{{ $checkedOut }}</div><div class="lbl">غادر</div></td>
     </tr>
 </table>
@@ -217,7 +227,7 @@
     }
 </script>
 
-<div class="footer">طُبع في: {{ now()->format('d/m/Y H:i') }} — إجمالي الحجوزات: {{ $total }}</div>
+<div class="footer">طُبع في: {{ now()->format('d/m/Y H:i') }} — عدد الحجوزات المطبوعة: {{ $printedCount ?? $reservations->count() }}</div>
 
 </body>
 </html>
