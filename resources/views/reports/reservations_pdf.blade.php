@@ -186,16 +186,18 @@
 @if($reservations->isEmpty())
 <p style="text-align:center;color:#999;padding:20px;">لا توجد حجوزات في هذه الفترة</p>
 @else
+{{--
+    dompdf يتجاهل عرض <col style="width:%"> تماماً رغم table-layout:fixed (تحقّقنا
+    من ذلك بالقياس الدقيق لإحداثيات النص في PDF فعلي فظهرت كل الأعمدة بعرض متساوٍ
+    تماماً رغم اختلاف الأوزان في الكود). العرض الذي يُطبَّق فعلياً هو عرض خلايا
+    الصف الأول (thead) نفسها — لذا نضع النسبة على th مباشرة، وتحققنا من ذلك أيضاً
+    بقياس اختبار مصغّر (30%/10%/30%/10%/20%) طابق مراكز الأعمدة الناتجة تماماً.
+--}}
 <table class="main" dir="rtl">
-    <colgroup>
-        @foreach($htmlOrder as $key => $col)
-        <col style="width:{{ round($col['weight'] / $totalWeight * 100, 2) }}%">   {{-- {{ $col['label'] }} --}}
-        @endforeach
-    </colgroup>
     <thead>
         <tr>
             @foreach($htmlOrder as $key => $col)
-            <th>{{ $col['label'] }}</th>
+            <th style="width:{{ round($col['weight'] / $totalWeight * 100, 2) }}%">{{ $col['label'] }}</th>
             @endforeach
         </tr>
     </thead>
