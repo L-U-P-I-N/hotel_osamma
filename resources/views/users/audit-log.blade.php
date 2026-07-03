@@ -60,8 +60,6 @@
                 <option value="logout" {{ request('action')=='logout'?'selected':'' }}>🔒 خروج</option>
                 <option value="export" {{ request('action')=='export'?'selected':'' }}>📤 تصدير</option>
                 <option value="view_sensitive" {{ request('action')=='view_sensitive'?'selected':'' }}>👁️ بيانات حساسة</option>
-                <option value="payment" {{ request('action')=='payment'?'selected':'' }}>💰 دفعات</option>
-                <option value="expense" {{ request('action')=='expense'?'selected':'' }}>💸 مصروفات</option>
             </select>
         </div>
         <button type="submit" class="sr-only">فلترة</button>
@@ -92,12 +90,10 @@
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">عنوان IP</th>
             </tr></thead>
             <tbody class="divide-y divide-gray-50">
-                @forelse($logs as $log)
                 @php
                     $actionEmojis = [
                         'create'=>'✨', 'update'=>'✏️', 'delete'=>'🗑️', 'login'=>'🔓',
                         'logout'=>'🔒', 'export'=>'📤', 'view_sensitive'=>'👁️',
-                        'payment'=>'💰', 'expense'=>'💸'
                     ];
                     $actionColors = [
                         'create'=>'bg-green-100 text-green-800',
@@ -107,16 +103,52 @@
                         'logout'=>'bg-gray-100 text-gray-800',
                         'export'=>'bg-yellow-100 text-yellow-800',
                         'view_sensitive'=>'bg-orange-100 text-orange-800',
-                        'payment'=>'bg-green-100 text-green-800',
-                        'expense'=>'bg-red-100 text-red-800'
                     ];
                     $actionLabels = [
                         'create'=>'إنشاء', 'update'=>'تحديث', 'delete'=>'حذف',
                         'login'=>'دخول', 'logout'=>'خروج', 'export'=>'تصدير',
-                        'view_sensitive'=>'بيانات حساسة', 'payment'=>'دفعة',
-                        'expense'=>'مصروف'
+                        'view_sensitive'=>'بيانات حساسة',
                     ];
+                    $modelLabels = [
+                        'Reservation' => 'حجز', 'Guest' => 'نزيل', 'Companion' => 'مرافق',
+                        'Payment' => 'دفعة', 'Refund' => 'استرجاع', 'Expense' => 'مصروف',
+                        'Room' => 'غرفة', 'Shift' => 'وردية', 'CashSettlement' => 'تسوية صندوق',
+                        'CashWithdrawal' => 'سحب', 'Salary' => 'راتب', 'Employee' => 'موظف',
+                        'User' => 'مستخدم', 'Leave' => 'إجازة', 'Attendance' => 'حضور',
+                    ];
+                    // مفاتيح تُستبعد من عرض التفاصيل لأنها بيانات نظام لا تهمّ المراجعة
+                    $noiseFields = ['id', 'created_at', 'updated_at', 'deleted_at', 'room', 'linked_room', 'guest', 'payments'];
+                    // تسمية عربية لأكثر الحقول شيوعاً — أي حقل غير موجود هنا يُعرض باسمه كما هو
+                    $fieldLabels = [
+                        'guest_id' => 'النزيل', 'room_id' => 'الغرفة', 'linked_room_id' => 'الغرفة المرتبطة',
+                        'created_by' => 'أنشأه', 'cancelled_by' => 'ألغاه', 'settled_by' => 'سوّاه',
+                        'processed_by' => 'نفّذه', 'received_by' => 'استلمها', 'paid_by' => 'صرفها',
+                        'status' => 'الحالة', 'payment_status' => 'حالة الدفع',
+                        'check_in_date' => 'تاريخ الدخول', 'check_in_time' => 'وقت الدخول',
+                        'check_out_date' => 'تاريخ الخروج', 'check_out_time' => 'وقت الخروج',
+                        'actual_check_out' => 'وقت الخروج الفعلي',
+                        'total_amount' => 'الإجمالي', 'paid_amount' => 'المدفوع', 'amount' => 'المبلغ',
+                        'currency' => 'العملة', 'discount_type' => 'نوع الخصم', 'discount_value' => 'قيمة الخصم',
+                        'discount_amount' => 'مبلغ الخصم', 'discount_reason' => 'سبب الخصم',
+                        'cancellation_reason' => 'سبب الإلغاء', 'cancelled_at' => 'وقت الإلغاء',
+                        'notes' => 'ملاحظات', 'origin' => 'جهة القدوم', 'purpose' => 'الغرض',
+                        'category' => 'الفئة', 'recipient_name' => 'المستلم', 'description' => 'الوصف',
+                        'expense_date' => 'تاريخ المصروف', 'settled_at' => 'وقت التسوية',
+                        'payment_method' => 'طريقة الدفع', 'method' => 'الطريقة', 'reason' => 'السبب',
+                        'base_salary' => 'الراتب الأساسي', 'bonuses' => 'المكافآت', 'deductions' => 'الخصومات',
+                        'net_salary' => 'صافي الراتب', 'name' => 'الاسم', 'email' => 'البريد',
+                        'phone' => 'الجوال', 'is_active' => 'نشط', 'room_number' => 'رقم الغرفة',
+                        'floor' => 'الطابق', 'action' => 'الإجراء',
+                    ];
+                    $fmtVal = function ($v) {
+                        if ($v === null || $v === '') return '—';
+                        if (is_bool($v)) return $v ? 'نعم' : 'لا';
+                        if (is_array($v)) return json_encode($v, JSON_UNESCAPED_UNICODE);
+                        $s = (string) $v;
+                        return mb_strlen($s) > 60 ? mb_substr($s, 0, 60) . '…' : $s;
+                    };
                 @endphp
+                @forelse($logs as $log)
                 <tr class="hover:bg-gray-50 transition">
                     <td class="px-4 py-3 text-gray-500 text-xs whitespace-nowrap font-medium">
                         {{ $log->created_at->format('d/m/Y H:i:s') }}
@@ -131,27 +163,68 @@
                     <td class="px-4 py-3 text-xs">
                         <div class="mb-2">
                             @if($log->model_type)
-                            <span class="text-gray-700 font-semibold">{{ class_basename($log->model_type) }} #{{ $log->model_id }}</span>
+                            @php $base = class_basename($log->model_type); @endphp
+                            <span class="text-gray-700 font-semibold">{{ $modelLabels[$base] ?? $base }} #{{ $log->model_id }}</span>
                             @else
                             <span class="text-gray-500">-</span>
                             @endif
                         </div>
-                        @if($log->old_values && $log->new_values)
+
+                        @php
+                            $old = is_array($log->old_values) ? $log->old_values : null;
+                            $new = is_array($log->new_values) ? $log->new_values : null;
+                        @endphp
+
+                        @if($old && $new)
+                        {{-- تحديث: نعرض الحقول التي تغيّرت فعلياً فقط --}}
+                        @php
+                            $changed = collect($new)->reject(fn($v, $k) => in_array($k, $noiseFields, true))
+                                ->filter(fn($v, $k) => ($old[$k] ?? null) != $v);
+                        @endphp
+                        @if($changed->isNotEmpty())
                         <details class="cursor-pointer">
-                            <summary class="text-xs text-blue-600 hover:text-blue-800 font-medium">عرض التغييرات</summary>
+                            <summary class="text-xs text-blue-600 hover:text-blue-800 font-medium">عرض التغييرات ({{ $changed->count() }})</summary>
                             <div class="mt-2 text-xs space-y-1 bg-gray-50 p-2 rounded">
-                                @foreach($log->new_values as $key => $newVal)
-                                    @php $oldVal = $log->old_values[$key] ?? null; @endphp
-                                    @if($oldVal !== $newVal)
-                                    <div class="font-mono text-gray-600">
-                                        <strong class="text-gray-700">{{ $key }}:</strong>
-                                        <span class="line-through text-red-600">{{ $oldVal }}</span>
-                                        <span class="text-green-600">→ {{ $newVal }}</span>
-                                    </div>
-                                    @endif
+                                @foreach($changed as $key => $newVal)
+                                <div class="text-gray-600">
+                                    <strong class="text-gray-700">{{ $fieldLabels[$key] ?? $key }}:</strong>
+                                    <span class="line-through text-red-600">{{ $fmtVal($old[$key] ?? null) }}</span>
+                                    <span class="text-green-600">→ {{ $fmtVal($newVal) }}</span>
+                                </div>
                                 @endforeach
                             </div>
                         </details>
+                        @endif
+                        @elseif($new)
+                        {{-- إنشاء أو إجراء يحمل قيماً جديدة فقط: نعرض كل الحقول ذات القيمة --}}
+                        @php
+                            $shown = collect($new)->reject(fn($v, $k) => in_array($k, $noiseFields, true))->filter(fn($v) => $v !== null && $v !== '');
+                        @endphp
+                        @if($shown->isNotEmpty())
+                        <details class="cursor-pointer">
+                            <summary class="text-xs text-green-600 hover:text-green-800 font-medium">عرض التفاصيل ({{ $shown->count() }})</summary>
+                            <div class="mt-2 text-xs space-y-1 bg-gray-50 p-2 rounded">
+                                @foreach($shown as $key => $val)
+                                <div class="text-gray-600"><strong class="text-gray-700">{{ $fieldLabels[$key] ?? $key }}:</strong> {{ $fmtVal($val) }}</div>
+                                @endforeach
+                            </div>
+                        </details>
+                        @endif
+                        @elseif($old)
+                        {{-- حذف: نعرض آخر حالة معروفة للسجل قبل حذفه --}}
+                        @php
+                            $shown = collect($old)->reject(fn($v, $k) => in_array($k, $noiseFields, true))->filter(fn($v) => $v !== null && $v !== '');
+                        @endphp
+                        @if($shown->isNotEmpty())
+                        <details class="cursor-pointer">
+                            <summary class="text-xs text-red-600 hover:text-red-800 font-medium">عرض بيانات ما قبل الحذف ({{ $shown->count() }})</summary>
+                            <div class="mt-2 text-xs space-y-1 bg-gray-50 p-2 rounded">
+                                @foreach($shown as $key => $val)
+                                <div class="text-gray-600"><strong class="text-gray-700">{{ $fieldLabels[$key] ?? $key }}:</strong> {{ $fmtVal($val) }}</div>
+                                @endforeach
+                            </div>
+                        </details>
+                        @endif
                         @endif
                     </td>
                     <td class="px-4 py-3 text-xs text-gray-400 font-mono">{{ $log->ip_address ?? '—' }}</td>

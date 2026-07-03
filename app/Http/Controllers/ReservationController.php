@@ -626,7 +626,8 @@ class ReservationController extends Controller
 
         $reservation->refresh()->updatePaymentStatus();
 
-        AuditLogService::log('discount_applied', $reservation, null, [
+        // 'action' عمود enum ثابت القيم في audit_logs — لا يقبل 'discount_applied'
+        AuditLogService::log('update', $reservation, null, [
             'discount_type'   => $validated['discount_type'],
             'discount_value'  => $validated['discount_value'],
             'discount_amount' => $discountAmount,

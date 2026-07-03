@@ -84,8 +84,11 @@ class CheckInController extends Controller
         // صيغ الصور المقبولة — تشمل صيغ هواتف الجوال الحديثة (HEIC/WebP) حتى لا تُرفض
         $imgMimes = 'jpg,jpeg,png,webp,gif,bmp,heic,heif,pdf';
 
-        // نزيل عائد: إن كانت هويته مسجّلة مسبقاً ولها صورة محفوظة فلا نُلزمه برفع صورة جديدة
-        $existingGuest = Guest::where('id_number', $request->input('id_number'))->first();
+        // نزيل عائد: إن كانت هويته مسجّلة مسبقاً ولها صورة محفوظة فلا نُلزمه برفع صورة جديدة.
+        // id_number مُشفَّر (غير قابل للمطابقة المباشرة بـ WHERE)، فنبحث عبر بصمته —
+        // كان Guest::where('id_number', ...) يفشل دائماً فيُلزم كل نزيل عائد برفع صورة
+        // جديدة حتى لو كانت محفوظة لديه مسبقاً.
+        $existingGuest = Guest::searchByIdNumber($request->input('id_number'))->first();
         $idImageRule = ($existingGuest && $existingGuest->id_image_path)
             ? "nullable|file|mimes:{$imgMimes}|max:5120"
             : "required|file|mimes:{$imgMimes}|max:5120";
@@ -231,6 +234,7 @@ class CheckInController extends Controller
 
         return response()->json([
             'found'              => true,
+            'id'                 => $guest->id,
             'full_name'          => $guest->full_name,
             'nationality'        => $guest->nationality,
             'occupation'         => $guest->occupation ?? '',
@@ -240,6 +244,7 @@ class CheckInController extends Controller
             'phone'              => $guest->phone ?? '',
             'reservations_count' => $guest->reservations_count,
             'last_visit'         => $lastReservation?->check_in_date?->format('d/m/Y'),
+            'has_id_image'       => (bool) $guest->id_image_path,
         ]);
     }
 

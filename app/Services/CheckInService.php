@@ -65,8 +65,10 @@ class CheckInService
                 $idImagePath = StorageHelper::store($data['id_image'], 'id_images/guests');
             }
 
-            // 5. النزيل
-            $guest = Guest::firstOrNew(['id_number' => $data['id_number']]);
+            // 5. النزيل — id_number مُشفَّر (غير قابل للمطابقة المباشرة بـ WHERE)،
+            // فنبحث عبر بصمته (searchByIdNumber) بدل firstOrNew(['id_number'=>..])
+            // الذي كان يفشل دائماً في إيجاد النزيل ذاته ويُنشئ سجلاً مكرراً كل مرة.
+            $guest = Guest::searchByIdNumber($data['id_number'])->first() ?? new Guest();
             $guest->fill([
                 'full_name'     => $data['full_name'],
                 'nationality'   => $data['nationality'] ?? null,

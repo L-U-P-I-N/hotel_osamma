@@ -563,6 +563,7 @@ class ReportController extends Controller
         $reservations = collect();
         $total = $checkedIn = $checkedOut = 0;
         $status = 'all';
+        $printedCount = 0;
 
         if ($tab === 'daily') {
             $dailyReservations = Reservation::with(['guest', 'room.roomType', 'companions', 'payments'])
@@ -627,8 +628,6 @@ class ReportController extends Controller
                 ->whereDate('check_in_date', '<=', $to)->where('status', 'checked_in')->count();
             $checkedOut = Reservation::whereDate('check_in_date', '>=', $from)
                 ->whereDate('check_in_date', '<=', $to)->where('status', 'checked_out')->count();
-        } else {
-            $printedCount = 0;
         }
 
         return view('reports.daily-hub', compact(

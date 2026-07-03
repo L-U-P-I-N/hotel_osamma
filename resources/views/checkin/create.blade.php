@@ -1338,6 +1338,32 @@ function checkInForm() {
             this.$watch('checkOutDate',  () => { if (this.stepError) this.stepError = ''; });
             this.$watch('idImagePreview',() => { if (this.stepError) this.stepError = ''; });
 
+            // إعادة التحقق من رقم الهوية عند تغيّره فعلياً (لا عند تعديل الاسم فقط) —
+            // هذا هو المصدر الوحيد الموثوق لمعرفة إن كانت للنزيل صورة محفوظة مسبقاً،
+            // بدل الاعتماد على "هل عدّل المستخدم حقل الاسم؟" الذي كان يُسقط
+            // existingGuestHasImage خطأً بمجرد تصحيح حرف في الاسم بعد اختيار نزيل عائد،
+            // فيظن الموظف أن البيانات اكتملت بينما النظام يطلب صورة جديدة لم يعد يحتاجها فعلياً.
+            this.$watch('guestData.id_number', (value) => {
+                clearTimeout(this._idNumberLookupTimer);
+                const idNumber = (value || '').trim();
+                if (idNumber.length < 3) {
+                    this.existingGuestId = null;
+                    this.existingGuestHasImage = false;
+                    return;
+                }
+                this._idNumberLookupTimer = setTimeout(() => {
+                    fetch(@json(route('guests.lookup')) + '?id_number=' + encodeURIComponent(idNumber), { headers: { 'Accept': 'application/json' } })
+                        .then(r => r.ok ? r.json() : { found: false })
+                        .then(res => {
+                            // تجاهل الرد إن تغيّر رقم الهوية أثناء الانتظار (نتيجة قديمة)
+                            if ((this.guestData.id_number || '').trim() !== idNumber) return;
+                            this.existingGuestId       = res.found ? res.id : null;
+                            this.existingGuestHasImage = res.found ? !!res.has_id_image : false;
+                        })
+                        .catch(() => {});
+                }, 400);
+            });
+
             // عند العودة للصفحة من ذاكرة المتصفح (زر رجوع) أعِد ضبط زر الحفظ
             // حتى لا تبقى أيقونة التحميل "معلّقة" بعد تسجيل نزيل سابق
             window.addEventListener('pageshow', (e) => { if (e.persisted) this.submitting = false; });
@@ -1405,8 +1431,9 @@ function checkInForm() {
 
         // البحث عن نزيل عائد بالاسم لعرض اقتراحات تعبئة سريعة
         searchGuests() {
-            // أي تعديل يدوي على الاسم يُلغي ارتباط "النزيل العائد" دون مسح الحقول
-            if (this.existingGuestId) { this.existingGuestId = null; this.existingGuestHasImage = false; }
+            // ملاحظة: لا نُسقط existingGuestId/existingGuestHasImage هنا لمجرد تعديل
+            // الاسم — رقم الهوية (وليس الاسم) هو ما يحدّد فعلياً إن كانت للنزيل صورة
+            // محفوظة مسبقاً، وله مراقب مستقل ($watch أعلاه) يُحدّثها بدقة.
             const q = (this.guestData.full_name || '').trim();
             if (q.length < 2) { this.guestSuggestions = []; this.showSuggestions = false; return; }
             fetch(@json(route('guests.search')) + '?q=' + encodeURIComponent(q), { headers: { 'Accept': 'application/json' } })

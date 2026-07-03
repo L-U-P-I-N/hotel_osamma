@@ -64,7 +64,8 @@ class RefundController extends Controller
         $reservation->decrement('paid_amount', $validated['amount']);
         $reservation->refresh()->updatePaymentStatus();
 
-        AuditLogService::log('refund_created', $reservation, null, [
+        // 'action' عمود enum ثابت القيم في audit_logs — لا يقبل 'refund_created'
+        AuditLogService::log('update', $reservation, null, [
             'amount' => $validated['amount'],
             'reason' => $validated['reason'],
         ]);

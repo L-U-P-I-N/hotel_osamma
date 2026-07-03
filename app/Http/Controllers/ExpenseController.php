@@ -217,7 +217,8 @@ class ExpenseController extends Controller
             'settled_by' => auth()->id(),
         ]);
 
-        \App\Services\AuditLogService::log('expense_settled', $expense, null, ['amount' => $expense->amount]);
+        // 'action' عمود enum ثابت القيم في audit_logs — لا يقبل 'expense_settled'
+        \App\Services\AuditLogService::log('update', $expense, null, ['amount' => $expense->amount, 'settled_at' => now()->toDateTimeString()]);
 
         return back()->with('success', 'تم تسوية المصروف بنجاح');
     }
