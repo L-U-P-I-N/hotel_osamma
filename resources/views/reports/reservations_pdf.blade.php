@@ -82,6 +82,10 @@
     .badge-pending { background: #fee2e2; color: #991b1b; }
     .badge-deferred{ background: #e0e7ff; color: #3730a3; }
 
+    /* حالة الإقامة: لم يغادر (مقيم) / غادر */
+    .badge-stay-in  { background: #dcfce7; color: #166534; }
+    .badge-stay-out { background: #e5e7eb; color: #374151; }
+
     .footer { margin-top: 6px; border-top: 1px solid #eee; padding-top: 3px; font-size: 6.5px; color: #aaa; text-align: right; }
 </style>
 </head>
@@ -114,6 +118,13 @@
             'render' => fn($r, $g) => $r->check_in_date?->format('d/m/Y') ?? '—'],
         'check_in_time'  => ['label' => 'الوقت',           'class' => 'ltr c',
             'render' => fn($r, $g) => $r->check_in_time ?? '—'],
+        'stay_status'    => ['label' => 'حالة الإقامة',    'class' => 'c', 'raw' => true,
+            'render' => function ($r, $g) {
+                $isOut = $r->status === 'checked_out';
+                $cls   = $isOut ? 'badge-stay-out' : 'badge-stay-in';
+                // "غادر"/"لم يغادر" مشتقة من حالة الحجز الفعلية، وليست إدخال مستخدم — آمنة دون تهريب
+                return '<span class="badge ' . $cls . '">' . ($isOut ? 'غادر' : 'لم يغادر') . '</span>';
+            }],
         'purpose'        => ['label' => 'الغرض',           'class' => '',
             'render' => fn($r, $g) => $r->purpose ?? '—'],
         'id_type'        => ['label' => 'نوع الهوية',      'class' => 'c',

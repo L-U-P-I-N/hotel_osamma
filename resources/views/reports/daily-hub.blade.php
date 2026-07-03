@@ -326,9 +326,17 @@
                             </div>
                             <div class="grid grid-cols-2 gap-2.5">
                                 @foreach(\App\Http\Controllers\ReportController::RESERVATIONS_PDF_COLUMNS as $key => $label)
-                                <label class="flex items-center gap-2 text-sm text-gray-700 border border-gray-100 rounded-lg px-3 py-2 hover:bg-gray-50 cursor-pointer">
-                                    <input type="checkbox" value="{{ $key }}" x-model="columns" class="rounded border-gray-300">
+                                <label class="flex items-center gap-2 text-sm text-gray-700 border border-gray-100 rounded-lg px-3 py-2 hover:bg-gray-50 cursor-pointer"
+                                       :class="forced && '{{ $key }}' === 'stay_status' ? 'opacity-70 cursor-not-allowed' : ''">
+                                    <input type="checkbox" value="{{ $key }}"
+                                           :checked="columns.includes('{{ $key }}')"
+                                           @change="toggleColumn('{{ $key }}')"
+                                           :disabled="forced && '{{ $key }}' === 'stay_status'"
+                                           class="rounded border-gray-300">
                                     {{ $label }}
+                                    @if($key === 'stay_status')
+                                    <span x-show="forced" x-cloak class="text-[10px] text-amber-600">(إجباري عند عرض الكل)</span>
+                                    @endif
                                 </label>
                                 @endforeach
                             </div>
@@ -455,9 +463,16 @@ const RESERVATIONS_PDF_COLUMNS = @json(array_keys(\App\Http\Controllers\ReportCo
 function reservationsColumnPicker() {
     return {
         open: false,
+        // عند عرض "الكل" يكون عمود حالة الإقامة إجبارياً — لا يمكن إلغاؤه، لتمييز من غادر ممن لم يغادر
+        forced: @json($status) === 'all',
         columns: [...RESERVATIONS_PDF_COLUMNS],
         selectAll()  { this.columns = [...RESERVATIONS_PDF_COLUMNS]; },
-        selectNone() { this.columns = []; },
+        selectNone() { this.columns = this.forced ? ['stay_status'] : []; },
+        toggleColumn(key) {
+            if (this.forced && key === 'stay_status') return;
+            const idx = this.columns.indexOf(key);
+            if (idx === -1) this.columns.push(key); else this.columns.splice(idx, 1);
+        },
         download() {
             if (this.columns.length === 0) return;
             const params = new URLSearchParams();

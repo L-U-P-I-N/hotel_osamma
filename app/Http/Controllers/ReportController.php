@@ -26,6 +26,7 @@ class ReportController extends Controller
         'origin'         => 'جهة القدوم',
         'check_in_date'  => 'تاريخ الدخول',
         'check_in_time'  => 'الوقت',
+        'stay_status'    => 'حالة الإقامة',
         'purpose'        => 'الغرض',
         'id_type'        => 'نوع الهوية',
         'id_number'      => 'رقم الهوية',
@@ -534,6 +535,12 @@ class ReportController extends Controller
         ));
         if (empty($selectedColumns)) {
             $selectedColumns = array_keys(self::RESERVATIONS_PDF_COLUMNS);
+        }
+
+        // عند عرض "الكل" (مقيمون ومغادرون معاً)، عمود حالة الإقامة إجباري حتى
+        // يمكن تمييز من غادر ممن لم يغادر — لا يُستبعد حتى لو لم يختره الأدمن
+        if ($status === 'all' && !in_array('stay_status', $selectedColumns, true)) {
+            $selectedColumns[] = 'stay_status';
         }
 
         $pdf = $this->pdfOptions(pdf_load_view('reports.reservations_pdf', compact('reservations', 'from', 'to', 'total', 'checkedIn', 'checkedOut', 'printedCount', 'selectedColumns', 'status')));
