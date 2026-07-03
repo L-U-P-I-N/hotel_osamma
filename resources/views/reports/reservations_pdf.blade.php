@@ -1,12 +1,5 @@
 @php
-    // كل ما تختار عدداً أقل من الأعمدة يزيد حجم الخط تلقائياً — الخط لم يعد
-    // ثابتاً على أصغر قيمة ممكنة (كانت 7px دوماً حتى مع تحديد أعمدة قليلة).
-    $colCount = is_countable($selectedColumns ?? null) ? count($selectedColumns) : 19;
-    $fontSize = match(true) {
-        $colCount <= 8  => 10,
-        $colCount <= 12 => 9,
-        default         => 8,
-    };
+    $fontSize = 12;
 @endphp
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -48,7 +41,7 @@
         border-collapse: collapse;
         font-size: {{ $fontSize }}px;
         direction: rtl;
-        table-layout: fixed;   /* honour explicit column widths */
+        table-layout: auto;   /* عرض كل عمود يتحدد تلقائياً من أطول محتوى فيه — مرن حسب البيانات الفعلية */
     }
 
     /* Repeat header on every page */
@@ -101,50 +94,52 @@
     $strip     = fn($s) => $s ? preg_replace('/[^\x{0000}-\x{FFFF}]/u', '', $s) : null;
 
     // تعريف الأعمدة كلها بترتيبها المنطقي الصحيح (الأول = أقصى اليمين عربياً).
-    // كل عمود: تسمية، وزن نسبي للعرض، محاذاة، ودالة لاستخراج محتوى الخلية.
+    // لا وزن/عرض ثابت هنا — عرض كل عمود يُحسب تلقائياً من محتواه الفعلي
+    // (table-layout: auto)، فالعمود يتّسع أو يضيق حسب البيانات الحقيقية بدل
+    // نسبة مُقدَّرة يدوياً قد لا تُناسب كل تصدير.
     $columnDefs = [
-        'id'             => ['label' => '#',              'weight' => 3,  'class' => 'c',
+        'id'             => ['label' => '#',              'class' => 'c',
             'render' => fn($r, $g) => $r->id],
-        'room'           => ['label' => 'الغرفة',          'weight' => 4,  'class' => 'c', 'bold' => true,
+        'room'           => ['label' => 'الغرفة',          'class' => 'c', 'bold' => true,
             'render' => fn($r, $g) => $r->display_room_number],
-        'guest_name'     => ['label' => 'اسم النزيل',      'weight' => 11, 'class' => '',
+        'guest_name'     => ['label' => 'اسم النزيل',      'class' => '',
             'render' => fn($r, $g) => $g?->full_name ?? '—'],
-        'nationality'    => ['label' => 'الجنسية',         'weight' => 4,  'class' => '',
+        'nationality'    => ['label' => 'الجنسية',         'class' => '',
             'render' => fn($r, $g) => $g?->nationality ?? '—'],
-        'occupation'     => ['label' => 'المهنة',          'weight' => 5,  'class' => '',
+        'occupation'     => ['label' => 'المهنة',          'class' => '',
             'render' => fn($r, $g) => $g?->occupation ?? '—'],
-        'origin'         => ['label' => 'جهة القدوم',      'weight' => 6,  'class' => '',
+        'origin'         => ['label' => 'جهة القدوم',      'class' => '',
             'render' => fn($r, $g) => $r->origin ?? '—'],
-        'check_in_date'  => ['label' => 'تاريخ الدخول',    'weight' => 6,  'class' => 'ltr',
+        'check_in_date'  => ['label' => 'تاريخ الدخول',    'class' => 'ltr',
             'render' => fn($r, $g) => $r->check_in_date?->format('d/m/Y') ?? '—'],
-        'check_in_time'  => ['label' => 'الوقت',           'weight' => 4,  'class' => 'ltr c',
+        'check_in_time'  => ['label' => 'الوقت',           'class' => 'ltr c',
             'render' => fn($r, $g) => $r->check_in_time ?? '—'],
-        'purpose'        => ['label' => 'الغرض',           'weight' => 4,  'class' => '',
+        'purpose'        => ['label' => 'الغرض',           'class' => '',
             'render' => fn($r, $g) => $r->purpose ?? '—'],
-        'id_type'        => ['label' => 'نوع الهوية',      'weight' => 4,  'class' => 'c',
+        'id_type'        => ['label' => 'نوع الهوية',      'class' => 'c',
             'render' => fn($r, $g) => $idTypeMap[$g?->id_type] ?? $g?->id_type ?? '—'],
-        'id_number'      => ['label' => 'رقم الهوية',      'weight' => 10, 'class' => 'ltr',
+        'id_number'      => ['label' => 'رقم الهوية',      'class' => 'ltr',
             'render' => fn($r, $g) => $g?->id_number ?? '—'],
-        'id_issuer'      => ['label' => 'صادر من',         'weight' => 5,  'class' => '',
+        'id_issuer'      => ['label' => 'صادر من',         'class' => '',
             'render' => fn($r, $g) => $g?->id_issuer ?? '—'],
-        'id_issue_date'  => ['label' => 'تاريخ الإصدار',   'weight' => 6,  'class' => 'ltr',
+        'id_issue_date'  => ['label' => 'تاريخ الإصدار',   'class' => 'ltr',
             'render' => fn($r, $g) => $g?->id_issue_date?->format('d/m/Y') ?? '—'],
-        'phone'          => ['label' => 'رقم الجوال',      'weight' => 7,  'class' => 'ltr',
+        'phone'          => ['label' => 'رقم الجوال',      'class' => 'ltr',
             'render' => fn($r, $g) => $g?->phone ?? '—'],
-        'payment_status' => ['label' => 'حالة الدفع',      'weight' => 5,  'class' => 'c', 'raw' => true,
+        'payment_status' => ['label' => 'حالة الدفع',      'class' => 'c', 'raw' => true,
             'render' => function ($r, $g) use ($psLabels, $psBadge) {
                 $ps = $r->payment_status ?? 'pending';
                 $cls = $psBadge[$ps] ?? 'badge-pending';
                 // القيم هنا من قائمة ثابتة (لا تأتي من إدخال المستخدم) فالمخرج HTML آمن دون تهريب
                 return '<span class="badge ' . $cls . '">' . e($psLabels[$ps] ?? $ps) . '</span>';
             }],
-        'paid_amount'    => ['label' => 'المدفوع (ر.ي)',   'weight' => 6,  'class' => 'ltr',
+        'paid_amount'    => ['label' => 'المدفوع (ر.ي)',   'class' => 'ltr',
             'render' => fn($r, $g) => number_format($r->paid_amount, 0)],
-        'total_amount'   => ['label' => 'الإجمالي (ر.ي)',  'weight' => 6,  'class' => 'ltr',
+        'total_amount'   => ['label' => 'الإجمالي (ر.ي)',  'class' => 'ltr',
             'render' => fn($r, $g) => number_format($r->total_amount, 0)],
-        'balance'        => ['label' => 'المتبقي (ر.ي)',   'weight' => 6,  'class' => 'ltr',
+        'balance'        => ['label' => 'المتبقي (ر.ي)',   'class' => 'ltr',
             'render' => fn($r, $g) => number_format(max(0, (float)$r->total_amount - (float)$r->paid_amount), 0)],
-        'notes'          => ['label' => 'ملاحظات',         'weight' => 11, 'class' => '',
+        'notes'          => ['label' => 'ملاحظات',         'class' => '',
             'render' => function ($r, $g) use ($strip) {
                 $rNote   = $strip($r->notes);
                 $payNote = $strip($r->payments->first(fn($p) => $p->notes)?->notes);
@@ -161,7 +156,6 @@
         $selected = collect(array_keys($columnDefs));
     }
     $activeColumns = collect($columnDefs)->only($selected->all());
-    $totalWeight   = $activeColumns->sum('weight');
 
     // dompdf لا يعكس ترتيب أعمدة الجدول بحسب dir="rtl" — فقط اتجاه النص داخل كل خلية.
     // لذا نكتب الأعمدة هنا بترتيب معكوس (الأخير منطقياً أولاً في HTML) حتى يظهر
@@ -186,18 +180,11 @@
 @if($reservations->isEmpty())
 <p style="text-align:center;color:#999;padding:20px;">لا توجد حجوزات في هذه الفترة</p>
 @else
-{{--
-    dompdf يتجاهل عرض <col style="width:%"> تماماً رغم table-layout:fixed (تحقّقنا
-    من ذلك بالقياس الدقيق لإحداثيات النص في PDF فعلي فظهرت كل الأعمدة بعرض متساوٍ
-    تماماً رغم اختلاف الأوزان في الكود). العرض الذي يُطبَّق فعلياً هو عرض خلايا
-    الصف الأول (thead) نفسها — لذا نضع النسبة على th مباشرة، وتحققنا من ذلك أيضاً
-    بقياس اختبار مصغّر (30%/10%/30%/10%/20%) طابق مراكز الأعمدة الناتجة تماماً.
---}}
 <table class="main" dir="rtl">
     <thead>
         <tr>
             @foreach($htmlOrder as $key => $col)
-            <th style="width:{{ round($col['weight'] / $totalWeight * 100, 2) }}%">{{ $col['label'] }}</th>
+            <th>{{ $col['label'] }}</th>
             @endforeach
         </tr>
     </thead>
