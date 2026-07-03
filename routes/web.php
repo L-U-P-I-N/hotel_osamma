@@ -177,6 +177,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/reports/debts', [ReportController::class, 'debts'])->name('reports.debts');
         Route::get('/reports/debts/pdf', [ReportController::class, 'debtsPdf'])->name('reports.debts.pdf');
         Route::get('/reports/debts/excel', [ReportController::class, 'debtsExcel'])->name('reports.debts.excel');
+        Route::get('/reports/cancelled-reservations', [ReportController::class, 'cancelledReservations'])->name('reports.cancelledReservations');
+        Route::get('/reports/cancelled-reservations/pdf', [ReportController::class, 'cancelledReservationsPdf'])->name('reports.cancelledReservations.pdf');
         Route::get('/reports/partial-payments', [ReportController::class, 'partialPayments'])->name('reports.partialPayments');
         Route::get('/reports/salaries/pdf', [ReportController::class, 'salariesPdf'])->name('reports.salaries.pdf');
         Route::get('/reports/salaries/excel', [ReportController::class, 'salariesExcel'])->name('reports.salaries.excel');

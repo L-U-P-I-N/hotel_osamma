@@ -16,6 +16,7 @@ class Reservation extends Model
         'status','payment_status','total_amount','paid_amount','currency',
         'admin_approval_id','government_exported','government_exported_at',
         'discount_type','discount_value','discount_amount','discount_reason',
+        'cancellation_reason','cancelled_by','cancelled_at',
     ];
 
     public function getCurrencySymbolAttribute(): string
@@ -37,6 +38,7 @@ class Reservation extends Model
         'paid_amount' => 'decimal:2',
         'discount_value' => 'decimal:2',
         'discount_amount' => 'decimal:2',
+        'cancelled_at' => 'datetime',
     ];
 
     public function guest()
@@ -55,6 +57,11 @@ class Reservation extends Model
     public function adminApproval()
     {
         return $this->belongsTo(User::class, 'admin_approval_id');
+    }
+
+    public function cancelledBy()
+    {
+        return $this->belongsTo(User::class, 'cancelled_by');
     }
 
     public function companions()
@@ -95,6 +102,15 @@ class Reservation extends Model
     public function scopeCheckedIn(Builder $query): Builder
     {
         return $query->where('status', 'checked_in');
+    }
+
+    /**
+     * الحجوزات الملغاة فقط — محذوفة حذفاً ناعماً وتحمل سبب إلغاء، لعرضها في
+     * تقرير أسباب الإلغاء دون التأثير على أي استعلامات تشغيلية أخرى.
+     */
+    public function scopeCancelledOnly(Builder $query): Builder
+    {
+        return $query->onlyTrashed()->whereNotNull('cancellation_reason');
     }
 
     public function getBalanceAttribute(): float

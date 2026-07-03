@@ -775,6 +775,58 @@ class ReportController extends Controller
         return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\DebtsReportExport(), 'debts-' . now()->format('Y-m-d') . '.xlsx');
     }
 
+    /**
+     * تقرير أسباب إلغاء الحجوزات — الحجوزات المحذوفة حذفاً ناعماً وتحمل سبب
+     * إلغاء، مع المتأخرات وقت الإلغاء إن وُجدت، لتمكين الأدمن من مراجعة
+     * الأسباب ومعالجتها بدل أن تختفي بيانات النزيل نهائياً عند الإلغاء.
+     */
+    public function cancelledReservations(Request $request)
+    {
+        $from   = $request->input('from', now()->subDays(30)->toDateString());
+        $to     = $request->input('to', now()->toDateString());
+        $search = $request->input('search', '');
+
+        $query = Reservation::cancelledOnly()
+            ->with(['guest', 'room', 'cancelledBy'])
+            ->whereDate('cancelled_at', '>=', $from)
+            ->whereDate('cancelled_at', '<=', $to);
+
+        if ($search) {
+            $query->whereHas('guest', fn($g) => $g->where('full_name', 'like', "%{$search}%"));
+        }
+
+        $reservations = $query->orderByDesc('cancelled_at')->paginate(30)->withQueryString();
+
+        $totalCancelled     = (clone $query)->count();
+        $totalUnpaidBalance = (clone $query)->get()->sum(fn($r) => max(0, (float)$r->total_amount - (float)$r->paid_amount));
+
+        return view('reports.cancelled-reservations', compact('reservations', 'from', 'to', 'search', 'totalCancelled', 'totalUnpaidBalance'));
+    }
+
+    public function cancelledReservationsPdf(Request $request)
+    {
+        $from   = $request->input('from', now()->subDays(30)->toDateString());
+        $to     = $request->input('to', now()->toDateString());
+        $search = $request->input('search', '');
+
+        $query = Reservation::cancelledOnly()
+            ->with(['guest', 'room', 'cancelledBy'])
+            ->whereDate('cancelled_at', '>=', $from)
+            ->whereDate('cancelled_at', '<=', $to);
+
+        if ($search) {
+            $query->whereHas('guest', fn($g) => $g->where('full_name', 'like', "%{$search}%"));
+        }
+
+        $reservations       = $query->orderByDesc('cancelled_at')->get();
+        $totalCancelled     = $reservations->count();
+        $totalUnpaidBalance = $reservations->sum(fn($r) => max(0, (float)$r->total_amount - (float)$r->paid_amount));
+
+        $pdf = $this->pdfOptions(pdf_load_view('reports.cancelled_reservations_pdf', compact('reservations', 'from', 'to', 'totalCancelled', 'totalUnpaidBalance')));
+        $pdf->setPaper('a3', 'landscape');
+        return $pdf->download('cancelled-reservations-' . $from . '-' . $to . '.pdf');
+    }
+
     public function partialPayments(Request $request)
     {
         $from   = $request->input('from', now()->startOfYear()->toDateString());

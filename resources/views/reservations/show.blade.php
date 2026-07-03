@@ -155,14 +155,11 @@
 
                 @can('checkin.view')
                 @if(in_array($reservation->status, ['confirmed', 'checked_in']))
-                <button onclick="deleteModal.open(document.getElementById('cancelForm'), 'هل أنت متأكد من إلغاء هذا الحجز نهائياً؟')"
+                <button onclick="document.getElementById('cancelReservationModal').classList.remove('hidden')"
                         class="inline-flex items-center gap-2 px-4 py-2.5 bg-red-700/50 hover:bg-red-700/80 text-white text-sm font-medium rounded-xl transition border border-red-500/30">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     إلغاء
                 </button>
-                <form id="cancelForm" method="POST" action="{{ route('reservations.cancel', $reservation) }}" class="hidden">
-                    @csrf @method('PATCH')
-                </form>
                 @endif
                 @endcan
             </div>
@@ -1083,6 +1080,60 @@
 
 @endcan
 @endif
+
+{{-- Cancel Reservation Modal — متاحة أياً كانت حالة الحجز (محجوز/مسجل دخول)، لذا خارج غلاف "مسجل دخول فقط" أعلاه.
+     سبب الإلغاء إجباري حتى تبقى بياناته قابلة للمراجعة --}}
+@can('checkin.view')
+@if(in_array($reservation->status, ['confirmed', 'checked_in']))
+<div id="cancelReservationModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+     onclick="if(event.target===this) this.classList.add('hidden')">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md" onclick="event.stopPropagation()">
+        <div class="px-6 py-5 rounded-t-2xl flex items-center justify-between" style="background:#b91c1c;">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </div>
+                <h3 class="font-bold text-white text-lg">إلغاء الحجز</h3>
+            </div>
+            <button onclick="document.getElementById('cancelReservationModal').classList.add('hidden')"
+                    class="w-8 h-8 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <form method="POST" action="{{ route('reservations.cancel', $reservation) }}">
+            @csrf @method('PATCH')
+            <div class="p-6 space-y-4">
+                <div class="bg-amber-50 border border-amber-100 rounded-xl p-4 text-sm text-amber-800">
+                    سيتم إلغاء الحجز وتحرير الغرفة، لكن بيانات النزيل والدفعات وأي متأخرات تبقى محفوظة
+                    ويمكن مراجعتها لاحقاً في تقرير أسباب إلغاء الحجوزات.
+                </div>
+                @if((float) $reservation->balance > 0)
+                <div class="bg-red-50 border border-red-100 rounded-xl p-3 text-sm text-red-700 font-semibold">
+                    تنبيه: على هذا الحجز متأخرات بقيمة {{ number_format($reservation->balance, 0) }} {{ $reservation->currency_symbol }}
+                </div>
+                @endif
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">سبب الإلغاء <span class="text-red-500">*</span></label>
+                    <textarea name="cancellation_reason" rows="3" required maxlength="500"
+                              placeholder="مثال: النزيل غيّر رأيه، خطأ في تسجيل الحجز، ظروف طارئة..."
+                              class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-red-400 outline-none resize-none"></textarea>
+                </div>
+            </div>
+            <div class="flex gap-3 px-6 pb-6">
+                <button type="submit"
+                        class="flex-1 py-3 bg-red-700 hover:bg-red-800 text-white rounded-xl text-sm font-bold transition shadow-sm">
+                    تأكيد الإلغاء
+                </button>
+                <button type="button" onclick="document.getElementById('cancelReservationModal').classList.add('hidden')"
+                        class="flex-1 py-3 border border-gray-300 text-gray-700 rounded-xl text-sm hover:bg-gray-50 transition font-medium">
+                    تراجع
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
+@endcan
 
 @push('scripts')
 <script>

@@ -480,13 +480,19 @@ class ReservationController extends Controller
                 ' — الغرفة القديمة في وضع الفحص');
     }
 
-    public function cancel(Reservation $reservation)
+    public function cancel(Request $request, Reservation $reservation)
     {
         if ($reservation->status === 'checked_out') {
             return back()->with('error', 'لا يمكن إلغاء حجز مكتمل (تسجيل الخروج تم)');
         }
 
-        // Free the room before deleting
+        $validated = $request->validate([
+            'cancellation_reason' => 'required|string|max:500',
+        ], [
+            'cancellation_reason.required' => 'يجب إدخال سبب الإلغاء',
+        ]);
+
+        // Free the room before cancelling
         if ($reservation->room && $reservation->room->status === 'occupied') {
             $reservation->room->update(['status' => 'available']);
         }
@@ -494,14 +500,25 @@ class ReservationController extends Controller
             $reservation->linkedRoom->update(['status' => 'available']);
         }
 
-        AuditLogService::log('delete', $reservation, $reservation->toArray(), null, auth()->user());
+        $old = $reservation->toArray();
 
-        // Hard delete: companions and payments are cascade-deleted by DB or manually
-        $reservation->companions()->delete();
-        $reservation->payments()->delete();
-        $reservation->forceDelete();
+        // نسجّل سبب الإلغاء ومن ألغى ومتى، ثم حذف ناعم فقط (Reservation تدعم
+        // SoftDeletes أصلاً) — تبقى بيانات النزيل والمرافقين والدفعات والمتأخرات
+        // محفوظة كاملة في قاعدة البيانات لأغراض المتابعة والتقارير، بدل أن
+        // تُحذف نهائياً كما كان يحدث سابقاً مع forceDelete().
+        $reservation->update([
+            'cancellation_reason' => $validated['cancellation_reason'],
+            'cancelled_by'        => auth()->id(),
+            'cancelled_at'        => now(),
+        ]);
 
-        return redirect()->route('reservations.index')->with('success', 'تم حذف الحجز بنجاح');
+        // 'action' عمود enum ثابت القيم (create/update/delete/...) في جدول audit_logs،
+        // فنستخدم 'delete' (الأقرب دلالياً) بدل قيمة جديدة قد ترفضها قاعدة البيانات
+        AuditLogService::log('delete', $reservation, $old, $reservation->fresh()->toArray(), auth()->user());
+
+        $reservation->delete();
+
+        return redirect()->route('reservations.index')->with('success', 'تم إلغاء الحجز — بقيت بياناته محفوظة ويمكن مراجعتها في تقرير أسباب الإلغاء');
     }
 
     public function checkin(Reservation $reservation)
