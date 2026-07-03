@@ -51,16 +51,17 @@
     <div class="stat-cell"><div class="num-b">{{ $returningGuests }}</div><div class="lbl">نزلاء متكررون</div></div>
 </div>
 
+{{-- dompdf يتجاهل dir="rtl" في ترتيب الأعمدة — نكتبها هنا بترتيب معكوس، كما في تقرير الحجوزات --}}
 <div class="two-col">
     <div class="col-half">
         <h2>الجنسيات الأكثر (أعلى 10)</h2>
         <table class="data" dir="rtl">
-            <thead><tr><th>العدد</th><th>الجنسية</th></tr></thead>
+            <thead><tr><th>الجنسية</th><th>العدد</th></tr></thead>
             <tbody>
                 @forelse($byNationality as $row)
                 <tr>
-                    <td class="ltr" style="text-align:center;">{{ $row->count }}</td>
                     <td>{{ $row->nationality ?: '—' }}</td>
+                    <td class="ltr" style="text-align:center;">{{ $row->count }}</td>
                 </tr>
                 @empty
                 <tr><td colspan="2" style="text-align:center;padding:8px;color:#999;">لا توجد بيانات</td></tr>
@@ -71,12 +72,12 @@
     <div class="col-half">
         <h2>أكثر النزلاء زيارة</h2>
         <table class="data" dir="rtl">
-            <thead><tr><th>عدد الحجوزات</th><th>اسم النزيل</th></tr></thead>
+            <thead><tr><th>اسم النزيل</th><th>عدد الحجوزات</th></tr></thead>
             <tbody>
                 @forelse($topGuests as $guest)
                 <tr>
-                    <td class="ltr" style="text-align:center;">{{ $guest->period_reservations }}</td>
                     <td>{{ $guest->full_name }}</td>
+                    <td class="ltr" style="text-align:center;">{{ $guest->period_reservations }}</td>
                 </tr>
                 @empty
                 <tr><td colspan="2" style="text-align:center;padding:8px;color:#999;">لا توجد بيانات</td></tr>

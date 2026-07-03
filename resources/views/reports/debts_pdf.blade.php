@@ -21,11 +21,14 @@
     .total-card { border: 2px solid #dc2626; border-radius: 6px; padding: 12px; margin-bottom: 16px; text-align: center; background: #fef2f2; }
     .total-card .num { font-size: 22px; font-weight: bold; color: #dc2626; }
     .total-card .lbl { font-size: 9px; color: #ef4444; margin-top: 2px; }
+    /* لا table-layout:fixed ولا عرض ثابت — عرض كل عمود يُحسب تلقائياً من محتواه
+       الفعلي (مرن حسب البيانات). white-space:nowrap أُزيلت لأنها كانت تمنع
+       التفاف الأسماء الطويلة فتضخّم عمودها على حساب باقي الأعمدة. */
     table.data { width: 100%; border-collapse: collapse; font-size: 10px; direction: rtl; }
     table.data thead tr { background: #0F4C75; color: #fff; }
-    table.data thead th { padding: 6px 8px; font-weight: bold; border: 1px solid #0a3a5e; text-align: right; white-space: nowrap; }
+    table.data thead th { padding: 6px 8px; font-weight: bold; border: 1px solid #0a3a5e; text-align: right; }
     table.data tbody tr:nth-child(even) { background: #f4f8fc; }
-    table.data tbody td { padding: 5px 8px; border: 1px solid #e0e0e0; text-align: right; white-space: nowrap; }
+    table.data tbody td { padding: 5px 8px; border: 1px solid #e0e0e0; text-align: right; word-wrap: break-word; word-break: break-word; }
     table.data tbody td.ltr { text-align: left; direction: ltr; }
     .total-row td { font-weight: bold; background: #fef2f2 !important; color: #dc2626; }
     .footer { margin-top: 12px; border-top: 1px solid #eee; padding-top: 6px; font-size: 8px; color: #aaa; text-align: right; }
@@ -47,38 +50,44 @@
 @if($reservations->isEmpty())
 <p style="text-align:center;color:#999;padding:20px;">لا توجد ديون مسجلة</p>
 @else
+{{--
+    dompdf يتجاهل dir="rtl" في ترتيب أعمدة الجدول (يرتّبها يسار→يمين بحسب ترتيب
+    HTML بغضّ النظر عن اتجاه النص) — فنكتب الأعمدة هنا بترتيب معكوس (الأخير
+    منطقياً أولاً) حتى يظهر أول عمود منطقياً (النزيل) في أقصى اليمين كالمعتاد
+    عربياً، بدل أقصى اليسار. نفس الأسلوب المُتحقَّق منه في تقرير الحجوزات.
+--}}
 <table class="data" dir="rtl">
     <thead>
         <tr>
-            <th>تاريخ الخروج</th>
-            <th>تاريخ الدخول</th>
-            <th>المتبقي (ر.ي)</th>
-            <th>المدفوع (ر.ي)</th>
-            <th>الإجمالي (ر.ي)</th>
-            <th>الحالة</th>
-            <th>الغرفة</th>
             <th>النزيل</th>
+            <th>الغرفة</th>
+            <th>الحالة</th>
+            <th>الإجمالي (ر.ي)</th>
+            <th>المدفوع (ر.ي)</th>
+            <th>المتبقي (ر.ي)</th>
+            <th>تاريخ الدخول</th>
+            <th>تاريخ الخروج</th>
         </tr>
     </thead>
     <tbody>
         @foreach($reservations as $res)
         @php $balance = $res->total_amount - $res->paid_amount; @endphp
         <tr>
-            <td class="ltr">{{ $res->check_out_date?->format('d/m/Y') ?? '—' }}</td>
-            <td class="ltr">{{ $res->check_in_date?->format('d/m/Y') ?? '—' }}{{ $res->check_in_time ? ' ' . $res->check_in_time : '' }}</td>
-            <td class="ltr" style="font-weight:bold;color:#dc2626;">{{ number_format($balance, 0) }}</td>
-            <td class="ltr" style="color:#16a34a;">{{ number_format($res->paid_amount, 0) }}</td>
-            <td class="ltr">{{ number_format($res->total_amount, 0) }}</td>
-            <td style="text-align:center;">{{ $res->status === 'checked_in' ? 'داخل' : 'خرج' }}</td>
-            <td style="font-weight:bold;text-align:center;">{{ $res->display_room_number }}</td>
             <td>{{ $res->guest?->full_name ?? '—' }}</td>
+            <td style="font-weight:bold;text-align:center;">{{ $res->display_room_number }}</td>
+            <td style="text-align:center;">{{ $res->status === 'checked_in' ? 'داخل' : 'خرج' }}</td>
+            <td class="ltr">{{ number_format($res->total_amount, 0) }}</td>
+            <td class="ltr" style="color:#16a34a;">{{ number_format($res->paid_amount, 0) }}</td>
+            <td class="ltr" style="font-weight:bold;color:#dc2626;">{{ number_format($balance, 0) }}</td>
+            <td class="ltr">{{ $res->check_in_date?->format('d/m/Y') ?? '—' }}{{ $res->check_in_time ? ' ' . $res->check_in_time : '' }}</td>
+            <td class="ltr">{{ $res->check_out_date?->format('d/m/Y') ?? '—' }}</td>
         </tr>
         @endforeach
         <tr class="total-row">
-            <td></td>
-            <td></td>
-            <td class="ltr">{{ number_format($totalDebt, 0) }}</td>
             <td colspan="5">إجمالي المبالغ غير المحصّلة</td>
+            <td class="ltr">{{ number_format($totalDebt, 0) }}</td>
+            <td></td>
+            <td></td>
         </tr>
     </tbody>
 </table>

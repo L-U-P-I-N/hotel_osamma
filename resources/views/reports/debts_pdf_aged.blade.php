@@ -44,17 +44,18 @@
 @if($reservations->isEmpty())
 <p style="text-align:center;color:#999;padding:20px;">لا توجد ديون مسجلة</p>
 @else
+{{-- dompdf يتجاهل dir="rtl" في ترتيب الأعمدة — نكتبها هنا بترتيب معكوس، كما في تقرير الحجوزات --}}
 <table class="data" dir="rtl">
     <thead>
         <tr>
-            <th>التصنيف</th>
-            <th>أيام</th>
-            <th>تاريخ الخروج</th>
-            <th>المتبقي (ر.ي)</th>
-            <th>المدفوع (ر.ي)</th>
-            <th>الإجمالي (ر.ي)</th>
-            <th>الغرفة</th>
             <th>النزيل</th>
+            <th>الغرفة</th>
+            <th>الإجمالي (ر.ي)</th>
+            <th>المدفوع (ر.ي)</th>
+            <th>المتبقي (ر.ي)</th>
+            <th>تاريخ الخروج</th>
+            <th>أيام</th>
+            <th>التصنيف</th>
         </tr>
     </thead>
     <tbody>
@@ -69,20 +70,20 @@
             else                 { $bdg = ['+90 يوم', 'badge-90']; }
         @endphp
         <tr>
-            <td class="{{ $bdg[1] }}" style="text-align:center; white-space:nowrap; font-size:8px;">{{ $bdg[0] }}</td>
-            <td style="text-align:center; font-weight:bold; {{ $days > 60 ? 'color:#dc2626;' : '' }}">{{ $days }}</td>
-            <td>{{ $refDate?->format('d/m/Y') ?? '—' }}</td>
-            <td style="font-weight:bold; color:#dc2626;">{{ number_format($balance, 0) }}</td>
-            <td style="color:#16a34a;">{{ number_format($res->paid_amount, 0) }}</td>
-            <td>{{ number_format($res->total_amount, 0) }}</td>
-            <td style="font-weight:bold; text-align:center;">{{ $res->display_room_number }}</td>
             <td>{{ $res->guest?->full_name ?? '—' }}</td>
+            <td style="font-weight:bold; text-align:center;">{{ $res->display_room_number }}</td>
+            <td>{{ number_format($res->total_amount, 0) }}</td>
+            <td style="color:#16a34a;">{{ number_format($res->paid_amount, 0) }}</td>
+            <td style="font-weight:bold; color:#dc2626;">{{ number_format($balance, 0) }}</td>
+            <td>{{ $refDate?->format('d/m/Y') ?? '—' }}</td>
+            <td style="text-align:center; font-weight:bold; {{ $days > 60 ? 'color:#dc2626;' : '' }}">{{ $days }}</td>
+            <td class="{{ $bdg[1] }}" style="text-align:center; font-size:8px;">{{ $bdg[0] }}</td>
         </tr>
         @endforeach
         <tr style="background:#fef2f2; font-weight:bold; color:#dc2626;">
-            <td colspan="3" style="text-align:left;">إجمالي المبالغ غير المحصّلة</td>
+            <td colspan="4" style="text-align:right;">إجمالي المبالغ غير المحصّلة</td>
             <td>{{ number_format($totalDebt, 0) }}</td>
-            <td colspan="4"></td>
+            <td colspan="3"></td>
         </tr>
     </tbody>
 </table>
