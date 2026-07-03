@@ -1,3 +1,13 @@
+@php
+    // كل ما تختار عدداً أقل من الأعمدة يزيد حجم الخط تلقائياً — الخط لم يعد
+    // ثابتاً على أصغر قيمة ممكنة (كانت 7px دوماً حتى مع تحديد أعمدة قليلة).
+    $colCount = is_countable($selectedColumns ?? null) ? count($selectedColumns) : 19;
+    $fontSize = match(true) {
+        $colCount <= 8  => 10,
+        $colCount <= 12 => 9,
+        default         => 8,
+    };
+@endphp
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -14,24 +24,29 @@
         src: url("{{ storage_path('fonts') }}/NotoNaskhArabic-Bold.ttf") format('truetype');
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'NotoNaskhArabic', sans-serif; font-size: 7.5px; direction: rtl; color: #1a1a1a; background: #fff; padding: 10px 12px; }
+    /*
+       الحشوة بوحدة mm بدل px: أغلب طابعات A3 لا تطبع حتى حافة الورقة الفعلية
+       (هامش غير قابل للطباعة ~4-5mm)، والحشوة القديمة (10px/12px ≈ 3mm) كانت
+       أضيق من ذلك فتُقصّ الأعمدة الطرفية (اليمنى/اليسرى) عند الطباعة الفعلية.
+    */
+    body { font-family: 'NotoNaskhArabic', sans-serif; font-size: {{ $fontSize }}px; direction: rtl; color: #1a1a1a; background: #fff; padding: 8mm 7mm; }
 
     .header { text-align: center; border-bottom: 2px solid #0F4C75; padding-bottom: 7px; margin-bottom: 8px; }
-    .header h1 { font-size: 13px; color: #0F4C75; font-weight: bold; }
-    .header .sub { font-size: 7.5px; color: #555; margin-top: 2px; }
+    .header h1 { font-size: 15px; color: #0F4C75; font-weight: bold; }
+    .header .sub { font-size: 9px; color: #555; margin-top: 2px; }
 
     .stats { display: table; width: auto; margin: 0 auto 8px; border-collapse: collapse; }
     .stats td { border: 1px solid #ddd; padding: 3px 12px; text-align: center; }
-    .stats .num   { font-size: 13px; font-weight: bold; color: #0F4C75; }
-    .stats .num-g { font-size: 13px; font-weight: bold; color: #16a34a; }
-    .stats .num-b { font-size: 13px; font-weight: bold; color: #2563eb; }
-    .stats .lbl   { font-size: 6.5px; color: #666; }
+    .stats .num   { font-size: 14px; font-weight: bold; color: #0F4C75; }
+    .stats .num-g { font-size: 14px; font-weight: bold; color: #16a34a; }
+    .stats .num-b { font-size: 14px; font-weight: bold; color: #2563eb; }
+    .stats .lbl   { font-size: 7.5px; color: #666; }
 
     /* ── Main table ── */
     table.main {
         width: 100%;
         border-collapse: collapse;
-        font-size: 7px;
+        font-size: {{ $fontSize }}px;
         direction: rtl;
         table-layout: fixed;   /* honour explicit column widths */
     }
@@ -42,7 +57,7 @@
 
     table.main thead tr { background: #0F4C75; color: #fff; }
     table.main thead th {
-        padding: 3px 2px;
+        padding: 4px 3px;
         font-weight: bold;
         border: 1px solid #0a3a5e;
         text-align: center;
@@ -56,10 +71,11 @@
     table.main tbody tr { page-break-inside: avoid; }
 
     table.main tbody td {
-        padding: 2px 2px;
+        padding: 3px 3px;
         border: 1px solid #e0e0e0;
         text-align: right;
-        word-wrap: break-word;   /* allow wrapping — no nowrap */
+        word-wrap: break-word;
+        word-break: break-all;  /* أرقام/نصوص متلاصقة بلا مسافات تنكسر داخل الخلية بدل تجاوز حدودها */
         overflow: hidden;
         vertical-align: top;
     }
@@ -91,11 +107,11 @@
             'render' => fn($r, $g) => $r->id],
         'room'           => ['label' => 'الغرفة',          'weight' => 4,  'class' => 'c', 'bold' => true,
             'render' => fn($r, $g) => $r->display_room_number],
-        'guest_name'     => ['label' => 'اسم النزيل',      'weight' => 10, 'class' => '',
+        'guest_name'     => ['label' => 'اسم النزيل',      'weight' => 11, 'class' => '',
             'render' => fn($r, $g) => $g?->full_name ?? '—'],
-        'nationality'    => ['label' => 'الجنسية',         'weight' => 6,  'class' => '',
+        'nationality'    => ['label' => 'الجنسية',         'weight' => 4,  'class' => '',
             'render' => fn($r, $g) => $g?->nationality ?? '—'],
-        'occupation'     => ['label' => 'المهنة',          'weight' => 6,  'class' => '',
+        'occupation'     => ['label' => 'المهنة',          'weight' => 5,  'class' => '',
             'render' => fn($r, $g) => $g?->occupation ?? '—'],
         'origin'         => ['label' => 'جهة القدوم',      'weight' => 6,  'class' => '',
             'render' => fn($r, $g) => $r->origin ?? '—'],
@@ -103,13 +119,13 @@
             'render' => fn($r, $g) => $r->check_in_date?->format('d/m/Y') ?? '—'],
         'check_in_time'  => ['label' => 'الوقت',           'weight' => 4,  'class' => 'ltr c',
             'render' => fn($r, $g) => $r->check_in_time ?? '—'],
-        'purpose'        => ['label' => 'الغرض',           'weight' => 5,  'class' => '',
+        'purpose'        => ['label' => 'الغرض',           'weight' => 4,  'class' => '',
             'render' => fn($r, $g) => $r->purpose ?? '—'],
         'id_type'        => ['label' => 'نوع الهوية',      'weight' => 4,  'class' => 'c',
             'render' => fn($r, $g) => $idTypeMap[$g?->id_type] ?? $g?->id_type ?? '—'],
-        'id_number'      => ['label' => 'رقم الهوية',      'weight' => 7,  'class' => 'ltr',
+        'id_number'      => ['label' => 'رقم الهوية',      'weight' => 10, 'class' => 'ltr',
             'render' => fn($r, $g) => $g?->id_number ?? '—'],
-        'id_issuer'      => ['label' => 'صادر من',         'weight' => 7,  'class' => '',
+        'id_issuer'      => ['label' => 'صادر من',         'weight' => 5,  'class' => '',
             'render' => fn($r, $g) => $g?->id_issuer ?? '—'],
         'id_issue_date'  => ['label' => 'تاريخ الإصدار',   'weight' => 6,  'class' => 'ltr',
             'render' => fn($r, $g) => $g?->id_issue_date?->format('d/m/Y') ?? '—'],
@@ -128,7 +144,7 @@
             'render' => fn($r, $g) => number_format($r->total_amount, 0)],
         'balance'        => ['label' => 'المتبقي (ر.ي)',   'weight' => 6,  'class' => 'ltr',
             'render' => fn($r, $g) => number_format(max(0, (float)$r->total_amount - (float)$r->paid_amount), 0)],
-        'notes'          => ['label' => 'ملاحظات',         'weight' => 9,  'class' => '',
+        'notes'          => ['label' => 'ملاحظات',         'weight' => 11, 'class' => '',
             'render' => function ($r, $g) use ($strip) {
                 $rNote   = $strip($r->notes);
                 $payNote = $strip($r->payments->first(fn($p) => $p->notes)?->notes);
