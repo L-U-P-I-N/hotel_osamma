@@ -370,6 +370,7 @@ class ReportController extends Controller
         $byMethod = collect();
         $totalMethodAmount = $totalMethodCount = 0;
         $dailyByMethod = collect();
+        $paymentDetails = collect();
         $methodLabels = ['cash' => 'نقداً', 'bank_transfer' => 'تحويل بنكي', 'pos' => 'POS', 'check' => 'شيك', 'credit_card' => 'بطاقة ائتمان'];
 
         // Financial ratios tab
@@ -425,6 +426,13 @@ class ReportController extends Controller
             $dailyByMethod     = $allPayments->groupBy(fn($p) => $p->payment_date->format('Y-m-d'))
                 ->map(fn($g) => $g->groupBy('method')->map(fn($gm) => $gm->sum('amount')));
 
+            // تفاصيل كل عملية دفع فردياً — النزيل والغرفة وسند التحويل، لا الإجمالي المجمّع فقط
+            $paymentDetails = Payment::with(['reservation.guest', 'reservation.room', 'receivedBy'])
+                ->whereDate('payment_date', '>=', $from)->whereDate('payment_date', '<=', $to)
+                ->where('currency', 'YER')
+                ->orderByDesc('payment_date')
+                ->get();
+
         } elseif ($tab === 'ratios') {
             $ratioFrom = match ($period) {
                 'quarter' => now()->startOfQuarter()->toDateString(),
@@ -462,7 +470,7 @@ class ReportController extends Controller
             'totalRevenue', 'paymentCount', 'reservationCount', 'avgPayment',
             'revenueByType', 'revenueByMethod', 'dailyRevenue', 'topRooms', 'foreignPayments',
             'totalExpenses', 'expenseCount', 'expensesByCategory', 'monthFrom', 'monthTo',
-            'byMethod', 'totalMethodAmount', 'totalMethodCount', 'dailyByMethod', 'methodLabels',
+            'byMethod', 'totalMethodAmount', 'totalMethodCount', 'dailyByMethod', 'methodLabels', 'paymentDetails',
             'profitMargin', 'costRatio', 'occupancyRate', 'revenuePerRoom', 'adr',
             'revenuePerGuest', 'avgStay', 'guestCount',
             'dailyRevenueAvg', 'dailyExpenseAvg', 'dailyProfitAvg', 'avgOccupiedRooms',

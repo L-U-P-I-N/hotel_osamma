@@ -510,6 +510,76 @@ $pmColors = ['cash'=>'#10b981','bank_transfer'=>'#3b82f6','pos'=>'#a855f7','chec
     </div>
 </div>
 
+{{-- تفاصيل كل عملية دفع فردياً: النزيل، الغرفة، وسند التحويل البنكي إن وُجد --}}
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-5">
+    <div class="px-5 py-4 border-b border-gray-100">
+        <h3 class="font-bold text-gray-800">تفاصيل عمليات الدفع</h3>
+        <p class="text-xs text-gray-400 mt-0.5">كل عملية دفع على حدة — النزيل، الغرفة، ومن استلمها</p>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">التاريخ</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">طريقة الدفع</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">النزيل</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">الغرفة</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">المبلغ (ر.ي)</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">استلمها</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">سند التحويل</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+                @forelse($paymentDetails as $p)
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{{ $p->payment_date?->format('d/m/Y H:i') ?? '—' }}</td>
+                    <td class="px-4 py-3">
+                        <span class="inline-block px-2.5 py-1 rounded-full text-xs font-bold
+                            {{ $p->method === 'cash' ? 'bg-green-100 text-green-800' : ($p->method === 'bank_transfer' ? 'bg-blue-100 text-blue-800' : ($p->method === 'pos' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800')) }}">
+                            {{ $methodLabels[$p->method] ?? $p->method }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 font-medium text-gray-800">
+                        @if($p->reservation)
+                        <a href="{{ route('reservations.show', $p->reservation) }}" class="hover:text-blue-600 hover:underline">
+                            {{ $p->reservation->guest?->full_name ?? '—' }}
+                        </a>
+                        @else
+                        <span class="text-gray-400">—</span>
+                        @endif
+                    </td>
+                    <td class="px-4 py-3 text-gray-600">{{ $p->reservation?->display_room_number ?? '—' }}</td>
+                    <td class="px-4 py-3 font-bold text-gray-900">{{ number_format($p->amount, 0) }}</td>
+                    <td class="px-4 py-3 text-gray-500 text-xs">{{ $p->receivedBy?->name ?? '—' }}</td>
+                    <td class="px-4 py-3 text-xs">
+                        @if($p->method === 'bank_transfer')
+                            @if($p->bank_transfer_ref)
+                            <div class="text-gray-600">رقم السند: <span class="font-mono font-semibold">{{ $p->bank_transfer_ref }}</span></div>
+                            @endif
+                            @can('payments.bank_receipt')
+                            @if($p->bank_receipt_path)
+                            <a href="{{ route('payments.receipt', ['file' => $p->bank_receipt_path]) }}" target="_blank"
+                               class="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 hover:underline mt-1">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 16l4-4a3 3 0 014 0l4 4m0 0l1.5-1.5a3 3 0 014 0L21 19M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                عرض صورة السند
+                            </a>
+                            @elseif(!$p->bank_transfer_ref)
+                            <span class="text-amber-600">لا يوجد سند مرفق</span>
+                            @endif
+                            @endif
+                        @else
+                        <span class="text-gray-300">—</span>
+                        @endif
+                    </td>
+                </tr>
+                @empty
+                <tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">لا توجد عمليات دفع</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+</div>
+
 @if($dailyByMethod->isNotEmpty())
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
     <h3 class="font-bold text-gray-800 mb-4">اتجاه المدفوعات اليومي</h3>
