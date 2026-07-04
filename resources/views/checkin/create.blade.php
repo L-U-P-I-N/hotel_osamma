@@ -1492,7 +1492,9 @@ function checkInForm() {
                 altFormat: 'd/m/Y',         // العرض بالإنجليزية يوم/شهر/سنة (25/04/2026)
                 disableMobile: true,
                 defaultDate: self[prop] || null,
-                minDate: prop === 'checkOutDate' ? (self.checkInDate || self.today()) : self.today(),
+                // تاريخ الوصول بلا حد أدنى: يسمح بتسجيل بيانات قديمة (ترحيل من نظام يدوي)
+                // بالإضافة إلى تاريخ اليوم أو تاريخ لاحق (وصول مؤجَّل بعربون مدفوع مسبقاً).
+                minDate: prop === 'checkOutDate' ? (self.checkInDate || self.today()) : undefined,
                 onChange: (sel, str) => { self[prop] = str; self.calcTotal(); },
             });
             if (fp.altInput) fp.altInput.setAttribute('placeholder', 'dd/mm/yyyy');
