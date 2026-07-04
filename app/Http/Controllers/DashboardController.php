@@ -130,10 +130,9 @@ class DashboardController extends Controller
             $alerts[] = ['type' => 'danger', 'title' => 'مصروفات متأخرة 30+ يوم', 'message' => 'عدد المصروفات: ' . $overdueDays30 . ' مصروف', 'icon' => '🚨'];
         }
 
-        // حجوزات جُدِّدت تلقائياً (تجاوز موعد المغادرة دون تسجيل خروج) لم يطّلع عليها بعد
-        // الموظف الذي أنشأ الحجز تحديداً
+        // حجوزات جُدِّدت تلقائياً (تجاوز موعد المغادرة دون تسجيل خروج) لم يطّلع عليها بعد —
+        // تظهر لكل الموظفين وليس لمنشئ الحجز فقط
         $autoRenewedPending = Reservation::with(['guest', 'room'])
-            ->where('created_by', auth()->id())
             ->where('auto_renew_acknowledged', false)
             ->whereNotNull('auto_renewed_at')
             ->orderByDesc('auto_renewed_at')
