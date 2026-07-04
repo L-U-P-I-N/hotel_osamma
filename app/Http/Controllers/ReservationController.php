@@ -406,6 +406,12 @@ class ReservationController extends Controller
             ->with('success', 'تم تعديل تاريخ الوصول بنجاح');
     }
 
+    public function acknowledgeAutoRenew(Reservation $reservation)
+    {
+        $reservation->update(['auto_renew_acknowledged' => true]);
+        return back()->with('success', 'تم الاطلاع على التجديد التلقائي');
+    }
+
     public function transferRoom(Request $request, Reservation $reservation)
     {
         if ($reservation->status !== 'checked_in') {

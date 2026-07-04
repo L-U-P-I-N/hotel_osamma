@@ -17,6 +17,7 @@ class Reservation extends Model
         'admin_approval_id','government_exported','government_exported_at',
         'discount_type','discount_value','discount_amount','discount_reason',
         'cancellation_reason','cancelled_by','cancelled_at',
+        'auto_renewed_at','auto_renew_extra_nights','auto_renew_acknowledged',
     ];
 
     public function getCurrencySymbolAttribute(): string
@@ -39,6 +40,8 @@ class Reservation extends Model
         'discount_value' => 'decimal:2',
         'discount_amount' => 'decimal:2',
         'cancelled_at' => 'datetime',
+        'auto_renewed_at' => 'datetime',
+        'auto_renew_acknowledged' => 'boolean',
     ];
 
     public function guest()
