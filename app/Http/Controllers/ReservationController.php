@@ -575,7 +575,10 @@ class ReservationController extends Controller
             $query->whereDate('check_out_date', $checkOut);
         }
 
-        $reservations = $query->orderBy('check_out_date', 'asc')->get();
+        // من لم يغادروا أولاً (الأقرب لموعد الخروج أعلى القائمة)، ثم من غادروا في النهاية
+        $reservations = $query->orderByRaw("CASE WHEN status = 'checked_in' THEN 0 ELSE 1 END")
+            ->orderBy('check_out_date', 'asc')
+            ->get();
 
         return view('reservations.expiring', compact('reservations', 'status'));
     }
