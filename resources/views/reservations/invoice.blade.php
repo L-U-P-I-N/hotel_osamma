@@ -24,50 +24,50 @@
 body {
     font-family: 'Noto', sans-serif;
     font-size: 9.5pt;
-    color: #2b2b2b;
+    color: #333333; /* Darker text for better readability */
     direction: rtl;
     text-align: right;
     padding: 10mm 14mm;
-    line-height: 1.4;
+    line-height: 1.6; /* Increased line height */
 }
 .clear { clear: both; height: 0; font-size: 0; line-height: 0; }
 
 /* ─── HEADER ─── */
 .brand { float: right; width: 60%; }
 .brand .logo { float: right; height: 52px; width: auto; margin-left: 12px; }
-.brand .hotel-ar { font-size: 17pt; font-weight: 700; color: #0F4C75; line-height: 1.15; padding-top: 3px; }
-.brand .hotel-en { font-size: 7.5pt; color: #b8973a; letter-spacing: 2px; }
+.brand .hotel-ar { font-size: 18pt; /* Slightly larger */ font-weight: 700; color: #0F4C75; line-height: 1.15; padding-top: 3px; }
+.brand .hotel-en { font-size: 8pt; /* Slightly larger */ color: #C9A84E; /* Using the consistent gold color */ letter-spacing: 2px; }
 
 .invmeta { float: left; width: 38%; text-align: left; }
-.invmeta .w { font-size: 21pt; font-weight: 700; color: #1f2937; letter-spacing: 2px; }
-.invmeta .n { font-size: 10pt; font-weight: 700; color: #b8973a; margin-top: 1px; }
+.invmeta .w { font-size: 22pt; /* More prominent */ font-weight: 700; color: #0F4C75; /* Changed to primary blue */ letter-spacing: 2px; }
+.invmeta .n { font-size: 11pt; /* Slightly larger */ font-weight: 700; color: #C9A84E; /* Consistent gold color */ margin-top: 1px; }
 .invmeta .d { font-size: 8pt; color: #9ca3af; }
-.pill { display: inline-block; margin-top: 5px; padding: 2px 12px; border-radius: 11px; font-size: 8pt; font-weight: 700; }
+.pill { display: inline-block; margin-top: 7px; /* More space */ padding: 3px 14px; /* Slightly larger padding */ border-radius: 15px; /* More rounded */ font-size: 8.5pt; /* Slightly larger */ font-weight: 700; text-transform: uppercase; /* Make it stand out */ }
 .pill-paid { background: #dcfce7; color: #15803d; }
 .pill-due  { background: #fee2e2; color: #b91c1c; }
 
-.rule  { clear: both; height: 0; border-top: 2.5px solid #0F4C75; margin: 10px 0 0; }
-.rule2 { height: 0; border-top: 1px solid #c9a84e; margin: 0 0 15px; }
+.rule  { clear: both; height: 0; border-top: 3px solid #0F4C75; margin: 12px 0 0; } /* Thicker and more margin */
+.rule2 { height: 0; border-top: 1px solid #C9A84E; margin: 0 0 18px; } /* More margin */
 
 /* ─── INFO CARDS (guest + stay) — floats, no nested tables ─── */
-.card   { border: 1px solid #e6e1d5; background: #fbfaf6; border-radius: 5px; padding: 10px 13px; }
+.card   { border: 1px solid #e0e0e0; /* Lighter border */ background: #ffffff; /* White background for clean look */ border-radius: 8px; /* More rounded corners */ padding: 12px 15px; /* More padding */ box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* Subtle shadow */ }
 .card-r { float: right; width: 49%; }
 .card-l { float: left;  width: 49%; }
-.card-h { font-size: 8pt; font-weight: 700; color: #0F4C75; border-bottom: 1.5px solid #c9a84e; padding-bottom: 5px; margin-bottom: 6px; }
-.kv { font-size: 9pt; line-height: 1.75; }
-.kv .k { color: #928a78; }
-.kv .v { color: #2b2b2b; font-weight: 700; }
+.card-h { font-size: 9pt; /* Slightly larger */ font-weight: 700; color: #0F4C75; border-bottom: 2px solid #C9A84E; /* Thicker gold border */ padding-bottom: 6px; margin-bottom: 8px; }
+.kv { font-size: 9.5pt; line-height: 1.8; } /* Slightly larger font and line height */
+.kv .k { color: #666666; } /* Darker key color */
+.kv .v { color: #333333; font-weight: 700; } /* Darker value color */
 
 /* ─── SECTION HEADING ─── */
-.sec { font-size: 9pt; font-weight: 700; color: #1f2937; background: #f3f4f6;
-       border-right: 4px solid #b8973a; padding: 6px 11px; margin: 12px 0 7px; }
+.sec { font-size: 10pt; /* Slightly larger */ font-weight: 700; color: #333333; background: #F0F0F0; /* Lighter background */
+       border-right: 5px solid #C9A84E; /* Thicker gold border */ padding: 8px 13px; /* More padding */ margin: 15px 0 10px; /* More margin */ }
 
 /* ─── DATA TABLES ─── */
 table.items, table.mini { width: 100%; border-collapse: collapse; }
 table.items { font-size: 9pt; }
-table.items th { background: #0F4C75; color: #fff; padding: 8px 10px; font-size: 8.5pt; font-weight: 700; text-align: right; }
-table.items td { padding: 7px 10px; border-bottom: 1px solid #eee; text-align: right; }
-table.items tbody tr:nth-child(even) td { background: #f8fafc; }
+table.items th { background: #0F4C75; color: #fff; padding: 10px 12px; /* More padding */ font-size: 9pt; /* Slightly larger */ font-weight: 700; text-align: right; }
+table.items td { padding: 9px 12px; /* More padding */ border-bottom: 1px solid #eeeeee; text-align: right; }
+table.items tbody tr:nth-child(even) td { background: #F8F8F8; /* Lighter alternating row background */ }
 
 table.mini { font-size: 8.5pt; }
 table.mini th { background: #efeadd; color: #4b4636; padding: 5px 9px; font-size: 8pt; font-weight: 700; text-align: right; }
@@ -77,27 +77,35 @@ table.mini td { padding: 5px 9px; border-bottom: 1px solid #f0ece0; text-align: 
 .muted { color: #9a927f; font-size: 8pt; }
 
 /* ─── SUMMARY (totals) — floated left, columns reversed (amount left) ─── */
-table.summary { float: left; width: 55%; border-collapse: collapse; border: 1px solid #e6e1d5; border-radius: 5px; }
-table.summary td { padding: 7px 13px; font-size: 9.5pt; border-bottom: 1px solid #efeadd; }
+table.summary { float: left; width: 55%; border-collapse: collapse; border: 1px solid #e0e0e0; /* Lighter border */ border-radius: 8px; /* More rounded corners */ box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* Subtle shadow */ }
+table.summary td { padding: 9px 15px; /* More padding */ font-size: 10pt; /* Slightly larger */ border-bottom: 1px solid #f0f0f0; /* Lighter border */ }
 table.summary td.sv { text-align: left; font-weight: 700; white-space: nowrap; }
-table.summary td.sk { text-align: right; color: #6b6557; }
-table.summary tr.grand td { background: #0F4C75; color: #fff; font-size: 11.5pt; font-weight: 700; border-top: 2px solid #c9a84e; border-bottom: none; }
+table.summary td.sk { text-align: right; color: #666666; } /* Darker key color */
+table.summary tr.grand td { background: #0F4C75; color: #fff; font-size: 12.5pt; /* More prominent */ font-weight: 700; border-top: 2px solid #C9A84E; border-bottom: none; }
 table.summary tr.paid td.sv { color: #15803d; }
-table.summary tr.due  td { background: #fdf4f4; border-bottom: none; }
+table.summary tr.due  td { background: #fff5f5; border-bottom: none; } /* Lighter red background */
 table.summary tr.due  td.sv { color: #b91c1c; }
 
 /* ─── NOTES ─── */
-.notes { clear: both; border-right: 4px solid #c9a84e; background: #fdfaf0;
-         padding: 8px 12px; font-size: 8.5pt; color: #7a5c00; margin: 15px 0 0; }
+.notes { clear: both; border-right: 5px solid #C9A84E; /* Thicker gold border */ background: #fffaf0; /* Lighter background */
+         padding: 10px 15px; /* More padding */ font-size: 9pt; /* Slightly larger */ color: #7a5c00; margin: 18px 0 0; /* More margin */ border-radius: 4px; /* Slightly rounded corners */ }
 
 /* ─── SIGNATURES ─── */
-.signs { margin-top: 20px; }
-.sign-r { float: right; width: 42%; text-align: center; border-top: 1px solid #c8bda2; padding-top: 6px; font-size: 8.5pt; color: #6b6557; }
-.sign-l { float: left;  width: 42%; text-align: center; border-top: 1px solid #c8bda2; padding-top: 6px; font-size: 8.5pt; color: #6b6557; }
+.signs { margin-top: 25px; } /* More margin */
+.sign-r, .sign-l {
+    float: right; /* Keep float for RTL */
+    width: 45%; /* Slightly wider */
+    text-align: center;
+    border-top: 1px solid #cccccc; /* Lighter border */
+    padding-top: 8px; /* More padding */
+    font-size: 9pt; /* Slightly larger */
+    color: #666666; /* Darker text */
+}
+.sign-l { float: left; } /* Keep float for RTL */
 
 /* ─── FOOTER ─── */
-.foot { margin-top: 12px; padding-top: 9px; border-top: 1px solid #c9a84e;
-        text-align: center; font-size: 7.5pt; color: #9ca3af; }
+.foot { margin-top: 15px; /* More margin */ padding-top: 10px; /* More padding */ border-top: 1px solid #cccccc; /* Lighter border */
+        text-align: center; font-size: 8pt; /* Slightly larger */ color: #999999; /* Darker text */ }
 </style>
 </head>
 <body>
