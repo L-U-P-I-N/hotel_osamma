@@ -82,6 +82,12 @@
                     altInput: true,
                     altFormat: 'd/m/Y',
                     disableMobile: true,
+                    // عند كتابة التاريخ يدوياً (بدل اختياره من التقويم)، النص المكتوب هو
+                    // بصيغة العرض d/m/Y — بدون هذا التحليل الصريح يحاول flatpickr تحليله
+                    // كأنه Y-m-d فيُنتج تاريخاً خاطئاً بصمت (لا خطأ ظاهر) بدل التاريخ المقصود.
+                    parseDate: function (datestr, format) {
+                        return window.flatpickr.parseDate(datestr, 'd/m/Y') || window.flatpickr.parseDate(datestr, format);
+                    },
                     onChange: function (selected, str, inst) {
                         inst.input.dispatchEvent(new Event('input',  { bubbles: true }));
                         inst.input.dispatchEvent(new Event('change', { bubbles: true }));

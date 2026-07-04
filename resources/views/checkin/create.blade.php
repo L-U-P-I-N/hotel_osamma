@@ -1495,6 +1495,14 @@ function checkInForm() {
                 // تاريخ الوصول بلا حد أدنى: يسمح بتسجيل بيانات قديمة (ترحيل من نظام يدوي)
                 // بالإضافة إلى تاريخ اليوم أو تاريخ لاحق (وصول مؤجَّل بعربون مدفوع مسبقاً).
                 minDate: prop === 'checkOutDate' ? (self.checkInDate || self.today()) : undefined,
+                // عند كتابة التاريخ يدوياً (لا اختياره من التقويم) — وهذا شائع جداً لتاريخ
+                // ماضٍ بعيد (بيانات قديمة) لأن التنقل بالتقويم لأشهر للخلف متعب — flatpickr
+                // بدون هذا قد يحاول تحليل النص المكتوب (بصيغة العرض d/m/Y) وكأنه بصيغة
+                // الخادم Y-m-d فيفشل التحليل (Invalid Date)، فتصبح الليالي NaN وتظهر
+                // دائماً 1 عبر القيمة الافتراضية (nights || 1) دون أي رسالة خطأ واضحة.
+                parseDate: (datestr, format) => {
+                    return window.flatpickr.parseDate(datestr, 'd/m/Y') || window.flatpickr.parseDate(datestr, format);
+                },
                 onChange: (sel, str) => { self[prop] = str; self.calcTotal(); },
             });
             if (fp.altInput) fp.altInput.setAttribute('placeholder', 'dd/mm/yyyy');
@@ -1526,6 +1534,9 @@ function checkInForm() {
                 altFormat: 'd/m/Y',
                 disableMobile: true,
                 defaultDate: initialVal || null,
+                parseDate: (datestr, format) => {
+                    return window.flatpickr.parseDate(datestr, 'd/m/Y') || window.flatpickr.parseDate(datestr, format);
+                },
                 onChange: (sel, str) => setter(str),
             });
             if (fp.altInput) fp.altInput.setAttribute('placeholder', 'dd/mm/yyyy');
@@ -1604,6 +1615,15 @@ function checkInForm() {
         calcTotal() {
             if (this.checkInDate && this.checkOutDate) {
                 const d1 = new Date(this.checkInDate), d2 = new Date(this.checkOutDate);
+                // تاريخ غير صالح (فشل تحليل نص مكتوب يدوياً مثلاً) لا يجب أن يتحول
+                // بصمت إلى "ليلة واحدة" افتراضية — نُبقي القيمة 0 ونظهر خطأً واضحاً
+                if (isNaN(d1) || isNaN(d2)) {
+                    this.nights = 0;
+                    this.nightsInput = 1;
+                    this.totalAmount = 0;
+                    this.stepError = 'تعذّر قراءة أحد التاريخين — تأكد من كتابته بصيغة صحيحة (يوم/شهر/سنة) أو اختره من التقويم';
+                    return;
+                }
                 this.nights     = Math.max(0, Math.floor((d2 - d1) / 86400000));
                 this.nightsInput = this.nights || 1;
                 this.totalAmount = this.selectedRoom ? (this.nights || 1) * this.effectiveRoomPrice() : 0;
@@ -1636,6 +1656,8 @@ function checkInForm() {
                 if (!this.roomId)         return 'يرجى اختيار غرفة';
                 if (!this.checkInDate)    return 'تاريخ الدخول مطلوب';
                 if (!this.checkOutDate)   return 'تاريخ الخروج مطلوب';
+                if (isNaN(new Date(this.checkInDate)))  return 'تاريخ الدخول غير صالح — أعد إدخاله أو اختره من التقويم';
+                if (isNaN(new Date(this.checkOutDate))) return 'تاريخ الخروج غير صالح — أعد إدخاله أو اختره من التقويم';
                 if (this.checkOutDate < this.checkInDate) return 'تاريخ الخروج لا يمكن أن يكون قبل تاريخ الدخول';
                 if (this.customPrice !== null && this.customPrice !== '') {
                     const cp = parseFloat(this.customPrice) || 0;
