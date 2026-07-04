@@ -54,9 +54,10 @@
 @php
     $recv = $activeShift->total_received_yer;
     $wdr  = $activeShift->total_withdrawals_yer;
-    $net  = $recv - $wdr;
+    $rfd  = $activeShift->total_refunds_yer;
+    $net  = $activeShift->net_balance_yer;
 @endphp
-<div class="grid grid-cols-3 gap-4 mb-5">
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
         <p class="text-xs text-gray-500 mb-1">المستلمات</p>
         <p class="text-xl font-bold text-green-700">{{ number_format($recv, 0) }} <span class="text-sm font-normal">ر.ي</span></p>
@@ -64,6 +65,10 @@
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
         <p class="text-xs text-gray-500 mb-1">السحبيات</p>
         <p class="text-xl font-bold text-red-600">{{ number_format($wdr, 0) }} <span class="text-sm font-normal">ر.ي</span></p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <p class="text-xs text-gray-500 mb-1">الاسترجاعات</p>
+        <p class="text-xl font-bold text-rose-600">{{ number_format($rfd, 0) }} <span class="text-sm font-normal">ر.ي</span></p>
     </div>
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
         <p class="text-xs text-gray-500 mb-1">الصافي</p>
@@ -184,6 +189,36 @@
 </div>
 </div>
 
+@if($activeShift->refunds->count() > 0)
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 mt-5">
+    <div class="px-5 py-4 border-b border-gray-100">
+        <h3 class="font-semibold text-gray-700">الاسترجاعات ({{ $activeShift->refunds->count() }})</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50"><tr>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الوقت</th>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">النزيل</th>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المبلغ</th>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الطريقة</th>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">السبب</th>
+            </tr></thead>
+            <tbody class="divide-y divide-gray-50">
+                @foreach($activeShift->refunds as $r)
+                <tr>
+                    <td class="px-4 py-2 text-gray-400 text-xs">{{ $r->refunded_at->format('H:i') }}</td>
+                    <td class="px-4 py-2 text-gray-700 text-xs">{{ $r->reservation?->guest?->full_name ?? '—' }}</td>
+                    <td class="px-4 py-2 font-semibold text-rose-600 whitespace-nowrap">-{{ number_format($r->amount, 0) }} {{ $r->currency }}</td>
+                    <td class="px-4 py-2 text-gray-500 text-xs">{{ match($r->method) { 'cash'=>'نقدي','pos'=>'POS','bank_transfer'=>'تحويل', default=>$r->method } }}</td>
+                    <td class="px-4 py-2 text-gray-400 text-xs max-w-xs truncate" title="{{ $r->reason }}">{{ $r->reason }}</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+</div>
+@endif
+
 @else
 {{-- ===== لا توجد وردية ===== --}}
 <div class="max-w-md mx-auto">
@@ -236,7 +271,7 @@
                     <td class="px-4 py-2 text-gray-500 text-xs">{{ $ls?->shift_date->format('d/m/Y') ?? '—' }}</td>
                     <td class="px-4 py-2 font-medium text-gray-700">
                         @if($ls)
-                        {{ number_format($ls->total_received_yer - $ls->total_withdrawals_yer, 0) }}
+                        {{ number_format($ls->net_balance_yer, 0) }}
                         @else —
                         @endif
                     </td>
@@ -292,7 +327,7 @@
             <tbody class="divide-y divide-gray-50">
                 @foreach($recentShifts->where('is_closed', true) as $s)
                 @php
-                    $net = $s->total_received_yer - $s->total_withdrawals_yer;
+                    $net = $s->net_balance_yer;
                     $reopenEvts = collect($s->close_events ?? [])->filter(fn($e) => ($e['event'] ?? '') === 'reopen');
                 @endphp
                 <tr class="hover:bg-gray-50">
@@ -441,7 +476,7 @@
 <div x-show="closeModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="closeModal=false">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm"
          x-data="{
-             systemBalance: {{ $activeShift->total_received_yer - $activeShift->total_withdrawals_yer }},
+             systemBalance: {{ $activeShift->net_balance_yer }},
              actualAmount: '',
              get diff() {
                  if (this.actualAmount === '' || this.actualAmount === null) return null;
@@ -467,9 +502,15 @@
                     <span class="text-gray-500">السحبيات</span>
                     <span class="font-semibold text-red-600">{{ number_format($activeShift->total_withdrawals_yer, 0) }} ر.ي</span>
                 </div>
+                @if($activeShift->total_refunds_yer > 0)
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-500">الاسترجاعات</span>
+                    <span class="font-semibold text-rose-600">{{ number_format($activeShift->total_refunds_yer, 0) }} ر.ي</span>
+                </div>
+                @endif
                 <div class="flex justify-between items-center border-t border-gray-200 pt-2">
                     <span class="font-semibold text-gray-700">الصافي حسب النظام</span>
-                    <span class="font-bold text-lg" style="color:#0F4C75">{{ number_format($activeShift->total_received_yer - $activeShift->total_withdrawals_yer, 0) }} ر.ي</span>
+                    <span class="font-bold text-lg" style="color:#0F4C75">{{ number_format($activeShift->net_balance_yer, 0) }} ر.ي</span>
                 </div>
             </div>
 

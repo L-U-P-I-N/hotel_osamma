@@ -349,7 +349,7 @@
                                 </tr></thead>
                                 <tbody class="divide-y divide-gray-200">
                                     @foreach($row['shifts'] as $sh)
-                                    @php $net = $sh->total_received_yer - $sh->total_withdrawals_yer; @endphp
+                                    @php $net = $sh->net_balance_yer; @endphp
                                     <tr>
                                         <td class="py-1.5 text-gray-600">{{ $sh->shift_date->format('d/m/Y') }}</td>
                                         <td class="py-1.5 text-green-700 font-medium">{{ number_format($sh->total_received_yer, 0) }}</td>

@@ -5,6 +5,7 @@ use App\Models\Payment;
 use App\Models\Refund;
 use App\Models\Reservation;
 use App\Services\AuditLogService;
+use App\Services\RefundService;
 use Illuminate\Http\Request;
 
 class RefundController extends Controller
@@ -48,21 +49,14 @@ class RefundController extends Controller
             'reason.required'  => 'سبب الاسترجاع مطلوب',
         ]);
 
-        $refund = Refund::create([
-            'reservation_id' => $reservation->id,
-            'payment_id'     => $validated['payment_id'] ?? null,
-            'processed_by'   => auth()->id(),
-            'amount'         => $validated['amount'],
-            'currency'       => 'YER',
-            'method'         => $validated['method'],
-            'reason'         => $validated['reason'],
-            'notes'          => $validated['notes'] ?? null,
-            'refunded_at'    => now(),
-        ]);
-
-        // Deduct from paid_amount
-        $reservation->decrement('paid_amount', $validated['amount']);
-        $reservation->refresh()->updatePaymentStatus();
+        $refund = app(RefundService::class)->createRefund($reservation, [
+            'payment_id' => $validated['payment_id'] ?? null,
+            'amount'     => $validated['amount'],
+            'currency'   => 'YER',
+            'method'     => $validated['method'],
+            'reason'     => $validated['reason'],
+            'notes'      => $validated['notes'] ?? null,
+        ], auth()->user());
 
         // 'action' عمود enum ثابت القيم في audit_logs — لا يقبل 'refund_created'
         AuditLogService::log('update', $reservation, null, [

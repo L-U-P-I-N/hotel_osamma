@@ -10,6 +10,7 @@ class Shift extends Model
         'is_closed','closed_at',
         'total_received_yer','total_received_sar','total_received_usd',
         'total_withdrawals_yer','total_withdrawals_sar','total_withdrawals_usd',
+        'total_refunds_yer','total_refunds_sar','total_refunds_usd',
         'actual_amount','shortfall',
         'salary_deducted_at','salary_deducted_by',
         'employee_signature','admin_signature','notes','locked_by',
@@ -30,19 +31,20 @@ class Shift extends Model
     public function lockedBy()    { return $this->belongsTo(User::class, 'locked_by'); }
     public function payments()    { return $this->hasMany(Payment::class); }
     public function withdrawals() { return $this->hasMany(CashWithdrawal::class); }
+    public function refunds()     { return $this->hasMany(Refund::class); }
 
     public function getNetBalanceYerAttribute(): float
     {
-        return $this->total_received_yer - $this->total_withdrawals_yer;
+        return $this->total_received_yer - $this->total_withdrawals_yer - $this->total_refunds_yer;
     }
 
     public function getNetBalanceSarAttribute(): float
     {
-        return $this->total_received_sar - $this->total_withdrawals_sar;
+        return $this->total_received_sar - $this->total_withdrawals_sar - $this->total_refunds_sar;
     }
 
     public function getNetBalanceUsdAttribute(): float
     {
-        return $this->total_received_usd - $this->total_withdrawals_usd;
+        return $this->total_received_usd - $this->total_withdrawals_usd - $this->total_refunds_usd;
     }
 }

@@ -5,6 +5,7 @@ use App\Models\CashWithdrawal;
 use App\Models\Employee;
 use App\Models\Expense;
 use App\Models\Payment;
+use App\Models\Refund;
 use App\Models\Salary;
 use App\Models\Shift;
 use App\Models\User;
@@ -48,7 +49,7 @@ class ShiftService
         $this->computeTotals($shift);
         $shift->refresh();
 
-        $netBalance = $shift->total_received_yer - $shift->total_withdrawals_yer;
+        $netBalance = $shift->total_received_yer - $shift->total_withdrawals_yer - $shift->total_refunds_yer;
         $shortfall  = $actualAmount !== null ? ($actualAmount - $netBalance) : null;
 
         // Append this closing event to the history
@@ -186,6 +187,12 @@ class ShiftService
             $wdr[$w->currency] = ($wdr[$w->currency] ?? 0) + (float)$w->amount;
         }
 
+        $refunds = Refund::where('shift_id', $shift->id)->get();
+        $rfd = ['YER' => 0, 'SAR' => 0, 'USD' => 0];
+        foreach ($refunds as $r) {
+            $rfd[$r->currency] = ($rfd[$r->currency] ?? 0) + (float)$r->amount;
+        }
+
         $shift->update([
             'total_received_yer'    => $recv['YER'],
             'total_received_sar'    => $recv['SAR'],
@@ -193,6 +200,9 @@ class ShiftService
             'total_withdrawals_yer' => $wdr['YER'],
             'total_withdrawals_sar' => $wdr['SAR'],
             'total_withdrawals_usd' => $wdr['USD'],
+            'total_refunds_yer'     => $rfd['YER'],
+            'total_refunds_sar'     => $rfd['SAR'],
+            'total_refunds_usd'     => $rfd['USD'],
         ]);
     }
 

@@ -58,7 +58,7 @@
     <tbody>
         @foreach($shifts as $shift)
         @php
-            $netYER = $shift->total_received_yer - $shift->total_withdrawals_yer;
+            $netYER = $shift->net_balance_yer;
         @endphp
         <tr>
             <td style="font-weight:bold; color:{{ $netYER >= 0 ? '#16a34a' : '#dc2626' }};">{{ number_format($netYER, 0) }}</td>
@@ -79,7 +79,7 @@
         </tr>
         @endforeach
         <tr class="total-row">
-            <td>{{ number_format($shifts->sum('total_received_yer') - $shifts->sum('total_withdrawals_yer'), 0) }}</td>
+            <td>{{ number_format($shifts->sum('total_received_yer') - $shifts->sum('total_withdrawals_yer') - $shifts->sum('total_refunds_yer'), 0) }}</td>
             <td>{{ number_format($shifts->sum('total_withdrawals_yer'), 0) }}</td>
             <td>{{ number_format($shifts->sum('total_received_yer'), 0) }}</td>
             <td class="c">{{ $shifts->sum(fn($s) => $s->payments->count()) }}</td>

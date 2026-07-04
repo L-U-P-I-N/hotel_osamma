@@ -1118,6 +1118,27 @@
                               placeholder="مثال: النزيل غيّر رأيه، خطأ في تسجيل الحجز، ظروف طارئة..."
                               class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-red-400 outline-none resize-none"></textarea>
                 </div>
+                @if((float) $reservation->paid_amount > 0)
+                <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 space-y-3">
+                    <p class="text-sm font-semibold text-blue-800">
+                        على هذا الحجز مبلغ مدفوع {{ number_format($reservation->paid_amount, 0) }} {{ $reservation->currency_symbol }} — يجب تسجيل استرجاعه
+                    </p>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">مبلغ الاسترجاع <span class="text-red-500">*</span></label>
+                        <input type="number" name="refund_amount" step="1" min="1" max="{{ $reservation->paid_amount }}"
+                               value="{{ $reservation->paid_amount }}" required
+                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">طريقة الاسترجاع <span class="text-red-500">*</span></label>
+                        <select name="refund_method" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                            <option value="cash">نقداً</option>
+                            <option value="bank_transfer">تحويل بنكي</option>
+                            <option value="pos">POS</option>
+                        </select>
+                    </div>
+                </div>
+                @endif
             </div>
             <div class="flex gap-3 px-6 pb-6">
                 <button type="submit"

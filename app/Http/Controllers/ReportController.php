@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Expense;
 use App\Models\Payment;
+use App\Models\Refund;
 use App\Models\Reservation;
 use App\Models\Room;
 use App\Models\Salary;
@@ -371,6 +372,8 @@ class ReportController extends Controller
         $totalMethodAmount = $totalMethodCount = 0;
         $dailyByMethod = collect();
         $paymentDetails = collect();
+        $refundDetails = collect();
+        $totalRefundAmount = 0;
         $methodLabels = ['cash' => 'نقداً', 'bank_transfer' => 'تحويل بنكي', 'pos' => 'POS', 'check' => 'شيك', 'credit_card' => 'بطاقة ائتمان'];
 
         // Financial ratios tab
@@ -426,12 +429,22 @@ class ReportController extends Controller
             $dailyByMethod     = $allPayments->groupBy(fn($p) => $p->payment_date->format('Y-m-d'))
                 ->map(fn($g) => $g->groupBy('method')->map(fn($gm) => $gm->sum('amount')));
 
-            // تفاصيل كل عملية دفع فردياً — النزيل والغرفة وسند التحويل، لا الإجمالي المجمّع فقط
-            $paymentDetails = Payment::with(['reservation.guest', 'reservation.room', 'receivedBy'])
+            // تفاصيل كل عملية دفع فردياً — النزيل والغرفة وسند التحويل، لا الإجمالي المجمّع فقط.
+            // withTrashed() على reservation ضروري: حجز مُلغى محذوف حذفاً ناعماً، ودون هذا
+            // الاستثناء تختفي بيانات النزيل/الغرفة لأي دفعة سابقة تخص حجزاً أُلغي لاحقاً.
+            $paymentDetails = Payment::with(['reservation' => fn($q) => $q->withTrashed(), 'reservation.guest', 'reservation.room', 'receivedBy'])
                 ->whereDate('payment_date', '>=', $from)->whereDate('payment_date', '<=', $to)
                 ->where('currency', 'YER')
                 ->orderByDesc('payment_date')
                 ->get();
+
+            // الاسترجاعات المالية (استرجاع مباشر أو ناتج عن إلغاء حجز) خلال نفس الفترة
+            $refundDetails = Refund::with(['reservation' => fn($q) => $q->withTrashed(), 'reservation.guest', 'reservation.room', 'processedBy'])
+                ->whereDate('refunded_at', '>=', $from)->whereDate('refunded_at', '<=', $to)
+                ->where('currency', 'YER')
+                ->orderByDesc('refunded_at')
+                ->get();
+            $totalRefundAmount = $refundDetails->sum('amount');
 
         } elseif ($tab === 'ratios') {
             $ratioFrom = match ($period) {
@@ -471,6 +484,7 @@ class ReportController extends Controller
             'revenueByType', 'revenueByMethod', 'dailyRevenue', 'topRooms', 'foreignPayments',
             'totalExpenses', 'expenseCount', 'expensesByCategory', 'monthFrom', 'monthTo',
             'byMethod', 'totalMethodAmount', 'totalMethodCount', 'dailyByMethod', 'methodLabels', 'paymentDetails',
+            'refundDetails', 'totalRefundAmount',
             'profitMargin', 'costRatio', 'occupancyRate', 'revenuePerRoom', 'adr',
             'revenuePerGuest', 'avgStay', 'guestCount',
             'dailyRevenueAvg', 'dailyExpenseAvg', 'dailyProfitAvg', 'avgOccupiedRooms',

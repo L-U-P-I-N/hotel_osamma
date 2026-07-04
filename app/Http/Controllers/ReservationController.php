@@ -9,9 +9,11 @@ use App\Models\Room;
 use App\Models\Shift;
 use App\Models\User;
 use App\Services\AuditLogService;
+use App\Services\RefundService;
 use App\Services\ShiftService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ReservationController extends Controller
 {
@@ -490,39 +492,72 @@ class ReservationController extends Controller
             return back()->with('error', 'لا يمكن إلغاء حجز مكتمل (تسجيل الخروج تم)');
         }
 
-        $validated = $request->validate([
+        $rules = [
             'cancellation_reason' => 'required|string|max:500',
-        ], [
+        ];
+        $messages = [
             'cancellation_reason.required' => 'يجب إدخال سبب الإلغاء',
-        ]);
+        ];
 
-        // Free the room before cancelling
-        if ($reservation->room && $reservation->room->status === 'occupied') {
-            $reservation->room->update(['status' => 'available']);
+        // إذا كان على الحجز مبلغ مدفوع، يجب تسجيل استرجاعه — لا يجوز إلغاء الحجز
+        // والاحتفاظ بمال النزيل دون توثيق كيفية إعادته
+        if ((float) $reservation->paid_amount > 0) {
+            $rules['refund_amount'] = 'required|numeric|min:0.01|max:' . $reservation->paid_amount;
+            $rules['refund_method'] = 'required|in:cash,bank_transfer,pos';
+            $messages['refund_amount.required'] = 'يجب تسجيل مبلغ الاسترجاع لأن الحجز عليه مبلغ مدفوع';
+            $messages['refund_amount.max']      = 'لا يمكن استرجاع أكثر مما تم دفعه (' . number_format($reservation->paid_amount, 0) . ' ر.ي)';
+            $messages['refund_method.required'] = 'طريقة الاسترجاع مطلوبة';
         }
-        if ($reservation->linkedRoom && $reservation->linkedRoom->status === 'occupied') {
-            $reservation->linkedRoom->update(['status' => 'available']);
+
+        $validated = $request->validate($rules, $messages);
+
+        DB::transaction(function () use ($reservation, $validated) {
+            // Free the room before cancelling
+            if ($reservation->room && $reservation->room->status === 'occupied') {
+                $reservation->room->update(['status' => 'available']);
+            }
+            if ($reservation->linkedRoom && $reservation->linkedRoom->status === 'occupied') {
+                $reservation->linkedRoom->update(['status' => 'available']);
+            }
+
+            if (!empty($validated['refund_amount'])) {
+                // لا نُنقص paid_amount هنا: يبقى سجلاً تاريخياً لما دُفع فعلياً أثناء
+                // الإقامة، والاسترجاع سجل مالي مستقل يُخصم من الوردية المفتوحة
+                // ويظهر في تقرير الاسترجاعات وتقرير المركز المالي.
+                app(RefundService::class)->createRefund($reservation, [
+                    'amount'   => $validated['refund_amount'],
+                    'currency' => 'YER',
+                    'method'   => $validated['refund_method'],
+                    'reason'   => 'استرجاع بسبب إلغاء الحجز: ' . $validated['cancellation_reason'],
+                ], auth()->user(), adjustPaidAmount: false);
+            }
+
+            $old = $reservation->toArray();
+
+            // نسجّل سبب الإلغاء ومن ألغى ومتى، ثم حذف ناعم فقط (Reservation تدعم
+            // SoftDeletes أصلاً) — تبقى بيانات النزيل والمرافقين والدفعات والمتأخرات
+            // محفوظة كاملة في قاعدة البيانات لأغراض المتابعة والتقارير، بدل أن
+            // تُحذف نهائياً كما كان يحدث سابقاً مع forceDelete().
+            $reservation->update([
+                'cancellation_reason' => $validated['cancellation_reason'],
+                'cancelled_by'        => auth()->id(),
+                'cancelled_at'        => now(),
+            ]);
+
+            // 'action' عمود enum ثابت القيم (create/update/delete/...) في جدول audit_logs،
+            // فنستخدم 'delete' (الأقرب دلالياً) بدل قيمة جديدة قد ترفضها قاعدة البيانات
+            AuditLogService::log('delete', $reservation, $old, $reservation->fresh()->toArray(), auth()->user());
+
+            $reservation->delete();
+        });
+
+        $msg = 'تم إلغاء الحجز';
+        if (!empty($validated['refund_amount'])) {
+            $msg .= ' وتسجيل استرجاع ' . number_format($validated['refund_amount'], 0) . ' ر.ي';
         }
+        $msg .= ' — بقيت بياناته محفوظة ويمكن مراجعتها في تقرير أسباب الإلغاء';
 
-        $old = $reservation->toArray();
-
-        // نسجّل سبب الإلغاء ومن ألغى ومتى، ثم حذف ناعم فقط (Reservation تدعم
-        // SoftDeletes أصلاً) — تبقى بيانات النزيل والمرافقين والدفعات والمتأخرات
-        // محفوظة كاملة في قاعدة البيانات لأغراض المتابعة والتقارير، بدل أن
-        // تُحذف نهائياً كما كان يحدث سابقاً مع forceDelete().
-        $reservation->update([
-            'cancellation_reason' => $validated['cancellation_reason'],
-            'cancelled_by'        => auth()->id(),
-            'cancelled_at'        => now(),
-        ]);
-
-        // 'action' عمود enum ثابت القيم (create/update/delete/...) في جدول audit_logs،
-        // فنستخدم 'delete' (الأقرب دلالياً) بدل قيمة جديدة قد ترفضها قاعدة البيانات
-        AuditLogService::log('delete', $reservation, $old, $reservation->fresh()->toArray(), auth()->user());
-
-        $reservation->delete();
-
-        return redirect()->route('reservations.index')->with('success', 'تم إلغاء الحجز — بقيت بياناته محفوظة ويمكن مراجعتها في تقرير أسباب الإلغاء');
+        return redirect()->route('reservations.index')->with('success', $msg);
     }
 
     public function checkin(Reservation $reservation)

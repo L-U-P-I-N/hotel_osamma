@@ -248,6 +248,49 @@
 </table>
 @endif
 
+@php $refunds = $shift->refunds ?? collect(); @endphp
+@if($refunds->isNotEmpty())
+{{-- Refunds section --}}
+<h2>الاسترجاعات</h2>
+<table class="data" dir="rtl">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>النزيل</th>
+            <th>السبب</th>
+            <th>المبلغ</th>
+            <th>العملة</th>
+            <th>الطريقة</th>
+            <th>الوقت</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach($refunds as $i => $rf)
+        <tr>
+            <td class="center">{{ $i + 1 }}</td>
+            <td>{{ $rf->reservation?->guest?->full_name ?? '—' }}</td>
+            <td>{{ $rf->reason }}</td>
+            <td class="ltr" style="font-weight:bold;color:#dc2626;">{{ number_format($rf->amount, 0) }}</td>
+            <td class="center">{{ $curLabels[$rf->currency] ?? $rf->currency }}</td>
+            <td class="center">{{ match($rf->method) { 'cash'=>'نقداً','pos'=>'POS','bank_transfer'=>'تحويل', default=>$rf->method } }}</td>
+            <td class="ltr">{{ $rf->refunded_at?->format('H:i') }}</td>
+        </tr>
+        @endforeach
+        @foreach(['YER','SAR','USD'] as $c)
+        @php $rTotal = $refunds->where('currency', $c)->sum(fn($rf) => (float)$rf->amount); @endphp
+        @if($rTotal > 0)
+        <tr class="total-row">
+            <td colspan="3" style="text-align:right;">مجموع الاسترجاعات ({{ $curLabels[$c] }})</td>
+            <td class="ltr neg">{{ number_format($rTotal, 0) }}</td>
+            <td class="center">{{ $curLabels[$c] }}</td>
+            <td colspan="2"></td>
+        </tr>
+        @endif
+        @endforeach
+    </tbody>
+</table>
+@endif
+
 {{-- Summary --}}
 <div class="summary-box">
     <h3>ملخص الوردية</h3>
@@ -256,18 +299,20 @@
         foreach (['YER','SAR','USD'] as $c) {
             $recv = (float)($shift->{'total_received_'    . strtolower($c)} ?? 0);
             $wdr  = (float)($shift->{'total_withdrawals_' . strtolower($c)} ?? 0);
-            if ($recv > 0 || $wdr > 0) {
-                $summaryRows[] = ['cur' => $c, 'recv' => $recv, 'wdr' => $wdr, 'net' => $recv - $wdr];
+            $rfd  = (float)($shift->{'total_refunds_'     . strtolower($c)} ?? 0);
+            if ($recv > 0 || $wdr > 0 || $rfd > 0) {
+                $summaryRows[] = ['cur' => $c, 'recv' => $recv, 'wdr' => $wdr, 'rfd' => $rfd, 'net' => $recv - $wdr - $rfd];
             }
         }
     @endphp
     <table style="width:100%;border-collapse:collapse;font-size:9.5px;" dir="rtl">
         <thead>
             <tr style="background:#e8f0f7;">
-                <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;width:20%;">العملة</th>
-                <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;width:27%;">الإيرادات</th>
-                <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;width:27%;">السحبيات</th>
-                <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;width:26%;">الصافي المتبقي</th>
+                <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;width:16%;">العملة</th>
+                <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;width:22%;">الإيرادات</th>
+                <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;width:22%;">السحبيات</th>
+                <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;width:20%;">الاسترجاعات</th>
+                <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;width:20%;">الصافي المتبقي</th>
             </tr>
         </thead>
         <tbody>
@@ -276,10 +321,11 @@
                 <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;font-weight:bold;">{{ $curLabels[$row['cur']] }}</td>
                 <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;" class="pos">{{ number_format($row['recv'], 0) }}</td>
                 <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;" class="neg">{{ number_format($row['wdr'], 0) }}</td>
+                <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;" class="neg">{{ number_format($row['rfd'], 0) }}</td>
                 <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;font-weight:bold;" class="net">{{ number_format($row['net'], 0) }}</td>
             </tr>
             @empty
-            <tr><td colspan="4" style="text-align:center;padding:8px;color:#999;">لا توجد بيانات</td></tr>
+            <tr><td colspan="5" style="text-align:center;padding:8px;color:#999;">لا توجد بيانات</td></tr>
             @endforelse
         </tbody>
     </table>
@@ -294,7 +340,7 @@
 {{-- عجز الوردية --}}
 @if($shift->actual_amount !== null)
 @php
-    $sysNet   = $shift->total_received_yer - $shift->total_withdrawals_yer;
+    $sysNet   = $shift->net_balance_yer;
     $actual   = (float) $shift->actual_amount;
     $deficit  = $shift->shortfall; // actual - sysNet
 @endphp

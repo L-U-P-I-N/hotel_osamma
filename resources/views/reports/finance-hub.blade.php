@@ -540,10 +540,13 @@ $pmColors = ['cash'=>'#10b981','bank_transfer'=>'#3b82f6','pos'=>'#a855f7','chec
                         </span>
                     </td>
                     <td class="px-4 py-3 font-medium text-gray-800">
-                        @if($p->reservation)
+                        @if($p->reservation && !$p->reservation->trashed())
                         <a href="{{ route('reservations.show', $p->reservation) }}" class="hover:text-blue-600 hover:underline">
                             {{ $p->reservation->guest?->full_name ?? '—' }}
                         </a>
+                        @elseif($p->reservation)
+                        {{ $p->reservation->guest?->full_name ?? '—' }}
+                        <span class="text-xs text-gray-400">(ملغى)</span>
                         @else
                         <span class="text-gray-400">—</span>
                         @endif
@@ -574,6 +577,61 @@ $pmColors = ['cash'=>'#10b981','bank_transfer'=>'#3b82f6','pos'=>'#a855f7','chec
                 </tr>
                 @empty
                 <tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">لا توجد عمليات دفع</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{{-- الاسترجاعات المالية: استرجاع مباشر أو ناتج عن إلغاء حجز — يُخصم من الوردية المفتوحة عند تسجيله --}}
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-5">
+    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div>
+            <h3 class="font-bold text-gray-800">الاسترجاعات</h3>
+            <p class="text-xs text-gray-400 mt-0.5">مبالغ أُعيدت للنزلاء خلال الفترة (استرجاع مباشر أو بسبب إلغاء حجز)</p>
+        </div>
+        <div class="text-left">
+            <div class="text-xl font-bold text-rose-600">{{ number_format($totalRefundAmount, 0) }} ر.ي</div>
+            <div class="text-xs text-gray-400">{{ $refundDetails->count() }} عملية استرجاع</div>
+        </div>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">التاريخ</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">النزيل</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">الغرفة</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">المبلغ (ر.ي)</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">الطريقة</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">السبب</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">نفّذها</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+                @forelse($refundDetails as $r)
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{{ $r->refunded_at?->format('d/m/Y H:i') ?? '—' }}</td>
+                    <td class="px-4 py-3 font-medium text-gray-800">
+                        @if($r->reservation && !$r->reservation->trashed())
+                        <a href="{{ route('reservations.show', $r->reservation) }}" class="hover:text-blue-600 hover:underline">
+                            {{ $r->reservation->guest?->full_name ?? '—' }}
+                        </a>
+                        @elseif($r->reservation)
+                        {{ $r->reservation->guest?->full_name ?? '—' }}
+                        <span class="text-xs text-gray-400">(ملغى)</span>
+                        @else
+                        <span class="text-gray-400">—</span>
+                        @endif
+                    </td>
+                    <td class="px-4 py-3 text-gray-600">{{ $r->reservation?->display_room_number ?? '—' }}</td>
+                    <td class="px-4 py-3 font-bold text-rose-600">-{{ number_format($r->amount, 0) }}</td>
+                    <td class="px-4 py-3 text-gray-600 text-xs">{{ $methodLabels[$r->method] ?? $r->method }}</td>
+                    <td class="px-4 py-3 text-gray-600 text-xs max-w-xs truncate" title="{{ $r->reason }}">{{ $r->reason }}</td>
+                    <td class="px-4 py-3 text-gray-500 text-xs">{{ $r->processedBy?->name ?? '—' }}</td>
+                </tr>
+                @empty
+                <tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">لا توجد استرجاعات خلال هذه الفترة</td></tr>
                 @endforelse
             </tbody>
         </table>

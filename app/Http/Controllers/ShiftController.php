@@ -20,7 +20,11 @@ class ShiftController extends Controller
         if ($activeShift) {
             $this->service->computeTotals($activeShift);
             $activeShift->refresh();
-            $activeShift->load(['payments.reservation.guest', 'withdrawals']);
+            $activeShift->load([
+                'payments.reservation.guest', 'withdrawals',
+                // withTrashed ضروري: قد يكون الاسترجاع ناتجاً عن إلغاء حجز (محذوف حذفاً ناعماً)
+                'refunds' => fn($q) => $q->with(['reservation' => fn($q2) => $q2->withTrashed(), 'reservation.guest']),
+            ]);
         }
 
         $allActive       = $user->isAdmin() ? $this->service->getAllActiveShifts() : collect();
@@ -156,13 +160,19 @@ class ShiftController extends Controller
 
     public function handover(Shift $shift)
     {
-        $shift->load(['user', 'payments.reservation.guest', 'payments.reservation.room', 'withdrawals']);
+        $shift->load([
+            'user', 'payments.reservation.guest', 'payments.reservation.room', 'withdrawals',
+            'refunds' => fn($q) => $q->with(['reservation' => fn($q2) => $q2->withTrashed(), 'reservation.guest', 'reservation.room']),
+        ]);
         return view('shifts.handover', compact('shift'));
     }
 
     public function exportPdf(Shift $shift)
     {
-        $shift->load(['user', 'payments.reservation.guest', 'payments.reservation.room', 'withdrawals']);
+        $shift->load([
+            'user', 'payments.reservation.guest', 'payments.reservation.room', 'withdrawals',
+            'refunds' => fn($q) => $q->with(['reservation' => fn($q2) => $q2->withTrashed(), 'reservation.guest', 'reservation.room']),
+        ]);
 
         $pdf = pdf_load_view('shifts.report_pdf', compact('shift'));
         $pdf->setPaper('a4', 'portrait');

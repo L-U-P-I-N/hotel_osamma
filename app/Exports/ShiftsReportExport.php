@@ -46,7 +46,7 @@ class ShiftsReportExport implements FromCollection, WithHeadings, WithMapping, W
             number_format($shift->total_received_sar, 0),
             number_format($shift->total_received_usd, 2),
             number_format($shift->total_withdrawals_yer, 0),
-            number_format($shift->total_received_yer - $shift->total_withdrawals_yer, 0),
+            number_format($shift->net_balance_yer, 0),
             $shift->notes ?? '',
         ];
     }

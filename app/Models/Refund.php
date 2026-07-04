@@ -9,7 +9,7 @@ class Refund extends Model
     use HasFactory;
 
     protected $fillable = [
-        'reservation_id','payment_id','processed_by',
+        'reservation_id','payment_id','processed_by','shift_id',
         'amount','currency','method','reason','refunded_at','notes',
     ];
 
@@ -21,4 +21,5 @@ class Refund extends Model
     public function reservation() { return $this->belongsTo(Reservation::class); }
     public function payment()     { return $this->belongsTo(Payment::class); }
     public function processedBy() { return $this->belongsTo(User::class, 'processed_by'); }
+    public function shift()       { return $this->belongsTo(Shift::class); }
 }

@@ -179,6 +179,35 @@
     @endif
 </div>
 
+@if($shift->refunds->isNotEmpty())
+{{-- Refunds --}}
+<div class="section">
+    <div class="section-title">الاسترجاعات ({{ $shift->refunds->count() }} عملية)</div>
+    <table class="withdrawals-list">
+        <thead>
+            <tr>
+                <th>الوقت</th>
+                <th>النزيل</th>
+                <th>السبب</th>
+                <th>المبلغ</th>
+                <th>الطريقة</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($shift->refunds as $rf)
+            <tr>
+                <td>{{ $rf->refunded_at?->format('H:i') ?? '—' }}</td>
+                <td>{{ $rf->reservation?->guest?->full_name ?? '—' }}</td>
+                <td>{{ Str::limit($rf->reason ?? '—', 40) }}</td>
+                <td style="font-weight:bold; color:#dc2626;">{{ number_format($rf->amount, 0) }}</td>
+                <td>{{ match($rf->method) { 'cash'=>'نقداً','pos'=>'POS','bank_transfer'=>'تحويل', default=>$rf->method } }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+</div>
+@endif
+
 @if($shift->notes)
 <div class="section">
     <div class="section-title">ملاحظات الوردية</div>
