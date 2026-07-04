@@ -43,7 +43,11 @@ class ReservationController extends Controller
             $query->where('created_by', $request->created_by);
         }
 
-        $reservations = $query->latest()->paginate(25)->withQueryString();
+        // من لم يغادروا أولاً، ثم من غادروا في النهاية — وداخل كل مجموعة الأحدث أولاً
+        $reservations = $query->orderByRaw("CASE WHEN status = 'checked_in' THEN 0 ELSE 1 END")
+            ->latest()
+            ->paginate(25)
+            ->withQueryString();
         $staff = User::where('is_active', true)->orderBy('name')->get();
 
         return view('reservations.index', compact('reservations', 'staff'));
