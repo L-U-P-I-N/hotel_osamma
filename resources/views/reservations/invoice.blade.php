@@ -28,7 +28,7 @@ body {
     direction: rtl;
     text-align: right;
     padding: 10mm 14mm;
-    line-height: 1.6; /* Increased line height */
+    line-height: 1.42;
 }
 .clear { clear: both; height: 0; font-size: 0; line-height: 0; }
 
@@ -46,27 +46,27 @@ body {
 .pill-paid { background: #dcfce7; color: #15803d; }
 .pill-due  { background: #fee2e2; color: #b91c1c; }
 
-.rule  { clear: both; height: 0; border-top: 3px solid #0F4C75; margin: 12px 0 0; } /* Thicker and more margin */
-.rule2 { height: 0; border-top: 1px solid #C9A84E; margin: 0 0 18px; } /* More margin */
+.rule  { clear: both; height: 0; border-top: 3px solid #0F4C75; margin: 9px 0 0; }
+.rule2 { height: 0; border-top: 1px solid #C9A84E; margin: 0 0 12px; }
 
 /* ─── INFO CARDS (guest + stay) — floats, no nested tables ─── */
-.card   { border: 1px solid #e0e0e0; /* Lighter border */ background: #ffffff; /* White background for clean look */ border-radius: 8px; /* More rounded corners */ padding: 12px 15px; /* More padding */ box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* Subtle shadow */ }
+.card   { border: 1px solid #e0e0e0; /* Lighter border */ background: #ffffff; /* White background for clean look */ border-radius: 8px; /* More rounded corners */ padding: 9px 13px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* Subtle shadow */ }
 .card-r { float: right; width: 49%; }
 .card-l { float: left;  width: 49%; }
-.card-h { font-size: 9pt; /* Slightly larger */ font-weight: 700; color: #0F4C75; border-bottom: 2px solid #C9A84E; /* Thicker gold border */ padding-bottom: 6px; margin-bottom: 8px; }
-.kv { font-size: 9.5pt; line-height: 1.8; } /* Slightly larger font and line height */
+.card-h { font-size: 9pt; /* Slightly larger */ font-weight: 700; color: #0F4C75; border-bottom: 2px solid #C9A84E; /* Thicker gold border */ padding-bottom: 5px; margin-bottom: 6px; }
+.kv { font-size: 9.5pt; line-height: 1.55; }
 .kv .k { color: #666666; } /* Darker key color */
 .kv .v { color: #333333; font-weight: 700; } /* Darker value color */
 
 /* ─── SECTION HEADING ─── */
 .sec { font-size: 10pt; /* Slightly larger */ font-weight: 700; color: #333333; background: #F0F0F0; /* Lighter background */
-       border-right: 5px solid #C9A84E; /* Thicker gold border */ padding: 8px 13px; /* More padding */ margin: 15px 0 10px; /* More margin */ }
+       border-right: 5px solid #C9A84E; /* Thicker gold border */ padding: 6px 12px; margin: 10px 0 6px; }
 
 /* ─── DATA TABLES ─── */
 table.items, table.mini { width: 100%; border-collapse: collapse; }
 table.items { font-size: 9pt; }
-table.items th { background: #0F4C75; color: #fff; padding: 10px 12px; /* More padding */ font-size: 9pt; /* Slightly larger */ font-weight: 700; text-align: right; }
-table.items td { padding: 9px 12px; /* More padding */ border-bottom: 1px solid #eeeeee; text-align: right; }
+table.items th { background: #0F4C75; color: #fff; padding: 7px 10px; font-size: 9pt; /* Slightly larger */ font-weight: 700; text-align: right; }
+table.items td { padding: 6px 10px; border-bottom: 1px solid #eeeeee; text-align: right; }
 table.items tbody tr:nth-child(even) td { background: #F8F8F8; /* Lighter alternating row background */ }
 
 table.mini { font-size: 8.5pt; }
@@ -78,7 +78,7 @@ table.mini td { padding: 5px 9px; border-bottom: 1px solid #f0ece0; text-align: 
 
 /* ─── SUMMARY (totals) — floated left, columns reversed (amount left) ─── */
 table.summary { float: left; width: 55%; border-collapse: collapse; border: 1px solid #e0e0e0; /* Lighter border */ border-radius: 8px; /* More rounded corners */ box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* Subtle shadow */ }
-table.summary td { padding: 9px 15px; /* More padding */ font-size: 10pt; /* Slightly larger */ border-bottom: 1px solid #f0f0f0; /* Lighter border */ }
+table.summary td { padding: 6px 13px; font-size: 10pt; /* Slightly larger */ border-bottom: 1px solid #f0f0f0; /* Lighter border */ }
 table.summary td.sv { text-align: left; font-weight: 700; white-space: nowrap; }
 table.summary td.sk { text-align: right; color: #666666; } /* Darker key color */
 table.summary tr.grand td { background: #0F4C75; color: #fff; font-size: 12.5pt; /* More prominent */ font-weight: 700; border-top: 2px solid #C9A84E; border-bottom: none; }
@@ -88,23 +88,23 @@ table.summary tr.due  td.sv { color: #b91c1c; }
 
 /* ─── NOTES ─── */
 .notes { clear: both; border-right: 5px solid #C9A84E; /* Thicker gold border */ background: #fffaf0; /* Lighter background */
-         padding: 10px 15px; /* More padding */ font-size: 9pt; /* Slightly larger */ color: #7a5c00; margin: 18px 0 0; /* More margin */ border-radius: 4px; /* Slightly rounded corners */ }
+         padding: 7px 12px; font-size: 9pt; /* Slightly larger */ color: #7a5c00; margin: 12px 0 0; border-radius: 4px; /* Slightly rounded corners */ }
 
 /* ─── SIGNATURES ─── */
-.signs { margin-top: 25px; } /* More margin */
+.signs { margin-top: 16px; }
 .sign-r, .sign-l {
     float: right; /* Keep float for RTL */
     width: 45%; /* Slightly wider */
     text-align: center;
     border-top: 1px solid #cccccc; /* Lighter border */
-    padding-top: 8px; /* More padding */
+    padding-top: 5px;
     font-size: 9pt; /* Slightly larger */
     color: #666666; /* Darker text */
 }
 .sign-l { float: left; } /* Keep float for RTL */
 
 /* ─── FOOTER ─── */
-.foot { margin-top: 15px; /* More margin */ padding-top: 10px; /* More padding */ border-top: 1px solid #cccccc; /* Lighter border */
+.foot { margin-top: 9px; padding-top: 6px; border-top: 1px solid #cccccc; /* Lighter border */
         text-align: center; font-size: 8pt; /* Slightly larger */ color: #999999; /* Darker text */ }
 </style>
 </head>
