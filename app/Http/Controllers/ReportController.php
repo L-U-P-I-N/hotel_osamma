@@ -848,6 +848,51 @@ class ReportController extends Controller
         return $pdf->download('cancelled-reservations-' . $from . '-' . $to . '.pdf');
     }
 
+    /**
+     * تقرير الجهات الحكومية — سجل نزلاء بكل البيانات المطلوبة لإبلاغ الجهات
+     * الحكومية (الأمن/الجوازات): النزيل الرئيسي وبيانات هويته كاملة، بالإضافة
+     * إلى بيانات المرافقين وحالة الإقامة (غادروا/لم يغادروا).
+     */
+    private function governmentQuery(Request $request)
+    {
+        $from   = $request->input('from', now()->subDays(30)->toDateString());
+        $to     = $request->input('to', now()->toDateString());
+        $search = $request->input('search', '');
+
+        $query = Reservation::with(['guest', 'room', 'companions'])
+            ->whereDate('check_in_date', '>=', $from)
+            ->whereDate('check_in_date', '<=', $to);
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('guest', fn($g) => $g->where('full_name', 'like', "%{$search}%"))
+                  ->orWhereHas('room', fn($r) => $r->where('room_number', 'like', "%{$search}%"));
+            });
+        }
+
+        return [$query, $from, $to, $search];
+    }
+
+    public function government(Request $request)
+    {
+        [$query, $from, $to, $search] = $this->governmentQuery($request);
+
+        $reservations = $query->orderByDesc('check_in_date')->paginate(30)->withQueryString();
+
+        return view('reports.government', compact('reservations', 'from', 'to', 'search'));
+    }
+
+    public function governmentPdf(Request $request)
+    {
+        [$query, $from, $to, $search] = $this->governmentQuery($request);
+
+        $reservations = $query->orderByDesc('check_in_date')->get();
+
+        $pdf = $this->pdfOptions(pdf_load_view('reports.government_pdf', compact('reservations', 'from', 'to')));
+        $pdf->setPaper('a3', 'landscape');
+        return $pdf->download('government-report-' . $from . '-' . $to . '.pdf');
+    }
+
     public function partialPayments(Request $request)
     {
         $from   = $request->input('from', now()->startOfYear()->toDateString());
