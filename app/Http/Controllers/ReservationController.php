@@ -366,6 +366,46 @@ class ReservationController extends Controller
             ->with('success', "تم تجديد الإقامة بنجاح — تمديد {$extraNights} ليلة إضافية");
     }
 
+    /**
+     * تعديل تاريخ وصول النزيل فقط (بدون المساس بالمبلغ أو المدفوعات) — لحالة
+     * نزيل دفع مسبقاً لكنه أبلغ بأن وصوله الفعلي سيتأخر عدة أيام. نُحرِّك
+     * تاريخ الخروج بنفس عدد الأيام حتى تبقى مدة الإقامة والإجمالي كما هما،
+     * بخلاف نموذج تعديل الحجز العام الذي يعيد حساب الإجمالي من عدد الليالي
+     * وقد يُنقص المدفوعات المسجَّلة (reconcileOverpayment) إن قصُرت المدة.
+     */
+    public function updateCheckInDate(Request $request, Reservation $reservation)
+    {
+        if ($reservation->status !== 'checked_in') {
+            return back()->withErrors(['error' => 'لا يمكن تعديل تاريخ الوصول إلا للحجوزات النشطة (مسجل دخول)']);
+        }
+
+        $validated = $request->validate([
+            'new_check_in_date' => 'required|date',
+        ], [
+            'new_check_in_date.required' => 'تاريخ الوصول الجديد مطلوب',
+        ]);
+
+        $oldCheckIn  = $reservation->check_in_date->copy()->startOfDay();
+        $newCheckIn  = Carbon::parse($validated['new_check_in_date'])->startOfDay();
+        $deltaDays   = (int) round(($newCheckIn->getTimestamp() - $oldCheckIn->getTimestamp()) / 86400);
+        $newCheckOut = $reservation->check_out_date->copy()->addDays($deltaDays);
+
+        $old = $reservation->only(['check_in_date', 'check_out_date']);
+
+        $reservation->update([
+            'check_in_date'  => $newCheckIn->toDateString(),
+            'check_out_date' => $newCheckOut->toDateString(),
+        ]);
+
+        AuditLogService::log('update', $reservation, $old, [
+            'check_in_date'  => $newCheckIn->toDateString(),
+            'check_out_date' => $newCheckOut->toDateString(),
+        ], auth()->user());
+
+        return redirect()->route('reservations.show', $reservation)
+            ->with('success', 'تم تعديل تاريخ الوصول بنجاح');
+    }
+
     public function transferRoom(Request $request, Reservation $reservation)
     {
         if ($reservation->status !== 'checked_in') {

@@ -119,6 +119,11 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                     تجديد
                 </button>
+                <button onclick="document.getElementById('checkinDateModal').classList.remove('hidden')"
+                        class="inline-flex items-center gap-2 px-4 py-2.5 bg-white/15 hover:bg-white/25 text-white text-sm font-medium rounded-xl transition border border-white/20">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    تعديل تاريخ الوصول
+                </button>
                 <button onclick="document.getElementById('transferRoomModal').classList.remove('hidden')"
                         class="inline-flex items-center gap-2 px-4 py-2.5 bg-amber-500/80 hover:bg-amber-500 text-white text-sm font-medium rounded-xl transition border border-amber-400/30">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
@@ -1000,6 +1005,58 @@
                     تأكيد التجديد
                 </button>
                 <button type="button" onclick="document.getElementById('renewModal').classList.add('hidden')"
+                        class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl text-sm hover:bg-gray-50 transition font-medium">
+                    إلغاء
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{{-- Edit Check-in Date Modal --}}
+<div id="checkinDateModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+     onclick="if(event.target===this) this.classList.add('hidden')">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md" onclick="event.stopPropagation()">
+        <div class="hero-gradient px-6 py-5 rounded-t-2xl flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                </div>
+                <h3 class="font-bold text-white text-lg">تعديل تاريخ الوصول</h3>
+            </div>
+            <button onclick="document.getElementById('checkinDateModal').classList.add('hidden')"
+                    class="w-8 h-8 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <form method="POST" action="{{ route('reservations.updateCheckInDate', $reservation) }}"
+              x-data="{ newCheckIn: '{{ $reservation->check_in_date?->format('Y-m-d') }}' }" class="p-6 space-y-4">
+            @csrf @method('PATCH')
+            <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm text-blue-800">
+                لتأجيل موعد وصول نزيل دفع مسبقاً — سيُزاح تاريخ الخروج بنفس عدد الأيام
+                تلقائياً حتى تبقى مدة الإقامة والمبلغ المدفوع كما هما دون تغيير.
+            </div>
+            <div class="grid grid-cols-2 gap-3 bg-gray-50 rounded-xl p-4 text-sm">
+                <div>
+                    <span class="text-gray-400 text-xs block mb-0.5 font-medium">تاريخ الدخول الحالي</span>
+                    <strong class="text-gray-800">{{ $reservation->check_in_date?->format('d/m/Y') ?? '—' }}</strong>
+                </div>
+                <div>
+                    <span class="text-gray-400 text-xs block mb-0.5 font-medium">تاريخ الخروج الحالي</span>
+                    <strong class="text-gray-800">{{ $reservation->check_out_date?->format('d/m/Y') ?? '—' }}</strong>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">تاريخ الوصول الجديد <span class="text-red-500">*</span></label>
+                <input type="date" name="new_check_in_date" x-model="newCheckIn" required
+                       class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+            <div class="flex gap-3 pt-1">
+                <button type="submit"
+                        class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition shadow-sm">
+                    تأكيد التعديل
+                </button>
+                <button type="button" onclick="document.getElementById('checkinDateModal').classList.add('hidden')"
                         class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl text-sm hover:bg-gray-50 transition font-medium">
                     إلغاء
                 </button>
