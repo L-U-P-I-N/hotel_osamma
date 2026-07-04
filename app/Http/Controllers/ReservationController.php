@@ -666,7 +666,7 @@ class ReservationController extends Controller
 
     public function invoice(Reservation $reservation)
     {
-        $reservation->load(['guest', 'room.roomType', 'payments.receivedBy', 'extraCharges', 'createdBy', 'companions', 'roomInspections.images']);
+        $reservation->load(['guest', 'room.roomType', 'payments.receivedBy', 'extraCharges', 'createdBy', 'roomInspections.images']);
 
         $pdf = pdf_load_view('reservations.invoice', compact('reservation'));
         $pdf->setPaper('a4', 'portrait');

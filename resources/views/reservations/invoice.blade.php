@@ -140,23 +140,23 @@ table.summary tr.due  td.sv { color: #b91c1c; }
 {{-- ═══ GUEST + STAY (floated cards, block key/value) ═══ --}}
 <div class="card card-r">
     <div class="card-h">بيانات النزيل</div>
-    <div class="kv"><span class="k">الاسم: </span><span class="v">{{ $reservation->guest?->full_name ?? '—' }}</span></div>
+    <div class="kv"><span class="v">{{ $reservation->guest?->full_name ?? '—' }}</span><span class="k"> :الاسم</span></div>
     @if($reservation->guest?->id_number)
-    <div class="kv"><span class="k">رقم الهوية: </span><span class="v">{{ $reservation->guest->id_number }}</span></div>
+    <div class="kv"><span class="v">{{ $reservation->guest->id_number }}</span><span class="k"> :رقم الهوية</span></div>
     @endif
     @if($reservation->guest?->nationality)
-    <div class="kv"><span class="k">الجنسية: </span><span class="v">{{ $reservation->guest->nationality }}</span></div>
+    <div class="kv"><span class="v">{{ $reservation->guest->nationality }}</span><span class="k"> :الجنسية</span></div>
     @endif
     @if($reservation->guest?->phone)
-    <div class="kv"><span class="k">الجوال: </span><span class="v">{{ $reservation->guest->phone }}</span></div>
+    <div class="kv"><span class="v">{{ $reservation->guest->phone }}</span><span class="k"> :الجوال</span></div>
     @endif
 </div>
 <div class="card card-l">
     <div class="card-h">تفاصيل الإقامة</div>
-    <div class="kv"><span class="k">الغرفة: </span><span class="v">{{ $reservation->display_room_number }} ({{ $reservation->room_type_label }})</span></div>
-    <div class="kv"><span class="k">الدخول: </span><span class="v">{{ $reservation->check_in_date?->format('Y/m/d') }}@if($reservation->check_in_time) — {{ $reservation->check_in_time }}@endif</span></div>
-    <div class="kv"><span class="k">الخروج: </span><span class="v">{{ $reservation->check_out_date?->format('Y/m/d') }}@if($reservation->check_out_time) — {{ $reservation->check_out_time }}@endif</span></div>
-    <div class="kv"><span class="k">المدة: </span><span class="v">{{ $nights }} {{ $nights == 1 ? 'ليلة' : 'ليالٍ' }}</span></div>
+    <div class="kv"><span class="v">{{ $reservation->display_room_number }} ({{ $reservation->room_type_label }})</span><span class="k"> :الغرفة</span></div>
+    <div class="kv"><span class="v">{{ $reservation->check_in_date?->format('Y/m/d') }}@if($reservation->check_in_time) — {{ $reservation->check_in_time }}@endif</span><span class="k"> :الدخول</span></div>
+    <div class="kv"><span class="v">{{ $reservation->check_out_date?->format('Y/m/d') }}@if($reservation->check_out_time) — {{ $reservation->check_out_time }}@endif</span><span class="k"> :الخروج</span></div>
+    <div class="kv"><span class="v">{{ $nights }} {{ $nights == 1 ? 'ليلة' : 'ليالٍ' }}</span><span class="k"> :المدة</span></div>
 </div>
 <div class="clear"></div>
 
@@ -244,31 +244,6 @@ table.summary tr.due  td.sv { color: #b91c1c; }
             <td>{{ $methodMap[$p->method] ?? $p->method }}</td>
             <td>{{ $typeMap[$p->type] ?? $p->type }}</td>
             <td>{{ $p->payment_date?->format('Y/m/d H:i') }}</td>
-        </tr>
-        @endforeach
-    </tbody>
-</table>
-@endif
-
-{{-- ═══ COMPANIONS (columns reversed) ═══ --}}
-@if($reservation->companions->count() > 0)
-<div class="sec">المرافقون ({{ $reservation->companions->count() }})</div>
-<table class="mini">
-    <thead>
-        <tr>
-            <th style="width:26%;">رقم الهوية</th>
-            <th style="width:20%;">الجنسية</th>
-            <th style="width:20%;">صلة القرابة</th>
-            <th style="width:34%;">الاسم</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach($reservation->companions as $c)
-        <tr>
-            <td>{{ $c->id_number ?? '—' }}</td>
-            <td>{{ $c->nationality ?: '—' }}</td>
-            <td>{{ $c->getRelationshipLabel() }}</td>
-            <td>{{ $c->full_name }}</td>
         </tr>
         @endforeach
     </tbody>
