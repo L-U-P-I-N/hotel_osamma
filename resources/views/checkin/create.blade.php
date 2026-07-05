@@ -1501,6 +1501,9 @@ function checkInForm() {
                 // الخادم Y-m-d فيفشل التحليل (Invalid Date)، فتصبح الليالي NaN وتظهر
                 // دائماً 1 عبر القيمة الافتراضية (nights || 1) دون أي رسالة خطأ واضحة.
                 parseDate: (datestr, format) => {
+                    if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(datestr)) {
+                        return window.flatpickr.parseDate(datestr, 'Y-m-d');
+                    }
                     return window.flatpickr.parseDate(datestr, 'd/m/Y') || window.flatpickr.parseDate(datestr, format);
                 },
                 onChange: (sel, str) => { self[prop] = str; self.calcTotal(); },
@@ -1535,6 +1538,9 @@ function checkInForm() {
                 disableMobile: true,
                 defaultDate: initialVal || null,
                 parseDate: (datestr, format) => {
+                    if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(datestr)) {
+                        return window.flatpickr.parseDate(datestr, 'Y-m-d');
+                    }
                     return window.flatpickr.parseDate(datestr, 'd/m/Y') || window.flatpickr.parseDate(datestr, format);
                 },
                 onChange: (sel, str) => setter(str),
