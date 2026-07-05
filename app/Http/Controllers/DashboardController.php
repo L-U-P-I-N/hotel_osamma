@@ -139,6 +139,38 @@ class DashboardController extends Controller
             $alerts[] = ['type' => 'danger', 'title' => 'مصروفات متأخرة 30+ يوم', 'message' => 'عدد المصروفات: ' . $overdueDays30 . ' مصروف', 'icon' => '🚨'];
         }
 
+        // نزيل حجز غرفة مسبقاً وسيصل غداً أو اليوم، لكن الغرفة مشغولة حالياً بنزيل
+        // آخر بدأت إقامته فعلياً — يجب التواصل معه لتغيير الغرفة أو المغادرة.
+        $upcomingRoomConflicts = Reservation::with(['guest', 'room'])
+            ->where('status', 'checked_in')
+            ->whereDate('check_in_date', '>=', today())
+            ->whereDate('check_in_date', '<=', today()->addDay())
+            ->get()
+            ->filter(function ($upcoming) {
+                if (!$upcoming->room || $upcoming->room->status !== 'occupied') {
+                    return false;
+                }
+                return Reservation::where('id', '!=', $upcoming->id)
+                    ->where(function ($q) use ($upcoming) {
+                        $q->where('room_id', $upcoming->room_id)
+                          ->orWhere('linked_room_id', $upcoming->room_id);
+                    })
+                    ->where('status', 'checked_in')
+                    ->whereDate('check_in_date', '<=', today())
+                    ->exists();
+            })
+            ->values();
+
+        foreach ($upcomingRoomConflicts as $conflict) {
+            $alerts[] = [
+                'type'    => 'warning',
+                'title'   => 'تعارض غرفة — نزيل قادم',
+                'message' => 'النزيل ' . ($conflict->guest?->full_name ?? '—') . ' سيصل بتاريخ ' . $conflict->check_in_date->format('d/m/Y')
+                    . ' لغرفة ' . $conflict->display_room_number . '، والغرفة مشغولة حالياً بنزيل آخر — يجب التواصل معه لتغيير الغرفة أو المغادرة قبل الوصول.',
+                'icon'    => '🔑',
+            ];
+        }
+
         // حجوزات جُدِّدت تلقائياً (تجاوز موعد المغادرة دون تسجيل خروج) لم يطّلع عليها بعد —
         // تظهر لكل الموظفين وليس لمنشئ الحجز فقط
         $autoRenewedPending = Reservation::with(['guest', 'room'])

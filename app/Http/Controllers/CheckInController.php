@@ -70,13 +70,24 @@ class CheckInController extends Controller
         $admins = User::role('admin')->where('is_active', true)->get();
         $nationalities = $this->getNationalities();
 
+        // حجوزات مستقبلية (لم تبدأ بعد) لكل غرفة معروضة — تُستخدم لتنبيه الموظف
+        // عند اختيار غرفة محجوزة مسبقاً لنزيل آخر سيصل قريباً
+        $upcomingByRoom = Reservation::with('guest')
+            ->whereIn('room_id', $availableRooms->pluck('id'))
+            ->where('status', 'checked_in')
+            ->whereDate('check_in_date', '>', today())
+            ->orderBy('check_in_date')
+            ->get()
+            ->groupBy('room_id')
+            ->map(fn($group) => $group->first());
+
         // Filter display rooms: hide suite_b when its suite_a pair is shown
         $displayRooms = $availableRooms->filter(
             fn($r) => !($r->room_sub_type === 'suite_b' && in_array($r->id, $pairedBIds))
         );
         $floors = $displayRooms->pluck('floor')->unique()->sort()->values();
 
-        return view('checkin.create', compact('availableRooms', 'displayRooms', 'floors', 'linkedAvailability', 'admins', 'nationalities', 'mode'));
+        return view('checkin.create', compact('availableRooms', 'displayRooms', 'floors', 'linkedAvailability', 'admins', 'nationalities', 'mode', 'upcomingByRoom'));
     }
 
     public function store(Request $request)

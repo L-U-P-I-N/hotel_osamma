@@ -330,7 +330,7 @@ html.dark [style*="background:var(--gold-l)"] {
 </div>
 <div class="mode-banner mode-reserve" x-show="checkInDate !== today()">
     <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-    <span><strong>وصول لاحق بعربون</strong> — النزيل سيصل بتاريخ <strong x-text="checkInDate"></strong>، لكن ستصبح الغرفة <strong>مشغولة</strong> فور الحفظ حسب نظام الفندق</span>
+    <span><strong>وصول لاحق بعربون</strong> — النزيل سيصل بتاريخ <strong x-text="checkInDate"></strong>، وستبقى الغرفة <strong>متاحة</strong> لأي نزيل آخر حتى ذلك التاريخ</span>
 </div>
 
 {{-- ════════ STEP INDICATOR (3 steps) ════════ --}}
@@ -672,6 +672,17 @@ html.dark [style*="background:var(--gold-l)"] {
                 </button>
             </div>
 
+            {{-- Upcoming reservation warning --}}
+            <div x-show="selectedRoom?.upcoming_reservation" class="mb-4 p-3 rounded-xl text-sm flex items-start gap-2" style="background:#FEF2F2; border:1.5px solid #FCA5A5; color:#991B1B">
+                <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                <div>
+                    <strong>تنبيه:</strong> هذه الغرفة محجوزة مسبقاً للنزيل
+                    <strong x-text="selectedRoom?.upcoming_reservation?.guest_name"></strong>
+                    بتاريخ <strong x-text="selectedRoom?.upcoming_reservation?.check_in_date"></strong>.
+                    تأكد من تسجيل خروج هذا النزيل أو نقله لغرفة أخرى قبل ذلك التاريخ.
+                </div>
+            </div>
+
             {{-- Apartment always-linked notice --}}
             <div x-show="selectedRoom && linkedInfo?.is_always_linked" class="mb-4 p-3 rounded-xl text-sm flex items-start gap-2" style="background:#FEF3C7; border:1.5px solid #FCD34D; color:#92400E">
                 <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
@@ -703,6 +714,7 @@ html.dark [style*="background:var(--gold-l)"] {
                 @foreach($displayRooms as $room)
                 @php
                     $info = $linkedAvailability[$room->id] ?? null;
+                    $upcoming = $upcomingByRoom[$room->id] ?? null;
                     $roomData = [
                         'id'              => $room->id,
                         'room_number'     => $room->room_number,
@@ -712,6 +724,10 @@ html.dark [style*="background:var(--gold-l)"] {
                         'suite_price_yer' => (float)($room->suite_price_yer ?? 0),
                         'room_type_name'  => $room->roomType->name,
                         'sub_type'        => $room->room_sub_type,
+                        'upcoming_reservation' => $upcoming ? [
+                            'guest_name'   => $upcoming->guest?->full_name ?? '—',
+                            'check_in_date'=> $upcoming->check_in_date->format('Y/m/d'),
+                        ] : null,
                     ];
                     $roomTypeKey = match($room->room_sub_type) {
                         'suite_a', 'suite_b' => 'suite',
@@ -724,6 +740,7 @@ html.dark [style*="background:var(--gold-l)"] {
                 @if($room->room_sub_type === 'suite_a')
                 @php
                     $doorLabel = rtrim($room->room_number, 'AB');
+                    $linkedUpcoming = $info ? ($upcomingByRoom[$info['linked_id']] ?? null) : null;
                     $linkedRoomData = $info ? [
                         'id'              => $info['linked_id'],
                         'room_number'     => $info['linked_number'],
@@ -733,6 +750,10 @@ html.dark [style*="background:var(--gold-l)"] {
                         'suite_price_yer' => (float)($room->suite_price_yer ?? 0),
                         'room_type_name'  => $room->roomType->name,
                         'sub_type'        => 'suite_b',
+                        'upcoming_reservation' => $linkedUpcoming ? [
+                            'guest_name'   => $linkedUpcoming->guest?->full_name ?? '—',
+                            'check_in_date'=> $linkedUpcoming->check_in_date->format('Y/m/d'),
+                        ] : null,
                     ] : null;
                 @endphp
                 {{-- Suite door tile with A / B / A+B selector --}}

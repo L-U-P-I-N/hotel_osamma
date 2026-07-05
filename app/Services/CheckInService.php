@@ -9,12 +9,18 @@ use App\Models\Room;
 use App\Models\User;
 use App\Helpers\StorageHelper;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class CheckInService
 {
     public function createCheckIn(array $data, User $user): Reservation
     {
         return DB::transaction(function () use ($data, $user) {
+
+            // حجز بتاريخ وصول لاحق (عربون مسبق): لا نجعل الغرفة "مشغولة" فوراً،
+            // لأن هذا يمنعها من أي نزيل آخر طوال فترة الانتظار حتى لو كانت فارغة
+            // فعلياً. الغرفة تبقى متاحة إلى حين الوصول الفعلي (اليوم نفسه).
+            $isImmediate = Carbon::parse($data['check_in_date'])->lte(today());
 
             // 1. التحقق من الغرفة الرئيسية
             $room = Room::findOrFail($data['room_id']);
@@ -107,10 +113,12 @@ class CheckInService
                                             ? ($data['admin_approval_id'] ?? null) : null,
             ]);
 
-            // 7. تحديث حالة الغرف
-            $room->update(['status' => 'occupied']);
-            if ($linkedRoom) {
-                $linkedRoom->update(['status' => 'occupied']);
+            // 7. تحديث حالة الغرف — فقط عند وصول فعلي اليوم، وليس لحجز مستقبلي
+            if ($isImmediate) {
+                $room->update(['status' => 'occupied']);
+                if ($linkedRoom) {
+                    $linkedRoom->update(['status' => 'occupied']);
+                }
             }
 
             // 8. المرافقون
