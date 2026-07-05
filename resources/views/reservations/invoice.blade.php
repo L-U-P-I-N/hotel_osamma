@@ -133,11 +133,10 @@
   --border-accent: 5px;
 }
 
-@page {
-  margin: 5mm;
-  size: A4;
-}
-
+/* dompdf لا يطبّق هامش @page هنا (تحقّقنا منه بمعزل عن باقي الأنماط) — الهامش
+   الفعلي في هذا الكود يُضبط عبر padding على body، بنفس النمط المستخدم في بقية
+   قوالب PDF بالمشروع (مثل payments/slip.blade.php). بدون هذا الـpadding يلتصق
+   المحتوى بحافة الورقة تماماً عند الطباعة. */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
   font-family: var(--font-family);
@@ -146,6 +145,7 @@ body {
   direction: rtl;
   text-align: right;
   background: var(--color-surface);
+  padding: var(--padding-page);
 }
 .page {
   background: var(--color-surface);
