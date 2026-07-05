@@ -54,6 +54,58 @@ class PaymentController extends Controller
             ->with('success', 'تم تسجيل الدفعة بنجاح');
     }
 
+    public function update(Request $request, \App\Models\Payment $payment)
+    {
+        $reservation = $payment->reservation;
+
+        $validated = $request->validate([
+            'amount'            => ['required', 'numeric', 'min:0.01'],
+            'correction_reason' => ['required', 'string', 'max:255'],
+        ], [
+            'amount.required'            => 'حقل المبلغ مطلوب',
+            'amount.min'                 => 'يجب أن يكون المبلغ أكبر من صفر',
+            'correction_reason.required' => 'سبب التصحيح مطلوب',
+        ]);
+
+        $oldAmount = (float) $payment->amount;
+        $newAmount = (float) $validated['amount'];
+
+        // الحد الأقصى: بقية الدفعات (بدون هذه الدفعة) + المبلغ الجديد يجب ألا يتجاوز الإجمالي
+        $otherPaid = (float) $reservation->paid_amount - $oldAmount;
+        $maxAllowed = (float) $reservation->total_amount - $otherPaid;
+        if ($newAmount > $maxAllowed) {
+            return back()->withInput()->withErrors([
+                'amount' => 'المبلغ الجديد يجعل إجمالي المدفوع يتجاوز إجمالي الحجز (الحد الأقصى ' . number_format($maxAllowed, 2) . ')',
+            ]);
+        }
+
+        $old = $payment->only(['amount', 'notes']);
+        $delta = $newAmount - $oldAmount;
+
+        $correctionNote = '[تصحيح مبلغ من ' . number_format($oldAmount, 0) . ' إلى ' . number_format($newAmount, 0)
+            . ' — ' . now()->format('Y-m-d H:i') . ' — ' . $validated['correction_reason'] . ']';
+
+        $payment->update([
+            'amount' => $newAmount,
+            'notes'  => $payment->notes ? $payment->notes . "\n" . $correctionNote : $correctionNote,
+        ]);
+
+        $reservation->increment('paid_amount', $delta);
+        $reservation->refresh()->updatePaymentStatus();
+
+        if ($payment->shift_id && $payment->shift) {
+            app(\App\Services\ShiftService::class)->computeTotals($payment->shift);
+        }
+
+        \App\Services\AuditLogService::log('update', $payment, $old, [
+            'amount' => $newAmount,
+            'reason' => $validated['correction_reason'],
+        ]);
+
+        return redirect()->route('reservations.show', $reservation)
+            ->with('success', 'تم تصحيح مبلغ الدفعة بنجاح');
+    }
+
     public function slip(\App\Models\Payment $payment)
     {
         $payment->load(['reservation.guest', 'reservation.room', 'receivedBy']);

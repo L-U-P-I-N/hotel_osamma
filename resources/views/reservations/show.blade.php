@@ -456,6 +456,9 @@
                             <th class="px-5 py-3 text-right font-semibold">ملاحظة</th>
                             <th class="px-5 py-3 text-right font-semibold">استلم بواسطة</th>
                             <th class="px-5 py-3 text-right font-semibold">السند</th>
+                            @can('payments.create')
+                            <th class="px-5 py-3 text-right font-semibold"></th>
+                            @endcan
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-50">
@@ -509,6 +512,16 @@
                                 <span class="text-gray-300 text-xs">—</span>
                                 @endif
                             </td>
+                            @can('payments.create')
+                            <td class="px-5 py-3.5">
+                                <button type="button"
+                                        onclick="openEditPaymentModal({{ $p->id }}, {{ $p->amount }})"
+                                        class="inline-flex items-center gap-1 text-gray-400 hover:text-blue-600 text-xs font-semibold hover:underline">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                    تصحيح
+                                </button>
+                            </td>
+                            @endcan
                         </tr>
                         @endforeach
                     </tbody>
@@ -539,6 +552,14 @@
                         <span class="badge-pill {{ $typeLabel['class'] }}">{{ $typeLabel['label'] }}</span>
                     </div>
                     <div class="text-xs text-gray-500">استلمه: <span class="font-medium text-gray-700">{{ $p->receivedBy?->name ?? '—' }}</span></div>
+                    @can('payments.create')
+                    <button type="button"
+                            onclick="openEditPaymentModal({{ $p->id }}, {{ $p->amount }})"
+                            class="inline-flex items-center gap-1 text-blue-600 text-xs font-semibold hover:underline">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        تصحيح المبلغ
+                    </button>
+                    @endcan
                 </div>
                 @endforeach
             </div>
@@ -911,6 +932,64 @@
     </div>
 </div>
 @endif
+@endcan
+
+@can('payments.create')
+{{-- Correct Payment Amount Modal --}}
+<div id="editPaymentModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+     onclick="if(event.target===this) this.classList.add('hidden')">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md" onclick="event.stopPropagation()">
+        <div class="hero-gradient px-6 py-5 rounded-t-2xl flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                </div>
+                <h3 class="font-bold text-white text-lg">تصحيح مبلغ الدفعة</h3>
+            </div>
+            <button type="button" onclick="document.getElementById('editPaymentModal').classList.add('hidden')"
+                    class="w-8 h-8 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <form id="editPaymentForm" method="POST" class="p-6 space-y-4">
+            @csrf
+            @method('PATCH')
+            <div class="bg-amber-50 border border-amber-100 rounded-xl p-4 text-sm text-amber-800">
+                استخدم هذا فقط لتصحيح مبلغ أُدخل بالخطأ (مثلاً اختيار دفع كامل بدل جزئي أو العكس).
+                سيُحدَّث المبلغ المدفوع الإجمالي للحجز وحالة الدفع تلقائياً.
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">المبلغ الصحيح <span class="text-red-500">*</span></label>
+                <input type="number" id="editPaymentAmount" name="amount" step="0.01" min="0.01" required
+                       class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">سبب التصحيح <span class="text-red-500">*</span></label>
+                <input type="text" name="correction_reason" required maxlength="255"
+                       placeholder="مثال: تم اختيار دفع كامل بالخطأ، الزبون دفع جزئياً فقط"
+                       class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition">
+            </div>
+            <div class="flex gap-3 pt-1">
+                <button type="submit"
+                        class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition shadow-sm">
+                    تأكيد التصحيح
+                </button>
+                <button type="button" onclick="document.getElementById('editPaymentModal').classList.add('hidden')"
+                        class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl text-sm hover:bg-gray-50 transition font-medium">
+                    إلغاء
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+    function openEditPaymentModal(paymentId, currentAmount) {
+        const base = @json(route('payments.update', ['payment' => 0]));
+        document.getElementById('editPaymentForm').action = base.replace(/\/0$/, '/' + paymentId);
+        document.getElementById('editPaymentAmount').value = currentAmount;
+        document.getElementById('editPaymentModal').classList.remove('hidden');
+    }
+</script>
 @endcan
 
 {{-- ===== MODALS (checked_in only) ===== --}}

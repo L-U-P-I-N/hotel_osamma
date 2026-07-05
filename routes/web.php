@@ -131,6 +131,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/payments', [PaymentController::class, 'store'])
         ->name('payments.store')
         ->middleware('permission:payments.create');
+    Route::patch('/payments/{payment}', [PaymentController::class, 'update'])
+        ->name('payments.update')
+        ->middleware('permission:payments.create');
     Route::get('/payments/{payment}/slip', [PaymentController::class, 'slip'])
         ->name('payments.slip')
         ->middleware('permission:payments.create');
