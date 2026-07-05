@@ -2,110 +2,390 @@
 <html dir="rtl" lang="ar">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>فاتورة #{{ str_pad($reservation->id, 6, '0', STR_PAD_LEFT) }}</title>
 <style>
 @font-face {
-    font-family: 'Noto';
+    font-family: 'Tajawal';
     font-weight: 400;
     src: url("{{ storage_path('fonts') }}/NotoNaskhArabic.ttf") format('truetype');
 }
 @font-face {
-    font-family: 'Noto';
+    font-family: 'Tajawal';
     font-weight: 700;
     src: url("{{ storage_path('fonts') }}/NotoNaskhArabic-Bold.ttf") format('truetype');
 }
-/*
-   إعادة هيكلة كاملة: تخطيط قائم على العناصر (float) بدل تكديس الجداول.
-   الجداول تُستخدم فقط للبيانات المجدولة (الرسوم/المدفوعات/المرافقون)، ولأن
-   dompdf يرتّب أعمدة الجداول يسار→يمين تُكتب الأعمدة معكوسة ليظهر الأول يميناً.
-*/
-* { margin: 0; padding: 0; box-sizing: border-box; }
-@page { margin: 0; }
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+@page {
+    margin: 8mm;
+    size: A4;
+}
 
 body {
-    font-family: 'Noto', sans-serif;
-    font-size: 9.5pt;
-    color: #333333; /* Darker text for better readability */
+    font-family: 'Tajawal', sans-serif;
+    font-size: 10pt;
+    color: #2c3e50;
     direction: rtl;
+    background: #f8f9fa;
+    line-height: 1.3;
+}
+
+/* ===== INVOICE CONTAINER ===== */
+.invoice-container {
+    max-width: 210mm;
+    margin: 0 auto;
+    background: #ffffff;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+/* ===== HEADER SECTION ===== */
+.invoice-header {
+    background-color: #1e3c72;
+    padding: 14px 24px;
+    position: relative;
+    color: white;
+}
+
+.header-content {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.brand-section {
     text-align: right;
-    padding: 10mm 14mm;
-    line-height: 1.42;
+    vertical-align: top;
 }
-.clear { clear: both; height: 0; font-size: 0; line-height: 0; }
 
-/* ─── HEADER ─── */
-.brand { float: right; width: 60%; }
-.brand .logo { float: right; height: 52px; width: auto; margin-left: 12px; }
-.brand .hotel-ar { font-size: 18pt; /* Slightly larger */ font-weight: 700; color: #0F4C75; line-height: 1.15; padding-top: 3px; }
-.brand .hotel-en { font-size: 8pt; /* Slightly larger */ color: #C9A84E; /* Using the consistent gold color */ letter-spacing: 2px; }
-
-.invmeta { float: left; width: 38%; text-align: left; }
-.invmeta .w { font-size: 22pt; /* More prominent */ font-weight: 700; color: #0F4C75; /* Changed to primary blue */ letter-spacing: 2px; }
-.invmeta .n { font-size: 11pt; /* Slightly larger */ font-weight: 700; color: #C9A84E; /* Consistent gold color */ margin-top: 1px; }
-.invmeta .d { font-size: 8pt; color: #9ca3af; }
-.pill { display: inline-block; margin-top: 7px; /* More space */ padding: 3px 14px; /* Slightly larger padding */ border-radius: 15px; /* More rounded */ font-size: 8.5pt; /* Slightly larger */ font-weight: 700; text-transform: uppercase; /* Make it stand out */ }
-.pill-paid { background: #dcfce7; color: #15803d; }
-.pill-due  { background: #fee2e2; color: #b91c1c; }
-
-.rule  { clear: both; height: 0; border-top: 3px solid #0F4C75; margin: 9px 0 0; }
-.rule2 { height: 0; border-top: 1px solid #C9A84E; margin: 0 0 12px; }
-
-/* ─── INFO CARDS (guest + stay) — floats, no nested tables ─── */
-.card   { border: 1px solid #e0e0e0; /* Lighter border */ background: #ffffff; /* White background for clean look */ border-radius: 8px; /* More rounded corners */ padding: 9px 13px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* Subtle shadow */ }
-.card-r { float: right; width: 49%; }
-.card-l { float: left;  width: 49%; }
-.card-h { font-size: 9pt; /* Slightly larger */ font-weight: 700; color: #0F4C75; border-bottom: 2px solid #C9A84E; /* Thicker gold border */ padding-bottom: 5px; margin-bottom: 6px; }
-.kv { font-size: 9.5pt; line-height: 1.55; }
-.kv .k { color: #666666; } /* Darker key color */
-.kv .v { color: #333333; font-weight: 700; } /* Darker value color */
-
-/* ─── SECTION HEADING ─── */
-.sec { font-size: 10pt; /* Slightly larger */ font-weight: 700; color: #333333; background: #F0F0F0; /* Lighter background */
-       border-right: 5px solid #C9A84E; /* Thicker gold border */ padding: 6px 12px; margin: 10px 0 6px; }
-
-/* ─── DATA TABLES ─── */
-table.items, table.mini { width: 100%; border-collapse: collapse; }
-table.items { font-size: 9pt; }
-table.items th { background: #0F4C75; color: #fff; padding: 7px 10px; font-size: 9pt; /* Slightly larger */ font-weight: 700; text-align: right; }
-table.items td { padding: 6px 10px; border-bottom: 1px solid #eeeeee; text-align: right; }
-table.items tbody tr:nth-child(even) td { background: #F8F8F8; /* Lighter alternating row background */ }
-
-table.mini { font-size: 8.5pt; }
-table.mini th { background: #efeadd; color: #4b4636; padding: 5px 9px; font-size: 8pt; font-weight: 700; text-align: right; }
-table.mini td { padding: 5px 9px; border-bottom: 1px solid #f0ece0; text-align: right; }
-
-.c { text-align: center !important; white-space: nowrap; }
-.muted { color: #9a927f; font-size: 8pt; }
-
-/* ─── SUMMARY (totals) — floated left, columns reversed (amount left) ─── */
-table.summary { float: left; width: 55%; border-collapse: collapse; border: 1px solid #e0e0e0; /* Lighter border */ border-radius: 8px; /* More rounded corners */ box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* Subtle shadow */ }
-table.summary td { padding: 6px 13px; font-size: 10pt; /* Slightly larger */ border-bottom: 1px solid #f0f0f0; /* Lighter border */ }
-table.summary td.sv { text-align: left; font-weight: 700; white-space: nowrap; }
-table.summary td.sk { text-align: right; color: #666666; } /* Darker key color */
-table.summary tr.grand td { background: #0F4C75; color: #fff; font-size: 12.5pt; /* More prominent */ font-weight: 700; border-top: 2px solid #C9A84E; border-bottom: none; }
-table.summary tr.paid td.sv { color: #15803d; }
-table.summary tr.due  td { background: #fff5f5; border-bottom: none; } /* Lighter red background */
-table.summary tr.due  td.sv { color: #b91c1c; }
-
-/* ─── NOTES ─── */
-.notes { clear: both; border-right: 5px solid #C9A84E; /* Thicker gold border */ background: #fffaf0; /* Lighter background */
-         padding: 7px 12px; font-size: 9pt; /* Slightly larger */ color: #7a5c00; margin: 12px 0 0; border-radius: 4px; /* Slightly rounded corners */ }
-
-/* ─── SIGNATURES ─── */
-.signs { margin-top: 16px; }
-.sign-r, .sign-l {
-    float: right; /* Keep float for RTL */
-    width: 45%; /* Slightly wider */
+.brand-section .logo {
+    width: 54px;
+    height: 54px;
+    line-height: 54px;
     text-align: center;
-    border-top: 1px solid #cccccc; /* Lighter border */
-    padding-top: 5px;
-    font-size: 9pt; /* Slightly larger */
-    color: #666666; /* Darker text */
+    background: rgba(255,255,255,0.25);
+    border-radius: 50%;
+    margin-bottom: 8px;
+    font-size: 22px;
 }
-.sign-l { float: left; } /* Keep float for RTL */
 
-/* ─── FOOTER ─── */
-.foot { margin-top: 9px; padding-top: 6px; border-top: 1px solid #cccccc; /* Lighter border */
-        text-align: center; font-size: 8pt; /* Slightly larger */ color: #999999; /* Darker text */ }
+.brand-section h1 {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 3px;
+    letter-spacing: -0.5px;
+}
+
+.brand-section .tagline {
+    font-size: 12px;
+    opacity: 0.9;
+    font-weight: 400;
+    letter-spacing: 2px;
+}
+
+.invoice-info {
+    text-align: left;
+    vertical-align: top;
+    background: rgba(255,255,255,0.15);
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+.invoice-info .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    opacity: 0.8;
+    margin-bottom: 3px;
+}
+
+.invoice-info .invoice-number {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.invoice-info .invoice-date {
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 5px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    margin-top: 6px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.status-paid {
+    background: #10b981;
+    color: white;
+}
+
+.status-due {
+    background: #ef4444;
+    color: white;
+}
+
+/* ===== CLIENT INFO SECTION ===== */
+.client-section {
+    padding: 10px 24px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.client-grid {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 15px 0;
+}
+
+.client-grid > tr > td {
+    width: 50%;
+    vertical-align: top;
+}
+
+.client-card {
+    background: white;
+    padding: 10px 14px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.client-card h3 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #64748b;
+    margin-bottom: 5px;
+    padding-bottom: 4px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 3px;
+    font-size: 13px;
+}
+
+.info-row .label {
+    color: #64748b;
+    font-weight: 400;
+}
+
+.info-row .value {
+    color: #1e293b;
+    font-weight: 700;
+}
+
+/* ===== INVOICE TABLE ===== */
+.invoice-table-section {
+    padding: 10px 24px;
+}
+
+.invoice-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.invoice-table thead {
+    background-color: #1e3c72;
+    color: white;
+}
+
+.invoice-table th {
+    padding: 8px 12px;
+    text-align: right;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 11px;
+}
+
+.invoice-table th:first-child {
+    border-top-left-radius: 8px;
+}
+
+.invoice-table th:last-child {
+    border-top-right-radius: 8px;
+}
+
+.invoice-table td {
+    padding: 6px 12px;
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: middle;
+}
+
+.invoice-table tbody tr:nth-child(even) {
+    background: #f8fafc;
+}
+
+.invoice-table tbody tr:hover {
+    background: #f1f5f9;
+}
+
+.item-description {
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 3px;
+}
+
+.item-details {
+    font-size: 11px;
+    color: #64748b;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.text-left {
+    text-align: left;
+}
+
+/* ===== TOTALS SECTION ===== */
+.totals-section {
+    padding: 0 24px 10px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.totals-table {
+    width: 350px;
+    border-collapse: collapse;
+}
+
+.totals-table td {
+    padding: 5px 12px;
+    font-size: 13px;
+}
+
+.totals-table .label {
+    text-align: right;
+    color: #64748b;
+    font-weight: 400;
+}
+
+.totals-table .value {
+    text-align: left;
+    color: #1e293b;
+    font-weight: 700;
+}
+
+.totals-table .grand-total {
+    background-color: #1e3c72;
+    color: white;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.totals-table .grand-total td {
+    padding: 8px 12px;
+}
+
+.totals-table .discount-row .value {
+    color: #ef4444;
+}
+
+/* ===== FOOTER SECTION ===== */
+.invoice-footer {
+    padding: 10px 24px;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+}
+
+.footer-grid {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 15px 0;
+    margin-bottom: 8px;
+}
+
+.footer-grid > tr > td {
+    width: 50%;
+    vertical-align: top;
+}
+
+.signature-box {
+    text-align: center;
+    padding: 8px;
+    background: white;
+    border-radius: 8px;
+    border: 2px dashed #cbd5e1;
+}
+
+.signature-box h4 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #64748b;
+    margin-bottom: 5px;
+}
+
+.signature-line {
+    width: 80%;
+    height: 2px;
+    background: #94a3b8;
+    margin: 0 auto;
+}
+
+.footer-notes {
+    background: #fffbeb;
+    border-right: 4px solid #f59e0b;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.footer-notes h4 {
+    font-size: 13px;
+    color: #92400e;
+    margin-bottom: 10px;
+    font-weight: 700;
+}
+
+.footer-notes p {
+    font-size: 12px;
+    color: #a16207;
+    line-height: 1.8;
+}
+
+.copyright {
+    text-align: center;
+    padding-top: 20px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.copyright p {
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+.copyright .company-name {
+    font-weight: 700;
+    color: #475569;
+}
+
+/* ===== UTILITY CLASSES ===== */
+.text-primary { color: #1e3c72; }
+.text-success { color: #10b981; }
+.text-danger { color: #ef4444; }
+.text-warning { color: #f59e0b; }
+.font-bold { font-weight: 700; }
+.font-extrabold { font-weight: 700; }
 </style>
 </head>
 <body>
@@ -122,157 +402,218 @@ table.summary tr.due  td.sv { color: #b91c1c; }
     $isPaid        = $balance <= 0;
     $cur           = $reservation->currency_symbol;
     $invNo         = str_pad($reservation->id, 6, '0', STR_PAD_LEFT);
-    $logoPath      = public_path('images/hotel-logo.png');
-    $hasLogo       = file_exists($logoPath);
     $methodMap = ['cash'=>'نقدي','pos'=>'POS','bank_transfer'=>'تحويل بنكي'];
     $typeMap   = ['reservation'=>'دفعة حجز','renewal'=>'تجديد','compensation'=>'تعويض','extra_service'=>'خدمة إضافية'];
 @endphp
 
-{{-- ═══ HEADER ═══ --}}
-<div class="brand">
-    @if($hasLogo)<img class="logo" src="{{ $logoPath }}" alt="">@endif
-    <div class="hotel-ar">الفندق السعودي</div>
-    <div class="hotel-en">THE SAUDI HOTEL</div>
-</div>
-<div class="invmeta">
-    <div class="w">فاتورة</div>
-    <div class="n">#{{ $invNo }}</div>
-    <div class="d">{{ now()->format('Y/m/d') }}</div>
-    <span class="pill {{ $isPaid ? 'pill-paid' : 'pill-due' }}">
-        {{ $isPaid ? 'مسدّدة بالكامل' : 'متبقٍ ' . number_format(abs($balance), 0) . ' ' . $cur }}
-    </span>
-</div>
-<div class="rule"></div>
-<div class="rule2"></div>
+<div class="invoice-container">
+    <!-- Header -->
+    <header class="invoice-header">
+        <table class="header-content">
+            <tr>
+                <td class="invoice-info">
+                    <div class="label">فاتورة</div>
+                    <div class="invoice-number">#{{ $invNo }}</div>
+                    <div class="invoice-date">{{ now()->format('Y/m/d') }}</div>
+                    <span class="status-badge {{ $isPaid ? 'status-paid' : 'status-due' }}">
+                        {{ $isPaid ? 'مسددة بالكامل' : 'متبقي مبلغ' }}
+                    </span>
+                </td>
+                <td class="brand-section">
+                    <div class="logo">ف</div>
+                    <h1>الفندق السعودي</h1>
+                    <p class="tagline">THE SAUDI HOTEL</p>
+                </td>
+            </tr>
+        </table>
+    </header>
 
-{{-- ═══ GUEST + STAY (floated cards, block key/value) ═══ --}}
-<div class="card card-r">
-    <div class="card-h">بيانات النزيل</div>
-    <div class="kv"><span class="v">{{ $reservation->guest?->full_name ?? '—' }}</span><span class="k"> :الاسم</span></div>
-    @if($reservation->guest?->id_number)
-    <div class="kv"><span class="v">{{ $reservation->guest->id_number }}</span><span class="k"> :رقم الهوية</span></div>
-    @endif
-    @if($reservation->guest?->nationality)
-    <div class="kv"><span class="v">{{ $reservation->guest->nationality }}</span><span class="k"> :الجنسية</span></div>
-    @endif
-    @if($reservation->guest?->phone)
-    <div class="kv"><span class="v">{{ $reservation->guest->phone }}</span><span class="k"> :الجوال</span></div>
-    @endif
-</div>
-<div class="card card-l">
-    <div class="card-h">تفاصيل الإقامة</div>
-    <div class="kv"><span class="v">{{ $reservation->display_room_number }} ({{ $reservation->room_type_label }})</span><span class="k"> :الغرفة</span></div>
-    <div class="kv"><span class="v">{{ $reservation->check_in_date?->format('Y/m/d') }}@if($reservation->check_in_time) — {{ $reservation->check_in_time }}@endif</span><span class="k"> :الدخول</span></div>
-    <div class="kv"><span class="v">{{ $reservation->check_out_date?->format('Y/m/d') }}@if($reservation->check_out_time) — {{ $reservation->check_out_time }}@endif</span><span class="k"> :الخروج</span></div>
-    <div class="kv"><span class="v">{{ $nights }} {{ $nights == 1 ? 'ليلة' : 'ليالٍ' }}</span><span class="k"> :المدة</span></div>
-</div>
-<div class="clear"></div>
-
-{{-- ═══ CHARGES (columns reversed for RTL) ═══ --}}
-<div class="sec">تفاصيل الرسوم</div>
-<table class="items">
-    <thead>
+    <!-- Client Info -->
+    <section class="client-section">
+        <table class="client-grid">
         <tr>
-            <th class="c" style="width:20%;">الإجمالي</th>
-            <th class="c" style="width:18%;">سعر الوحدة</th>
-            <th class="c" style="width:14%;">الكمية</th>
-            <th style="width:48%;">البيان</th>
+            <td>
+            <div class="client-card">
+                <h3>تفاصيل الإقامة</h3>
+                <div class="info-row">
+                    <span class="label">الغرفة:</span>
+                    <span class="value">{{ $reservation->display_room_number }} ({{ $reservation->room_type_label }})</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">الدخول:</span>
+                    <span class="value">{{ $reservation->check_in_date?->format('Y/m/d') }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">الخروج:</span>
+                    <span class="value">{{ $reservation->check_out_date?->format('Y/m/d') }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">المدة:</span>
+                    <span class="value">{{ $nights }} {{ $nights == 1 ? 'ليلة' : 'ليالٍ' }}</span>
+                </div>
+            </div>
+            </td>
+            <td>
+            <div class="client-card">
+                <h3>بيانات النزيل</h3>
+                <div class="info-row">
+                    <span class="label">الاسم:</span>
+                    <span class="value">{{ $reservation->guest?->full_name ?? '—' }}</span>
+                </div>
+                @if($reservation->guest?->id_number)
+                <div class="info-row">
+                    <span class="label">رقم الهوية:</span>
+                    <span class="value">{{ $reservation->guest->id_number }}</span>
+                </div>
+                @endif
+                @if($reservation->guest?->phone)
+                <div class="info-row">
+                    <span class="label">الجوال:</span>
+                    <span class="value">{{ $reservation->guest->phone }}</span>
+                </div>
+                @endif
+            </div>
+            </td>
         </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td class="c">{{ number_format($roomTotal, 0) }} {{ $cur }}</td>
-            <td class="c">{{ number_format($pricePerNight, 0) }} {{ $cur }}</td>
-            <td class="c">{{ $nights }} × ليلة</td>
-            <td>إقامة — غرفة {{ $reservation->display_room_number }}</td>
-        </tr>
-        @foreach($reservation->extraCharges as $charge)
-        <tr>
-            <td class="c">{{ number_format($charge->amount, 0) }} {{ $cur }}</td>
-            <td class="c">{{ number_format($charge->amount, 0) }} {{ $cur }}</td>
-            <td class="c">1</td>
-            <td>{{ $charge->description ?: $charge->type }} <span class="muted">— رسوم إضافية</span></td>
-        </tr>
-        @endforeach
-    </tbody>
-</table>
+        </table>
+    </section>
 
-{{-- ═══ SUMMARY (floated left; amount left, label right) ═══ --}}
-<table class="summary">
-    <tr>
-        <td class="sv">{{ number_format($subtotal, 0) }} {{ $cur }}</td>
-        <td class="sk">المجموع الفرعي</td>
-    </tr>
-    @if($discount > 0)
-    <tr>
-        <td class="sv" style="color:#b91c1c;">- {{ number_format($discount, 0) }} {{ $cur }}</td>
-        <td class="sk">الخصم</td>
-    </tr>
+    <!-- Invoice Table -->
+    <section class="invoice-table-section">
+        <table class="invoice-table">
+            <thead>
+                <tr>
+                    <th style="width: 25%;" class="text-left">الإجمالي</th>
+                    <th style="width: 20%;" class="text-center">سعر الوحدة</th>
+                    <th style="width: 15%;" class="text-center">الكمية</th>
+                    <th style="width: 40%; text-align: right;">البيان</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="text-left font-bold">{{ number_format($roomTotal, 0) }} {{ $cur }}</td>
+                    <td class="text-center">{{ number_format($pricePerNight, 0) }} {{ $cur }}</td>
+                    <td class="text-center">{{ $nights }}</td>
+                    <td style="text-align: right;">
+                        <div class="item-description">إقامة - غرفة {{ $reservation->display_room_number }}</div>
+                        <div class="item-details">{{ $reservation->room_type_label }} | {{ $nights }} {{ $nights == 1 ? 'ليلة' : 'ليالٍ' }}</div>
+                    </td>
+                </tr>
+
+                @foreach($reservation->extraCharges as $charge)
+                <tr>
+                    <td class="text-left font-bold">{{ number_format($charge->amount, 0) }} {{ $cur }}</td>
+                    <td class="text-center">{{ number_format($charge->amount, 0) }} {{ $cur }}</td>
+                    <td class="text-center">1</td>
+                    <td style="text-align: right;">
+                        <div class="item-description">{{ $charge->description ?: $charge->type }}</div>
+                        <div class="item-details">رسوم إضافية</div>
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </section>
+
+    <!-- Totals Section -->
+    <section class="totals-section">
+        <table class="totals-table">
+            <tr>
+                <td class="label">المجموع الفرعي:</td>
+                <td class="value">{{ number_format($subtotal, 0) }} {{ $cur }}</td>
+            </tr>
+            @if($discount > 0)
+            <tr class="discount-row">
+                <td class="label">الخصم:</td>
+                <td class="value">-{{ number_format($discount, 0) }} {{ $cur }}</td>
+            </tr>
+            @endif
+            <tr class="grand-total">
+                <td class="label">الإجمالي:</td>
+                <td class="value">{{ number_format($total, 0) }} {{ $cur }}</td>
+            </tr>
+            <tr>
+                <td class="label">المدفوع:</td>
+                <td class="value" style="color: #10b981;">{{ number_format($paid, 0) }} {{ $cur }}</td>
+            </tr>
+            @if(!$isPaid)
+            <tr style="background: #fef2f2;">
+                <td class="label" style="color: #ef4444;">المتبقي:</td>
+                <td class="value" style="color: #ef4444; font-weight: 700;">{{ number_format(abs($balance), 0) }} {{ $cur }}</td>
+            </tr>
+            @else
+            <tr style="background: #f0fdf4;">
+                <td class="label" style="color: #10b981;">الحالة:</td>
+                <td class="value" style="color: #10b981; font-weight: 700;">✓ مسددة بالكامل</td>
+            </tr>
+            @endif
+        </table>
+    </section>
+
+    <!-- Payments History -->
+    @if($reservation->payments->count() > 0)
+    <section class="payments-section" style="padding: 0 24px 10px;">
+        <h3 style="font-size: 14px; color: #64748b; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px;">سجل المدفوعات</h3>
+        <table class="payments-table" style="width: 100%; border-collapse: collapse; font-size: 12px;">
+            <thead>
+                <tr style="background: #f1f5f9;">
+                    <th style="padding: 8px; text-align: left; font-weight: 700; color: #475569;">المبلغ</th>
+                    <th style="padding: 8px; text-align: right; font-weight: 700; color: #475569;">الطريقة</th>
+                    <th style="padding: 8px; text-align: right; font-weight: 700; color: #475569;">النوع</th>
+                    <th style="padding: 8px; text-align: right; font-weight: 700; color: #475569;">التاريخ</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($reservation->payments as $p)
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                    <td style="padding: 8px; text-align: left; color: #10b981; font-weight: 700;">{{ number_format($p->amount, 0) }} {{ $cur }}</td>
+                    <td style="padding: 8px; text-align: right; color: #64748b;">{{ $methodMap[$p->method] ?? $p->method }}</td>
+                    <td style="padding: 8px; text-align: right; color: #1e293b;">{{ $typeMap[$p->type] ?? $p->type }}</td>
+                    <td style="padding: 8px; text-align: right; color: #64748b;">{{ $p->payment_date?->format('Y/m/d H:i') }}</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </section>
     @endif
-    <tr class="grand">
-        <td class="sv">{{ number_format($total, 0) }} {{ $cur }}</td>
-        <td class="sk">الإجمالي</td>
-    </tr>
-    <tr class="paid">
-        <td class="sv">{{ number_format($paid, 0) }} {{ $cur }}</td>
-        <td class="sk">المدفوع</td>
-    </tr>
-    @if($isPaid)
-    <tr class="paid">
-        <td class="sv">✓ مسدّدة بالكامل</td>
-        <td class="sk">الحالة</td>
-    </tr>
-    @else
-    <tr class="due">
-        <td class="sv">{{ number_format(abs($balance), 0) }} {{ $cur }}</td>
-        <td class="sk">المتبقي</td>
-    </tr>
+
+    <!-- Notes Section -->
+    @if($reservation->notes)
+    <section class="notes-section" style="padding: 0 24px 10px;">
+        <div style="background: #fffbeb; border-right: 4px solid #f59e0b; padding: 10px; border-radius: 8px;">
+            <h4 style="font-size: 13px; color: #92400e; margin-bottom: 10px; font-weight: 700;">ملاحظات</h4>
+            <p style="font-size: 12px; color: #a16207; line-height: 1.8;">{{ $reservation->notes }}</p>
+        </div>
+    </section>
     @endif
-</table>
-<div class="clear"></div>
 
-{{-- ═══ PAYMENTS (columns reversed) ═══ --}}
-@if($reservation->payments->count() > 0)
-<div class="sec">سجل المدفوعات</div>
-<table class="mini">
-    <thead>
+    <!-- Footer -->
+    <footer class="invoice-footer">
+        <table class="footer-grid">
         <tr>
-            <th class="c" style="width:20%;">المبلغ</th>
-            <th style="width:22%;">المستلم</th>
-            <th style="width:16%;">الطريقة</th>
-            <th style="width:18%;">النوع</th>
-            <th style="width:24%;">التاريخ</th>
+            <td>
+            <div class="signature-box">
+                <h4>توقيع النزيل</h4>
+                <div class="signature-line"></div>
+            </div>
+            </td>
+            <td>
+            <div class="signature-box">
+                <h4>ختم وتوقيع الفندق</h4>
+                <div class="signature-line"></div>
+            </div>
+            </td>
         </tr>
-    </thead>
-    <tbody>
-        @foreach($reservation->payments as $p)
-        <tr>
-            <td class="c" style="color:#15803d;font-weight:700;">{{ number_format($p->amount, 0) }} {{ $cur }}</td>
-            <td>{{ $p->receivedBy?->name ?? '—' }}</td>
-            <td>{{ $methodMap[$p->method] ?? $p->method }}</td>
-            <td>{{ $typeMap[$p->type] ?? $p->type }}</td>
-            <td>{{ $p->payment_date?->format('Y/m/d H:i') }}</td>
-        </tr>
-        @endforeach
-    </tbody>
-</table>
-@endif
+        </table>
 
-{{-- ═══ NOTES ═══ --}}
-@if($reservation->notes)
-<div class="notes"><strong>ملاحظات:</strong> {{ $reservation->notes }}</div>
-@endif
-
-{{-- ═══ SIGNATURES ═══ --}}
-<div class="signs">
-    <div class="sign-r">ختم وتوقيع الفندق</div>
-    <div class="sign-l">توقيع النزيل</div>
-    <div class="clear"></div>
-</div>
-
-{{-- ═══ FOOTER ═══ --}}
-<div class="foot">
-    الفندق السعودي · فاتورة رقم #{{ $invNo }} · صدرت بتاريخ {{ now()->format('Y/m/d H:i') }}
+        <div class="copyright">
+            <p>
+                <span class="company-name">الفندق السعودي</span> ·
+                فاتورة رقم #{{ $invNo }} ·
+                صدرت بتاريخ {{ now()->format('Y/m/d H:i') }}
+            </p>
+        </div>
+    </footer>
 </div>
 
 </body>
