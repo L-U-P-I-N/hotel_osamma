@@ -189,16 +189,19 @@ body {
 }
 
 /* Tables */
+/* dompdf silently drops a table cell's content when its background comes from
+   a CSS custom property (var()) — confirmed in isolation, and unrelated to RTL
+   or the Arabic font. Table cell backgrounds below use literal hex values. */
 table.items { width: 100%; border-collapse: collapse; font-size: 9pt; }
-table.items th { background: var(--color-navy); color: var(--color-text-on-navy); padding: var(--padding-table-cell); font-size: 9pt; font-weight: var(--font-bold); text-align: right; }
-table.items td { padding: var(--padding-table-cell); border-bottom: var(--border-thin) solid var(--color-border-light); text-align: right; }
-table.items tbody tr:nth-child(even) td { background: var(--color-surface-alt); }
+table.items th { background: #0F4C75; color: #ffffff; padding: 4px 12px; font-size: 9pt; font-weight: 700; text-align: right; }
+table.items td { padding: 4px 12px; border-bottom: 1px solid #eeeeee; text-align: right; }
+table.items tbody tr:nth-child(even) td { background: #F8F8F8; }
 table.items .c { text-align: center !important; white-space: nowrap; }
 .muted { color: var(--color-text-warm-muted); font-size: 8pt; }
 
 table.mini { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
-table.mini th { background: var(--color-surface-mini-header); color: #4b4636; padding: 5px 9px; font-size: 8pt; font-weight: var(--font-bold); text-align: right; }
-table.mini td { padding: 5px 9px; border-bottom: var(--border-thin) solid var(--color-border-warm); text-align: right; }
+table.mini th { background: #efeadd; color: #4b4636; padding: 5px 9px; font-size: 8pt; font-weight: 700; text-align: right; }
+table.mini td { padding: 5px 9px; border-bottom: 1px solid #f0ece0; text-align: right; }
 
 /* Summary */
 .summary-card { flex: 1; border: 1px solid var(--color-border); border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); overflow: hidden; page-break-inside: avoid; }
