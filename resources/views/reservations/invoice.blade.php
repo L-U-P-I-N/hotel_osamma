@@ -175,9 +175,10 @@ body {
 .card-r { float: right; width: 49%; }
 .card-l { float: left;  width: 49%; }
 .card-h { font-size: var(--text-md); font-weight: var(--font-bold); color: var(--color-navy); border-bottom: var(--border-base) solid var(--color-gold); padding-bottom: 6px; margin-bottom: 8px; }
-.kv { font-size: var(--text-base); line-height: var(--leading-relaxed); }
-.kv .k { color: var(--color-text-secondary); }
-.kv .v { color: var(--color-text-primary); font-weight: var(--font-bold); }
+.kv { width: 100%; border-collapse: collapse; font-size: var(--text-base); }
+.kv td { padding: 1px 0; line-height: var(--leading-relaxed); text-align: right; }
+.kv .k { color: var(--color-text-secondary); width: 34%; }
+.kv .v { color: var(--color-text-primary); font-weight: var(--font-bold); width: 66%; }
 
 /* Section header */
 .sec {
@@ -200,7 +201,7 @@ table.mini th { background: var(--color-surface-mini-header); color: #4b4636; pa
 table.mini td { padding: 5px 9px; border-bottom: var(--border-thin) solid var(--color-border-warm); text-align: right; }
 
 /* Summary */
-.summary-card { flex: 1; border: 1px solid var(--color-border); border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); overflow: hidden; }
+.summary-card { flex: 1; border: 1px solid var(--color-border); border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); overflow: hidden; page-break-inside: avoid; }
 .sum-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 16px; border-bottom: 1px solid var(--color-border-light); direction: rtl; }
 .sum-label { font-size: 9pt; color: var(--color-text-secondary); }
 .sum-value { font-size: 9.5pt; font-weight: var(--font-bold); color: var(--color-text-primary); white-space: nowrap; }
@@ -278,23 +279,27 @@ table.mini td { padding: 5px 9px; border-bottom: var(--border-thin) solid var(--
   <!-- INFO CARDS -->
   <div class="card card-r">
     <div class="card-h">بيانات النزيل</div>
-    <div class="kv"><span class="k">الاسم: </span><span class="v">{{ $reservation->guest?->full_name ?? '—' }}</span></div>
-    @if($reservation->guest?->id_number)
-    <div class="kv"><span class="k">رقم الهوية: </span><span class="v">{{ $reservation->guest->id_number }}</span></div>
-    @endif
-    @if($reservation->guest?->nationality)
-    <div class="kv"><span class="k">الجنسية: </span><span class="v">{{ $reservation->guest->nationality }}</span></div>
-    @endif
-    @if($reservation->guest?->phone)
-    <div class="kv"><span class="k">الجوال: </span><span class="v">{{ $reservation->guest->phone }}</span></div>
-    @endif
+    <table class="kv" dir="rtl">
+      <tr><td class="k">الاسم:</td><td class="v">{{ $reservation->guest?->full_name ?? '—' }}</td></tr>
+      @if($reservation->guest?->id_number)
+      <tr><td class="k">رقم الهوية:</td><td class="v">{{ $reservation->guest->id_number }}</td></tr>
+      @endif
+      @if($reservation->guest?->nationality)
+      <tr><td class="k">الجنسية:</td><td class="v">{{ $reservation->guest->nationality }}</td></tr>
+      @endif
+      @if($reservation->guest?->phone)
+      <tr><td class="k">الجوال:</td><td class="v">{{ $reservation->guest->phone }}</td></tr>
+      @endif
+    </table>
   </div>
   <div class="card card-l">
     <div class="card-h">تفاصيل الإقامة</div>
-    <div class="kv"><span class="k">الغرفة: </span><span class="v">{{ $reservation->display_room_number }} ({{ $reservation->room_type_label }})</span></div>
-    <div class="kv"><span class="k">الدخول: </span><span class="v">{{ $reservation->check_in_date?->format('Y/m/d') }}{{ $reservation->check_in_time ? ' — '.$reservation->check_in_time : '' }}</span></div>
-    <div class="kv"><span class="k">الخروج: </span><span class="v">{{ $reservation->check_out_date?->format('Y/m/d') }}{{ $reservation->check_out_time ? ' — '.$reservation->check_out_time : '' }}</span></div>
-    <div class="kv"><span class="k">المدة: </span><span class="v">{{ $nights }} {{ $nights == 1 ? 'ليلة' : 'ليالٍ' }}</span></div>
+    <table class="kv" dir="rtl">
+      <tr><td class="k">الغرفة:</td><td class="v">{{ $reservation->display_room_number }} ({{ $reservation->room_type_label }})</td></tr>
+      <tr><td class="k">الدخول:</td><td class="v">{{ $reservation->check_in_date?->format('Y/m/d') }}{{ $reservation->check_in_time ? ' — '.$reservation->check_in_time : '' }}</td></tr>
+      <tr><td class="k">الخروج:</td><td class="v">{{ $reservation->check_out_date?->format('Y/m/d') }}{{ $reservation->check_out_time ? ' — '.$reservation->check_out_time : '' }}</td></tr>
+      <tr><td class="k">المدة:</td><td class="v">{{ $nights }} {{ $nights == 1 ? 'ليلة' : 'ليالٍ' }}</td></tr>
+    </table>
   </div>
   <div class="clear"></div>
 
