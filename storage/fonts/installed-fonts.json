@@ -1,5 +1,9 @@
 {
     "notonaskharabic": {
         "normal": "notonaskharabic_normal_31e1445c35a405fc8bd33a6f298887ef"
+    },
+    "noto naskh arabic": {
+        "normal": "\/home\/user\/hotel_osamma\/storage\/fonts\/noto_naskh_arabic_normal_31e1445c35a405fc8bd33a6f298887ef",
+        "bold": "noto_naskh_arabic_bold_f49d6eaa1c27e4bcd63528481a7cb695"
     }
 }
