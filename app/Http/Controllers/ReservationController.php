@@ -188,6 +188,7 @@ class ReservationController extends Controller
             'companions.*.id_image'         => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
             'companions.*.marriage_doc'     => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
             'price_per_night'               => 'nullable|numeric|min:0',
+            'renewal_price_per_night'       => 'nullable|numeric|min:0',
         ], [
             'check_in_date.required'     => 'تاريخ الدخول مطلوب',
             'check_in_date.date'         => 'تاريخ الدخول غير صالح',
@@ -273,6 +274,8 @@ class ReservationController extends Controller
                 'origin'         => $this->nullIfEmpty($validated['origin'] ?? null),
                 'notes'          => $this->nullIfEmpty($validated['notes'] ?? null),
                 'total_amount'   => $newTotal,
+                'renewal_price_per_night' => isset($validated['renewal_price_per_night']) && $validated['renewal_price_per_night'] !== ''
+                    ? $validated['renewal_price_per_night'] : null,
             ]);
 
             // إن أصبح الإجمالي الجديد أقل من المبلغ المسجَّل كمدفوع (تصحيح خطأ في السعر)،
@@ -322,9 +325,7 @@ class ReservationController extends Controller
         ]);
 
         $extraNights   = $reservation->check_out_date->diffInDays($validated['new_check_out_date']);
-        $pricePerNight = $reservation->nights > 0
-            ? round((float)$reservation->total_amount / $reservation->nights, 2)
-            : (float)($reservation->room->roomType->base_price ?? 0);
+        $pricePerNight = $reservation->effective_renewal_price_per_night;
         $extraAmount   = $extraNights * $pricePerNight;
 
         $old = $reservation->only(['check_out_date', 'total_amount']);

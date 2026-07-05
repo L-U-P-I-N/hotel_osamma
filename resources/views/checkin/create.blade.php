@@ -943,11 +943,35 @@ html.dark [style*="background:var(--gold-l)"] {
                            class="text-xs text-red-600 font-semibold">⚠ السعر خارج النطاق المسموح</p>
                     </div>
                 </div>
+
+                {{-- Renewal Price --}}
+                <div>
+                    <button type="button" x-show="!showRenewalPrice" @click="showRenewalPrice = true"
+                            class="w-full py-2 px-3 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 text-xs font-semibold hover:bg-blue-100 transition flex items-center justify-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        سعر مختلف للتجديد
+                    </button>
+                    <div x-show="showRenewalPrice" x-transition class="rounded-xl p-3 space-y-2 border border-blue-200 bg-blue-50">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-blue-800">سعر الليلة عند التجديد (ر.ي)</span>
+                            <button type="button" @click="showRenewalPrice = false; renewalPrice = null" class="text-xs text-gray-400 hover:text-red-500 underline">إلغاء</button>
+                        </div>
+                        <input type="number" min="0" step="100"
+                               :placeholder="'نفس سعر الليلة الأولى: ' + formatNumber(effectiveRoomPrice())"
+                               x-model.number="renewalPrice"
+                               class="fi text-sm border-blue-300 bg-white focus:border-blue-500">
+                        <p class="text-xs text-blue-600">
+                            إن تُرك فارغاً، سيُستخدم نفس سعر الليلة الأولى (<span x-text="formatNumber(effectiveRoomPrice())"></span> ر.ي) عند أي تجديد لاحق.
+                            استخدم هذا فقط إن كان سعر التجديد يختلف عن السعر المتفاوَض عليه لليوم الأول.
+                        </p>
+                    </div>
+                </div>
             </div>
 
             <input type="hidden" name="currency" value="YER">
             <input type="hidden" name="total_amount" :value="totalAmount">
             <input type="hidden" name="price_per_night" :value="effectiveRoomPrice()">
+            <input type="hidden" name="renewal_price_per_night" :value="renewalPrice !== null && renewalPrice !== '' ? renewalPrice : ''">
             <input type="hidden" name="booking_mode" value="{{ $mode }}">
 
             <div class="h-px bg-gray-100"></div>
@@ -1289,11 +1313,13 @@ function checkInForm() {
         nightsInput: 1,
         totalAmount: 0,
         customPrice: null,
+        renewalPrice: null,
         currency: 'YER',
         paymentStatus: 'paid',
         paymentMethod: 'cash',
         paidAmount: 0,
         showPriceOverride: false,
+        showRenewalPrice: false,
         idImagePreview: null,
         idImageName: '',
         floorFilter: 'all',
@@ -1383,6 +1409,8 @@ function checkInForm() {
                     paidAmount:      this.paidAmount,
                     customPrice:     this.customPrice,
                     showPriceOverride: this.showPriceOverride,
+                    renewalPrice:    this.renewalPrice,
+                    showRenewalPrice: this.showRenewalPrice,
                 }));
             } catch(e) {}
         },
@@ -1410,6 +1438,8 @@ function checkInForm() {
                 this.paidAmount        = s.paidAmount         ?? 0;
                 this.customPrice       = s.customPrice        ?? null;
                 this.showPriceOverride = s.showPriceOverride  ?? false;
+                this.renewalPrice      = s.renewalPrice       ?? null;
+                this.showRenewalPrice  = s.showRenewalPrice   ?? false;
                 this.$nextTick(() => this.calcTotal());
             } catch(e) {}
         },

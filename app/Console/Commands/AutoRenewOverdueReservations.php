@@ -41,12 +41,7 @@ class AutoRenewOverdueReservations extends Command
                 continue;
             }
 
-            // حجز اليوم الواحد (الدخول والخروج بنفس التاريخ) تكون فيه nights = 0،
-            // فنعتبر total_amount نفسه هو سعر اليوم المتفَق عليه مع الزبون بدل
-            // الرجوع لسعر نوع الغرفة الافتراضي الذي قد يخالف الاتفاق الفعلي.
-            $pricePerNight = $reservation->nights > 0
-                ? round((float) $reservation->total_amount / $reservation->nights, 2)
-                : (float) $reservation->total_amount;
+            $pricePerNight = $reservation->effective_renewal_price_per_night;
             $extraAmount = $extraNights * $pricePerNight;
 
             $old = $reservation->only(['check_out_date', 'total_amount']);

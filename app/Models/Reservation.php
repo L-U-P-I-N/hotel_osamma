@@ -13,7 +13,7 @@ class Reservation extends Model
     protected $fillable = [
         'guest_id','room_id','linked_room_id','suite_booking_type','created_by',
         'check_in_date','check_in_time','check_out_date','check_out_time','actual_check_out','origin','purpose','notes',
-        'status','payment_status','total_amount','paid_amount','currency',
+        'status','payment_status','total_amount','renewal_price_per_night','paid_amount','currency',
         'admin_approval_id','government_exported','government_exported_at',
         'discount_type','discount_value','discount_amount','discount_reason',
         'cancellation_reason','cancelled_by','cancelled_at',
@@ -36,6 +36,7 @@ class Reservation extends Model
         'government_exported' => 'boolean',
         'government_exported_at' => 'datetime',
         'total_amount' => 'decimal:2',
+        'renewal_price_per_night' => 'decimal:2',
         'paid_amount' => 'decimal:2',
         'discount_value' => 'decimal:2',
         'discount_amount' => 'decimal:2',
@@ -124,6 +125,22 @@ class Reservation extends Model
     public function getNightsAttribute(): int
     {
         return $this->check_in_date->diffInDays($this->check_out_date);
+    }
+
+    /**
+     * سعر الليلة عند التجديد/التمديد — قد يختلف عن سعر الليلة الأولى المتفاوَض
+     * عليه (مثال: 35 ألف لليوم الأول مقابل 40 ألف لكل ليلة إضافية عند التجديد).
+     * إن لم يُحدَّد صراحةً (null) نستخدم نفس منطق سعر الليلة الأولى كما كان سابقاً.
+     */
+    public function getEffectiveRenewalPricePerNightAttribute(): float
+    {
+        if ($this->renewal_price_per_night !== null) {
+            return (float) $this->renewal_price_per_night;
+        }
+
+        return $this->nights > 0
+            ? round((float) $this->total_amount / $this->nights, 2)
+            : (float) $this->total_amount;
     }
 
     public function getDisplayRoomNumberAttribute(): string

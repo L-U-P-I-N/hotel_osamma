@@ -366,6 +366,22 @@
                 @error('price_per_night')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             </div>
 
+            <!-- Renewal price -->
+            <div class="md:col-span-2 border border-blue-200 bg-blue-50 rounded-xl p-4">
+                <label class="text-sm font-medium text-blue-800 mb-2 block">
+                    سعر الليلة عند التجديد — {{ $reservation->currency ?? 'YER' }}
+                </label>
+                <div class="flex items-center gap-3">
+                    <input type="number" name="renewal_price_per_night" min="0" step="100"
+                           value="{{ old('renewal_price_per_night', $reservation->renewal_price_per_night) }}"
+                           placeholder="نفس سعر الليلة الأولى ({{ number_format($reservation->effective_renewal_price_per_night, 0) }})"
+                           class="flex-1 border border-blue-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-400 outline-none bg-white">
+                    <span class="text-sm text-blue-700 font-medium whitespace-nowrap">{{ $reservation->currency ?? 'ر.ي' }} / ليلة</span>
+                </div>
+                <p class="text-xs text-blue-600 mt-1.5">اتركه فارغاً إذا كان سعر التجديد نفس سعر الليلة الأولى. استخدمه فقط إذا اتُّفق مع النزيل على سعر خاص لليوم الأول يختلف عن سعر أي تجديد لاحق.</p>
+                @error('renewal_price_per_night')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            </div>
+
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1">الغرض من الزيارة</label>
                 <input type="text" name="purpose" maxlength="255"
