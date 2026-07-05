@@ -85,7 +85,15 @@
                     // عند كتابة التاريخ يدوياً (بدل اختياره من التقويم)، النص المكتوب هو
                     // بصيغة العرض d/m/Y — بدون هذا التحليل الصريح يحاول flatpickr تحليله
                     // كأنه Y-m-d فيُنتج تاريخاً خاطئاً بصمت (لا خطأ ظاهر) بدل التاريخ المقصود.
+                    // لكن القيمة الابتدائية القادمة من الخادم (value="Y-m-d") تُطابق أيضاً
+                    // بصمت نمط d/m/Y بأرقام مختلفة تماماً (مثلاً "2026-07-05" تُقرأ كأنها
+                    // اليوم 20 الشهر 6...) فتُغيَّر القيمة فور تحميل الصفحة دون أي تفاعل من
+                    // المستخدم. لذا نستثني صراحة صيغة Y-m-d (أرقام-شرطة-أرقام-شرطة-أرقام)
+                    // ونحلّلها مباشرة كما هي قبل تجربة d/m/Y.
                     parseDate: function (datestr, format) {
+                        if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(datestr)) {
+                            return window.flatpickr.parseDate(datestr, 'Y-m-d');
+                        }
                         return window.flatpickr.parseDate(datestr, 'd/m/Y') || window.flatpickr.parseDate(datestr, format);
                     },
                     onChange: function (selected, str, inst) {
