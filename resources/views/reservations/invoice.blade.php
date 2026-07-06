@@ -137,6 +137,11 @@
    الفعلي في هذا الكود يُضبط عبر padding على body، بنفس النمط المستخدم في بقية
    قوالب PDF بالمشروع (مثل payments/slip.blade.php). بدون هذا الـpadding يلتصق
    المحتوى بحافة الورقة تماماً عند الطباعة. */
+/* dompdf يرتّب أعمدة أي <table> من اليسار لليمين حسب ترتيبها في الكود دائماً،
+   ولا يعتد بـ dir="rtl" لعكس هذا الترتيب (تحقّقنا منه بعزل الحالة في اختبار
+   منفصل). لذلك كل جدول متعدد الأعمدة في هذا الملف (kv، items، mini،
+   bottom-section) يكتب أعمدته بترتيب معكوس: العمود الذي يجب أن يظهر يمين
+   القارئ يُكتب أخيراً في الكود. */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
   font-family: var(--font-family);
@@ -204,7 +209,7 @@ table.mini th { background: #efeadd; color: #4b4636; padding: 5px 9px; font-size
 table.mini td { padding: 5px 9px; border-bottom: 1px solid #f0ece0; text-align: right; }
 
 /* Summary */
-.summary-card { flex: 1; border: 1px solid var(--color-border); border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); overflow: hidden; page-break-inside: avoid; }
+.summary-card { flex: 1; border: 1px solid var(--color-border); border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); overflow: hidden; }
 .sum-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 16px; border-bottom: 1px solid var(--color-border-light); direction: rtl; }
 .sum-label { font-size: 9pt; color: var(--color-text-secondary); }
 .sum-value { font-size: 9.5pt; font-weight: var(--font-bold); color: var(--color-text-primary); white-space: nowrap; }
@@ -223,14 +228,14 @@ table.mini td { padding: 5px 9px; border-bottom: 1px solid #f0ece0; text-align: 
 .notes { clear: both; border-right: var(--border-accent) solid var(--color-gold); background: var(--color-surface-warm); padding: 10px 15px; font-size: var(--text-md); color: var(--color-text-warning); margin: 20px 0 0; border-radius: var(--radius-sm); }
 
 /* Bottom section */
-.bottom-section { width: 100%; border-collapse: collapse; margin-top: 24px; direction: rtl; }
+.bottom-section { width: 100%; border-collapse: collapse; margin-top: 10px; direction: rtl; }
 .bottom-section td { vertical-align: bottom; }
 .bottom-section .summary-cell { width: 66%; }
 .bottom-section .stamp-cell { width: 34%; padding-right: 20px; }
 .stamp-area { text-align: center; border-top: 1px solid var(--color-border-section); padding-top: 10px; font-size: 9pt; color: var(--color-text-secondary); }
 
 /* Footer */
-.foot { margin-top: 18px; padding-top: 10px; border-top: var(--border-thin) solid var(--color-border-section); text-align: center; font-size: var(--text-xs); color: var(--color-text-muted); }
+.foot { margin-top: 6px; padding-top: 5px; border-top: var(--border-thin) solid var(--color-border-section); text-align: center; font-size: var(--text-xs); color: var(--color-text-muted); }
 </style>
 </head>
 <body>
@@ -283,25 +288,25 @@ table.mini td { padding: 5px 9px; border-bottom: 1px solid #f0ece0; text-align: 
   <div class="card card-r">
     <div class="card-h">بيانات النزيل</div>
     <table class="kv" dir="rtl">
-      <tr><td class="k">الاسم:</td><td class="v">{{ $reservation->guest?->full_name ?? '—' }}</td></tr>
+      <tr><td class="v">{{ $reservation->guest?->full_name ?? '—' }}</td><td class="k">الاسم:</td></tr>
       @if($reservation->guest?->id_number)
-      <tr><td class="k">رقم الهوية:</td><td class="v">{{ $reservation->guest->id_number }}</td></tr>
+      <tr><td class="v">{{ $reservation->guest->id_number }}</td><td class="k">رقم الهوية:</td></tr>
       @endif
       @if($reservation->guest?->nationality)
-      <tr><td class="k">الجنسية:</td><td class="v">{{ $reservation->guest->nationality }}</td></tr>
+      <tr><td class="v">{{ $reservation->guest->nationality }}</td><td class="k">الجنسية:</td></tr>
       @endif
       @if($reservation->guest?->phone)
-      <tr><td class="k">الجوال:</td><td class="v">{{ $reservation->guest->phone }}</td></tr>
+      <tr><td class="v">{{ $reservation->guest->phone }}</td><td class="k">الجوال:</td></tr>
       @endif
     </table>
   </div>
   <div class="card card-l">
     <div class="card-h">تفاصيل الإقامة</div>
     <table class="kv" dir="rtl">
-      <tr><td class="k">الغرفة:</td><td class="v">{{ $reservation->display_room_number }} ({{ $reservation->room_type_label }})</td></tr>
-      <tr><td class="k">الدخول:</td><td class="v">{{ $reservation->check_in_date?->format('Y/m/d') }}{{ $reservation->check_in_time ? ' — '.$reservation->check_in_time : '' }}</td></tr>
-      <tr><td class="k">الخروج:</td><td class="v">{{ $reservation->check_out_date?->format('Y/m/d') }}{{ $reservation->check_out_time ? ' — '.$reservation->check_out_time : '' }}</td></tr>
-      <tr><td class="k">المدة:</td><td class="v">{{ $nights }} {{ $nights == 1 ? 'ليلة' : 'ليالٍ' }}</td></tr>
+      <tr><td class="v">{{ $reservation->display_room_number }} ({{ $reservation->room_type_label }})</td><td class="k">الغرفة:</td></tr>
+      <tr><td class="v">{{ $reservation->check_in_date?->format('Y/m/d') }}{{ $reservation->check_in_time ? ' — '.$reservation->check_in_time : '' }}</td><td class="k">الدخول:</td></tr>
+      <tr><td class="v">{{ $reservation->check_out_date?->format('Y/m/d') }}{{ $reservation->check_out_time ? ' — '.$reservation->check_out_time : '' }}</td><td class="k">الخروج:</td></tr>
+      <tr><td class="v">{{ $nights }} {{ $nights == 1 ? 'ليلة' : 'ليالٍ' }}</td><td class="k">المدة:</td></tr>
     </table>
   </div>
   <div class="clear"></div>
@@ -311,25 +316,25 @@ table.mini td { padding: 5px 9px; border-bottom: 1px solid #f0ece0; text-align: 
   <table class="items">
     <thead>
       <tr>
-        <th style="width:48%;">البيان</th>
-        <th class="c" style="width:14%;">الكمية</th>
-        <th class="c" style="width:18%;">سعر الوحدة</th>
         <th class="c" style="width:20%;">الإجمالي</th>
+        <th class="c" style="width:18%;">سعر الوحدة</th>
+        <th class="c" style="width:14%;">الكمية</th>
+        <th style="width:48%;">البيان</th>
       </tr>
     </thead>
     <tbody>
       <tr>
-        <td>إقامة — غرفة {{ $reservation->display_room_number }}</td>
-        <td class="c">{{ $nights }} × ليلة</td>
-        <td class="c">{{ number_format($pricePerNight, 0) }} {{ $cur }}</td>
         <td class="c">{{ number_format($roomTotal, 0) }} {{ $cur }}</td>
+        <td class="c">{{ number_format($pricePerNight, 0) }} {{ $cur }}</td>
+        <td class="c">{{ $nights }} × ليلة</td>
+        <td>إقامة — غرفة {{ $reservation->display_room_number }}</td>
       </tr>
       @foreach($reservation->extraCharges as $charge)
       <tr>
-        <td>{{ $charge->description ?: $charge->type }} <span class="muted">— رسوم إضافية</span></td>
+        <td class="c">{{ number_format($charge->amount, 0) }} {{ $cur }}</td>
+        <td class="c">{{ number_format($charge->amount, 0) }} {{ $cur }}</td>
         <td class="c">1</td>
-        <td class="c">{{ number_format($charge->amount, 0) }} {{ $cur }}</td>
-        <td class="c">{{ number_format($charge->amount, 0) }} {{ $cur }}</td>
+        <td>{{ $charge->description ?: $charge->type }} <span class="muted">— رسوم إضافية</span></td>
       </tr>
       @endforeach
     </tbody>
@@ -341,21 +346,21 @@ table.mini td { padding: 5px 9px; border-bottom: 1px solid #f0ece0; text-align: 
   <table class="mini">
     <thead>
       <tr>
-        <th style="width:24%;">التاريخ</th>
-        <th style="width:18%;">النوع</th>
-        <th style="width:18%;">الطريقة</th>
-        <th style="width:22%;">المستلم</th>
         <th class="c" style="width:18%;">المبلغ</th>
+        <th style="width:22%;">المستلم</th>
+        <th style="width:18%;">الطريقة</th>
+        <th style="width:18%;">النوع</th>
+        <th style="width:24%;">التاريخ</th>
       </tr>
     </thead>
     <tbody>
       @foreach($reservation->payments as $p)
       <tr>
-        <td>{{ $p->payment_date?->format('Y/m/d H:i') }}</td>
-        <td>{{ $typeMap[$p->type] ?? $p->type }}</td>
-        <td>{{ $methodMap[$p->method] ?? $p->method }}</td>
-        <td>{{ $p->receivedBy?->name ?? '—' }}</td>
         <td class="c" style="color:var(--color-success);font-weight:700;">{{ number_format($p->amount, 0) }} {{ $cur }}</td>
+        <td>{{ $p->receivedBy?->name ?? '—' }}</td>
+        <td>{{ $methodMap[$p->method] ?? $p->method }}</td>
+        <td>{{ $typeMap[$p->type] ?? $p->type }}</td>
+        <td>{{ $p->payment_date?->format('Y/m/d H:i') }}</td>
       </tr>
       @endforeach
     </tbody>
@@ -370,6 +375,9 @@ table.mini td { padding: 5px 9px; border-bottom: 1px solid #f0ece0; text-align: 
   <!-- BOTTOM: SUMMARY + STAMP -->
   <table class="bottom-section">
     <tr>
+      <td class="stamp-cell">
+        <div class="stamp-area">ختم وتوقيع الفندق</div>
+      </td>
       <td class="summary-cell">
         <div class="summary-card">
           <div class="sum-row">
@@ -397,9 +405,6 @@ table.mini td { padding: 5px 9px; border-bottom: 1px solid #f0ece0; text-align: 
           <div class="sum-status-due">المتبقي: {{ number_format(abs($balance), 0) }} {{ $cur }}</div>
           @endif
         </div>
-      </td>
-      <td class="stamp-cell">
-        <div class="stamp-area">ختم وتوقيع الفندق</div>
       </td>
     </tr>
   </table>
