@@ -314,30 +314,42 @@ class ReservationController extends Controller
         }
 
         $validated = $request->validate([
-            'new_check_out_date' => 'required|date|after:' . $reservation->check_out_date->format('Y-m-d'),
-            'advance_payment'    => 'nullable|numeric|min:0',
-            'payment_method'     => 'nullable|in:cash,pos,bank_transfer',
-            'notes'              => 'nullable|string|max:500',
-            'payment_notes'      => 'nullable|string|max:500',
+            'new_check_out_date'      => 'required|date|after:' . $reservation->check_out_date->format('Y-m-d'),
+            'renewal_price_per_night' => 'nullable|numeric|min:0',
+            'advance_payment'         => 'nullable|numeric|min:0',
+            'payment_method'          => 'nullable|in:cash,pos,bank_transfer',
+            'notes'                   => 'nullable|string|max:500',
+            'payment_notes'           => 'nullable|string|max:500',
         ], [
             'new_check_out_date.required' => 'تاريخ الخروج الجديد مطلوب',
             'new_check_out_date.after'    => 'يجب أن يكون تاريخ الخروج الجديد بعد التاريخ الحالي',
         ]);
 
-        $extraNights   = $reservation->check_out_date->diffInDays($validated['new_check_out_date']);
-        $pricePerNight = $reservation->effective_renewal_price_per_night;
+        // عدد الليالي الإضافية = الفرق بين تاريخ الخروج الحالي والجديد (بالأيام
+        // الكاملة). نحسبه من بداية اليوم في كلا الطرفين حتى لا يتأثر بأي وقت
+        // ضمني أو باختلاف سلوك diffInDays بين إصدارات Carbon.
+        $currentOut  = $reservation->check_out_date->copy()->startOfDay();
+        $newOut      = Carbon::parse($validated['new_check_out_date'])->startOfDay();
+        $extraNights = (int) $currentOut->diffInDays($newOut);
+
+        // سعر ليلة التجديد قابل للتعديل من الموظف؛ إن تُرك فارغاً نستخدم السعر
+        // الافتراضي المحفوظ للحجز. السعر المُستخدَم يُحفَظ كافتراضي لأي تجديد لاحق.
+        $pricePerNight = ($validated['renewal_price_per_night'] ?? '') !== ''
+            ? (float) $validated['renewal_price_per_night']
+            : $reservation->effective_renewal_price_per_night;
         $extraAmount   = $extraNights * $pricePerNight;
 
-        $old = $reservation->only(['check_out_date', 'total_amount']);
+        $old = $reservation->only(['check_out_date', 'total_amount', 'renewal_price_per_night']);
 
         // نُلحق ملاحظة المستخدم دائماً بعلامة التجديد (كانت تُهمل سابقاً إن وُجدت ملاحظات قديمة)
-        $renewalNote = "[تجديد +{$extraNights} ليلة]"
+        $renewalNote = "[تجديد +{$extraNights} ليلة بسعر " . number_format($pricePerNight, 0) . " ر.ي/ليلة]"
             . (!empty($validated['notes']) ? ': ' . $validated['notes'] : '');
 
         $reservation->update([
-            'check_out_date' => $validated['new_check_out_date'],
-            'total_amount'   => $reservation->total_amount + $extraAmount,
-            'notes'          => $reservation->notes
+            'check_out_date'          => $validated['new_check_out_date'],
+            'total_amount'            => $reservation->total_amount + $extraAmount,
+            'renewal_price_per_night' => $pricePerNight,
+            'notes'                   => $reservation->notes
                                     ? $reservation->notes . "\n" . $renewalNote
                                     : $renewalNote,
         ]);
@@ -358,9 +370,10 @@ class ReservationController extends Controller
         }
 
         AuditLogService::log('update', $reservation, $old, [
-            'check_out_date' => $validated['new_check_out_date'],
-            'extra_nights'   => $extraNights,
-            'extra_amount'   => $extraAmount,
+            'check_out_date'  => $validated['new_check_out_date'],
+            'extra_nights'    => $extraNights,
+            'extra_amount'    => $extraAmount,
+            'price_per_night' => $pricePerNight,
         ], auth()->user());
 
         return redirect()->route('reservations.show', $reservation)
@@ -405,12 +418,6 @@ class ReservationController extends Controller
 
         return redirect()->route('reservations.show', $reservation)
             ->with('success', 'تم تعديل تاريخ الوصول بنجاح');
-    }
-
-    public function acknowledgeAutoRenew(Reservation $reservation)
-    {
-        $reservation->update(['auto_renew_acknowledged' => true]);
-        return back()->with('success', 'تم الاطلاع على التجديد التلقائي');
     }
 
     public function transferRoom(Request $request, Reservation $reservation)

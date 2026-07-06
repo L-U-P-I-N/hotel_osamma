@@ -35,6 +35,9 @@
     $pc = $paymentConfig[$reservation->payment_status] ?? $paymentConfig['unpaid'];
 
     $pricePerNight = $reservation->nights > 0 ? round($reservation->total_amount / $reservation->nights, 2) : 0;
+    // سعر ليلة التجديد الافتراضي (قد يختلف عن متوسط سعر الليلة أعلاه) — يُعبّأ
+    // مسبقاً في نافذة التجديد ويظل قابلاً للتعديل من الموظف.
+    $renewalPrice  = $reservation->effective_renewal_price_per_night;
     $paidPercent   = $reservation->total_amount > 0
         ? min(100, round(($reservation->paid_amount / $reservation->total_amount) * 100))
         : 100;
@@ -1025,31 +1028,55 @@
                     <strong class="text-gray-800">{{ $reservation->check_out_date?->format('d/m/Y') ?? '—' }}</strong>
                 </div>
                 <div>
-                    <span class="text-gray-400 text-xs block mb-0.5 font-medium">سعر الليلة</span>
-                    <strong class="text-gray-800">{{ number_format($pricePerNight, 0) }} {{ $reservation->currency_symbol }}</strong>
+                    <span class="text-gray-400 text-xs block mb-0.5 font-medium">المدة الحالية</span>
+                    <strong class="text-gray-800">{{ $reservation->nights }} {{ $reservation->nights == 1 ? 'ليلة' : 'ليالٍ' }}</strong>
                 </div>
                 <div>
-                    <span class="text-gray-400 text-xs block mb-0.5 font-medium">الرصيد المتبقي</span>
+                    <span class="text-gray-400 text-xs block mb-0.5 font-medium">الرصيد المتبقي حالياً</span>
                     <strong class="{{ $reservation->balance > 0 ? 'text-red-600' : 'text-emerald-600' }}">{{ number_format($reservation->balance, 0) }} ر.ي</strong>
                 </div>
             </div>
 
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">تاريخ الخروج الجديد <span class="text-red-500">*</span></label>
-                <input type="date" name="new_check_out_date" x-model="newDate"
-                       min="{{ $reservation->check_out_date?->addDay()->format('Y-m-d') ?? '' }}"
-                       @change="calcExtra()" required
-                       class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+            {{-- مدخلان مترابطان: عدد الليالي ↔ تاريخ الخروج (تعديل أحدهما يحدّث الآخر) --}}
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">عدد الليالي الإضافية <span class="text-red-500">*</span></label>
+                    <input type="number" min="1" step="1" x-model.number="extraNights" @input="fromNights()"
+                           placeholder="0"
+                           class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">تاريخ الخروج الجديد <span class="text-red-500">*</span></label>
+                    <input type="date" name="new_check_out_date" x-model="newDate"
+                           min="{{ $reservation->check_out_date?->copy()->addDay()->format('Y-m-d') ?? '' }}"
+                           @change="fromDate()" required
+                           class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
             </div>
 
-            <div x-show="extraNights > 0" class="grid grid-cols-2 gap-3">
-                <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 text-center">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">سعر ليلة التجديد <span class="text-gray-400 font-normal">(قابل للتعديل)</span></label>
+                <div class="relative">
+                    <input type="number" name="renewal_price_per_night" min="0" step="0.01"
+                           x-model.number="pricePerNight" @input="calc()"
+                           class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">ر.ي / ليلة</span>
+                </div>
+                <p class="text-xs text-gray-400 mt-1">سيُحفَظ هذا السعر كسعر تجديد افتراضي للحجز.</p>
+            </div>
+
+            <div x-show="extraNights > 0" class="grid grid-cols-3 gap-3">
+                <div class="bg-blue-50 border border-blue-100 rounded-xl p-3 text-center">
                     <div class="text-2xl font-black text-blue-700" x-text="extraNights"></div>
                     <div class="text-xs text-blue-500 mt-0.5 font-medium">ليالٍ إضافية</div>
                 </div>
-                <div class="bg-emerald-50 border border-emerald-100 rounded-xl p-4 text-center">
-                    <div class="text-xl font-black text-emerald-700" x-text="formatNum(extraAmount)"></div>
+                <div class="bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-center">
+                    <div class="text-lg font-black text-emerald-700" x-text="formatNum(extraAmount)"></div>
                     <div class="text-xs text-emerald-500 mt-0.5 font-medium">مبلغ إضافي (ر.ي)</div>
+                </div>
+                <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 text-center">
+                    <div class="text-lg font-black text-gray-800" x-text="formatNum(newTotal)"></div>
+                    <div class="text-xs text-gray-500 mt-0.5 font-medium">الإجمالي الجديد (ر.ي)</div>
                 </div>
             </div>
 
@@ -1057,12 +1084,33 @@
                 <label class="block text-sm font-semibold text-gray-700 mb-2">دفعة مقدمة <span class="text-gray-400 font-normal">(اختياري)</span></label>
                 <div class="grid grid-cols-2 gap-3">
                     <input type="number" name="advance_payment" min="0" step="0.01" placeholder="0"
+                           x-model.number="advancePayment" @input="calc()"
                            class="border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                     <select name="payment_method" class="border border-gray-300 rounded-xl px-3 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                         <option value="cash">نقدي</option>
                         <option value="pos">شبكة POS</option>
                         <option value="bank_transfer">تحويل بنكي</option>
                     </select>
+                </div>
+            </div>
+
+            {{-- ملخص المطلوب على النزيل بعد التجديد والدفعة --}}
+            <div x-show="extraNights > 0" class="rounded-xl border p-4 text-sm"
+                 :class="remaining > 0 ? 'bg-red-50 border-red-200' : 'bg-emerald-50 border-emerald-200'">
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-600">المدفوع سابقاً</span>
+                    <strong class="text-gray-800">{{ number_format($reservation->paid_amount, 0) }} ر.ي</strong>
+                </div>
+                <div class="flex items-center justify-between mt-1" x-show="advancePayment > 0">
+                    <span class="text-gray-600">الدفعة الآن</span>
+                    <strong class="text-emerald-700" x-text="'+ ' + formatNum(advancePayment) + ' ر.ي'"></strong>
+                </div>
+                <div class="flex items-center justify-between mt-2 pt-2 border-t"
+                     :class="remaining > 0 ? 'border-red-200' : 'border-emerald-200'">
+                    <span class="font-semibold" :class="remaining > 0 ? 'text-red-700' : 'text-emerald-700'"
+                          x-text="remaining > 0 ? 'المتبقي على النزيل' : 'مسدّد بالكامل'"></span>
+                    <strong class="text-lg" :class="remaining > 0 ? 'text-red-700' : 'text-emerald-700'"
+                            x-text="formatNum(remaining) + ' ر.ي'"></strong>
                 </div>
             </div>
 
@@ -1314,13 +1362,40 @@ function renewForm() {
         newDate: '',
         extraNights: 0,
         extraAmount: 0,
-        pricePerNight: {{ $pricePerNight }},
+        newTotal: 0,
+        advancePayment: 0,
+        remaining: 0,
+        pricePerNight: {{ $renewalPrice }},
         currentOut: '{{ $reservation->check_out_date?->format('Y-m-d') ?? '' }}',
-        calcExtra() {
-            if (!this.newDate) return;
-            const d1 = new Date(this.currentOut), d2 = new Date(this.newDate);
-            this.extraNights = Math.max(0, Math.floor((d2 - d1) / 86400000));
-            this.extraAmount = this.extraNights * this.pricePerNight;
+        currentTotal: {{ (float) $reservation->total_amount }},
+        paidAmount: {{ (float) $reservation->paid_amount }},
+
+        // أداة: تحويل نص التاريخ (Y-m-d) إلى كائن تاريخ عند منتصف الليل محلياً
+        parseDate(s) { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); },
+        addDays(base, n) {
+            const d = this.parseDate(base); d.setDate(d.getDate() + n);
+            const p = (x) => String(x).padStart(2, '0');
+            return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+        },
+
+        // المستخدم عدّل عدد الليالي → نحسب تاريخ الخروج الجديد منه
+        fromNights() {
+            const n = Math.max(0, Math.floor(this.extraNights || 0));
+            this.extraNights = n;
+            this.newDate = n > 0 ? this.addDays(this.currentOut, n) : '';
+            this.calc();
+        },
+        // المستخدم عدّل تاريخ الخروج → نحسب عدد الليالي منه
+        fromDate() {
+            if (!this.newDate) { this.extraNights = 0; this.calc(); return; }
+            const diff = Math.round((this.parseDate(this.newDate) - this.parseDate(this.currentOut)) / 86400000);
+            this.extraNights = Math.max(0, diff);
+            this.calc();
+        },
+        calc() {
+            this.extraAmount = this.extraNights * (parseFloat(this.pricePerNight) || 0);
+            this.newTotal    = this.currentTotal + this.extraAmount;
+            this.remaining   = Math.max(0, this.newTotal - this.paidAmount - (parseFloat(this.advancePayment) || 0));
         },
         formatNum(n) { return (parseFloat(n)||0).toLocaleString('ar-YE'); },
     }

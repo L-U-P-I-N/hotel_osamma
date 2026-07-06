@@ -166,30 +166,6 @@
 </div>
 @endif
 
-{{-- ── حجوزات جُدِّدت تلقائياً بسبب تجاوز موعد المغادرة ── --}}
-@if($autoRenewedPending->isNotEmpty())
-<div class="mb-5 space-y-3">
-    @foreach($autoRenewedPending as $ar)
-    <div class="flex items-start gap-3 px-4 py-3 rounded-lg border-l-4 bg-indigo-50 border-indigo-400 text-indigo-900">
-        <span class="text-2xl flex-shrink-0">🔄</span>
-        <div class="flex-1">
-            <p class="font-semibold text-sm">تم تجديد إقامة تلقائياً</p>
-            <p class="text-xs mt-0.5 opacity-90">
-                النزيل <strong>{{ $ar->guest?->full_name ?? '—' }}</strong> — غرفة {{ $ar->display_room_number }} —
-                تجاوز موعد المغادرة السابق دون تسجيل خروج، فامتدت الإقامة تلقائياً
-                {{ $ar->auto_renew_extra_nights }} {{ $ar->auto_renew_extra_nights == 1 ? 'ليلة' : 'ليالٍ' }}
-                حتى {{ $ar->check_out_date->format('d/m/Y') }}.
-            </p>
-        </div>
-        <form method="POST" action="{{ route('reservations.acknowledgeAutoRenew', $ar) }}">
-            @csrf @method('PATCH')
-            <button type="submit" class="text-xs px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition whitespace-nowrap">فهمت</button>
-        </form>
-    </div>
-    @endforeach
-</div>
-@endif
-
 {{-- ── شريط الأرقام السريعة ── --}}
 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
 

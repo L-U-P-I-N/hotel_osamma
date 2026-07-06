@@ -6,21 +6,12 @@ use App\Models\Payment;
 use App\Models\Refund;
 use App\Models\Reservation;
 use App\Models\Room;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        // شبكة أمان: لو جدولة Laravel الخارجية (Scheduler) غير مفعّلة فعلياً على
-        // بيئة الاستضافة، نستغل كثرة زيارات لوحة التحكم لتشغيل فحص التجديد
-        // التلقائي هنا كحد أقصى مرة كل 10 دقائق — Cache::add يمنع التكرار.
-        if (Cache::add('auto_renew_opportunistic_lock', true, now()->addMinutes(10))) {
-            Artisan::call('reservations:auto-renew');
-        }
-
         $totalRooms       = Room::count();
         $occupiedRooms    = Room::where('status', 'occupied')->count();
         $availableRooms   = Room::where('status', 'available')->count();
@@ -171,14 +162,6 @@ class DashboardController extends Controller
             ];
         }
 
-        // حجوزات جُدِّدت تلقائياً (تجاوز موعد المغادرة دون تسجيل خروج) لم يطّلع عليها بعد —
-        // تظهر لكل الموظفين وليس لمنشئ الحجز فقط
-        $autoRenewedPending = Reservation::with(['guest', 'room'])
-            ->where('auto_renew_acknowledged', false)
-            ->whereNotNull('auto_renewed_at')
-            ->orderByDesc('auto_renewed_at')
-            ->get();
-
         return view('dashboard.index', compact(
             'totalRooms', 'occupiedRooms', 'availableRooms', 'maintenanceRooms',
             'todayArrivals', 'todayDepartures',
@@ -188,7 +171,7 @@ class DashboardController extends Controller
             'debtReservations', 'totalOutstandingDebt',
             'upcomingArrivals', 'trendDays',
             'expiringGuests', 'overdueGuests', 'roomStatusCounts', 'alerts',
-            'weeklyRevenue', 'occupancyRateToday', 'autoRenewedPending'
+            'weeklyRevenue', 'occupancyRateToday'
         ));
     }
 }
