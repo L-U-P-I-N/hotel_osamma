@@ -727,6 +727,7 @@ html.dark [style*="background:var(--gold-l)"] {
                         'upcoming_reservation' => $upcoming ? [
                             'guest_name'   => $upcoming->guest?->full_name ?? '—',
                             'check_in_date'=> $upcoming->check_in_date->format('Y/m/d'),
+                            'check_in_ymd' => $upcoming->check_in_date->format('Y-m-d'),
                         ] : null,
                     ];
                     $roomTypeKey = match($room->room_sub_type) {
@@ -753,6 +754,7 @@ html.dark [style*="background:var(--gold-l)"] {
                         'upcoming_reservation' => $linkedUpcoming ? [
                             'guest_name'   => $linkedUpcoming->guest?->full_name ?? '—',
                             'check_in_date'=> $linkedUpcoming->check_in_date->format('Y/m/d'),
+                            'check_in_ymd' => $linkedUpcoming->check_in_date->format('Y-m-d'),
                         ] : null,
                     ] : null;
                 @endphp
@@ -1533,7 +1535,12 @@ function checkInForm() {
                 // Graceful fallback: native date input + manual sync
                 el.type = 'date';
                 el.value = self[prop] || '';
-                el.addEventListener('change', () => { self[prop] = el.value; self.calcTotal(); });
+                if (prop === 'checkOutDate') self._checkOutFp = null;
+                el.addEventListener('change', () => {
+                    self[prop] = el.value;
+                    if (prop === 'checkInDate') self.onCheckInChanged();
+                    else self.calcTotal();
+                });
                 return;
             }
             const fp = window.flatpickr(el, {
@@ -1557,7 +1564,13 @@ function checkInForm() {
                     }
                     return window.flatpickr.parseDate(datestr, 'd/m/Y') || window.flatpickr.parseDate(datestr, format);
                 },
-                onChange: (sel, str) => { self[prop] = str; self.calcTotal(); },
+                onChange: (sel, str) => {
+                    self[prop] = str;
+                    // تغيير الوصول يُزيح المغادرة تلقائياً (بعده بيوم على الأقل)؛
+                    // تغيير المغادرة يحسب الإجمالي مباشرةً
+                    if (prop === 'checkInDate') self.onCheckInChanged();
+                    else self.calcTotal();
+                },
             });
             if (fp.altInput) fp.altInput.setAttribute('placeholder', 'dd/mm/yyyy');
             el._fp = fp;
@@ -1566,8 +1579,11 @@ function checkInForm() {
                 if (el._fp && val !== el.value) el._fp.setDate(val, false);
             });
             if (prop === 'checkOutDate') {
+                // نحتفظ بمرجع منتقي المغادرة لضبط حدّيه (الأدنى/الأقصى) لاحقاً
+                self._checkOutFp = fp;
+                // المغادرة يجب أن تكون بعد الوصول بيوم على الأقل — لا نفس اليوم
                 this.$watch('checkInDate', (val) => {
-                    if (el._fp) el._fp.set('minDate', val || self.today());
+                    if (el._fp) el._fp.set('minDate', val ? self.addDaysStr(val, 1) : self.today());
                 });
             }
         },
@@ -1621,6 +1637,9 @@ function checkInForm() {
             } else {
                 this.suiteBookingType = '';
             }
+            // طبّق حدّ النزيل القادم على منتقي المغادرة، ثم أعد الحساب (سيقصّ
+            // calcTotal تاريخ الخروج تلقائياً إن تجاوز موعد وصول النزيل القادم)
+            this.applyCheckoutBounds();
             this.calcTotal();
             this.saveToSession();
         },
@@ -1660,11 +1679,49 @@ function checkInForm() {
             return 'غرفة ' + this.selectedRoom.room_number;
         },
 
+        // إضافة عدد أيام إلى تاريخ (Y-m-d) وإرجاع النتيجة بنفس الصيغة
+        addDaysStr(base, n) {
+            const d = new Date(base);
+            if (isNaN(d)) return base;
+            d.setDate(d.getDate() + parseInt(n));
+            return d.toISOString().split('T')[0];
+        },
+
+        // أقصى تاريخ خروج مسموح به = تاريخ وصول أقرب نزيل قادم على الغرفة المختارة
+        // (الغرفة متاحة حتى ذلك التاريخ فقط). فارغ إن لا يوجد حجز قادم.
+        maxCheckoutYmd() {
+            return this.selectedRoom?.upcoming_reservation?.check_in_ymd || '';
+        },
+
+        // عند تغيير تاريخ الوصول: يجب أن يبقى تاريخ المغادرة بعده بيوم على الأقل.
+        // نحافظ على عدد الليالي الحالي ونُزيح المغادرة تلقائياً (مع احترام حدّ
+        // النزيل القادم إن وُجد)، ثم نعيد ضبط حدود منتقي المغادرة.
+        onCheckInChanged() {
+            if (!this.checkInDate || isNaN(new Date(this.checkInDate))) return;
+            const keepNights = Math.max(1, parseInt(this.nightsInput) || this.nights || 1);
+            let out = this.addDaysStr(this.checkInDate, keepNights);
+            const max = this.maxCheckoutYmd();
+            if (max && out > max) out = max;                       // لا يتجاوز حجز النزيل القادم
+            if (out <= this.checkInDate) out = this.addDaysStr(this.checkInDate, 1); // ليلة واحدة كحد أدنى
+            this.checkOutDate = out;
+            this.applyCheckoutBounds();
+            this.calcTotal();
+        },
+
+        // ضبط الحد الأدنى (الوصول + يوم) والحد الأقصى (النزيل القادم) لمنتقي المغادرة
+        applyCheckoutBounds() {
+            const fp = this._checkOutFp;
+            if (!fp) return;
+            fp.set('minDate', this.checkInDate ? this.addDaysStr(this.checkInDate, 1) : this.today());
+            fp.set('maxDate', this.maxCheckoutYmd() || null);
+        },
+
         updateCheckoutFromNights() {
             if (this.checkInDate && this.nightsInput > 0) {
-                const d = new Date(this.checkInDate);
-                d.setDate(d.getDate() + parseInt(this.nightsInput));
-                this.checkOutDate = d.toISOString().split('T')[0];
+                let out = this.addDaysStr(this.checkInDate, parseInt(this.nightsInput));
+                const max = this.maxCheckoutYmd();
+                if (max && out > max) out = max;   // لا نتجاوز حجز النزيل القادم
+                this.checkOutDate = out;
                 this.calcTotal();
             }
         },
@@ -1681,7 +1738,16 @@ function checkInForm() {
                     this.stepError = 'تعذّر قراءة أحد التاريخين — تأكد من كتابته بصيغة صحيحة (يوم/شهر/سنة) أو اختره من التقويم';
                     return;
                 }
-                this.nights     = Math.max(0, Math.floor((d2 - d1) / 86400000));
+                // حدّ النزيل القادم: لا يجوز أن يتجاوز الخروج تاريخ وصوله — نقصّه
+                // تلقائياً ونُنبّه، ثم نكمل الحساب على التاريخ المقصوص مباشرةً
+                const max = this.maxCheckoutYmd();
+                let d2c = d2;
+                if (max && this.checkOutDate > max) {
+                    this.checkOutDate = max;
+                    d2c = new Date(max);
+                    this.stepError = 'الغرفة محجوزة لنزيل قادم يصل بتاريخ ' + (this.selectedRoom?.upcoming_reservation?.check_in_date || max) + '، فتم ضبط تاريخ الخروج إلى أقصى حدٍّ متاح.';
+                }
+                this.nights     = Math.max(0, Math.floor((d2c - d1) / 86400000));
                 this.nightsInput = this.nights || 1;
                 this.totalAmount = this.selectedRoom ? (this.nights || 1) * this.effectiveRoomPrice() : 0;
                 this.saveToSession();

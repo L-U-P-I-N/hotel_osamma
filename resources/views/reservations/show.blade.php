@@ -1049,10 +1049,19 @@
                     <label class="block text-sm font-semibold text-gray-700 mb-2">تاريخ الخروج الجديد <span class="text-red-500">*</span></label>
                     <input type="date" name="new_check_out_date" x-model="newDate"
                            min="{{ $reservation->check_out_date?->copy()->addDay()->format('Y-m-d') ?? '' }}"
+                           @if($renewMaxCheckout) max="{{ $renewMaxCheckout->format('Y-m-d') }}" @endif
                            @change="fromDate()" required
                            class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                 </div>
             </div>
+
+            @if($renewMaxCheckout)
+            {{-- تنبيه: الغرفة محجوزة لنزيل قادم، فلا يمكن التمديد بعد تاريخ وصوله --}}
+            <div class="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
+                <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>هذه الغرفة محجوزة لنزيل قادم يصل بتاريخ <strong>{{ $renewMaxCheckout->format('Y/m/d') }}</strong>، فأقصى تاريخ خروج متاح للتجديد هو <strong>{{ $renewMaxCheckout->format('Y/m/d') }}</strong>.</span>
+            </div>
+            @endif
 
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">سعر ليلة التجديد <span class="text-gray-400 font-normal">(قابل للتعديل)</span></label>
@@ -1369,6 +1378,8 @@ function renewForm() {
         currentOut: '{{ $reservation->check_out_date?->format('Y-m-d') ?? '' }}',
         currentTotal: {{ (float) $reservation->total_amount }},
         paidAmount: {{ (float) $reservation->paid_amount }},
+        // أقصى تاريخ خروج مسموح به (وصول نزيل قادم) — أو '' إن لا يوجد قيد
+        maxOut: '{{ $renewMaxCheckout?->format('Y-m-d') ?? '' }}',
 
         // أداة: تحويل نص التاريخ (Y-m-d) إلى كائن تاريخ عند منتصف الليل محلياً
         parseDate(s) { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); },
@@ -1377,17 +1388,24 @@ function renewForm() {
             const p = (x) => String(x).padStart(2, '0');
             return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
         },
+        // أقصى عدد ليالٍ إضافية مسموح به وفق قيد النزيل القادم (∞ إن لا قيد)
+        maxNights() {
+            if (!this.maxOut) return Infinity;
+            return Math.max(0, Math.round((this.parseDate(this.maxOut) - this.parseDate(this.currentOut)) / 86400000));
+        },
 
-        // المستخدم عدّل عدد الليالي → نحسب تاريخ الخروج الجديد منه
+        // المستخدم عدّل عدد الليالي → نحسب تاريخ الخروج الجديد منه (مع احترام الحد الأقصى)
         fromNights() {
-            const n = Math.max(0, Math.floor(this.extraNights || 0));
+            let n = Math.max(0, Math.floor(this.extraNights || 0));
+            n = Math.min(n, this.maxNights());
             this.extraNights = n;
             this.newDate = n > 0 ? this.addDays(this.currentOut, n) : '';
             this.calc();
         },
-        // المستخدم عدّل تاريخ الخروج → نحسب عدد الليالي منه
+        // المستخدم عدّل تاريخ الخروج → نحسب عدد الليالي منه (مع احترام الحد الأقصى)
         fromDate() {
             if (!this.newDate) { this.extraNights = 0; this.calc(); return; }
+            if (this.maxOut && this.newDate > this.maxOut) { this.newDate = this.maxOut; }
             const diff = Math.round((this.parseDate(this.newDate) - this.parseDate(this.currentOut)) / 86400000);
             this.extraNights = Math.max(0, diff);
             this.calc();

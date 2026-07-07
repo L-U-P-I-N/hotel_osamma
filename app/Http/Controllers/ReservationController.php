@@ -64,7 +64,14 @@ class ReservationController extends Controller
         $transferOptions = $reservation->status === 'checked_in'
             ? $this->buildTransferOptions($reservation, $availableRooms)
             : collect();
-        return view('reservations.show', compact('reservation', 'availableRooms', 'transferOptions'));
+
+        // أقصى تاريخ خروج مسموح به عند التجديد: موعد وصول أقرب نزيل قادم على نفس
+        // الغرفة/الجناح (الغرفة متاحة حتى ذلك التاريخ فقط) — أو null إن لا يوجد.
+        $renewMaxCheckout = $reservation->status === 'checked_in'
+            ? Reservation::nextCheckInAfter($reservation->occupiedRoomIds(), $reservation->check_in_date, $reservation->id)
+            : null;
+
+        return view('reservations.show', compact('reservation', 'availableRooms', 'transferOptions', 'renewMaxCheckout'));
     }
 
     /**
@@ -324,6 +331,23 @@ class ReservationController extends Controller
             'new_check_out_date.required' => 'تاريخ الخروج الجديد مطلوب',
             'new_check_out_date.after'    => 'يجب أن يكون تاريخ الخروج الجديد بعد التاريخ الحالي',
         ]);
+
+        // منع التجديد فوق حجزٍ قادم على نفس الغرفة/الجناح: لا يجوز أن يتجاوز تاريخ
+        // الخروج الجديد موعد وصول أقرب نزيل قادم (الغرفة متاحة حتى ذلك التاريخ فقط).
+        $conflict = Reservation::findOverlap(
+            $reservation->occupiedRoomIds(),
+            $reservation->check_in_date,
+            $validated['new_check_out_date'],
+            $reservation->id
+        );
+        if ($conflict) {
+            $maxCheckout = Carbon::parse($conflict->check_in_date)->format('Y/m/d');
+            return back()->withErrors(['new_check_out_date' =>
+                'الغرفة محجوزة لنزيل قادم (' . ($conflict->guest?->full_name ?? '—') . ') يصل بتاريخ '
+                . $maxCheckout . '، فلا يمكن تمديد الإقامة بعد هذا التاريخ. أقصى تاريخ خروج متاح: '
+                . $maxCheckout
+            ])->withInput();
+        }
 
         // عدد الليالي الإضافية = الفرق بين تاريخ الخروج الحالي والجديد (بالأيام
         // الكاملة). نحسبه من بداية اليوم في كلا الطرفين حتى لا يتأثر بأي وقت

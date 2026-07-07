@@ -114,6 +114,75 @@ class Reservation extends Model
         return $query->onlyTrashed()->whereNotNull('cancellation_reason');
     }
 
+    /**
+     * الغرف التي يشغلها هذا الحجز فعلياً (الغرفة الرئيسية + المرتبطة عند الجناح
+     * الكامل A+B أو الشقة) — تُستخدم لفحص تداخل الحجوزات على أي منها.
+     */
+    public function occupiedRoomIds(): array
+    {
+        return array_values(array_filter([$this->room_id, $this->linked_room_id]));
+    }
+
+    /**
+     * أول حجز نشط يتداخل مع الفترة [checkIn, checkOut) على إحدى الغرف المُمرَّرة.
+     *
+     * نستخدم منطق الفترات نصف المفتوحة: يتداخل حجزان إذا بدأ كلٌّ منهما قبل نهاية
+     * الآخر — (their_in < out) و (their_out > in). هذا يسمح بالتناوب في نفس اليوم:
+     * نزيل يخرج صباح اليوم الذي يصل فيه القادم (خروجه = وصول القادم) لا يُعدّ تداخلاً،
+     * فالغرفة "متاحة إلى" تاريخ وصول القادم.
+     *
+     * نطابق على room_id أو linked_room_id حتى نلتقط حجوزات الجناح الكامل التي
+     * تشغل الغرفة كقسمٍ مرتبط. ونتجاهل حجزاً بعينه (لعمليات التجديد/التعديل).
+     */
+    public static function findOverlap(array $roomIds, $checkIn, $checkOut, ?int $excludeId = null): ?self
+    {
+        $roomIds = array_values(array_filter($roomIds));
+        if (empty($roomIds)) {
+            return null;
+        }
+
+        $in  = \Carbon\Carbon::parse($checkIn)->toDateString();
+        $out = \Carbon\Carbon::parse($checkOut)->toDateString();
+
+        return static::query()
+            ->with('guest')
+            ->where('status', 'checked_in')
+            ->when($excludeId, fn (Builder $q) => $q->where('id', '!=', $excludeId))
+            ->where(function (Builder $q) use ($roomIds) {
+                $q->whereIn('room_id', $roomIds)->orWhereIn('linked_room_id', $roomIds);
+            })
+            ->whereDate('check_in_date', '<', $out)
+            ->whereDate('check_out_date', '>', $in)
+            ->orderBy('check_in_date')
+            ->first();
+    }
+
+    /**
+     * أقرب تاريخ وصول لحجزٍ نشط يبدأ بعد التاريخ المُعطى على إحدى الغرف — يمثّل
+     * الحدّ الأقصى المسموح به لتاريخ الخروج (حجزاً أو تجديداً) على نفس الغرفة حتى
+     * لا يتداخل مع النزيل القادم. يُرجَع كـ Carbon أو null إن لم يوجد حجز قادم.
+     */
+    public static function nextCheckInAfter(array $roomIds, $checkIn, ?int $excludeId = null): ?\Carbon\Carbon
+    {
+        $roomIds = array_values(array_filter($roomIds));
+        if (empty($roomIds)) {
+            return null;
+        }
+
+        $after = \Carbon\Carbon::parse($checkIn)->toDateString();
+
+        $date = static::query()
+            ->where('status', 'checked_in')
+            ->when($excludeId, fn (Builder $q) => $q->where('id', '!=', $excludeId))
+            ->where(function (Builder $q) use ($roomIds) {
+                $q->whereIn('room_id', $roomIds)->orWhereIn('linked_room_id', $roomIds);
+            })
+            ->whereDate('check_in_date', '>', $after)
+            ->min('check_in_date');
+
+        return $date ? \Carbon\Carbon::parse($date) : null;
+    }
+
     public function getBalanceAttribute(): float
     {
         return (float)$this->total_amount - (float)$this->paid_amount;
