@@ -1687,10 +1687,12 @@ function checkInForm() {
             return d.toISOString().split('T')[0];
         },
 
-        // أقصى تاريخ خروج مسموح به = تاريخ وصول أقرب نزيل قادم على الغرفة المختارة
-        // (الغرفة متاحة حتى ذلك التاريخ فقط). فارغ إن لا يوجد حجز قادم.
+        // أقصى تاريخ خروج مسموح به = تاريخ وصول أقرب نزيل قادم ناقص يوم فاصل
+        // للتنظيف (لا تناوب في نفس اليوم). فارغ إن لا يوجد حجز قادم على الغرفة.
         maxCheckoutYmd() {
-            return this.selectedRoom?.upcoming_reservation?.check_in_ymd || '';
+            const arrival = this.selectedRoom?.upcoming_reservation?.check_in_ymd;
+            if (!arrival) return '';
+            return this.addDaysStr(arrival, -{{ \App\Models\Reservation::TURNOVER_BUFFER_DAYS }});
         },
 
         // عند تغيير تاريخ الوصول: يجب أن يبقى تاريخ المغادرة بعده بيوم على الأقل.

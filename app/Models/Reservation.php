@@ -115,6 +115,13 @@ class Reservation extends Model
     }
 
     /**
+     * يوم فاصل إلزامي بين أي حجزين على نفس الغرفة — يخرج النزيل ويُترك يومٌ
+     * كامل لأعمال النظافة والتجهيز قبل وصول النزيل التالي (لا تناوب في نفس اليوم).
+     * تغيير هذا الثابت وحده يضبط حجم الفاصل في كل مكان.
+     */
+    public const TURNOVER_BUFFER_DAYS = 1;
+
+    /**
      * الغرف التي يشغلها هذا الحجز فعلياً (الغرفة الرئيسية + المرتبطة عند الجناح
      * الكامل A+B أو الشقة) — تُستخدم لفحص تداخل الحجوزات على أي منها.
      */
@@ -124,12 +131,13 @@ class Reservation extends Model
     }
 
     /**
-     * أول حجز نشط يتداخل مع الفترة [checkIn, checkOut) على إحدى الغرف المُمرَّرة.
+     * أول حجز نشط يتعارض مع الفترة [checkIn, checkOut) على إحدى الغرف المُمرَّرة،
+     * مع مراعاة يوم فاصل للتنظيف (TURNOVER_BUFFER_DAYS) بين الحجزين.
      *
-     * نستخدم منطق الفترات نصف المفتوحة: يتداخل حجزان إذا بدأ كلٌّ منهما قبل نهاية
-     * الآخر — (their_in < out) و (their_out > in). هذا يسمح بالتناوب في نفس اليوم:
-     * نزيل يخرج صباح اليوم الذي يصل فيه القادم (خروجه = وصول القادم) لا يُعدّ تداخلاً،
-     * فالغرفة "متاحة إلى" تاريخ وصول القادم.
+     * يُعدّ حجزان متعارضين إذا لم يفصل بينهما اليومُ الفاصل كاملاً — أي:
+     *   (their_in < out + buffer) و (their_out > in − buffer)
+     * وبفاصل يوم واحد يعني ذلك أن خروج النزيل يجب أن يسبق وصول النزيل القادم بيوم
+     * على الأقل (مثال: قادم يصل 17/7 ⇐ أقصى خروج مسموح 16/7).
      *
      * نطابق على room_id أو linked_room_id حتى نلتقط حجوزات الجناح الكامل التي
      * تشغل الغرفة كقسمٍ مرتبط. ونتجاهل حجزاً بعينه (لعمليات التجديد/التعديل).
@@ -141,8 +149,11 @@ class Reservation extends Model
             return null;
         }
 
-        $in  = \Carbon\Carbon::parse($checkIn)->toDateString();
-        $out = \Carbon\Carbon::parse($checkOut)->toDateString();
+        $buffer  = self::TURNOVER_BUFFER_DAYS;
+        // نوسّع فترة الحجز المطلوب بمقدار الفاصل على كلا الطرفين، ثم نطبّق منطق
+        // التداخل نصف المفتوح المعتاد — فيُحجَب أي حجز لا يفصله يومٌ كامل.
+        $outPlus = \Carbon\Carbon::parse($checkOut)->addDays($buffer)->toDateString();
+        $inMinus = \Carbon\Carbon::parse($checkIn)->subDays($buffer)->toDateString();
 
         return static::query()
             ->with('guest')
@@ -151,16 +162,26 @@ class Reservation extends Model
             ->where(function (Builder $q) use ($roomIds) {
                 $q->whereIn('room_id', $roomIds)->orWhereIn('linked_room_id', $roomIds);
             })
-            ->whereDate('check_in_date', '<', $out)
-            ->whereDate('check_out_date', '>', $in)
+            ->whereDate('check_in_date', '<', $outPlus)
+            ->whereDate('check_out_date', '>', $inMinus)
             ->orderBy('check_in_date')
             ->first();
     }
 
     /**
-     * أقرب تاريخ وصول لحجزٍ نشط يبدأ بعد التاريخ المُعطى على إحدى الغرف — يمثّل
-     * الحدّ الأقصى المسموح به لتاريخ الخروج (حجزاً أو تجديداً) على نفس الغرفة حتى
-     * لا يتداخل مع النزيل القادم. يُرجَع كـ Carbon أو null إن لم يوجد حجز قادم.
+     * أقصى تاريخ خروج مسموح به لحجز/تجديد على إحدى الغرف — تاريخ وصول أقرب نزيل
+     * قادم ناقص اليوم الفاصل (فيُترك يوم للتنظيف قبل وصوله). يُرجَع Carbon أو null
+     * إن لم يوجد حجز قادم يقيّد المدة.
+     */
+    public static function maxCheckoutBefore(array $roomIds, $checkIn, ?int $excludeId = null): ?\Carbon\Carbon
+    {
+        $next = self::nextCheckInAfter($roomIds, $checkIn, $excludeId);
+        return $next?->copy()->subDays(self::TURNOVER_BUFFER_DAYS);
+    }
+
+    /**
+     * أقرب تاريخ وصول لحجزٍ نشط يبدأ بعد التاريخ المُعطى على إحدى الغرف. يُرجَع
+     * كـ Carbon أو null إن لم يوجد حجز قادم.
      */
     public static function nextCheckInAfter(array $roomIds, $checkIn, ?int $excludeId = null): ?\Carbon\Carbon
     {

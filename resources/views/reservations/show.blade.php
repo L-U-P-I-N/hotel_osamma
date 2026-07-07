@@ -1055,11 +1055,11 @@
                 </div>
             </div>
 
-            @if($renewMaxCheckout)
-            {{-- تنبيه: الغرفة محجوزة لنزيل قادم، فلا يمكن التمديد بعد تاريخ وصوله --}}
+            @if($renewMaxCheckout && $renewNextArrival)
+            {{-- تنبيه: الغرفة محجوزة لنزيل قادم، مع يوم فاصل للتنظيف قبل وصوله --}}
             <div class="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
                 <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                <span>هذه الغرفة محجوزة لنزيل قادم يصل بتاريخ <strong>{{ $renewMaxCheckout->format('Y/m/d') }}</strong>، فأقصى تاريخ خروج متاح للتجديد هو <strong>{{ $renewMaxCheckout->format('Y/m/d') }}</strong>.</span>
+                <span>هذه الغرفة محجوزة لنزيل قادم يصل بتاريخ <strong>{{ $renewNextArrival->format('Y/m/d') }}</strong>، ويجب ترك يوم فاصل للتنظيف — فأقصى تاريخ خروج متاح للتجديد هو <strong>{{ $renewMaxCheckout->format('Y/m/d') }}</strong>.</span>
             </div>
             @endif
 

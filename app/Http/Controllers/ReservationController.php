@@ -65,13 +65,14 @@ class ReservationController extends Controller
             ? $this->buildTransferOptions($reservation, $availableRooms)
             : collect();
 
-        // أقصى تاريخ خروج مسموح به عند التجديد: موعد وصول أقرب نزيل قادم على نفس
-        // الغرفة/الجناح (الغرفة متاحة حتى ذلك التاريخ فقط) — أو null إن لا يوجد.
-        $renewMaxCheckout = $reservation->status === 'checked_in'
+        // قيد التجديد: موعد وصول أقرب نزيل قادم على نفس الغرفة، وأقصى تاريخ خروج
+        // مسموح به = ذلك الموعد ناقص يوم فاصل للتنظيف. كلاهما null إن لا يوجد قادم.
+        $renewNextArrival = $reservation->status === 'checked_in'
             ? Reservation::nextCheckInAfter($reservation->occupiedRoomIds(), $reservation->check_in_date, $reservation->id)
             : null;
+        $renewMaxCheckout = $renewNextArrival?->copy()->subDays(Reservation::TURNOVER_BUFFER_DAYS);
 
-        return view('reservations.show', compact('reservation', 'availableRooms', 'transferOptions', 'renewMaxCheckout'));
+        return view('reservations.show', compact('reservation', 'availableRooms', 'transferOptions', 'renewMaxCheckout', 'renewNextArrival'));
     }
 
     /**
@@ -332,8 +333,8 @@ class ReservationController extends Controller
             'new_check_out_date.after'    => 'يجب أن يكون تاريخ الخروج الجديد بعد التاريخ الحالي',
         ]);
 
-        // منع التجديد فوق حجزٍ قادم على نفس الغرفة/الجناح: لا يجوز أن يتجاوز تاريخ
-        // الخروج الجديد موعد وصول أقرب نزيل قادم (الغرفة متاحة حتى ذلك التاريخ فقط).
+        // منع التجديد فوق حجزٍ قادم على نفس الغرفة/الجناح مع ترك يوم فاصل للتنظيف:
+        // يجب أن ينتهي التمديد قبل وصول أقرب نزيل قادم بيوم على الأقل.
         $conflict = Reservation::findOverlap(
             $reservation->occupiedRoomIds(),
             $reservation->check_in_date,
@@ -341,10 +342,12 @@ class ReservationController extends Controller
             $reservation->id
         );
         if ($conflict) {
-            $maxCheckout = Carbon::parse($conflict->check_in_date)->format('Y/m/d');
+            $arrival     = Carbon::parse($conflict->check_in_date)->format('Y/m/d');
+            $maxCheckout = Carbon::parse($conflict->check_in_date)
+                ->subDays(Reservation::TURNOVER_BUFFER_DAYS)->format('Y/m/d');
             return back()->withErrors(['new_check_out_date' =>
                 'الغرفة محجوزة لنزيل قادم (' . ($conflict->guest?->full_name ?? '—') . ') يصل بتاريخ '
-                . $maxCheckout . '، فلا يمكن تمديد الإقامة بعد هذا التاريخ. أقصى تاريخ خروج متاح: '
+                . $arrival . '، ويجب ترك يوم فاصل للتنظيف قبل وصوله. أقصى تاريخ خروج متاح: '
                 . $maxCheckout
             ])->withInput();
         }

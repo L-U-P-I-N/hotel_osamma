@@ -65,16 +65,18 @@ class CheckInService
                 }
             }
 
-            // 3.5 منع التداخل مع حجزٍ قادم على نفس الغرفة/الجناح: الغرفة تبقى متاحة
-            // للنزيل الحالي حتى تاريخ وصول أقرب نزيل قادم (يخرج الحالي صباح وصوله
-            // كحدٍّ أقصى). نفحص التداخل على الغرفة الرئيسية والمرتبطة معاً.
+            // 3.5 منع التداخل مع حجزٍ قادم على نفس الغرفة/الجناح مع ترك يوم فاصل
+            // للتنظيف: يجب أن يخرج النزيل قبل وصول أقرب نزيل قادم بيوم على الأقل.
+            // نفحص التداخل على الغرفة الرئيسية والمرتبطة معاً.
             $roomIds = array_filter([$room->id, $linkedRoom?->id]);
             $conflict = Reservation::findOverlap($roomIds, $data['check_in_date'], $data['check_out_date']);
             if ($conflict) {
-                $maxCheckout = Carbon::parse($conflict->check_in_date)->format('Y/m/d');
+                $arrival     = Carbon::parse($conflict->check_in_date)->format('Y/m/d');
+                $maxCheckout = Carbon::parse($conflict->check_in_date)
+                    ->subDays(Reservation::TURNOVER_BUFFER_DAYS)->format('Y/m/d');
                 throw new \RuntimeException(
                     'الغرفة محجوزة لنزيل قادم (' . ($conflict->guest?->full_name ?? '—') . ') يصل بتاريخ '
-                    . $maxCheckout . '، فلا يمكن أن يتجاوز تاريخ الخروج هذا التاريخ. أقصى تاريخ خروج متاح: '
+                    . $arrival . '، ويجب ترك يوم فاصل للتنظيف قبل وصوله. أقصى تاريخ خروج متاح: '
                     . $maxCheckout
                 );
             }
