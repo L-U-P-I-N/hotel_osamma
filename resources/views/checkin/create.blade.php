@@ -262,39 +262,41 @@
 /* ── Divider ── */
 .sec-divider { height: 1.5px; background: linear-gradient(to right, transparent, #E5E7EB, transparent); margin: 1rem 0; }
 
-/* ════════ الوضع الليلي للنموذج — لوحة ألوان هادئة ومريحة للعين ════════ */
-html.dark .sec-card { background:#1e2738; border-color:#313d52; box-shadow:0 1px 3px rgba(0,0,0,.18); }
-html.dark .sec-hdr { background:linear-gradient(135deg, #243044 0%, #1e2738 100%); border-color:#313d52; }
-html.dark .sec-title { color:#e8edf4; }
-html.dark .step-wrap { background:#1e2738; border-color:#313d52; }
-html.dark .bpanel { background:#1e2738; border-color:#313d52; }
+/* ════════ الوضع الليلي للنموذج — يستخدم نفس متغيّرات اللوحة الموحّدة
+   (‎--d-*‎) المعرّفة في app-theme.css كي تتطابق ألوان صفحة تسجيل الدخول
+   مع لوحة التحكم وباقي الصفحات (لا لوحة منفصلة) ════════ */
+html.dark .sec-card { background:var(--d-surface); border-color:var(--d-border); box-shadow:0 1px 3px rgba(0,0,0,.22); }
+html.dark .sec-hdr { background:var(--d-surface-2); border-color:var(--d-border); }
+html.dark .sec-title { color:var(--d-text); }
+html.dark .step-wrap { background:var(--d-surface); border-color:var(--d-border); }
+html.dark .bpanel { background:var(--d-surface); border-color:var(--d-border); }
 
-/* الحقول: خلفية رمادية-زرقاء ناعمة بدل الأسود القاسي مع حدود واضحة */
-html.dark .fi { background:#273347; color:#eef2f7; border-color:#3a4862; }
-html.dark .fi::placeholder { color:#8a97aa; }
-html.dark .fi:focus { border-color:#5b90c5; box-shadow:0 0 0 3px rgba(91,144,197,.22); }
-html.dark .ci-form select option { background:#273347; color:#eef2f7; }
+/* الحقول: خلفية داكنة ناعمة مع حدود واضحة */
+html.dark .fi { background:var(--d-input); color:var(--d-text); border-color:var(--d-border-2); }
+html.dark .fi::placeholder { color:var(--d-placeholder); }
+html.dark .fi:focus { border-color:var(--d-primary); box-shadow:0 0 0 3px rgba(127,178,221,.20); }
+html.dark .ci-form select option { background:var(--d-surface); color:var(--d-text); }
 
-/* التسميات: كانت داكنة وغير مرئية — الآن رمادي فاتح ناعم واضح */
-html.dark .fl { color:#c3cedd; }
-html.dark .freq { color:#f87171; }
+/* التسميات: رمادي فاتح ناعم واضح */
+html.dark .fl { color:var(--d-text-2); }
+html.dark .freq { color:var(--d-red); }
 
-html.dark .rtile { background:#273347; border-color:#3a4862; }
-html.dark .rtile:hover { background:#2e3c54; }
-html.dark .rtile.active { background:linear-gradient(135deg,#244260,#1e2738); border-color:#5b90c5; }
-html.dark .rtile-suite { background:#243a55; border-color:#355f88; }
-html.dark .rtile .text-gray-800, html.dark .rtile .font-black { color:#eef2f7; }
-html.dark .comp-card { background:#222d40; border-color:#313d52; }
-html.dark .rev-card { background:#222d40; border-color:#313d52; }
-html.dark .rev-row span:first-child { color:#9aa7b8; }
-html.dark .rev-row span:last-child { color:#eef2f7; }
-html.dark .fpill-off { background:#222d40; color:#b4c0d0; border-color:#3a4862; }
-html.dark .fpill-off:hover { background:#2e3c54; color:#dce7f3; }
-html.dark .pay-opt-inner { background:#273347; border-color:#3a4862; }
-html.dark .step-dot-idle { background:#222d40; color:#8a97aa; border-color:#3a4862; }
-html.dark .step-track { background:#313d52; }
-html.dark .comp-card .border-gray-200 { border-color:#313d52 !important; }
-html.dark .sec-divider { background:linear-gradient(to right, transparent, #313d52, transparent); }
+html.dark .rtile { background:var(--d-surface-2); border-color:var(--d-border); }
+html.dark .rtile:hover { background:var(--d-hover); }
+html.dark .rtile.active { background:rgba(127,178,221,.12); border-color:var(--d-primary); }
+html.dark .rtile-suite { background:rgba(127,178,221,.07); border-color:var(--d-border-2); }
+html.dark .rtile .text-gray-800, html.dark .rtile .font-black { color:var(--d-text); }
+html.dark .comp-card { background:var(--d-surface); border-color:var(--d-border); }
+html.dark .rev-card { background:var(--d-surface); border-color:var(--d-border); }
+html.dark .rev-row span:first-child { color:var(--d-text-2); }
+html.dark .rev-row span:last-child { color:var(--d-text); }
+html.dark .fpill-off { background:var(--d-surface-2); color:var(--d-text-2); border-color:var(--d-border); }
+html.dark .fpill-off:hover { background:var(--d-hover); color:var(--d-text); }
+html.dark .pay-opt-inner { background:var(--d-surface-2); border-color:var(--d-border); }
+html.dark .step-dot-idle { background:var(--d-surface-2); color:var(--d-text-3); border-color:var(--d-border); }
+html.dark .step-track { background:var(--d-border); }
+html.dark .comp-card .border-gray-200 { border-color:var(--d-border) !important; }
+html.dark .sec-divider { background:linear-gradient(to right, transparent, var(--d-border), transparent); }
 
 /* حقول التاريخ/الوقت: اتجاه LTR حتى لا يظهر تنسيق التاريخ معكوساً (ةنس/رهش/موي) */
 .ci-form input[type="date"], .ci-form input[type="time"] { direction:ltr; text-align:right; }
@@ -304,18 +306,18 @@ html.dark .ci-form input[type="date"], html.dark .ci-form input[type="time"] { c
    عناصر هذه الصفحة تستخدم أنماطاً مضمّنة (inline) لا تتأثر بقواعد .rev-card،
    لذا نتجاوزها بمحددات السمة + !important لتصبح واضحة ومريحة في الوضع الليلي. */
 html.dark .rev-card h3[style*="color:var(--navy-d)"],
-html.dark .rev-card span[style*="color:var(--navy-d)"]      { color:#9fc6ec !important; }
-html.dark .rev-card svg[style*="color:var(--navy-l)"]        { color:#7ab3e0 !important; }
-html.dark .rev-card[style*="background:var(--navy-g)"]       { background:#22344c !important; border-color:#34567c !important; }
-html.dark .rev-card [style*="border-top:1.5px solid #B9D8F0"]{ border-top-color:#34567c !important; }
+html.dark .rev-card span[style*="color:var(--navy-d)"]      { color:var(--d-primary) !important; }
+html.dark .rev-card svg[style*="color:var(--navy-l)"]        { color:var(--d-primary) !important; }
+html.dark .rev-card[style*="background:var(--navy-g)"]       { background:var(--d-surface-2) !important; border-color:var(--d-border-2) !important; }
+html.dark .rev-card [style*="border-top:1.5px solid #B9D8F0"]{ border-top-color:var(--d-border-2) !important; }
 html.dark .rev-card .text-gray-600,
-html.dark .rev-card .text-gray-500                           { color:#aab6c6 !important; }
-html.dark .rev-card .text-emerald-700                        { color:#6ee7b7 !important; }
+html.dark .rev-card .text-gray-500                           { color:var(--d-text-2) !important; }
+html.dark .rev-card .text-emerald-700                        { color:var(--d-green) !important; }
 /* لافتة التنبيه السفلية (خلفية ذهبية فاتحة → كهرماني داكن هادئ) */
 html.dark [style*="background:var(--gold-l)"] {
-    background:rgba(212,160,23,.14) !important;
-    border-color:rgba(212,160,23,.34) !important;
-    color:#e6c574 !important;
+    background:rgba(216,176,107,.13) !important;
+    border-color:rgba(216,176,107,.32) !important;
+    color:var(--d-amber) !important;
 }
 </style>
 @endpush
