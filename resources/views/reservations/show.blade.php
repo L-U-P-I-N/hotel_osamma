@@ -117,7 +117,7 @@
                 @endif
 
                 @if($reservation->status === 'checked_in')
-                <button onclick="document.getElementById('renewModal').classList.remove('hidden')"
+                <button type="button" onclick="event.stopPropagation(); document.getElementById('renewModal').classList.remove('hidden')"
                         class="inline-flex items-center gap-2 px-4 py-2.5 bg-white/15 hover:bg-white/25 text-white text-sm font-medium rounded-xl transition border border-white/20">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                     تجديد
@@ -1000,9 +1000,9 @@
 @can('checkin.view')
 
 {{-- Renewal Modal --}}
-<div id="renewModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+<div id="renewModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto"
      onclick="if(event.target===this) this.classList.add('hidden')">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg" onclick="event.stopPropagation()">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto my-auto" onclick="event.stopPropagation()">
         <div class="hero-gradient px-6 py-5 rounded-t-2xl flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
@@ -1016,7 +1016,7 @@
             </button>
         </div>
         <form method="POST" action="{{ route('reservations.renew', $reservation) }}"
-              x-data="renewForm()" class="p-6 space-y-4">
+              x-data="renewForm()" class="p-6 space-y-3">
             @csrf
             <div class="grid grid-cols-2 gap-3 bg-gray-50 rounded-xl p-4 text-sm">
                 <div>
