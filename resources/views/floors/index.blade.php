@@ -90,11 +90,42 @@
                             </span>
                         </td>
                         <td class="px-6 py-4">
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                @if($floor->in_maintenance)
+                                <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-lg" title="كل غرف الطابق في الصيانة">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                    في الصيانة
+                                </span>
+                                @endif
                                 <button @click="editId = {{ $floor->id }}; editData = { floor_number: {{ $floor->floor_number }}, door_count: {{ $floor->door_count }}, name: '{{ $floor->name }}' }"
                                         class="px-3 py-1.5 text-xs bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition">
                                     تعديل
                                 </button>
+
+                                @canany(['rooms.edit', 'rooms.maintenance'])
+                                @if($floor->in_maintenance)
+                                <form method="POST" action="{{ route('floors.endMaintenance', $floor) }}" onsubmit="return confirm('إنهاء صيانة الطابق {{ $floor->floor_number }} وإعادة كل غرفه إلى (متاحة)؟')">
+                                    @csrf
+                                    <button type="submit" class="px-3 py-1.5 text-xs bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition">
+                                        إنهاء الصيانة
+                                    </button>
+                                </form>
+                                @elseif($floor->has_guest)
+                                <button type="button" disabled
+                                        title="يوجد نزلاء/حجوزات على الغرف: {{ $floor->blocking_rooms->implode('، ') }} — يجب إخراجهم أو إلغاء الحجوزات أولاً"
+                                        class="px-3 py-1.5 text-xs bg-gray-50 text-gray-400 rounded-lg cursor-not-allowed">
+                                    وضع في الصيانة
+                                </button>
+                                @else
+                                <form method="POST" action="{{ route('floors.maintenance', $floor) }}" onsubmit="return confirm('وضع كل غرف الطابق {{ $floor->floor_number }} في الصيانة؟')">
+                                    @csrf
+                                    <button type="submit" class="px-3 py-1.5 text-xs bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-100 transition">
+                                        وضع في الصيانة
+                                    </button>
+                                </form>
+                                @endif
+                                @endcanany
+
                                 <form method="POST" action="{{ route('floors.destroy', $floor) }}" onsubmit="return confirm('هل أنت متأكد من حذف الطابق {{ $floor->floor_number }}؟')">
                                     @csrf
                                     @method('DELETE')
