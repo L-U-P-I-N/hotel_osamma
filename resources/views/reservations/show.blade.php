@@ -34,11 +34,14 @@
     ];
     $pc = $paymentConfig[$reservation->payment_status] ?? $paymentConfig['unpaid'];
 
-    $pricePerNight = $reservation->nights > 0 ? round($reservation->total_amount / $reservation->nights, 2) : 0;
+    // سعر الليلة يُحسب على الإجمالي قبل الخصم (gross) لا الصافي، حتى يعكس السعر
+    // المتفاوَض عليه فعلاً (مثال: 35,000) بدل متوسط مُخفَّض بكسور عشرية.
+    $grossTotal    = $reservation->gross_total;
+    $pricePerNight = $reservation->nights > 0 ? round($grossTotal / $reservation->nights, 2) : 0;
     // سعر مختلف لليلة الأولى (إن وُجد): نُظهر تفصيلاً واضحاً بدل متوسط الليلة.
     $hasFirstNight = $reservation->first_night_price !== null && $reservation->nights > 1;
     $otherNightPrice = $hasFirstNight
-        ? round(($reservation->total_amount - (float) $reservation->first_night_price) / ($reservation->nights - 1), 2)
+        ? round(($grossTotal - (float) $reservation->first_night_price) / ($reservation->nights - 1), 2)
         : $pricePerNight;
     // سعر ليلة التجديد الافتراضي (قد يختلف عن متوسط سعر الليلة أعلاه) — يُعبّأ
     // مسبقاً في نافذة التجديد ويظل قابلاً للتعديل من الموظف.

@@ -241,13 +241,16 @@ table.mini td { padding: 5px 9px; border-bottom: 1px solid #f0ece0; text-align: 
 <body>
 @php
     $nights        = $reservation->nights;
-    $pricePerNight = $nights > 0 ? round($reservation->total_amount / $nights, 0) : 0;
-    $roomTotal     = $pricePerNight * $nights;
+    // سعر الليلة والمجموع الفرعي يُحسبان على الإجمالي قبل الخصم (gross) حتى يظهر
+    // السعر المتفاوَض عليه فعلاً ويتطابق (المجموع الفرعي − الخصم = الإجمالي).
+    $grossTotal    = $reservation->gross_total;
+    $pricePerNight = $nights > 0 ? round($grossTotal / $nights, 0) : 0;
+    $roomTotal     = $grossTotal;
     // سعر مختلف لليلة الأولى (إن وُجد): نعرض سطرَين منفصلين في بيان الإقامة.
     $hasFirstNight   = $reservation->first_night_price !== null && $nights > 1;
     $firstNightPrice = (float) $reservation->first_night_price;
     $otherNightPrice = $hasFirstNight
-        ? round(((float) $reservation->total_amount - $firstNightPrice) / ($nights - 1), 0)
+        ? round(($grossTotal - $firstNightPrice) / ($nights - 1), 0)
         : $pricePerNight;
     $extraTotal    = $reservation->extraCharges->sum('amount');
     $subtotal      = $roomTotal + $extraTotal;
