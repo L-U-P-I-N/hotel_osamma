@@ -325,13 +325,6 @@ html.dark [style*="background:var(--gold-l)"] {
 @section('content')
 <div x-data="checkInForm()" x-init="init()" class="ci-form" x-cloak>
 
-{{-- شريط "وصول لاحق بعربون" فقط — يظهر عند اختيار تاريخ وصول لاحق (شريط تسجيل
-     الدخول الفوري أُزيل بناءً على طلب المستخدم) --}}
-<div class="mode-banner mode-reserve" x-show="checkInDate !== today()">
-    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-    <span><strong>وصول لاحق بعربون</strong> — النزيل سيصل بتاريخ <strong x-text="checkInDate"></strong>، وستبقى الغرفة <strong>متاحة</strong> لأي نزيل آخر حتى ذلك التاريخ</span>
-</div>
-
 {{-- ════════ STEP INDICATOR (3 steps) ════════ --}}
 <div class="step-wrap">
     <div class="relative flex items-start justify-between max-w-2xl mx-auto">
@@ -882,10 +875,6 @@ html.dark [style*="background:var(--gold-l)"] {
                         <label class="fl text-xs">تاريخ الوصول <span class="freq">*</span></label>
                         <input type="text" name="check_in_date" required placeholder="YYYY-MM-DD" autocomplete="off"
                                x-init="initDatePicker($el, 'checkInDate')" class="fi">
-                        <p class="text-xs text-gray-400 mt-1">
-                            اتركه على تاريخ اليوم عند الوصول الفعلي الآن، أو اختر تاريخاً لاحقاً
-                            إن كان النزيل يدفع مقدماً (عربون) وسيصل لاحقاً.
-                        </p>
                     </div>
 
                     <div class="grid grid-cols-2 gap-3">
@@ -919,10 +908,6 @@ html.dark [style*="background:var(--gold-l)"] {
                         </div>
                     </div>
                 </div>
-                <p class="text-xs text-gray-400 mt-2 flex items-center gap-1">
-                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    يمكنك كتابة التاريخ يدوياً أو اختياره من التقويم
-                </p>
             </div>
 
             {{-- Price stats --}}
