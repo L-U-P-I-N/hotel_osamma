@@ -114,6 +114,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/reservations', fn() => redirect()->route('reservations.expiring'))->name('reservations.index');
         Route::get('/reservations-expiring', [ReservationController::class, 'expiring'])->name('reservations.expiring');
         Route::get('/reservations/{reservation}', [ReservationController::class, 'show'])->name('reservations.show');
+        Route::get('/reservations/{reservation}/companions', [ReservationController::class, 'companions'])->name('reservations.companions');
         Route::get('/reservations/{reservation}/edit', [ReservationController::class, 'edit'])->name('reservations.edit');
         Route::put('/reservations/{reservation}', [ReservationController::class, 'update'])->name('reservations.update');
         Route::patch('/reservations/{reservation}/cancel', [ReservationController::class, 'cancel'])->name('reservations.cancel');

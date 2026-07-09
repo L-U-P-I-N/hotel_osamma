@@ -80,6 +80,17 @@ class ReservationController extends Controller
     }
 
     /**
+     * صفحة مستقلة لعرض بيانات مرافقي الحجز — يُفتَح إليها من زر "المرافقون" في
+     * صفحة تفاصيل الحجز لإبقاء تلك الصفحة مضغوطة بلا تمرير.
+     */
+    public function companions(Reservation $reservation)
+    {
+        $reservation->load(['guest', 'companions']);
+
+        return view('reservations.companions', compact('reservation'));
+    }
+
+    /**
      * خيارات النقل: كل غرفة/قسم متاح منفرداً، بالإضافة إلى خيار "جناح كامل A+B"
      * عندما يكون القسمان متاحين — مع سعر الليلة لكل خيار لإعادة احتساب الإجمالي.
      */

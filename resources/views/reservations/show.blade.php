@@ -58,698 +58,285 @@
     }
 @endphp
 
-<div class="max-w-6xl mx-auto space-y-5" dir="rtl">
+{{-- ══════════════════════════════════════════════════════
+     صفحة تفاصيل الحجز — تصميم بصفحة واحدة بلا تمرير للصفحة،
+     التمرير داخلي في الأعمدة فقط. المرافقون في صفحة مستقلة.
+     ══════════════════════════════════════════════════════ --}}
+<div class="h-full flex flex-col gap-3 min-h-0" dir="rtl">
 
-{{-- ===== HERO HEADER ===== --}}
-<div class="hero-gradient rounded-2xl shadow-lg overflow-hidden">
-    <div class="p-6 md:p-8">
-        <div class="flex flex-wrap items-start justify-between gap-5">
+{{-- ===== COMPACT HERO ===== --}}
+<div class="flex-shrink-0 hero-gradient rounded-2xl shadow-lg px-4 py-3">
+    <div class="flex items-start justify-between gap-3 flex-wrap">
+        {{-- Identity --}}
+        <div class="flex items-center gap-2.5 flex-wrap min-w-0">
+            <span class="text-white/50 text-xs font-mono tracking-widest">#{{ str_pad($reservation->id, 5, '0', STR_PAD_LEFT) }}</span>
+            <h1 class="text-lg md:text-xl font-bold text-white leading-tight">{{ $reservation->guest?->full_name ?? 'نزيل غير محدد' }}</h1>
+            <span class="badge-pill" style="background:{{ $sc['bg'] }}; color:{{ $sc['color'] }};">
+                <span class="w-1.5 h-1.5 rounded-full inline-block" style="background:{{ $sc['color'] }};"></span>
+                {{ $sc['label'] }}
+            </span>
+            <span class="badge-pill" style="background:{{ $pc['bg'] }}; color:{{ $pc['color'] }};">{{ $pc['label'] }}</span>
+            @if($daysLabel)
+            <span class="badge-pill {{ $daysClass }}">{{ $daysLabel }}</span>
+            @endif
+            <span class="hidden md:flex items-center gap-1.5 text-white/70 text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                غرفة {{ $reservation->display_room_number }}@if($reservation->suite_booking_type === 'both') <span class="text-amber-300">(A+B)</span>@endif — {{ $reservation->room_type_label }}
+            </span>
+            @if($reservation->companions->count() > 0)
+            <a href="{{ route('reservations.companions', $reservation) }}"
+               class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 hover:bg-white/25 text-white text-xs font-semibold border border-white/25 transition">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                المرافقون
+                <span class="bg-white/25 rounded-full px-1.5 font-bold">{{ $reservation->companions->count() }}</span>
+            </a>
+            @endif
+        </div>
 
-            {{-- Left: ID + Guest + Room --}}
-            <div class="flex flex-col gap-3">
-                <div class="flex items-center gap-3 flex-wrap">
-                    <span class="text-white/50 text-sm font-mono tracking-widest">#{{ str_pad($reservation->id, 5, '0', STR_PAD_LEFT) }}</span>
-                    <span class="badge-pill" style="background:{{ $sc['bg'] }}; color:{{ $sc['color'] }};">
-                        <span class="w-1.5 h-1.5 rounded-full inline-block" style="background:{{ $sc['color'] }};"></span>
-                        {{ $sc['label'] }}
-                    </span>
-                    <span class="badge-pill" style="background:{{ $pc['bg'] }}; color:{{ $pc['color'] }};">
-                        {{ $pc['label'] }}
-                    </span>
-                    @if($daysLabel)
-                    <span class="badge-pill {{ $daysClass }}">{{ $daysLabel }}</span>
+        {{-- Actions (compact) --}}
+        <div class="flex items-center gap-1.5 flex-wrap justify-end">
+            @can('checkout.process')
+            @if($reservation->status === 'checked_in')
+            <a href="{{ route('checkout.show', $reservation) }}"
+               class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded-lg transition shadow-sm">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                خروج
+            </a>
+            @endif
+            @endcan
+
+            @can('payments.create')
+            @if($reservation->balance > 0 && in_array($reservation->status, ['checked_in', 'checked_out']))
+            <button onclick="document.getElementById('paymentModal').classList.remove('hidden')"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/90 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg transition border border-emerald-400/30">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                دفعة
+            </button>
+            @endif
+            @endcan
+
+            @can('checkin.view')
+            @if($reservation->status === 'checked_in')
+            <button type="button" onclick="event.stopPropagation(); document.getElementById('renewModal').classList.remove('hidden')"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/15 hover:bg-white/25 text-white text-xs font-medium rounded-lg transition border border-white/20">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                تجديد
+            </button>
+            @endif
+            @endcan
+
+            @can('checkin.create')
+            @if(in_array($reservation->status, ['confirmed', 'checked_in', 'checked_out']) && $reservation->total_amount > 0)
+            <button type="button" onclick="document.getElementById('discountModal').classList.remove('hidden')"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/15 hover:bg-white/25 text-white text-xs font-medium rounded-lg transition border border-white/20">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>
+                خصم
+            </button>
+            @endif
+            @endcan
+
+            {{-- المزيد من الإجراءات --}}
+            <div class="relative" x-data="{ moreOpen: false }">
+                <button type="button" @click="moreOpen = !moreOpen" @click.outside="moreOpen = false"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/15 hover:bg-white/25 text-white text-xs font-medium rounded-lg transition border border-white/20">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01"/></svg>
+                    المزيد
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <div x-show="moreOpen" x-cloak x-transition
+                     class="absolute left-0 mt-2 w-52 bg-white rounded-xl shadow-2xl border border-gray-100 py-1.5 z-30 text-sm">
+                    @can('checkin.view')
+                    @if(in_array($reservation->status, ['confirmed', 'checked_in']))
+                    <a href="{{ route('reservations.edit', $reservation) }}" class="flex items-center gap-2.5 px-4 py-2 text-gray-700 hover:bg-gray-50 transition">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                        تعديل الحجز
+                    </a>
                     @endif
-                </div>
-
-                <div>
-                    <h1 class="text-2xl md:text-3xl font-bold text-white leading-tight">
-                        {{ $reservation->guest?->full_name ?? 'نزيل غير محدد' }}
-                    </h1>
-                    <div class="flex items-center gap-4 mt-2 text-white/70 text-sm">
-                        <span class="flex items-center gap-1.5">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-                            غرفة {{ $reservation->display_room_number }}
-                            @if($reservation->suite_booking_type === 'both') <span class="text-amber-300">(A+B)</span> @endif
-                            &mdash; {{ $reservation->room_type_label }}
-                        </span>
-                        <span class="flex items-center gap-1.5">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
-                            {{ $reservation->nights }} ليلة
-                        </span>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Right: Action Buttons --}}
-            <div class="flex items-center gap-2 flex-wrap">
-                @can('checkout.process')
-                @if($reservation->status === 'checked_in')
-                <a href="{{ route('checkout.show', $reservation) }}"
-                   class="inline-flex items-center gap-2 px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-xl transition shadow-md shadow-red-900/30">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-                    تسجيل الخروج
-                </a>
-                @endif
-                @endcan
-
-                @can('checkin.view')
-                @if(in_array($reservation->status, ['confirmed', 'checked_in']))
-                <a href="{{ route('reservations.edit', $reservation) }}"
-                   class="inline-flex items-center gap-2 px-4 py-2.5 bg-white/15 hover:bg-white/25 text-white text-sm font-medium rounded-xl transition border border-white/20">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-                    تعديل
-                </a>
-                @endif
-
-                @if($reservation->status === 'checked_in')
-                <button type="button" onclick="event.stopPropagation(); document.getElementById('renewModal').classList.remove('hidden')"
-                        class="inline-flex items-center gap-2 px-4 py-2.5 bg-white/15 hover:bg-white/25 text-white text-sm font-medium rounded-xl transition border border-white/20">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                    تجديد
-                </button>
-                <button onclick="document.getElementById('checkinDateModal').classList.remove('hidden')"
-                        class="inline-flex items-center gap-2 px-4 py-2.5 bg-white/15 hover:bg-white/25 text-white text-sm font-medium rounded-xl transition border border-white/20">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                    تعديل تاريخ الوصول
-                </button>
-                <button onclick="document.getElementById('transferRoomModal').classList.remove('hidden')"
-                        class="inline-flex items-center gap-2 px-4 py-2.5 bg-amber-500/80 hover:bg-amber-500 text-white text-sm font-medium rounded-xl transition border border-amber-400/30">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
-                    تغيير الغرفة
-                </button>
-                @can('checkin.create')
-                {{-- تفعيل/إيقاف التجديد التلقائي --}}
-                <form method="POST" action="{{ route('reservations.toggleAutoRenew', $reservation) }}" class="inline">
-                    @csrf @method('PATCH')
-                    <button type="submit"
-                            onclick="return confirm(@js($reservation->auto_renew ? 'إيقاف التجديد التلقائي لهذه الإقامة؟' : 'تفعيل التجديد التلقائي؟ سيُحتسب يوم جديد تلقائياً بعد كل ساعة 1 ظهراً ويُضاف للدين.'))"
-                            class="inline-flex items-center gap-2 px-4 py-2.5 text-white text-sm font-medium rounded-xl transition border {{ $reservation->auto_renew ? 'bg-emerald-600 hover:bg-emerald-700 border-emerald-400/40' : 'bg-white/15 hover:bg-white/25 border-white/20' }}">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                        {{ $reservation->auto_renew ? 'التجديد التلقائي: مُفعّل' : 'تجديد تلقائي' }}
+                    @if($reservation->status === 'checked_in')
+                    <button onclick="document.getElementById('checkinDateModal').classList.remove('hidden')" class="w-full flex items-center gap-2.5 px-4 py-2 text-gray-700 hover:bg-gray-50 transition">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        تعديل تاريخ الوصول
                     </button>
-                </form>
-                @endcan
-                @endif
-                @endcan
-
-                @can('checkin.create')
-                @if(in_array($reservation->status, ['confirmed', 'checked_in', 'checked_out']) && $reservation->total_amount > 0)
-                <button type="button" onclick="document.getElementById('discountModal').classList.remove('hidden')"
-                        class="inline-flex items-center gap-2 px-4 py-2.5 bg-white/15 hover:bg-white/25 text-white text-sm font-medium rounded-xl transition border border-white/20">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>
-                    خصم
-                </button>
-                @endif
-                @endcan
-
-                @can('payments.create')
-                @if($reservation->balance > 0 && in_array($reservation->status, ['checked_in', 'checked_out']))
-                <button onclick="document.getElementById('paymentModal').classList.remove('hidden')"
-                        class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-500/90 hover:bg-emerald-500 text-white text-sm font-semibold rounded-xl transition border border-emerald-400/30">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-                    دفعة
-                </button>
-                @endif
-                @endcan
-
-                @can('checkin.view')
-                <a href="{{ route('reservations.invoice', $reservation) }}" target="_blank"
-                   class="inline-flex items-center gap-2 px-4 py-2.5 bg-white/15 hover:bg-white/25 text-white text-sm font-medium rounded-xl transition border border-white/20">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-                    الفاتورة
-                </a>
-                @endcan
-
-                @can('government.export')
-                <a href="{{ route('checkin.exportGov', ['reservation'=>$reservation->id,'format'=>'pdf']) }}"
-                   class="inline-flex items-center gap-2 px-4 py-2.5 bg-white/15 hover:bg-white/25 text-white text-sm font-medium rounded-xl transition border border-white/20">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                    PDF
-                </a>
-                @endcan
-
-                @can('checkin.view')
-                @if(in_array($reservation->status, ['confirmed', 'checked_in']))
-                <button onclick="document.getElementById('cancelReservationModal').classList.remove('hidden')"
-                        class="inline-flex items-center gap-2 px-4 py-2.5 bg-red-700/50 hover:bg-red-700/80 text-white text-sm font-medium rounded-xl transition border border-red-500/30">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                    إلغاء
-                </button>
-                @endif
-                @endcan
-            </div>
-        </div>
-    </div>
-</div>
-
-{{-- ===== STATS RIBBON ===== --}}
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-    {{-- Room --}}
-    <div class="stat-card bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-        <div class="flex items-center justify-between mb-3">
-            <span class="text-xs text-gray-400 font-medium">الغرفة</span>
-            <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
-                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-            </div>
-        </div>
-        <p class="text-3xl font-black text-gray-900">{{ $reservation->display_room_number }}</p>
-        <p class="text-xs text-gray-400 mt-1">{{ $reservation->room_type_label }}</p>
-    </div>
-
-    {{-- Nights --}}
-    <div class="stat-card bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-        <div class="flex items-center justify-between mb-3">
-            <span class="text-xs text-gray-400 font-medium">عدد الليالي</span>
-            <div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
-                <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
-            </div>
-        </div>
-        <p class="text-3xl font-black text-gray-900">{{ $reservation->nights }}</p>
-        <p class="text-xs text-gray-400 mt-1">{{ number_format($pricePerNight, 0) }} {{ $reservation->currency_symbol }}/ليلة</p>
-    </div>
-
-    {{-- Total --}}
-    <div class="stat-card bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-        <div class="flex items-center justify-between mb-3">
-            <span class="text-xs text-gray-400 font-medium">إجمالي الحجز</span>
-            <div class="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
-                <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            </div>
-        </div>
-        <p class="text-3xl font-black text-gray-900">{{ number_format($reservation->total_amount, 0) }}</p>
-        <p class="text-xs text-gray-400 mt-1">{{ $reservation->currency_symbol }}</p>
-    </div>
-
-    {{-- Balance --}}
-    <div class="stat-card bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-        <div class="flex items-center justify-between mb-3">
-            <span class="text-xs text-gray-400 font-medium">{{ $reservation->balance > 0 ? 'المتبقي' : 'مكتمل' }}</span>
-            <div class="w-8 h-8 rounded-lg {{ $reservation->balance > 0 ? 'bg-red-50' : 'bg-emerald-50' }} flex items-center justify-center">
-                @if($reservation->balance > 0)
-                <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
-                @else
-                <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                @endif
-            </div>
-        </div>
-        <p class="text-3xl font-black {{ $reservation->balance > 0 ? 'text-red-600' : 'text-emerald-600' }}">
-            {{ number_format(abs($reservation->balance), 0) }}
-        </p>
-        <p class="text-xs text-gray-400 mt-1">{{ $reservation->currency_symbol }}</p>
-    </div>
-</div>
-
-{{-- ===== DATE TIMELINE (horizontal, full width) ===== --}}
-<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-        {{-- Check-in --}}
-        <div class="flex items-center gap-3 flex-1 min-w-0">
-            <div class="w-11 h-11 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
-                <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
-            </div>
-            <div class="min-w-0">
-                <p class="text-xs text-gray-400 font-semibold uppercase tracking-wide">تاريخ الدخول</p>
-                <p class="font-bold text-gray-900 text-lg leading-tight">{{ $reservation->check_in_date?->format('d/m/Y') ?? '—' }}</p>
-                @if($reservation->check_in_time)
-                <p class="text-xs text-emerald-600 font-medium">{{ $reservation->check_in_time }}</p>
-                @endif
-            </div>
-        </div>
-
-        {{-- Connector + nights --}}
-        <div class="flex items-center gap-2 flex-1 justify-center">
-            <div class="hidden sm:block flex-1 h-0.5 bg-gradient-to-l from-emerald-200 via-gray-200 to-red-200 rounded-full"></div>
-            <span class="px-3 py-1 rounded-full bg-gray-800 text-white text-xs font-black shrink-0 whitespace-nowrap">{{ $reservation->nights }} {{ $reservation->nights == 1 ? 'ليلة' : 'ليالٍ' }}</span>
-            <div class="hidden sm:block flex-1 h-0.5 bg-gradient-to-l from-emerald-200 via-gray-200 to-red-200 rounded-full"></div>
-        </div>
-
-        {{-- Check-out --}}
-        <div class="flex items-center gap-3 flex-1 min-w-0 sm:justify-end">
-            <div class="w-11 h-11 rounded-xl bg-red-100 flex items-center justify-center shrink-0 sm:order-2">
-                <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-            </div>
-            <div class="min-w-0 sm:text-left sm:order-1">
-                <p class="text-xs text-gray-400 font-semibold uppercase tracking-wide">تاريخ الخروج</p>
-                <p class="font-bold text-gray-900 text-lg leading-tight">{{ $reservation->check_out_date?->format('d/m/Y') ?? '—' }}</p>
-                @if($daysLabel && $reservation->status === 'checked_in')
-                <span class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 text-xs font-bold rounded-lg {{ $daysClass }}">{{ $daysLabel }}</span>
-                @endif
-            </div>
-        </div>
-    </div>
-</div>
-
-{{-- ===== MAIN GRID ===== --}}
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
-
-    {{-- ===== LEFT COLUMN ===== --}}
-    <div class="lg:col-span-2 space-y-5">
-
-        {{-- Guest Card --}}
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-50 flex items-center gap-3">
-                <div class="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center shadow-sm">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                    </svg>
-                </div>
-                <h3 class="font-bold text-gray-800">بيانات النزيل الرئيسي</h3>
-            </div>
-            <div class="p-6">
-                <div class="flex flex-col md:flex-row gap-6">
-                    <div class="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3.5 text-sm">
-                        <div>
-                            <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">الاسم الكامل</p>
-                            <p class="font-bold text-gray-900 text-base">{{ $reservation->guest?->full_name ?? '—' }}</p>
-                        </div>
-                        <div>
-                            <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">الجنسية</p>
-                            <p class="text-gray-700">{{ $reservation->guest?->nationality ?: '—' }}</p>
-                        </div>
-                        <div>
-                            <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">المهنة</p>
-                            <p class="text-gray-700">{{ $reservation->guest?->occupation ?: '—' }}</p>
-                        </div>
-                        <div>
-                            <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">نوع الهوية</p>
-                            <p class="text-gray-700">{{ $reservation->guest?->getIdTypeLabel() ?? '—' }}</p>
-                        </div>
-                        @can('guests.sensitive')
-                        <div>
-                            <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">رقم الهوية</p>
-                            <p class="font-mono font-semibold text-gray-800 tracking-wider">{{ $reservation->guest?->id_number ?? '—' }}</p>
-                        </div>
-                        <div>
-                            <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">رقم الجوال</p>
-                            <p class="font-mono text-gray-800">{{ $reservation->guest?->phone ?: '—' }}</p>
-                        </div>
-                        <div>
-                            <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">جهة الإصدار</p>
-                            <p class="text-gray-700">{{ $reservation->guest?->id_issuer ?: '—' }}</p>
-                        </div>
-                        <div>
-                            <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">تاريخ الإصدار</p>
-                            <p class="text-gray-700">{{ $reservation->guest?->id_issue_date?->format('d/m/Y') ?: '—' }}</p>
-                        </div>
-                        @endcan
-                        <div>
-                            <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">جهة القدوم</p>
-                            <p class="text-gray-700">{{ $reservation->origin ?: '—' }}</p>
-                        </div>
-                        <div>
-                            <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">الغرض من الزيارة</p>
-                            <p class="text-gray-700">{{ $reservation->purpose ?: '—' }}</p>
-                        </div>
-                    </div>
-
-                    {{-- ID Image --}}
-                    @if($reservation->guest?->id_image_path)
-                    <div class="md:w-44 shrink-0" id="guestIdImageBox">
-                        <p class="text-xs text-gray-400 mb-2 text-center font-medium">صورة الهوية</p>
-                        @php $ext = strtolower(pathinfo($reservation->guest->id_image_path, PATHINFO_EXTENSION)); @endphp
-                        @if($ext === 'pdf')
-                        <a href="{{ route('guests.idImage', $reservation->guest) }}" target="_blank"
-                           class="flex flex-col items-center justify-center w-full h-36 border-2 border-dashed border-gray-200 rounded-2xl hover:border-blue-400 transition bg-red-50 group">
-                            <svg class="w-10 h-10 text-red-400 group-hover:text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM8 17h8v-1H8v1zm0-3h8v-1H8v1zm0-3h5v-1H8v1z"/></svg>
-                            <span class="text-xs text-red-500 mt-2 font-semibold">ملف PDF</span>
-                            <span class="text-xs text-gray-400">اضغط للعرض</span>
-                        </a>
-                        @else
-                        <a href="{{ route('guests.idImage', $reservation->guest) }}" target="_blank">
-                            <img src="{{ route('guests.idImage', $reservation->guest) }}"
-                                 alt="هوية النزيل"
-                                 class="w-full h-36 object-cover rounded-2xl border border-gray-200 hover:opacity-90 transition cursor-zoom-in shadow-sm"
-                                 onerror="document.getElementById('guestIdImageBox').innerHTML='<div class=\'flex flex-col items-center justify-center h-36 border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50 text-gray-400 text-xs text-center p-3\'><svg class=\'w-8 h-8 mb-2\' fill=\'none\' stroke=\'currentColor\' viewBox=\'0 0 24 24\'><path stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z\'></path></svg>الصورة غير متاحة</div>'">
-                        </a>
-                        @endif
-                    </div>
+                    <button onclick="document.getElementById('transferRoomModal').classList.remove('hidden')" class="w-full flex items-center gap-2.5 px-4 py-2 text-gray-700 hover:bg-gray-50 transition">
+                        <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                        تغيير الغرفة
+                    </button>
                     @endif
-                </div>
-
-                @if($reservation->notes)
-                <div class="mt-5 p-4 bg-amber-50 border border-amber-100 rounded-xl text-sm text-amber-800 flex gap-3">
-                    <svg class="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
-                    <div>
-                        <span class="font-semibold text-xs text-amber-600 block mb-0.5">ملاحظات</span>
-                        {{ $reservation->notes }}
-                    </div>
-                </div>
-                @endif
-            </div>
-        </div>
-
-        {{-- Companions --}}
-        @if($reservation->companions->count() > 0)
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-xl bg-violet-600 flex items-center justify-center shadow-sm">
-                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        </svg>
-                    </div>
-                    <h3 class="font-bold text-gray-800">المرافقون</h3>
-                </div>
-                <span class="px-3 py-1 bg-violet-100 text-violet-700 text-xs font-bold rounded-full">
-                    {{ $reservation->companions->count() }}
-                </span>
-            </div>
-            <div class="divide-y divide-gray-50">
-                @foreach($reservation->companions as $idx => $c)
-                <div class="p-6">
-                    <div class="flex flex-col md:flex-row gap-5">
-                        <div class="flex-1">
-                            <div class="flex items-center gap-3 mb-4">
-                                <div class="w-8 h-8 rounded-full bg-violet-100 text-violet-700 text-sm font-black flex items-center justify-center shrink-0">
-                                    {{ $idx + 1 }}
-                                </div>
-                                <span class="font-bold text-gray-900">{{ $c->full_name }}</span>
-                                <span class="badge-pill bg-violet-50 text-violet-600">
-                                    {{ $c->getRelationshipLabel() }}
-                                </span>
-                            </div>
-                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3 text-sm">
-                                <div>
-                                    <p class="text-xs text-gray-400 uppercase tracking-wide mb-0.5">الجنسية</p>
-                                    <p class="text-gray-700">{{ $c->nationality ?: '—' }}</p>
-                                </div>
-                                <div>
-                                    <p class="text-xs text-gray-400 uppercase tracking-wide mb-0.5">نوع الهوية</p>
-                                    <p class="text-gray-700">{{ $c->getIdTypeLabel() ?? '—' }}</p>
-                                </div>
-                                @can('guests.sensitive')
-                                <div>
-                                    <p class="text-xs text-gray-400 uppercase tracking-wide mb-0.5">رقم الهوية</p>
-                                    <p class="font-mono font-semibold text-gray-800">{{ $c->id_number ?? '—' }}</p>
-                                </div>
-                                <div>
-                                    <p class="text-xs text-gray-400 uppercase tracking-wide mb-0.5">جهة الإصدار</p>
-                                    <p class="text-gray-700">{{ $c->id_issuer ?: '—' }}</p>
-                                </div>
-                                <div>
-                                    <p class="text-xs text-gray-400 uppercase tracking-wide mb-0.5">تاريخ الإصدار</p>
-                                    <p class="text-gray-700">{{ $c->id_issue_date?->format('d/m/Y') ?: '—' }}</p>
-                                </div>
-                                @endcan
-                            </div>
-                        </div>
-
-                        <div class="flex gap-3 md:flex-col md:w-36 shrink-0">
-                            @if($c->id_image_path)
-                            <div class="flex-1 md:flex-none">
-                                <p class="text-xs text-gray-400 mb-1.5 text-center font-medium">صورة الهوية</p>
-                                @php $cExt = strtolower(pathinfo($c->id_image_path, PATHINFO_EXTENSION)); @endphp
-                                @if($cExt === 'pdf')
-                                <a href="{{ route('companions.idImage', $c) }}" target="_blank"
-                                   class="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-200 rounded-xl hover:border-blue-400 transition bg-red-50">
-                                    <svg class="w-7 h-7 text-red-400" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5z"/></svg>
-                                    <span class="text-xs text-red-400 mt-1 font-medium">PDF</span>
-                                </a>
-                                @else
-                                <a href="{{ route('companions.idImage', $c) }}" target="_blank">
-                                    <img src="{{ route('companions.idImage', $c) }}" alt="هوية المرافق"
-                                         class="w-full h-24 object-cover rounded-xl border border-gray-200 hover:opacity-90 transition cursor-zoom-in shadow-sm">
-                                </a>
-                                @endif
-                            </div>
-                            @endif
-                            @if($c->marriage_doc_path)
-                            <div class="flex-1 md:flex-none">
-                                <p class="text-xs text-gray-400 mb-1.5 text-center font-medium">عقد الزواج</p>
-                                @php $mExt = strtolower(pathinfo($c->marriage_doc_path, PATHINFO_EXTENSION)); @endphp
-                                @if($mExt === 'pdf')
-                                <a href="{{ route('companions.marriageDoc', $c) }}" target="_blank"
-                                   class="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-200 rounded-xl hover:border-pink-400 transition bg-pink-50">
-                                    <svg class="w-7 h-7 text-pink-400" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5z"/></svg>
-                                    <span class="text-xs text-pink-400 mt-1 font-medium">PDF</span>
-                                </a>
-                                @else
-                                <a href="{{ route('companions.marriageDoc', $c) }}" target="_blank">
-                                    <img src="{{ route('companions.marriageDoc', $c) }}" alt="عقد الزواج"
-                                         class="w-full h-24 object-cover rounded-xl border border-gray-200 hover:opacity-90 transition cursor-zoom-in shadow-sm">
-                                </a>
-                                @endif
-                            </div>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-                @endforeach
-            </div>
-        </div>
-        @endif
-
-        {{-- Payments History --}}
-        @if($reservation->payments->count() > 0)
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-50 flex items-center gap-3">
-                <div class="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center shadow-sm">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
-                    </svg>
-                </div>
-                <h3 class="font-bold text-gray-800">سجل المدفوعات</h3>
-                <span class="mr-auto px-2.5 py-0.5 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-full">
-                    {{ $reservation->payments->count() }} دفعة
-                </span>
-            </div>
-
-            {{-- Desktop Table --}}
-            <div class="hidden md:block overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="bg-gray-50/80 text-xs text-gray-500 font-semibold border-b border-gray-100">
-                            <th class="px-5 py-3 text-right font-semibold">التاريخ</th>
-                            <th class="px-5 py-3 text-right font-semibold">المبلغ</th>
-                            <th class="px-5 py-3 text-right font-semibold">الطريقة</th>
-                            <th class="px-5 py-3 text-right font-semibold">النوع</th>
-                            <th class="px-5 py-3 text-right font-semibold">ملاحظة</th>
-                            <th class="px-5 py-3 text-right font-semibold">استلم بواسطة</th>
-                            <th class="px-5 py-3 text-right font-semibold">السند</th>
-                            @can('payments.create')
-                            <th class="px-5 py-3 text-right font-semibold"></th>
-                            @endcan
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-50">
-                        @foreach($reservation->payments as $p)
-                        @php
-                            $typeLabel = match($p->type) {
-                                'reservation'  => ['label' => 'دفعة حجز',    'class' => 'bg-blue-50 text-blue-700'],
-                                'renewal'      => ['label' => 'دفعة تجديد',  'class' => 'bg-amber-50 text-amber-700'],
-                                'compensation' => ['label' => 'تعويض أضرار', 'class' => 'bg-red-50 text-red-700'],
-                                'extra_service'=> ['label' => 'خدمة إضافية', 'class' => 'bg-purple-50 text-purple-700'],
-                                default        => ['label' => $p->type,       'class' => 'bg-gray-50 text-gray-600'],
-                            };
-                            $methodClass = match($p->method) {
-                                'cash'          => 'bg-emerald-50 text-emerald-700',
-                                'pos'           => 'bg-blue-50 text-blue-700',
-                                'bank_transfer' => 'bg-purple-50 text-purple-700',
-                                default         => 'bg-gray-50 text-gray-600',
-                            };
-                            $methodLabel = match($p->method) { 'cash'=>'نقدي', 'pos'=>'POS', 'bank_transfer'=>'تحويل', default=>$p->method };
-                        @endphp
-                        <tr class="payment-row transition-colors">
-                            <td class="px-5 py-3.5 text-gray-500 text-xs whitespace-nowrap">{{ $p->payment_date->format('d/m/Y') }}<br><span class="text-gray-400">{{ $p->payment_date->format('H:i') }}</span></td>
-                            <td class="px-5 py-3.5 font-bold text-emerald-700 whitespace-nowrap text-base">
-                                {{ number_format($p->amount, 0) }}
-                                <span class="text-xs font-normal text-gray-400">{{ $reservation->currency_symbol }}</span>
-                            </td>
-                            <td class="px-5 py-3.5">
-                                <span class="badge-pill {{ $methodClass }}">{{ $methodLabel }}</span>
-                            </td>
-                            <td class="px-5 py-3.5">
-                                <span class="badge-pill {{ $typeLabel['class'] }}">{{ $typeLabel['label'] }}</span>
-                            </td>
-                            <td class="px-5 py-3.5 max-w-[160px]">
-                                @if($p->notes)
-                                <span class="text-xs bg-blue-50 text-blue-600 rounded-lg px-2 py-1">{{ $p->notes }}</span>
-                                @else
-                                <span class="text-gray-300 text-xs">—</span>
-                                @endif
-                            </td>
-                            <td class="px-5 py-3.5 text-gray-600 text-sm">{{ $p->receivedBy?->name ?? '—' }}</td>
-                            <td class="px-5 py-3.5">
-                                @if($p->bank_receipt_path)
-                                @can('payments.bank_receipt')
-                                <a href="{{ route('payments.receipt', ['file' => $p->bank_receipt_path]) }}" target="_blank"
-                                   class="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs font-semibold hover:underline">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                    عرض
-                                </a>
-                                @endcan
-                                @else
-                                <span class="text-gray-300 text-xs">—</span>
-                                @endif
-                            </td>
-                            @can('payments.create')
-                            <td class="px-5 py-3.5">
-                                <button type="button"
-                                        onclick="openEditPaymentModal({{ $p->id }}, {{ $p->amount }})"
-                                        class="inline-flex items-center gap-1 text-gray-400 hover:text-blue-600 text-xs font-semibold hover:underline">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                                    تصحيح
-                                </button>
-                            </td>
-                            @endcan
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-
-            {{-- Mobile View --}}
-            <div class="md:hidden space-y-3 p-4">
-                @foreach($reservation->payments as $p)
-                @php
-                    $typeLabel = match($p->type) {
-                        'reservation'  => ['label' => 'دفعة حجز',    'class' => 'bg-blue-50 text-blue-700'],
-                        'renewal'      => ['label' => 'دفعة تجديد',  'class' => 'bg-amber-50 text-amber-700'],
-                        'compensation' => ['label' => 'تعويض أضرار', 'class' => 'bg-red-50 text-red-700'],
-                        'extra_service'=> ['label' => 'خدمة إضافية', 'class' => 'bg-purple-50 text-purple-700'],
-                        default        => ['label' => $p->type,       'class' => 'bg-gray-50 text-gray-600'],
-                    };
-                @endphp
-                <div class="bg-gray-50 rounded-xl p-4 space-y-2.5">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs text-gray-400">{{ $p->payment_date->format('d/m/Y H:i') }}</span>
-                        <span class="font-bold text-emerald-700 text-lg">{{ number_format($p->amount, 0) }} {{ $reservation->currency_symbol }}</span>
-                    </div>
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <span class="badge-pill {{ $p->method === 'cash' ? 'bg-emerald-50 text-emerald-700' : ($p->method === 'pos' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700') }}">
-                            {{ match($p->method) { 'cash'=>'نقدي', 'pos'=>'POS', 'bank_transfer'=>'تحويل', default=>$p->method } }}
-                        </span>
-                        <span class="badge-pill {{ $typeLabel['class'] }}">{{ $typeLabel['label'] }}</span>
-                    </div>
-                    <div class="text-xs text-gray-500">استلمه: <span class="font-medium text-gray-700">{{ $p->receivedBy?->name ?? '—' }}</span></div>
-                    @can('payments.create')
-                    <button type="button"
-                            onclick="openEditPaymentModal({{ $p->id }}, {{ $p->amount }})"
-                            class="inline-flex items-center gap-1 text-blue-600 text-xs font-semibold hover:underline">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                        تصحيح المبلغ
+                    @endcan
+                    @can('checkin.create')
+                    @if($reservation->status === 'checked_in')
+                    <form method="POST" action="{{ route('reservations.toggleAutoRenew', $reservation) }}">
+                        @csrf @method('PATCH')
+                        <button type="submit"
+                                onclick="return confirm(@js($reservation->auto_renew ? 'إيقاف التجديد التلقائي لهذه الإقامة؟' : 'تفعيل التجديد التلقائي؟ سيُحتسب يوم جديد تلقائياً بعد كل ساعة 1 ظهراً ويُضاف للدين.'))"
+                                class="w-full flex items-center gap-2.5 px-4 py-2 hover:bg-gray-50 transition {{ $reservation->auto_renew ? 'text-emerald-700 font-semibold' : 'text-gray-700' }}">
+                            <svg class="w-4 h-4 {{ $reservation->auto_renew ? 'text-emerald-500' : 'text-gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                            {{ $reservation->auto_renew ? 'إيقاف التجديد التلقائي' : 'تفعيل التجديد التلقائي' }}
+                        </button>
+                    </form>
+                    @endif
+                    @endcan
+                    @can('checkin.view')
+                    <a href="{{ route('reservations.invoice', $reservation) }}" target="_blank" class="flex items-center gap-2.5 px-4 py-2 text-gray-700 hover:bg-gray-50 transition">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                        الفاتورة
+                    </a>
+                    @endcan
+                    @can('government.export')
+                    <a href="{{ route('checkin.exportGov', ['reservation'=>$reservation->id,'format'=>'pdf']) }}" class="flex items-center gap-2.5 px-4 py-2 text-gray-700 hover:bg-gray-50 transition">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        تصدير حكومي PDF
+                    </a>
+                    @endcan
+                    @can('checkin.view')
+                    @if(in_array($reservation->status, ['confirmed', 'checked_in']))
+                    <div class="border-t border-gray-100 my-1"></div>
+                    <button onclick="document.getElementById('cancelReservationModal').classList.remove('hidden')" class="w-full flex items-center gap-2.5 px-4 py-2 text-red-600 hover:bg-red-50 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        إلغاء الحجز
                     </button>
+                    @endif
                     @endcan
                 </div>
-                @endforeach
             </div>
         </div>
-        @endif
+    </div>
+</div>
 
-        {{-- Extra Charges --}}
-        @if($reservation->extraCharges->count() > 0)
+{{-- ===== MAIN AREA — يملأ الشاشة، تمرير داخلي لكل عمود ===== --}}
+<div class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3 min-h-0">
+
+    {{-- ══ العمود 1: بيانات النزيل ══ --}}
+    <div class="lg:col-span-4 min-h-0 overflow-y-auto slim-scroll">
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-50 flex items-center gap-3">
-                <div class="w-9 h-9 rounded-xl bg-red-500 flex items-center justify-center shadow-sm">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                    </svg>
+            <div class="px-5 py-3 border-b border-gray-50 flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shadow-sm">
+                    <svg class="w-4.5 h-4.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:18px;height:18px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                 </div>
-                <h3 class="font-bold text-gray-800">الرسوم الإضافية</h3>
+                <h3 class="font-bold text-gray-800 text-sm">بيانات النزيل الرئيسي</h3>
             </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="bg-gray-50/80 text-xs text-gray-500 font-semibold border-b border-gray-100">
-                            <th class="px-5 py-3 text-right">التاريخ</th>
-                            <th class="px-5 py-3 text-right">النوع</th>
-                            <th class="px-5 py-3 text-right">الوصف</th>
-                            <th class="px-5 py-3 text-right">المبلغ</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-50">
-                        @foreach($reservation->extraCharges as $charge)
-                        <tr class="hover:bg-gray-50 transition-colors">
-                            <td class="px-5 py-3.5 text-gray-500">{{ $charge->charge_date->format('d/m/Y') }}</td>
-                            <td class="px-5 py-3.5 text-gray-600">{{ $charge->type }}</td>
-                            <td class="px-5 py-3.5 text-gray-500 text-sm">{{ $charge->description ?: '—' }}</td>
-                            <td class="px-5 py-3.5 font-bold text-red-600">
-                                {{ number_format($charge->amount, 0) }} {{ $reservation->currency_symbol }}
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        @endif
+            <div class="p-5">
+                <div class="grid grid-cols-2 gap-x-5 gap-y-3 text-sm">
+                    <div>
+                        <p class="text-xs text-gray-400 tracking-wide mb-0.5">الاسم الكامل</p>
+                        <p class="font-bold text-gray-900">{{ $reservation->guest?->full_name ?? '—' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-400 tracking-wide mb-0.5">الجنسية</p>
+                        <p class="text-gray-700">{{ $reservation->guest?->nationality ?: '—' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-400 tracking-wide mb-0.5">المهنة</p>
+                        <p class="text-gray-700">{{ $reservation->guest?->occupation ?: '—' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-400 tracking-wide mb-0.5">نوع الهوية</p>
+                        <p class="text-gray-700">{{ $reservation->guest?->getIdTypeLabel() ?? '—' }}</p>
+                    </div>
+                    @can('guests.sensitive')
+                    <div>
+                        <p class="text-xs text-gray-400 tracking-wide mb-0.5">رقم الهوية</p>
+                        <p class="font-mono font-semibold text-gray-800 tracking-wider">{{ $reservation->guest?->id_number ?? '—' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-400 tracking-wide mb-0.5">رقم الجوال</p>
+                        <p class="font-mono text-gray-800">{{ $reservation->guest?->phone ?: '—' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-400 tracking-wide mb-0.5">جهة الإصدار</p>
+                        <p class="text-gray-700">{{ $reservation->guest?->id_issuer ?: '—' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-400 tracking-wide mb-0.5">تاريخ الإصدار</p>
+                        <p class="text-gray-700">{{ $reservation->guest?->id_issue_date?->format('d/m/Y') ?: '—' }}</p>
+                    </div>
+                    @endcan
+                    <div>
+                        <p class="text-xs text-gray-400 tracking-wide mb-0.5">جهة القدوم</p>
+                        <p class="text-gray-700">{{ $reservation->origin ?: '—' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-400 tracking-wide mb-0.5">الغرض من الزيارة</p>
+                        <p class="text-gray-700">{{ $reservation->purpose ?: '—' }}</p>
+                    </div>
+                </div>
 
-        {{-- Room Inspection --}}
-        @if($reservation->status === 'checked_out' && $reservation->roomInspections->count() > 0)
-        @php $insp = $reservation->roomInspections->first(); @endphp
-        <div class="bg-white rounded-2xl shadow-sm border {{ $insp->has_damage ? 'border-red-200' : 'border-emerald-100' }} overflow-hidden">
-            <div class="px-6 py-4 border-b {{ $insp->has_damage ? 'border-red-100' : 'border-emerald-50' }} flex items-center gap-3">
-                <div class="w-9 h-9 rounded-xl {{ $insp->has_damage ? 'bg-red-500' : 'bg-emerald-500' }} flex items-center justify-center shadow-sm">
-                    @if($insp->has_damage)
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                @if($reservation->guest?->id_image_path)
+                <div class="mt-4" id="guestIdImageBox">
+                    <p class="text-xs text-gray-400 mb-1.5 font-medium">صورة الهوية</p>
+                    @php $ext = strtolower(pathinfo($reservation->guest->id_image_path, PATHINFO_EXTENSION)); @endphp
+                    @if($ext === 'pdf')
+                    <a href="{{ route('guests.idImage', $reservation->guest) }}" target="_blank"
+                       class="flex flex-col items-center justify-center w-full max-w-[220px] h-28 border-2 border-dashed border-gray-200 rounded-xl hover:border-blue-400 transition bg-red-50 group">
+                        <svg class="w-8 h-8 text-red-400 group-hover:text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5z"/></svg>
+                        <span class="text-xs text-red-500 mt-1 font-semibold">ملف PDF — اضغط للعرض</span>
+                    </a>
                     @else
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <a href="{{ route('guests.idImage', $reservation->guest) }}" target="_blank">
+                        <img src="{{ route('guests.idImage', $reservation->guest) }}" alt="هوية النزيل"
+                             class="w-full max-w-[220px] h-28 object-cover rounded-xl border border-gray-200 hover:opacity-90 transition cursor-zoom-in shadow-sm"
+                             onerror="document.getElementById('guestIdImageBox').style.display='none'">
+                    </a>
                     @endif
                 </div>
-                <h3 class="font-bold text-gray-800">تقرير فحص الغرفة</h3>
-                <span class="mr-auto text-xs text-gray-400">{{ $insp->inspection_date?->format('d/m/Y H:i') }}</span>
-            </div>
-            <div class="p-6 space-y-3 text-sm">
-                @if($insp->has_damage)
-                <div class="flex items-center gap-2 text-red-700 font-semibold">
-                    <span class="w-2 h-2 rounded-full bg-red-500 inline-block"></span>
-                    تم تسجيل أضرار في الغرفة
-                </div>
-                @if($insp->damage_description)
-                <p class="text-gray-600 bg-red-50 rounded-xl p-4 text-sm leading-relaxed">{{ $insp->damage_description }}</p>
                 @endif
-                @if($insp->compensation_amount > 0)
-                <div class="flex justify-between items-center bg-orange-50 border border-orange-100 rounded-xl p-4">
-                    <span class="text-orange-800 font-semibold text-sm">مبلغ التعويض</span>
-                    <span class="font-black text-orange-700 text-lg">{{ number_format($insp->compensation_amount, 0) }} {{ $reservation->currency_symbol }}</span>
-                </div>
-                <div class="flex items-center gap-1.5 text-sm">
-                    <span class="w-2.5 h-2.5 rounded-full {{ $insp->compensation_status === 'paid' ? 'bg-emerald-500' : 'bg-amber-500' }} inline-block"></span>
-                    <span class="{{ $insp->compensation_status === 'paid' ? 'text-emerald-700 font-semibold' : 'text-amber-700' }}">
-                        {{ $insp->compensation_status === 'paid' ? 'التعويض مدفوع' : 'التعويض معلق' }}
-                    </span>
-                </div>
-                @endif
-                @if($insp->images->count() > 0)
-                <div>
-                    <p class="text-xs text-gray-400 mb-2 font-medium">صور الأضرار ({{ $insp->images->count() }})</p>
-                    <div class="flex flex-wrap gap-2">
-                        @foreach($insp->images as $img)
-                        <a href="{{ Storage::disk('private')->url($img->image_path) }}" target="_blank"
-                           class="w-20 h-20 rounded-xl overflow-hidden border border-gray-200 block hover:opacity-90 transition shadow-sm">
-                            <img src="{{ asset('storage/' . $img->image_path) }}" alt="صورة ضرر"
-                                 class="w-full h-full object-cover" onerror="this.parentElement.style.display='none'">
-                        </a>
-                        @endforeach
+
+                @if($reservation->notes)
+                <div class="mt-4 p-3 bg-amber-50 border border-amber-100 rounded-xl text-xs text-amber-800 flex gap-2.5">
+                    <svg class="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
+                    <div>
+                        <span class="font-semibold text-amber-600 block mb-0.5">ملاحظات</span>
+                        <span class="whitespace-pre-line">{{ $reservation->notes }}</span>
                     </div>
                 </div>
                 @endif
-                @else
-                <div class="flex items-center gap-3 text-emerald-700 font-semibold">
-                    <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
-                    الغرفة بحالة جيدة — لا توجد أضرار
-                </div>
-                @endif
             </div>
         </div>
-        @endif
-
     </div>
 
-    {{-- ===== RIGHT COLUMN ===== --}}
-    <div class="space-y-5 lg:sticky lg:top-6 self-start">
+    {{-- ══ العمود 2: التواريخ + الملخص المالي + رسوم/فحص + معلومات ══ --}}
+    <div class="lg:col-span-4 min-h-0 overflow-y-auto slim-scroll space-y-3">
 
-        {{-- Financial Summary Card --}}
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-5 py-4 border-b border-gray-50 flex items-center gap-3">
-                <div class="w-9 h-9 rounded-xl bg-amber-500 flex items-center justify-center shadow-sm">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
+        {{-- Timeline (horizontal) --}}
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+            <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2 flex-1 min-w-0">
+                    <div class="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
+                        <svg class="w-4.5 h-4.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:18px;height:18px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-xs text-gray-400 font-semibold">الدخول</p>
+                        <p class="font-bold text-gray-900 text-sm leading-tight">{{ $reservation->check_in_date?->format('d/m/Y') ?? '—' }}</p>
+                        @if($reservation->check_in_time)<p class="text-xs text-emerald-600">{{ $reservation->check_in_time }}</p>@endif
+                    </div>
                 </div>
-                <h3 class="font-bold text-gray-800">الملخص المالي</h3>
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <div class="w-6 h-0.5 bg-gray-200 rounded-full hidden sm:block"></div>
+                    <span class="px-2.5 py-0.5 rounded-full bg-gray-800 text-white text-xs font-black whitespace-nowrap">{{ $reservation->nights }} {{ $reservation->nights == 1 ? 'ليلة' : 'ليالٍ' }}</span>
+                    <div class="w-6 h-0.5 bg-gray-200 rounded-full hidden sm:block"></div>
+                </div>
+                <div class="flex items-center gap-2 flex-1 min-w-0 justify-end">
+                    <div class="min-w-0 text-left">
+                        <p class="text-xs text-gray-400 font-semibold">الخروج</p>
+                        <p class="font-bold text-gray-900 text-sm leading-tight">{{ $reservation->check_out_date?->format('d/m/Y') ?? '—' }}</p>
+                        @if($reservation->check_out_time)<p class="text-xs text-gray-500">{{ $reservation->check_out_time }}</p>@endif
+                    </div>
+                    <div class="w-9 h-9 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
+                        <svg class="w-4.5 h-4.5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:18px;height:18px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                    </div>
+                </div>
             </div>
-            <div class="p-5 space-y-3 text-sm">
+        </div>
+
+        {{-- Financial Summary --}}
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-5 py-3 border-b border-gray-50 flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center shadow-sm">
+                    <svg class="text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:18px;height:18px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <h3 class="font-bold text-gray-800 text-sm">الملخص المالي</h3>
+            </div>
+            <div class="p-4 space-y-2 text-sm">
                 @if($hasFirstNight)
                 <div class="flex justify-between items-center">
                     <span class="text-gray-500">سعر الليلة الأولى</span>
@@ -781,44 +368,122 @@
                     <span class="font-semibold">+ {{ number_format($reservation->extraCharges->sum('amount'), 0) }} {{ $reservation->currency_symbol }}</span>
                 </div>
                 @endif
-                <div class="border-t border-gray-100 pt-3">
-                    <div class="flex justify-between items-center">
-                        <span class="font-bold text-gray-800">الإجمالي</span>
-                        <span class="font-black text-gray-900 text-lg">{{ number_format($reservation->total_amount, 0) }} <span class="text-sm font-normal text-gray-400">{{ $reservation->currency_symbol }}</span></span>
-                    </div>
+                <div class="border-t border-gray-100 pt-2 flex justify-between items-center">
+                    <span class="font-bold text-gray-800">الإجمالي</span>
+                    <span class="font-black text-gray-900 text-lg">{{ number_format($reservation->total_amount, 0) }} <span class="text-xs font-normal text-gray-400">{{ $reservation->currency_symbol }}</span></span>
                 </div>
                 <div class="flex justify-between items-center">
                     <span class="text-gray-500">المدفوع</span>
                     <span class="font-semibold text-emerald-600">{{ number_format($reservation->paid_amount, 0) }} {{ $reservation->currency_symbol }}</span>
                 </div>
-
-                {{-- Progress Bar --}}
                 @if($reservation->total_amount > 0)
                 <div>
-                    <div class="flex justify-between items-center mb-1.5">
+                    <div class="flex justify-between items-center mb-1">
                         <span class="text-xs text-gray-400">نسبة السداد</span>
                         <span class="text-xs font-bold {{ $paidPercent >= 100 ? 'text-emerald-600' : 'text-gray-600' }}">{{ $paidPercent }}%</span>
                     </div>
-                    <div class="w-full bg-gray-100 rounded-full h-2">
-                        <div class="paid-bar h-2 rounded-full" style="width: {{ $paidPercent }}%"></div>
+                    <div class="w-full bg-gray-100 rounded-full h-1.5">
+                        <div class="paid-bar h-1.5 rounded-full" style="width: {{ $paidPercent }}%"></div>
                     </div>
                 </div>
                 @endif
-
-                <div class="bg-gray-50 rounded-xl p-4 flex justify-between items-center mt-2">
+                <div class="bg-gray-50 rounded-xl p-3 flex justify-between items-center mt-1">
                     <span class="font-bold {{ $reservation->balance > 0 ? 'text-red-700' : 'text-emerald-700' }} text-sm">
                         {{ $reservation->balance > 0 ? 'المتبقي' : 'مكتمل الدفع' }}
                     </span>
-                    <span class="font-black text-xl {{ $reservation->balance > 0 ? 'text-red-600' : 'text-emerald-600' }}">
+                    <span class="font-black text-lg {{ $reservation->balance > 0 ? 'text-red-600' : 'text-emerald-600' }}">
                         {{ number_format(abs($reservation->balance), 0) }}
-                        <span class="text-sm font-normal text-gray-400">{{ $reservation->currency_symbol }}</span>
+                        <span class="text-xs font-normal text-gray-400">{{ $reservation->currency_symbol }}</span>
                     </span>
                 </div>
             </div>
         </div>
 
-        {{-- Meta Info Card --}}
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-3.5 text-sm">
+        {{-- Extra Charges --}}
+        @if($reservation->extraCharges->count() > 0)
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-5 py-3 border-b border-gray-50 flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-red-500 flex items-center justify-center shadow-sm">
+                    <svg class="text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:18px;height:18px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                </div>
+                <h3 class="font-bold text-gray-800 text-sm">الرسوم الإضافية</h3>
+            </div>
+            <div class="divide-y divide-gray-50">
+                @foreach($reservation->extraCharges as $charge)
+                <div class="px-5 py-2.5 flex items-center justify-between text-sm">
+                    <div class="min-w-0">
+                        <p class="font-medium text-gray-700">{{ $charge->type }}</p>
+                        <p class="text-xs text-gray-400">{{ $charge->charge_date->format('d/m/Y') }}@if($charge->description) — {{ $charge->description }}@endif</p>
+                    </div>
+                    <span class="font-bold text-red-600 whitespace-nowrap">{{ number_format($charge->amount, 0) }} {{ $reservation->currency_symbol }}</span>
+                </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
+
+        {{-- Room Inspection --}}
+        @if($reservation->status === 'checked_out' && $reservation->roomInspections->count() > 0)
+        @php $insp = $reservation->roomInspections->first(); @endphp
+        <div class="bg-white rounded-2xl shadow-sm border {{ $insp->has_damage ? 'border-red-200' : 'border-emerald-100' }} overflow-hidden">
+            <div class="px-5 py-3 border-b {{ $insp->has_damage ? 'border-red-100' : 'border-emerald-50' }} flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg {{ $insp->has_damage ? 'bg-red-500' : 'bg-emerald-500' }} flex items-center justify-center shadow-sm">
+                    @if($insp->has_damage)
+                    <svg class="text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:18px;height:18px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    @else
+                    <svg class="text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:18px;height:18px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    @endif
+                </div>
+                <h3 class="font-bold text-gray-800 text-sm">تقرير فحص الغرفة</h3>
+                <span class="mr-auto text-xs text-gray-400">{{ $insp->inspection_date?->format('d/m/Y H:i') }}</span>
+            </div>
+            <div class="p-4 space-y-2.5 text-sm">
+                @if($insp->has_damage)
+                <div class="flex items-center gap-2 text-red-700 font-semibold text-sm">
+                    <span class="w-2 h-2 rounded-full bg-red-500 inline-block"></span>
+                    تم تسجيل أضرار في الغرفة
+                </div>
+                @if($insp->damage_description)
+                <p class="text-gray-600 bg-red-50 rounded-xl p-3 text-xs leading-relaxed">{{ $insp->damage_description }}</p>
+                @endif
+                @if($insp->compensation_amount > 0)
+                <div class="flex justify-between items-center bg-orange-50 border border-orange-100 rounded-xl p-3">
+                    <span class="text-orange-800 font-semibold text-sm">مبلغ التعويض</span>
+                    <span class="font-black text-orange-700">{{ number_format($insp->compensation_amount, 0) }} {{ $reservation->currency_symbol }}</span>
+                </div>
+                <div class="flex items-center gap-1.5 text-xs">
+                    <span class="w-2.5 h-2.5 rounded-full {{ $insp->compensation_status === 'paid' ? 'bg-emerald-500' : 'bg-amber-500' }} inline-block"></span>
+                    <span class="{{ $insp->compensation_status === 'paid' ? 'text-emerald-700 font-semibold' : 'text-amber-700' }}">
+                        {{ $insp->compensation_status === 'paid' ? 'التعويض مدفوع' : 'التعويض معلق' }}
+                    </span>
+                </div>
+                @endif
+                @if($insp->images->count() > 0)
+                <div>
+                    <p class="text-xs text-gray-400 mb-1.5 font-medium">صور الأضرار ({{ $insp->images->count() }})</p>
+                    <div class="flex flex-wrap gap-2">
+                        @foreach($insp->images as $img)
+                        <a href="{{ Storage::disk('private')->url($img->image_path) }}" target="_blank"
+                           class="w-16 h-16 rounded-lg overflow-hidden border border-gray-200 block hover:opacity-90 transition shadow-sm">
+                            <img src="{{ asset('storage/' . $img->image_path) }}" alt="صورة ضرر"
+                                 class="w-full h-full object-cover" onerror="this.parentElement.style.display='none'">
+                        </a>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+                @else
+                <div class="flex items-center gap-2.5 text-emerald-700 font-semibold text-sm">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>
+                    الغرفة بحالة جيدة — لا توجد أضرار
+                </div>
+                @endif
+            </div>
+        </div>
+        @endif
+
+        {{-- Meta Info --}}
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-2.5 text-sm">
             <div class="flex justify-between items-center">
                 <span class="text-gray-400 text-xs font-medium">سُجِّل بواسطة</span>
                 <span class="text-gray-700 font-semibold text-sm">{{ $reservation->createdBy?->name ?? '—' }}</span>
@@ -831,9 +496,7 @@
             <div class="flex justify-between items-center">
                 <span class="text-gray-400 text-xs font-medium">التجديد التلقائي</span>
                 @if($reservation->auto_renew)
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
-                    مُفعّل · يوم جديد بعد 1 ظهراً
-                </span>
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">مُفعّل · يوم جديد بعد 1 ظهراً</span>
                 @else
                 <span class="text-gray-500 text-xs">متوقّف</span>
                 @endif
@@ -848,18 +511,89 @@
         </div>
 
     </div>
+
+    {{-- ══ العمود 3: سجل المدفوعات (تمرير داخلي) ══ --}}
+    <div class="lg:col-span-4 flex flex-col min-h-0 bg-white rounded-2xl shadow-sm border border-gray-100">
+        <div class="px-5 py-3 border-b border-gray-50 flex items-center gap-3 flex-shrink-0">
+            <div class="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center shadow-sm">
+                <svg class="text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:18px;height:18px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+            </div>
+            <h3 class="font-bold text-gray-800 text-sm">سجل المدفوعات</h3>
+            @if($reservation->payments->count() > 0)
+            <span class="mr-auto px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-full">{{ $reservation->payments->count() }} دفعة</span>
+            @endif
+        </div>
+
+        @if($reservation->payments->count() > 0)
+        <div class="flex-1 overflow-y-auto min-h-0 slim-scroll p-3 space-y-2">
+            @foreach($reservation->payments as $p)
+            @php
+                $typeLabel = match($p->type) {
+                    'reservation'  => ['label' => 'دفعة حجز',    'class' => 'bg-blue-50 text-blue-700'],
+                    'renewal'      => ['label' => 'دفعة تجديد',  'class' => 'bg-amber-50 text-amber-700'],
+                    'compensation' => ['label' => 'تعويض أضرار', 'class' => 'bg-red-50 text-red-700'],
+                    'extra_service'=> ['label' => 'خدمة إضافية', 'class' => 'bg-purple-50 text-purple-700'],
+                    default        => ['label' => $p->type,       'class' => 'bg-gray-50 text-gray-600'],
+                };
+                $methodClass = match($p->method) {
+                    'cash'          => 'bg-emerald-50 text-emerald-700',
+                    'pos'           => 'bg-blue-50 text-blue-700',
+                    'bank_transfer' => 'bg-purple-50 text-purple-700',
+                    default         => 'bg-gray-50 text-gray-600',
+                };
+                $methodLabel = match($p->method) { 'cash'=>'نقدي', 'pos'=>'POS', 'bank_transfer'=>'تحويل', default=>$p->method };
+            @endphp
+            <div class="bg-gray-50 rounded-xl p-3 space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-emerald-700">{{ number_format($p->amount, 0) }} <span class="text-xs font-normal text-gray-400">{{ $reservation->currency_symbol }}</span></span>
+                    <span class="text-xs text-gray-400">{{ $p->payment_date->format('d/m/Y H:i') }}</span>
+                </div>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="badge-pill {{ $methodClass }}">{{ $methodLabel }}</span>
+                    <span class="badge-pill {{ $typeLabel['class'] }}">{{ $typeLabel['label'] }}</span>
+                    @if($p->notes)
+                    <span class="text-xs bg-blue-50 text-blue-600 rounded-lg px-2 py-0.5">{{ $p->notes }}</span>
+                    @endif
+                </div>
+                <div class="flex items-center justify-between text-xs">
+                    <span class="text-gray-500">استلمه: <span class="font-medium text-gray-700">{{ $p->receivedBy?->name ?? '—' }}</span></span>
+                    <div class="flex items-center gap-2">
+                        @if($p->bank_receipt_path)
+                        @can('payments.bank_receipt')
+                        <a href="{{ route('payments.receipt', ['file' => $p->bank_receipt_path]) }}" target="_blank"
+                           class="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-semibold hover:underline">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                            السند
+                        </a>
+                        @endcan
+                        @endif
+                        @can('payments.create')
+                        <button type="button" onclick="openEditPaymentModal({{ $p->id }}, {{ $p->amount }})"
+                                class="inline-flex items-center gap-1 text-gray-400 hover:text-blue-600 font-semibold hover:underline">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                            تصحيح
+                        </button>
+                        @endcan
+                    </div>
+                </div>
+            </div>
+            @endforeach
+        </div>
+        @else
+        <div class="flex-1 flex flex-col items-center justify-center text-center text-gray-400 min-h-0 p-6">
+            <svg class="w-10 h-10 mb-2 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+            <p class="text-sm">لا توجد مدفوعات مسجّلة</p>
+            @can('payments.create')
+            @if($reservation->balance > 0 && in_array($reservation->status, ['checked_in', 'checked_out']))
+            <button onclick="document.getElementById('paymentModal').classList.remove('hidden')" class="mt-3 text-sm text-emerald-600 hover:underline">+ إضافة دفعة</button>
+            @endif
+            @endcan
+        </div>
+        @endif
+    </div>
+</div>
 </div>
 
-{{-- ===== BACK LINK ===== --}}
-<div class="pt-1">
-    <a href="{{ route('reservations.expiring') }}"
-       class="inline-flex items-center gap-2 px-5 py-2.5 text-sm text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition font-medium">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-        العودة للقائمة
-    </a>
-</div>
-
-</div>
 
 {{-- ===== PAYMENT MODAL ===== --}}
 @can('payments.create')
