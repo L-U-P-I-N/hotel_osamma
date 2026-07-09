@@ -211,6 +211,34 @@ class Reservation extends Model
         return (float)$this->total_amount - (float)$this->paid_amount;
     }
 
+    /**
+     * الإجمالي قبل الخصم = الإجمالي الصافي الحالي + قيمة الخصم المحفوظة. يُستخدم
+     * لإعادة احتساب الخصم عند أي تعديل يعيد حساب الإجمالي (تعديل التاريخ/السعر،
+     * التجديد، النقل، التجديد التلقائي) حتى لا يضيع الخصم.
+     */
+    public function getGrossTotalAttribute(): float
+    {
+        return round((float) $this->total_amount + (float) $this->discount_amount, 2);
+    }
+
+    /**
+     * قيمة الخصم المحفوظ محسوبةً على إجمالي (قبل الخصم) معطى — للنسبة المئوية
+     * يُعاد الحساب على الإجمالي الجديد، وللمبلغ الثابت يُستخدم المبلغ المحفوظ
+     * (بحد أقصى الإجمالي). يُرجِع 0 إن لا خصم.
+     */
+    public function discountAmountFor(float $grossTotal): float
+    {
+        if (!$this->discount_type || (float) $this->discount_value <= 0 || $grossTotal <= 0) {
+            return 0.0;
+        }
+
+        if ($this->discount_type === 'percent') {
+            return round($grossTotal * min((float) $this->discount_value, 100) / 100, 2);
+        }
+
+        return round(min((float) $this->discount_value, $grossTotal), 2);
+    }
+
     public function getNightsAttribute(): int
     {
         return $this->check_in_date->diffInDays($this->check_out_date);
@@ -279,6 +307,11 @@ class Reservation extends Model
         $pricePerNight = $this->effective_renewal_price_per_night;
         $extraAmount   = $added * $pricePerNight;
         $newCheckOut   = $checkOut->copy()->addDays($added);
+
+        // نعيد بناء الإجمالي قبل الخصم ونطبّق الخصم المحفوظ على الإجمالي الجديد
+        $newGross       = $this->gross_total + $extraAmount;
+        $discountAmount = $this->discountAmountFor($newGross);
+        $newTotal       = max(0, round($newGross - $discountAmount, 2));
         $note = "[تجديد تلقائي +{$added} " . ($added === 1 ? 'ليلة' : 'ليالٍ')
               . ' بسعر ' . number_format($pricePerNight, 0) . ' ر.ي/ليلة — حتى '
               . $newCheckOut->format('Y/m/d') . ']';
@@ -286,9 +319,10 @@ class Reservation extends Model
         $old = $this->only(['check_out_date', 'total_amount']);
 
         $this->update([
-            'check_out_date' => $newCheckOut->toDateString(),
-            'total_amount'   => (float) $this->total_amount + $extraAmount,
-            'notes'          => $this->notes ? $this->notes . "\n" . $note : $note,
+            'check_out_date'  => $newCheckOut->toDateString(),
+            'total_amount'    => $newTotal,
+            'discount_amount' => $discountAmount,
+            'notes'           => $this->notes ? $this->notes . "\n" . $note : $note,
         ]);
         $this->refresh()->updatePaymentStatus();
 

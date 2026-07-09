@@ -287,8 +287,11 @@ class ReservationController extends Controller
             $submittedPrice = isset($validated['price_per_night']) && $validated['price_per_night'] > 0
                 ? (float) $validated['price_per_night']
                 : null;
-            $pricePerNight = $submittedPrice ?? $reservation->room?->roomType?->base_price ?? $reservation->total_amount / $billableNights;
-            $newTotal = $billableNights * $pricePerNight;
+            $pricePerNight = $submittedPrice ?? $reservation->room?->roomType?->base_price ?? $reservation->gross_total / $billableNights;
+            // الإجمالي قبل الخصم ثم نطبّق الخصم المحفوظ حتى لا يضيع عند تعديل التاريخ/السعر
+            $grossTotal = $billableNights * $pricePerNight;
+            $discountAmount = $reservation->discountAmountFor($grossTotal);
+            $newTotal = max(0, round($grossTotal - $discountAmount, 2));
 
             $reservation->update([
                 'check_in_date'  => $validated['check_in_date'],
@@ -296,6 +299,7 @@ class ReservationController extends Controller
                 'purpose'        => $this->nullIfEmpty($validated['purpose'] ?? null),
                 'origin'         => $this->nullIfEmpty($validated['origin'] ?? null),
                 'notes'          => $this->nullIfEmpty($validated['notes'] ?? null),
+                'discount_amount'=> $discountAmount,
                 'total_amount'   => $newTotal,
                 'renewal_price_per_night' => isset($validated['renewal_price_per_night']) && $validated['renewal_price_per_night'] !== ''
                     ? $validated['renewal_price_per_night'] : null,
@@ -381,6 +385,12 @@ class ReservationController extends Controller
             : $reservation->effective_renewal_price_per_night;
         $extraAmount   = $extraNights * $pricePerNight;
 
+        // نعيد بناء الإجمالي قبل الخصم (الصافي + الخصم) ثم نضيف ليالي التجديد
+        // ونطبّق الخصم المحفوظ على الإجمالي الجديد حتى يبقى الخصم ساري المفعول.
+        $newGross       = $reservation->gross_total + $extraAmount;
+        $discountAmount = $reservation->discountAmountFor($newGross);
+        $newTotal       = max(0, round($newGross - $discountAmount, 2));
+
         $old = $reservation->only(['check_out_date', 'total_amount', 'renewal_price_per_night']);
 
         // نُلحق ملاحظة المستخدم دائماً بعلامة التجديد (كانت تُهمل سابقاً إن وُجدت ملاحظات قديمة)
@@ -389,7 +399,8 @@ class ReservationController extends Controller
 
         $reservation->update([
             'check_out_date'          => $validated['new_check_out_date'],
-            'total_amount'            => $reservation->total_amount + $extraAmount,
+            'total_amount'            => $newTotal,
+            'discount_amount'         => $discountAmount,
             'renewal_price_per_night' => $pricePerNight,
             'notes'                   => $reservation->notes
                                     ? $reservation->notes . "\n" . $renewalNote
@@ -544,13 +555,16 @@ class ReservationController extends Controller
         $stayedNights = (int) min(max($reservation->check_in_date->diffInDays(today(), false), 0), $nights);
         $remainingNights = $nights - $stayedNights;
 
-        $oldPricePerNight = round((float) $reservation->total_amount / $nights, 2);
+        $oldPricePerNight = round((float) $reservation->gross_total / $nights, 2);
         $newPricePerNight = $wantsFullSuite ? $newRoom->fullSuitePrice() : $newRoom->priceFor('YER');
         if ($newPricePerNight <= 0) {
             // لا سعر معرّف للغرفة الجديدة → نُبقي السعر الحالي دون تغيير
             $newPricePerNight = $oldPricePerNight;
         }
-        $newTotal = round($stayedNights * $oldPricePerNight + $remainingNights * $newPricePerNight, 2);
+        // الإجمالي قبل الخصم ثم نطبّق الخصم المحفوظ حتى لا يضيع عند النقل
+        $grossTotal     = round($stayedNights * $oldPricePerNight + $remainingNights * $newPricePerNight, 2);
+        $discountAmount = $reservation->discountAmountFor($grossTotal);
+        $newTotal       = max(0, round($grossTotal - $discountAmount, 2));
 
         $oldRoom       = $reservation->room;
         $oldLinkedRoom = $reservation->linkedRoom;
@@ -580,6 +594,7 @@ class ReservationController extends Controller
             'room_id'            => $newRoom->id,
             'linked_room_id'     => $partner?->id,
             'suite_booking_type' => $suiteBookingType,
+            'discount_amount'    => $discountAmount,
             'total_amount'       => $newTotal,
             'notes'              => $reservation->notes
                                         ? $reservation->notes . "\n" . $transferNote
@@ -774,17 +789,17 @@ class ReservationController extends Controller
             'discount_value.required' => 'قيمة الخصم مطلوبة',
         ]);
 
-        $nights = max(1, $reservation->check_in_date->diffInDays($reservation->check_out_date));
-        $pricePerNight = $nights > 0 ? (float)$reservation->total_amount / $nights : 0;
-        $baseTotal = $nights * $pricePerNight;
+        // نحسب على الإجمالي قبل الخصم (الصافي الحالي + أي خصم سابق) حتى يحلّ الخصم
+        // الجديد محلّ القديم بدل أن يُضاف فوقه.
+        $baseTotal = $reservation->gross_total;
 
         if ($validated['discount_type'] === 'percent') {
             $discountAmount = round($baseTotal * min($validated['discount_value'], 100) / 100, 2);
         } else {
-            $discountAmount = min((float)$validated['discount_value'], $baseTotal);
+            $discountAmount = round(min((float)$validated['discount_value'], $baseTotal), 2);
         }
 
-        $newTotal = max(0, $baseTotal - $discountAmount);
+        $newTotal = max(0, round($baseTotal - $discountAmount, 2));
 
         $reservation->update([
             'discount_type'   => $validated['discount_type'],
