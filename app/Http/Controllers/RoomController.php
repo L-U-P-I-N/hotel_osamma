@@ -15,8 +15,15 @@ class RoomController extends Controller
     {
         $query = Room::with(['roomType', 'hotel']);
 
+        // عدّادات الحالات الإجمالية (مستقلة عن الفلاتر) للشرائح العلوية
+        $statusCounts = Room::selectRaw('status, count(*) as c')->groupBy('status')->pluck('c', 'status');
+
         if ($request->filled('status')) {
             $query->where('status', $request->status);
+        } else {
+            // افتراضياً نعرض الغرف المتاحة/المشغولة/تحت الفحص فقط (نُخفي الصيانة)،
+            // وتبقى غرف الصيانة متاحة للعرض عند الضغط على شريحة "صيانة".
+            $query->whereIn('status', ['available', 'occupied', 'under_inspection']);
         }
         if ($request->filled('type')) {
             $query->whereHas('roomType', fn($q) => $q->where('name', $request->type));
@@ -28,11 +35,12 @@ class RoomController extends Controller
             $query->where('floor', $request->floor);
         }
 
-        $rooms = $query->orderBy('floor')->orderBy('room_number')->get();
+        // ترتيب تصاعدي حسب رقم الغرفة (من الأصغر للأكبر) بترتيب رقمي لا نصّي
+        $rooms = $query->orderByRaw('CAST(room_number AS UNSIGNED) ASC')->orderBy('room_number')->get();
         $roomTypes = RoomType::all();
         $floors = Room::distinct()->pluck('floor')->sort();
 
-        return view('rooms.index', compact('rooms', 'roomTypes', 'floors'));
+        return view('rooms.index', compact('rooms', 'roomTypes', 'floors', 'statusCounts'));
     }
 
     public function create()

@@ -70,11 +70,13 @@ html.dark .filter-chip.bg-white { background: #1e293b !important; }
 
 @section('content')
 @php
-    $total       = $rooms->count();
-    $available   = $rooms->where('status','available')->count();
-    $occupied    = $rooms->where('status','occupied')->count();
-    $inspection  = $rooms->where('status','under_inspection')->count();
-    $maintenance = $rooms->where('status','maintenance')->count();
+    // عدّادات إجمالية مستقلة عن الفلاتر (تأتي من الكنترولر)
+    $available   = (int) ($statusCounts['available'] ?? 0);
+    $occupied    = (int) ($statusCounts['occupied'] ?? 0);
+    $inspection  = (int) ($statusCounts['under_inspection'] ?? 0);
+    $maintenance = (int) ($statusCounts['maintenance'] ?? 0);
+    // "الإجمالي" هنا = الغرف التشغيلية (متاحة/مشغولة/تحت الفحص) دون الصيانة
+    $total       = $available + $occupied + $inspection;
 
     $subBadges = [
         'double'    => ['label'=>'زوجية',   'cls'=>'bg-pink-100 text-pink-700'],
