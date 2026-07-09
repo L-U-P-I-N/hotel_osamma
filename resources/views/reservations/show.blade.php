@@ -58,7 +58,7 @@
     }
 @endphp
 
-<div class="max-w-5xl mx-auto space-y-5" dir="rtl">
+<div class="max-w-6xl mx-auto space-y-5" dir="rtl">
 
 {{-- ===== HERO HEADER ===== --}}
 <div class="hero-gradient rounded-2xl shadow-lg overflow-hidden">
@@ -259,8 +259,48 @@
     </div>
 </div>
 
+{{-- ===== DATE TIMELINE (horizontal, full width) ===== --}}
+<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+        {{-- Check-in --}}
+        <div class="flex items-center gap-3 flex-1 min-w-0">
+            <div class="w-11 h-11 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+                <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
+            </div>
+            <div class="min-w-0">
+                <p class="text-xs text-gray-400 font-semibold uppercase tracking-wide">تاريخ الدخول</p>
+                <p class="font-bold text-gray-900 text-lg leading-tight">{{ $reservation->check_in_date?->format('d/m/Y') ?? '—' }}</p>
+                @if($reservation->check_in_time)
+                <p class="text-xs text-emerald-600 font-medium">{{ $reservation->check_in_time }}</p>
+                @endif
+            </div>
+        </div>
+
+        {{-- Connector + nights --}}
+        <div class="flex items-center gap-2 flex-1 justify-center">
+            <div class="hidden sm:block flex-1 h-0.5 bg-gradient-to-l from-emerald-200 via-gray-200 to-red-200 rounded-full"></div>
+            <span class="px-3 py-1 rounded-full bg-gray-800 text-white text-xs font-black shrink-0 whitespace-nowrap">{{ $reservation->nights }} {{ $reservation->nights == 1 ? 'ليلة' : 'ليالٍ' }}</span>
+            <div class="hidden sm:block flex-1 h-0.5 bg-gradient-to-l from-emerald-200 via-gray-200 to-red-200 rounded-full"></div>
+        </div>
+
+        {{-- Check-out --}}
+        <div class="flex items-center gap-3 flex-1 min-w-0 sm:justify-end">
+            <div class="w-11 h-11 rounded-xl bg-red-100 flex items-center justify-center shrink-0 sm:order-2">
+                <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+            </div>
+            <div class="min-w-0 sm:text-left sm:order-1">
+                <p class="text-xs text-gray-400 font-semibold uppercase tracking-wide">تاريخ الخروج</p>
+                <p class="font-bold text-gray-900 text-lg leading-tight">{{ $reservation->check_out_date?->format('d/m/Y') ?? '—' }}</p>
+                @if($daysLabel && $reservation->status === 'checked_in')
+                <span class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 text-xs font-bold rounded-lg {{ $daysClass }}">{{ $daysLabel }}</span>
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
+
 {{-- ===== MAIN GRID ===== --}}
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
 
     {{-- ===== LEFT COLUMN ===== --}}
     <div class="lg:col-span-2 space-y-5">
@@ -277,7 +317,7 @@
             </div>
             <div class="p-6">
                 <div class="flex flex-col md:flex-row gap-6">
-                    <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+                    <div class="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3.5 text-sm">
                         <div>
                             <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">الاسم الكامل</p>
                             <p class="font-bold text-gray-900 text-base">{{ $reservation->guest?->full_name ?? '—' }}</p>
@@ -697,73 +737,7 @@
     </div>
 
     {{-- ===== RIGHT COLUMN ===== --}}
-    <div class="space-y-5">
-
-        {{-- Date Timeline Card --}}
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-5 py-4 border-b border-gray-50 flex items-center gap-3">
-                <div class="w-9 h-9 rounded-xl bg-sky-600 flex items-center justify-center shadow-sm">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                    </svg>
-                </div>
-                <h3 class="font-bold text-gray-800">تواريخ الحجز</h3>
-            </div>
-            <div class="p-5">
-                {{-- Check-in --}}
-                <div class="flex items-start gap-4">
-                    <div class="flex flex-col items-center">
-                        <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
-                            <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
-                        </div>
-                        <div class="timeline-line flex-1 my-2" style="width:2px; min-height: 40px;"></div>
-                    </div>
-                    <div class="pb-3 pt-1.5">
-                        <p class="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-0.5">تاريخ الدخول</p>
-                        <p class="font-bold text-gray-900 text-lg">{{ $reservation->check_in_date?->format('d/m/Y') ?? '—' }}</p>
-                        @if($reservation->check_in_time)
-                        <p class="text-xs text-emerald-600 font-medium mt-0.5">{{ $reservation->check_in_time }}</p>
-                        @endif
-                    </div>
-                </div>
-
-                {{-- Nights Indicator --}}
-                <div class="flex items-center gap-4 my-1">
-                    <div class="w-10 flex justify-center">
-                        <div class="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-white text-xs font-black shadow-sm">
-                            {{ $reservation->nights }}
-                        </div>
-                    </div>
-                    <p class="text-xs text-gray-400 font-medium">{{ $reservation->nights }} {{ $reservation->nights == 1 ? 'ليلة' : 'ليالٍ' }}</p>
-                </div>
-
-                {{-- Check-out --}}
-                <div class="flex items-start gap-4">
-                    <div class="flex flex-col items-center">
-                        <div class="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
-                            <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-                        </div>
-                    </div>
-                    <div class="pt-1.5">
-                        <p class="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-0.5">تاريخ الخروج</p>
-                        <p class="font-bold text-gray-900 text-lg">{{ $reservation->check_out_date?->format('d/m/Y') ?? '—' }}</p>
-                        @if($reservation->check_out_time)
-                        <p class="text-xs text-gray-500 font-medium mt-0.5">{{ $reservation->check_out_time }}</p>
-                        @endif
-                        @if($reservation->status === 'checked_in' && $reservation->check_out_date?->isPast())
-                        <span class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-red-50 text-red-600 text-xs font-bold rounded-lg">
-                            <span class="w-1.5 h-1.5 rounded-full bg-red-500 inline-block"></span>
-                            تجاوز موعد الخروج
-                        </span>
-                        @elseif($daysLabel && $reservation->status === 'checked_in')
-                        <span class="inline-flex items-center gap-1 mt-1 px-2.5 py-1 text-xs font-bold rounded-lg {{ $daysClass }}">
-                            {{ $daysLabel }}
-                        </span>
-                        @endif
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="space-y-5 lg:sticky lg:top-6 self-start">
 
         {{-- Financial Summary Card --}}
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
