@@ -119,6 +119,7 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('/reservations/{reservation}/cancel', [ReservationController::class, 'cancel'])->name('reservations.cancel');
         Route::patch('/reservations/{reservation}/checkin', [ReservationController::class, 'checkin'])->name('reservations.checkin')->middleware('permission:checkin.create');
         Route::post('/reservations/{reservation}/renew', [ReservationController::class, 'renew'])->name('reservations.renew');
+        Route::patch('/reservations/{reservation}/auto-renew', [ReservationController::class, 'toggleAutoRenew'])->name('reservations.toggleAutoRenew')->middleware('permission:checkin.create');
         Route::patch('/reservations/{reservation}/checkin-date', [ReservationController::class, 'updateCheckInDate'])->name('reservations.updateCheckInDate');
         Route::post('/reservations/{reservation}/transfer-room', [ReservationController::class, 'transferRoom'])->name('reservations.transferRoom');
     });

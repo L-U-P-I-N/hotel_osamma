@@ -57,6 +57,10 @@ class ReservationController extends Controller
 
     public function show(Reservation $reservation)
     {
+        // احتساب التجديد التلقائي (إن كان مفعّلاً) قبل عرض التفاصيل — لا مجدول زمني
+        // في بيئة التشغيل، فنُعوّض الأيام المتأخرة انتهازياً عند فتح الصفحة.
+        $reservation->applyAutoRenewCatchUp();
+
         $reservation->load(['guest', 'room.roomType', 'companions', 'payments', 'extraCharges', 'roomInspections.images', 'createdBy', 'adminApproval']);
         $availableRooms = $reservation->status === 'checked_in'
             ? Room::with('roomType')->where('status', 'available')->orderBy('floor')->orderBy('room_number')->get()
@@ -408,6 +412,35 @@ class ReservationController extends Controller
     }
 
     /**
+     * تفعيل/إيقاف التجديد التلقائي للإقامة. عند التفعيل يُعوَّض فوراً أي يومٍ مضى
+     * تجاوز الساعة 1 ظهراً من تاريخ الخروج الحالي.
+     */
+    public function toggleAutoRenew(Reservation $reservation)
+    {
+        if ($reservation->status !== 'checked_in') {
+            return back()->withErrors(['error' => 'التجديد التلقائي متاح فقط للحجوزات النشطة (مسجل دخول)']);
+        }
+
+        $reservation->update(['auto_renew' => !$reservation->auto_renew]);
+
+        $added = 0;
+        if ($reservation->auto_renew) {
+            $added = $reservation->applyAutoRenewCatchUp();
+        }
+
+        AuditLogService::log('update', $reservation, null, [
+            'auto_renew' => $reservation->auto_renew,
+        ], auth()->user());
+
+        $msg = $reservation->auto_renew
+            ? 'تم تفعيل التجديد التلقائي — سيُحتسب يوم جديد تلقائياً بعد كل ساعة 1 ظهراً'
+              . ($added > 0 ? " (أُضيفت {$added} ليلة عن الأيام السابقة)" : '')
+            : 'تم إيقاف التجديد التلقائي';
+
+        return redirect()->route('reservations.show', $reservation)->with('success', $msg);
+    }
+
+    /**
      * تعديل تاريخ وصول النزيل فقط (بدون المساس بالمبلغ أو المدفوعات) — لحالة
      * نزيل دفع مسبقاً لكنه أبلغ بأن وصوله الفعلي سيتأخر عدة أيام. نُحرِّك
      * تاريخ الخروج بنفس عدد الأيام حتى تبقى مدة الإقامة والإجمالي كما هما،
@@ -663,6 +696,9 @@ class ReservationController extends Controller
 
     public function expiring(\Illuminate\Http\Request $request)
     {
+        // احتساب التجديد التلقائي لكل الإقامات المفعّل بها قبل بناء القائمة
+        \App\Models\Reservation::runAutoRenewals();
+
         // فلتر الحالة: مقيم (الافتراضي) / غادر / الكل
         $status = $request->input('status', 'all');
 

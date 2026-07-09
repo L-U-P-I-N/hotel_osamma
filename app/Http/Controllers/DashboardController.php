@@ -12,6 +12,9 @@ class DashboardController extends Controller
 {
     public function index()
     {
+        // احتساب التجديد التلقائي للإقامات المفعّل بها (لا مجدول زمني في التشغيل)
+        Reservation::runAutoRenewals();
+
         $totalRooms       = Room::count();
         $occupiedRooms    = Room::where('status', 'occupied')->count();
         $availableRooms   = Room::where('status', 'available')->count();

@@ -13,7 +13,7 @@ class Reservation extends Model
     protected $fillable = [
         'guest_id','room_id','linked_room_id','suite_booking_type','created_by',
         'check_in_date','check_in_time','check_out_date','check_out_time','actual_check_out','origin','purpose','notes',
-        'status','payment_status','total_amount','first_night_price','renewal_price_per_night','paid_amount','currency',
+        'status','payment_status','total_amount','first_night_price','renewal_price_per_night','auto_renew','paid_amount','currency',
         'admin_approval_id','government_exported','government_exported_at',
         'discount_type','discount_value','discount_amount','discount_reason',
         'cancellation_reason','cancelled_by','cancelled_at',
@@ -37,6 +37,7 @@ class Reservation extends Model
         'total_amount' => 'decimal:2',
         'first_night_price' => 'decimal:2',
         'renewal_price_per_night' => 'decimal:2',
+        'auto_renew' => 'boolean',
         'paid_amount' => 'decimal:2',
         'discount_value' => 'decimal:2',
         'discount_amount' => 'decimal:2',
@@ -229,6 +230,88 @@ class Reservation extends Model
         return $this->nights > 0
             ? round((float) $this->total_amount / $this->nights, 2)
             : (float) $this->total_amount;
+    }
+
+    /**
+     * الساعة التي يُحتسب عندها يومٌ فندقي جديد (1 ظهراً). إن بقي النزيل بعد هذه
+     * الساعة من تاريخ خروجه يبدأ يوم جديد يُحتسب عليه.
+     */
+    public const AUTO_RENEW_BOUNDARY_HOUR = 13;
+
+    /**
+     * التجديد التلقائي: يُحتسب "يوم جديد" كلما تجاوز الوقتُ الساعة 1 ظهراً من تاريخ
+     * الخروج الحالي. يمدّد تاريخ الخروج ويضيف قيمة الليلة (بسعر التجديد الفعّال)
+     * إلى إجمالي الحجز كدَين على النزيل، ويعوّض أي أيام فائتة إن لم يُفتح النظام
+     * بينها. لا يتجاوز حجزاً قادماً على نفس الغرفة (يترك اليوم الفاصل للتنظيف).
+     * يُرجِع عدد الليالي التي أُضيفت (0 إن لا شيء).
+     */
+    public function applyAutoRenewCatchUp(): int
+    {
+        if (!$this->auto_renew || $this->status !== 'checked_in') {
+            return 0;
+        }
+
+        $now      = now();
+        $checkOut = $this->check_out_date->copy()->startOfDay();
+        $boundary = $checkOut->copy()->setTime(self::AUTO_RENEW_BOUNDARY_HOUR, 0);
+
+        // أقصى تاريخ خروج مسموح دون التصادم مع نزيل قادم على نفس الغرفة
+        $maxCheckout = self::maxCheckoutBefore(
+            $this->occupiedRoomIds(),
+            $this->check_in_date,
+            $this->id
+        )?->copy()->startOfDay();
+
+        $added = 0;
+        while ($now->greaterThanOrEqualTo($boundary)) {
+            $candidate = $checkOut->copy()->addDays($added + 1);
+            if ($maxCheckout && $candidate->gt($maxCheckout)) {
+                break; // لا نمدّد فوق حجز قادم
+            }
+            $added++;
+            $boundary->addDay();
+        }
+
+        if ($added === 0) {
+            return 0;
+        }
+
+        $pricePerNight = $this->effective_renewal_price_per_night;
+        $extraAmount   = $added * $pricePerNight;
+        $newCheckOut   = $checkOut->copy()->addDays($added);
+        $note = "[تجديد تلقائي +{$added} " . ($added === 1 ? 'ليلة' : 'ليالٍ')
+              . ' بسعر ' . number_format($pricePerNight, 0) . ' ر.ي/ليلة — حتى '
+              . $newCheckOut->format('Y/m/d') . ']';
+
+        $old = $this->only(['check_out_date', 'total_amount']);
+
+        $this->update([
+            'check_out_date' => $newCheckOut->toDateString(),
+            'total_amount'   => (float) $this->total_amount + $extraAmount,
+            'notes'          => $this->notes ? $this->notes . "\n" . $note : $note,
+        ]);
+        $this->refresh()->updatePaymentStatus();
+
+        \App\Services\AuditLogService::log('update', $this, $old, [
+            'auto_renew_nights' => $added,
+            'auto_renew_amount' => $extraAmount,
+            'check_out_date'    => $newCheckOut->toDateString(),
+        ]);
+
+        return $added;
+    }
+
+    /**
+     * يطبّق التجديد التلقائي على كل الحجوزات النشطة المفعّل بها — يُستدعى انتهازياً
+     * عند فتح لوحة التحكم/قوائم النزلاء بدل الاعتماد على مجدول زمني (غير مفعّل في
+     * بيئة التشغيل الحالية).
+     */
+    public static function runAutoRenewals(): void
+    {
+        static::where('status', 'checked_in')
+            ->where('auto_renew', true)
+            ->get()
+            ->each(fn (self $r) => $r->applyAutoRenewCatchUp());
     }
 
     public function getDisplayRoomNumberAttribute(): string

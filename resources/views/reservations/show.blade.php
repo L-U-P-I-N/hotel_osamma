@@ -137,6 +137,28 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
                     تغيير الغرفة
                 </button>
+                @can('checkin.create')
+                {{-- تفعيل/إيقاف التجديد التلقائي --}}
+                <form method="POST" action="{{ route('reservations.toggleAutoRenew', $reservation) }}" class="inline">
+                    @csrf @method('PATCH')
+                    <button type="submit"
+                            onclick="return confirm(@js($reservation->auto_renew ? 'إيقاف التجديد التلقائي لهذه الإقامة؟' : 'تفعيل التجديد التلقائي؟ سيُحتسب يوم جديد تلقائياً بعد كل ساعة 1 ظهراً ويُضاف للدين.'))"
+                            class="inline-flex items-center gap-2 px-4 py-2.5 text-white text-sm font-medium rounded-xl transition border {{ $reservation->auto_renew ? 'bg-emerald-600 hover:bg-emerald-700 border-emerald-400/40' : 'bg-white/15 hover:bg-white/25 border-white/20' }}">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        {{ $reservation->auto_renew ? 'التجديد التلقائي: مُفعّل' : 'تجديد تلقائي' }}
+                    </button>
+                </form>
+                @endcan
+                @endif
+                @endcan
+
+                @can('checkin.create')
+                @if(in_array($reservation->status, ['confirmed', 'checked_in', 'checked_out']) && $reservation->total_amount > 0)
+                <button type="button" onclick="document.getElementById('discountModal').classList.remove('hidden')"
+                        class="inline-flex items-center gap-2 px-4 py-2.5 bg-white/15 hover:bg-white/25 text-white text-sm font-medium rounded-xl transition border border-white/20">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>
+                    خصم
+                </button>
                 @endif
                 @endcan
 
@@ -831,6 +853,18 @@
                 <span class="text-gray-400 text-xs font-medium">تاريخ الإنشاء</span>
                 <span class="text-gray-600 text-xs">{{ $reservation->created_at?->format('d/m/Y H:i') ?? '—' }}</span>
             </div>
+            @if($reservation->status === 'checked_in')
+            <div class="flex justify-between items-center">
+                <span class="text-gray-400 text-xs font-medium">التجديد التلقائي</span>
+                @if($reservation->auto_renew)
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
+                    مُفعّل · يوم جديد بعد 1 ظهراً
+                </span>
+                @else
+                <span class="text-gray-500 text-xs">متوقّف</span>
+                @endif
+            </div>
+            @endif
             @if($reservation->adminApproval)
             <div class="flex justify-between items-center">
                 <span class="text-gray-400 text-xs font-medium">اعتمد الآجل</span>
@@ -1009,6 +1043,102 @@
         document.getElementById('editPaymentModal').classList.remove('hidden');
     }
 </script>
+@endcan
+
+{{-- ===== DISCOUNT MODAL ===== --}}
+@can('checkin.create')
+@if(in_array($reservation->status, ['confirmed', 'checked_in', 'checked_out']) && $reservation->total_amount > 0)
+<div id="discountModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto"
+     onclick="if(event.target===this) this.classList.add('hidden')">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto my-auto" onclick="event.stopPropagation()">
+        <div class="hero-gradient px-6 py-5 rounded-t-2xl flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>
+                </div>
+                <h3 class="font-bold text-white text-lg">تطبيق خصم</h3>
+            </div>
+            <button onclick="document.getElementById('discountModal').classList.add('hidden')"
+                    class="w-8 h-8 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <form method="POST" action="{{ route('reservations.applyDiscount', $reservation) }}"
+              x-data="{ dtype: '{{ $reservation->discount_type ?: 'fixed' }}', dvalue: {{ (float)($reservation->discount_value ?: 0) }}, total: {{ (float)$reservation->total_amount }} }"
+              class="p-6 space-y-4">
+            @csrf
+            <div class="bg-gray-50 rounded-xl p-4 text-sm flex justify-between items-center">
+                <span class="text-gray-400 text-xs font-medium">الإجمالي الحالي</span>
+                <strong class="text-gray-800">{{ number_format($reservation->total_amount, 0) }} {{ $reservation->currency_symbol }}</strong>
+            </div>
+
+            @if($reservation->discount_amount > 0)
+            <div class="flex items-start gap-2 rounded-xl bg-blue-50 border border-blue-200 p-3 text-xs text-blue-800">
+                <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>يوجد خصم مطبّق حالياً بقيمة <strong>{{ number_format($reservation->discount_amount, 0) }} {{ $reservation->currency_symbol }}</strong>. تطبيق خصم جديد يستبدله ويُحسب على الإجمالي الحالي.</span>
+            </div>
+            @endif
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">نوع الخصم <span class="text-red-500">*</span></label>
+                <div class="grid grid-cols-2 gap-2">
+                    <label :class="dtype === 'fixed' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'border-gray-300 text-gray-600'"
+                           class="flex items-center justify-center gap-2 border rounded-xl px-4 py-3 text-sm font-medium cursor-pointer transition">
+                        <input type="radio" name="discount_type" value="fixed" x-model="dtype" class="hidden">
+                        مبلغ ثابت (ر.ي)
+                    </label>
+                    <label :class="dtype === 'percent' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'border-gray-300 text-gray-600'"
+                           class="flex items-center justify-center gap-2 border rounded-xl px-4 py-3 text-sm font-medium cursor-pointer transition">
+                        <input type="radio" name="discount_type" value="percent" x-model="dtype" class="hidden">
+                        نسبة مئوية (%)
+                    </label>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                    <span x-show="dtype === 'fixed'">قيمة الخصم (ر.ي)</span>
+                    <span x-show="dtype === 'percent'">نسبة الخصم (%)</span>
+                    <span class="text-red-500">*</span>
+                </label>
+                <input type="number" name="discount_value" x-model.number="dvalue" min="0" step="0.01" required
+                       :max="dtype === 'percent' ? 100 : total"
+                       class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+
+            {{-- ملخص حي --}}
+            <div class="bg-emerald-50 border border-emerald-100 rounded-xl p-4 space-y-1.5 text-sm">
+                <div class="flex justify-between items-center text-emerald-700">
+                    <span>قيمة الخصم</span>
+                    <strong x-text="Math.round((dtype === 'percent' ? total * Math.min(dvalue,100)/100 : Math.min(dvalue, total)) || 0).toLocaleString() + ' {{ $reservation->currency_symbol }}'"></strong>
+                </div>
+                <div class="flex justify-between items-center border-t border-emerald-100 pt-1.5">
+                    <span class="font-bold text-gray-800">الإجمالي بعد الخصم</span>
+                    <strong class="text-gray-900" x-text="Math.max(0, Math.round(total - ((dtype === 'percent' ? total * Math.min(dvalue,100)/100 : Math.min(dvalue, total)) || 0))).toLocaleString() + ' {{ $reservation->currency_symbol }}'"></strong>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">سبب الخصم <span class="text-gray-400 font-normal">(اختياري)</span></label>
+                <input type="text" name="discount_reason" maxlength="255" value="{{ $reservation->discount_reason }}"
+                       placeholder="مثال: نزيل دائم، عرض خاص..."
+                       class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+
+            <div class="flex gap-2 pt-1">
+                <button type="submit"
+                        class="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition">
+                    تطبيق الخصم
+                </button>
+                <button type="button" onclick="document.getElementById('discountModal').classList.add('hidden')"
+                        class="px-5 py-3 border border-gray-300 text-gray-600 rounded-xl text-sm hover:bg-gray-50 transition">
+                    إلغاء
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
 @endcan
 
 {{-- ===== MODALS (checked_in only) ===== --}}
