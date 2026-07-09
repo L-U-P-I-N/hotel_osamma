@@ -13,7 +13,7 @@ class Reservation extends Model
     protected $fillable = [
         'guest_id','room_id','linked_room_id','suite_booking_type','created_by',
         'check_in_date','check_in_time','check_out_date','check_out_time','actual_check_out','origin','purpose','notes',
-        'status','payment_status','total_amount','renewal_price_per_night','paid_amount','currency',
+        'status','payment_status','total_amount','first_night_price','renewal_price_per_night','paid_amount','currency',
         'admin_approval_id','government_exported','government_exported_at',
         'discount_type','discount_value','discount_amount','discount_reason',
         'cancellation_reason','cancelled_by','cancelled_at',
@@ -35,6 +35,7 @@ class Reservation extends Model
         'government_exported' => 'boolean',
         'government_exported_at' => 'datetime',
         'total_amount' => 'decimal:2',
+        'first_night_price' => 'decimal:2',
         'renewal_price_per_night' => 'decimal:2',
         'paid_amount' => 'decimal:2',
         'discount_value' => 'decimal:2',

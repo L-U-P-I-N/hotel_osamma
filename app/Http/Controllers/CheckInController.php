@@ -125,6 +125,7 @@ class CheckInController extends Controller
             'check_out_date'  => 'required|date|after_or_equal:check_in_date',
             'check_out_time'  => 'nullable|regex:/^\d{2}:\d{2}$/',
             'payment_status'  => 'required|in:unpaid,partial,paid,deferred',
+            'first_night_price'       => 'nullable|numeric|min:0',
             'renewal_price_per_night' => 'nullable|numeric|min:0',
             'currency'        => 'nullable|in:YER',
             'bank_receipt' => "required_if:payment_method,bank_transfer|nullable|file|mimes:{$imgMimes}|max:10240",

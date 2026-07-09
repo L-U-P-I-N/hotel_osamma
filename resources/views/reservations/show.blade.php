@@ -35,6 +35,11 @@
     $pc = $paymentConfig[$reservation->payment_status] ?? $paymentConfig['unpaid'];
 
     $pricePerNight = $reservation->nights > 0 ? round($reservation->total_amount / $reservation->nights, 2) : 0;
+    // سعر مختلف لليلة الأولى (إن وُجد): نُظهر تفصيلاً واضحاً بدل متوسط الليلة.
+    $hasFirstNight = $reservation->first_night_price !== null && $reservation->nights > 1;
+    $otherNightPrice = $hasFirstNight
+        ? round(($reservation->total_amount - (float) $reservation->first_night_price) / ($reservation->nights - 1), 2)
+        : $pricePerNight;
     // سعر ليلة التجديد الافتراضي (قد يختلف عن متوسط سعر الليلة أعلاه) — يُعبّأ
     // مسبقاً في نافذة التجديد ويظل قابلاً للتعديل من الموظف.
     $renewalPrice  = $reservation->effective_renewal_price_per_night;
@@ -749,6 +754,16 @@
                 <h3 class="font-bold text-gray-800">الملخص المالي</h3>
             </div>
             <div class="p-5 space-y-3 text-sm">
+                @if($hasFirstNight)
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-500">سعر الليلة الأولى</span>
+                    <span class="font-semibold text-purple-700">{{ number_format($reservation->first_night_price, 0) }} {{ $reservation->currency_symbol }}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-500">سعر باقي الليالي ({{ $reservation->nights - 1 }})</span>
+                    <span class="font-semibold text-gray-800">{{ number_format($otherNightPrice, 0) }} {{ $reservation->currency_symbol }}</span>
+                </div>
+                @else
                 <div class="flex justify-between items-center">
                     <span class="text-gray-500">سعر الليلة</span>
                     <span class="font-semibold text-gray-800">{{ number_format($pricePerNight, 0) }} {{ $reservation->currency_symbol }}</span>
@@ -757,6 +772,7 @@
                     <span class="text-gray-500">عدد الليالي</span>
                     <span class="font-semibold text-gray-800">{{ $reservation->nights }}</span>
                 </div>
+                @endif
                 @if($reservation->discount_amount > 0)
                 <div class="flex justify-between items-center text-emerald-600">
                     <span>خصم {{ $reservation->discount_reason ? '(' . $reservation->discount_reason . ')' : '' }}</span>

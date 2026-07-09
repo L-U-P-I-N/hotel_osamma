@@ -121,6 +121,8 @@ class CheckInService
                 'status'             => 'checked_in',
                 'payment_status'     => $data['payment_status'],
                 'total_amount'       => $data['total_amount'],
+                'first_night_price'  => (isset($data['first_night_price']) && $data['first_night_price'] !== '')
+                                                ? $data['first_night_price'] : null,
                 'renewal_price_per_night' => (isset($data['renewal_price_per_night']) && $data['renewal_price_per_night'] !== '')
                                                 ? $data['renewal_price_per_night'] : null,
                 'paid_amount'        => 0,

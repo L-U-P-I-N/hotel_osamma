@@ -243,6 +243,12 @@ table.mini td { padding: 5px 9px; border-bottom: 1px solid #f0ece0; text-align: 
     $nights        = $reservation->nights;
     $pricePerNight = $nights > 0 ? round($reservation->total_amount / $nights, 0) : 0;
     $roomTotal     = $pricePerNight * $nights;
+    // سعر مختلف لليلة الأولى (إن وُجد): نعرض سطرَين منفصلين في بيان الإقامة.
+    $hasFirstNight   = $reservation->first_night_price !== null && $nights > 1;
+    $firstNightPrice = (float) $reservation->first_night_price;
+    $otherNightPrice = $hasFirstNight
+        ? round(((float) $reservation->total_amount - $firstNightPrice) / ($nights - 1), 0)
+        : $pricePerNight;
     $extraTotal    = $reservation->extraCharges->sum('amount');
     $subtotal      = $roomTotal + $extraTotal;
     $discount      = (float)($reservation->discount_amount ?? 0);
@@ -323,12 +329,27 @@ table.mini td { padding: 5px 9px; border-bottom: 1px solid #f0ece0; text-align: 
       </tr>
     </thead>
     <tbody>
+      @if($hasFirstNight)
+      <tr>
+        <td class="c">{{ number_format($firstNightPrice, 0) }} {{ $cur }}</td>
+        <td class="c">{{ number_format($firstNightPrice, 0) }} {{ $cur }}</td>
+        <td class="c">1 × ليلة</td>
+        <td>إقامة (الليلة الأولى) — غرفة {{ $reservation->display_room_number }}</td>
+      </tr>
+      <tr>
+        <td class="c">{{ number_format($otherNightPrice * ($nights - 1), 0) }} {{ $cur }}</td>
+        <td class="c">{{ number_format($otherNightPrice, 0) }} {{ $cur }}</td>
+        <td class="c">{{ $nights - 1 }} × ليلة</td>
+        <td>إقامة (باقي الليالي) — غرفة {{ $reservation->display_room_number }}</td>
+      </tr>
+      @else
       <tr>
         <td class="c">{{ number_format($roomTotal, 0) }} {{ $cur }}</td>
         <td class="c">{{ number_format($pricePerNight, 0) }} {{ $cur }}</td>
         <td class="c">{{ $nights }} × ليلة</td>
         <td>إقامة — غرفة {{ $reservation->display_room_number }}</td>
       </tr>
+      @endif
       @foreach($reservation->extraCharges as $charge)
       <tr>
         <td class="c">{{ number_format($charge->amount, 0) }} {{ $cur }}</td>

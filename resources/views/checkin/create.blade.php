@@ -951,6 +951,34 @@ html.dark [style*="background:var(--gold-l)"] {
                     </div>
                 </div>
 
+                {{-- First-night different price --}}
+                <div x-show="(nights || 1) > 1">
+                    <button type="button" x-show="!showFirstNightPrice" @click="showFirstNightPrice = true"
+                            class="w-full py-2 px-3 rounded-xl border border-purple-200 bg-purple-50 text-purple-700 text-xs font-semibold hover:bg-purple-100 transition flex items-center justify-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        سعر مختلف لليلة الأولى
+                    </button>
+                    <div x-show="showFirstNightPrice" x-transition class="rounded-xl p-3 space-y-2 border border-purple-200 bg-purple-50">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-purple-800">سعر الليلة الأولى (ر.ي)</span>
+                            <button type="button" @click="showFirstNightPrice = false; firstNightPrice = null; calcTotal()" class="text-xs text-gray-400 hover:text-red-500 underline">إلغاء</button>
+                        </div>
+                        <input type="number" min="0" step="100"
+                               :placeholder="'مثال: ' + formatNumber(effectiveRoomPrice())"
+                               x-model.number="firstNightPrice" @input="calcTotal()"
+                               class="fi text-sm border-purple-300 bg-white focus:border-purple-500">
+                        <p class="text-xs text-purple-600">
+                            يُطبَّق هذا السعر على الليلة الأولى فقط، وتُحتسب باقي الليالي بسعر الليلة أعلاه
+                            (<span x-text="formatNumber(effectiveRoomPrice())"></span> ر.ي).
+                        </p>
+                        <p x-show="firstNightPrice !== null && firstNightPrice !== ''" class="text-xs font-bold text-purple-800">
+                            <span x-text="'الليلة الأولى: ' + formatNumber(parseFloat(firstNightPrice) || 0)"></span>
+                            <span x-show="(nights || 1) > 1" x-text="' + ' + ((nights || 1) - 1) + ' ليلة × ' + formatNumber(effectiveRoomPrice())"></span>
+                            <span x-text="' = ' + formatNumber(totalAmount) + ' ر.ي'"></span>
+                        </p>
+                    </div>
+                </div>
+
                 {{-- Renewal Price --}}
                 <div>
                     <button type="button" x-show="!showRenewalPrice" @click="showRenewalPrice = true"
@@ -977,6 +1005,7 @@ html.dark [style*="background:var(--gold-l)"] {
 
             <input type="hidden" name="currency" value="YER">
             <input type="hidden" name="total_amount" :value="totalAmount">
+            <input type="hidden" name="first_night_price" :value="(nights || 1) > 1 && firstNightPrice !== null && firstNightPrice !== '' ? firstNightPrice : ''">
             <input type="hidden" name="price_per_night" :value="effectiveRoomPrice()">
             <input type="hidden" name="renewal_price_per_night" :value="renewalPrice !== null && renewalPrice !== '' ? renewalPrice : ''">
             <input type="hidden" name="booking_mode" value="{{ $mode }}">
@@ -1320,12 +1349,14 @@ function checkInForm() {
         nightsInput: 1,
         totalAmount: 0,
         customPrice: null,
+        firstNightPrice: null,
         renewalPrice: null,
         currency: 'YER',
         paymentStatus: 'paid',
         paymentMethod: 'cash',
         paidAmount: 0,
         showPriceOverride: false,
+        showFirstNightPrice: false,
         showRenewalPrice: false,
         idImagePreview: null,
         idImageName: '',
@@ -1416,6 +1447,8 @@ function checkInForm() {
                     paidAmount:      this.paidAmount,
                     customPrice:     this.customPrice,
                     showPriceOverride: this.showPriceOverride,
+                    firstNightPrice: this.firstNightPrice,
+                    showFirstNightPrice: this.showFirstNightPrice,
                     renewalPrice:    this.renewalPrice,
                     showRenewalPrice: this.showRenewalPrice,
                 }));
@@ -1445,6 +1478,8 @@ function checkInForm() {
                 this.paidAmount        = s.paidAmount         ?? 0;
                 this.customPrice       = s.customPrice        ?? null;
                 this.showPriceOverride = s.showPriceOverride  ?? false;
+                this.firstNightPrice   = s.firstNightPrice    ?? null;
+                this.showFirstNightPrice = s.showFirstNightPrice ?? false;
                 this.renewalPrice      = s.renewalPrice       ?? null;
                 this.showRenewalPrice  = s.showRenewalPrice   ?? false;
                 this.$nextTick(() => this.calcTotal());
@@ -1739,7 +1774,16 @@ function checkInForm() {
                 }
                 this.nights     = Math.max(0, Math.floor((d2c - d1) / 86400000));
                 this.nightsInput = this.nights || 1;
-                this.totalAmount = this.selectedRoom ? (this.nights || 1) * this.effectiveRoomPrice() : 0;
+                const n = this.nights || 1;
+                const perNight = this.effectiveRoomPrice();
+                // سعر مختلف لليلة الأولى (إن أُدخل ولو كانت هناك أكثر من ليلة):
+                // الإجمالي = سعر الليلة الأولى + (عدد الليالي − 1) × سعر باقي الليالي
+                if (n > 1 && this.firstNightPrice !== null && this.firstNightPrice !== '') {
+                    const fn = parseFloat(this.firstNightPrice) || 0;
+                    this.totalAmount = this.selectedRoom ? fn + (n - 1) * perNight : 0;
+                } else {
+                    this.totalAmount = this.selectedRoom ? n * perNight : 0;
+                }
                 this.saveToSession();
             }
         },
