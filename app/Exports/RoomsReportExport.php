@@ -15,7 +15,9 @@ class RoomsReportExport implements FromCollection, WithHeadings, WithMapping, Wi
 
     public function collection()
     {
+        // الغرف المتاحة/المشغولة/تحت الفحص فقط، مرتّبة تصاعدياً حسب رقم الغرفة
         return Room::with('roomType')
+            ->whereIn('status', ['available', 'occupied', 'under_inspection'])
             ->withCount(['reservations as total_reservations' => fn($q) =>
                 $q->whereDate('check_in_date', '>=', $this->from)
                   ->whereDate('check_in_date', '<=', $this->to)
@@ -26,7 +28,8 @@ class RoomsReportExport implements FromCollection, WithHeadings, WithMapping, Wi
                   ->whereDate('check_in_date', '<=', $this->to)
                   ->whereNotIn('status', ['cancelled'])
             ], 'total_amount')
-            ->orderByDesc('total_revenue')
+            ->orderByRaw('CAST(room_number AS UNSIGNED) ASC')
+            ->orderBy('room_number')
             ->get();
     }
 

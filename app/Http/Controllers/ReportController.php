@@ -728,9 +728,12 @@ class ReportController extends Controller
         $from = $request->input('from', now()->subDays(30)->toDateString());
         $to   = $request->input('to', now()->toDateString());
         $rooms = Room::with('roomType')
+            ->whereIn('status', ['available', 'occupied', 'under_inspection'])
             ->withCount(['reservations as total_reservations' => fn($q) => $q->whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to)->whereNotIn('status', ['cancelled'])])
             ->withSum(['reservations as total_revenue' => fn($q) => $q->whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to)->whereNotIn('status', ['cancelled'])], 'total_amount')
-            ->orderByDesc('total_revenue')->get();
+            ->orderByRaw('CAST(room_number AS UNSIGNED) ASC')
+            ->orderBy('room_number')
+            ->get();
         $pdf = $this->pdfOptions(pdf_load_view('reports.rooms_pdf', compact('rooms', 'from', 'to')));
         $pdf->setPaper('a3', 'landscape');
         return $pdf->download('rooms-' . $from . '-' . $to . '.pdf');
@@ -1016,14 +1019,19 @@ class ReportController extends Controller
                 ->whereNotIn('status', ['cancelled'])])
                 ->having('period_reservations', '>', 0)->orderByDesc('period_reservations')->limit(10)->get();
         } elseif ($tab === 'rooms') {
+            // نعرض الغرف المتاحة/المشغولة/تحت الفحص فقط (نُخفي الصيانة)، مرتّبةً
+            // تصاعدياً حسب رقم الغرفة (من الأصغر للأكبر) بترتيب رقمي لا نصّي.
             $rooms = Room::with('roomType')
+                ->whereIn('status', ['available', 'occupied', 'under_inspection'])
                 ->withCount(['reservations as total_reservations' => fn($q) => $q
                     ->whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to)
                     ->whereNotIn('status', ['cancelled'])])
                 ->withSum(['reservations as total_revenue' => fn($q) => $q
                     ->whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to)
                     ->whereNotIn('status', ['cancelled'])], 'total_amount')
-                ->orderByDesc('total_revenue')->get();
+                ->orderByRaw('CAST(room_number AS UNSIGNED) ASC')
+                ->orderBy('room_number')
+                ->get();
         }
 
         return view('reports.guests-rooms-hub', compact(
