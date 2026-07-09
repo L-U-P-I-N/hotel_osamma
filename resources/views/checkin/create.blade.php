@@ -325,11 +325,8 @@ html.dark [style*="background:var(--gold-l)"] {
 @section('content')
 <div x-data="checkInForm()" x-init="init()" class="ci-form" x-cloak>
 
-{{-- Mode Banner — يتغيّر تلقائياً حسب تاريخ الوصول المُختار: اليوم = تسجيل دخول فوري، لاحقاً = عربون مسبق --}}
-<div class="mode-banner mode-checkin" x-show="checkInDate === today()">
-    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
-    <span><strong>تسجيل دخول فوري</strong> — النزيل موجود الآن، ستصبح الغرفة <strong>مشغولة</strong> فور الحفظ</span>
-</div>
+{{-- شريط "وصول لاحق بعربون" فقط — يظهر عند اختيار تاريخ وصول لاحق (شريط تسجيل
+     الدخول الفوري أُزيل بناءً على طلب المستخدم) --}}
 <div class="mode-banner mode-reserve" x-show="checkInDate !== today()">
     <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
     <span><strong>وصول لاحق بعربون</strong> — النزيل سيصل بتاريخ <strong x-text="checkInDate"></strong>، وستبقى الغرفة <strong>متاحة</strong> لأي نزيل آخر حتى ذلك التاريخ</span>
