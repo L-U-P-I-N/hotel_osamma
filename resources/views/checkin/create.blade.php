@@ -1679,17 +1679,21 @@ function checkInForm() {
             return this.addDaysStr(arrival, -{{ \App\Models\Reservation::TURNOVER_BUFFER_DAYS }});
         },
 
-        // عند تغيير تاريخ الوصول: يجب أن يبقى تاريخ المغادرة بعده بيوم على الأقل.
-        // نحافظ على عدد الليالي الحالي ونُزيح المغادرة تلقائياً (مع احترام حدّ
-        // النزيل القادم إن وُجد)، ثم نعيد ضبط حدود منتقي المغادرة.
+        // عند تغيير تاريخ الوصول: إن كان تاريخ المغادرة المختار لا يزال بعد الوصول
+        // نُبقيه كما اختاره المستخدم ونكتفي بإعادة حساب الليالي (مهم عند إدخال نزيل
+        // قديم بتاريخَي وصول ومغادرة محدَّدين). أمّا إن أصبحت المغادرة ≤ الوصول
+        // (غير صالحة) فنُزيحها تلقائياً لتبقى ليلة واحدة على الأقل مع الحفاظ على عدد
+        // الليالي السابق. ثم نعيد ضبط حدود منتقي المغادرة.
         onCheckInChanged() {
             if (!this.checkInDate || isNaN(new Date(this.checkInDate))) return;
-            const keepNights = Math.max(1, parseInt(this.nightsInput) || this.nights || 1);
-            let out = this.addDaysStr(this.checkInDate, keepNights);
-            const max = this.maxCheckoutYmd();
-            if (max && out > max) out = max;                       // لا يتجاوز حجز النزيل القادم
-            if (out <= this.checkInDate) out = this.addDaysStr(this.checkInDate, 1); // ليلة واحدة كحد أدنى
-            this.checkOutDate = out;
+            if (!this.checkOutDate || this.checkOutDate <= this.checkInDate) {
+                const keepNights = Math.max(1, parseInt(this.nightsInput) || this.nights || 1);
+                let out = this.addDaysStr(this.checkInDate, keepNights);
+                const max = this.maxCheckoutYmd();
+                if (max && out > max) out = max;                       // لا يتجاوز حجز النزيل القادم
+                if (out <= this.checkInDate) out = this.addDaysStr(this.checkInDate, 1); // ليلة كحد أدنى
+                this.checkOutDate = out;
+            }
             this.applyCheckoutBounds();
             this.calcTotal();
         },
