@@ -130,6 +130,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/checkout/{reservation}', [CheckOutController::class, 'show'])->name('checkout.show');
         Route::post('/checkout/{reservation}', [CheckOutController::class, 'process'])->name('checkout.process');
         Route::get('/checkout/{reservation}/done', [CheckOutController::class, 'done'])->name('checkout.done');
+        // تسجيل أضرار لنزيل مقيم (دون انتظار الخروج)
+        Route::post('/reservations/{reservation}/damage', [ReservationController::class, 'addDamage'])->name('reservations.addDamage');
     });
 
     // Payments

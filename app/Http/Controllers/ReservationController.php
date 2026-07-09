@@ -822,6 +822,84 @@ class ReservationController extends Controller
             ->with('success', 'تم تطبيق الخصم بنجاح — ' . number_format($discountAmount, 0) . ' ر.ي');
     }
 
+    /**
+     * تسجيل أضرار لنزيل مقيم (دون انتظار تسجيل الخروج) — يُنشئ سجل فحص/أضرار مع
+     * الصور، ويضيف قيمة التعويض كرسم إضافي إلى إجمالي الحجز (دَين على النزيل)
+     * ويسجّلها مصروف صيانة، تماماً كما يحدث عند الخروج.
+     */
+    public function addDamage(Request $request, Reservation $reservation)
+    {
+        if ($reservation->status !== 'checked_in') {
+            return back()->withErrors(['error' => 'تسجيل الأضرار متاح فقط للنزلاء المقيمين (مسجّل دخول)']);
+        }
+
+        $validated = $request->validate([
+            'damage_description'  => 'required|string|max:1000',
+            'compensation_amount' => 'required|numeric|min:0',
+            'damage_images.*'     => 'nullable|file|mimes:jpg,jpeg,png|max:5120',
+        ], [
+            'damage_description.required'  => 'وصف الأضرار مطلوب',
+            'compensation_amount.required' => 'مبلغ التعويض مطلوب',
+            'compensation_amount.numeric'  => 'مبلغ التعويض يجب أن يكون رقماً',
+        ]);
+
+        $amount = (float) $validated['compensation_amount'];
+
+        DB::transaction(function () use ($reservation, $validated, $amount, $request) {
+            $inspection = \App\Models\RoomInspection::create([
+                'reservation_id'      => $reservation->id,
+                'inspected_by'        => auth()->id(),
+                'has_damage'          => true,
+                'damage_description'  => $validated['damage_description'],
+                'compensation_amount' => $amount,
+                'compensation_status' => $amount > 0 ? 'pending' : 'none',
+                'inspection_date'     => now(),
+            ]);
+
+            if ($request->hasFile('damage_images')) {
+                foreach ($request->file('damage_images') as $image) {
+                    \App\Models\InspectionImage::create([
+                        'room_inspection_id' => $inspection->id,
+                        'image_path'         => $image->store('inspection_images', 'private'),
+                    ]);
+                }
+            }
+
+            if ($amount > 0) {
+                \App\Models\ExtraCharge::create([
+                    'reservation_id' => $reservation->id,
+                    'added_by'       => auth()->id(),
+                    'type'           => 'damage',
+                    'description'    => $validated['damage_description'],
+                    'amount'         => $amount,
+                    'charge_date'    => now(),
+                ]);
+
+                \App\Models\Expense::create([
+                    'amount'       => $amount,
+                    'currency'     => 'YER',
+                    'category'     => 'maintenance',
+                    'description'  => 'أضرار غرفة ' . ($reservation->room->room_number ?? '') . ' — ' . $validated['damage_description'],
+                    'expense_date' => now()->toDateString(),
+                    'paid_by'      => auth()->id(),
+                    'shift_id'     => null,
+                ]);
+
+                $reservation->increment('total_amount', $amount);
+                $reservation->refresh()->updatePaymentStatus();
+            }
+
+            AuditLogService::log('update', $reservation, null, [
+                'action'              => 'damage_recorded',
+                'compensation_amount' => $amount,
+                'damage_description'  => $validated['damage_description'],
+            ], auth()->user());
+        });
+
+        return redirect()->route('reservations.show', $reservation)
+            ->with('success', 'تم تسجيل الأضرار' . ($amount > 0 ? ' وإضافة ' . number_format($amount, 0) . ' ر.ي إلى حساب النزيل' : ''));
+    }
+
     private function nullIfEmpty(mixed $value): mixed
     {
         return ($value === '' || $value === null) ? null : $value;

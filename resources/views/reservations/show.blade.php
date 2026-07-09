@@ -166,6 +166,14 @@
                     </button>
                     @endif
                     @endcan
+                    @can('checkout.process')
+                    @if($reservation->status === 'checked_in')
+                    <button onclick="document.getElementById('damageModal').classList.remove('hidden')" class="w-full flex items-center gap-2.5 px-4 py-2 text-red-600 hover:bg-red-50 transition">
+                        <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        تسجيل أضرار
+                    </button>
+                    @endif
+                    @endcan
                     @can('checkin.create')
                     @if($reservation->status === 'checked_in')
                     <form method="POST" action="{{ route('reservations.toggleAutoRenew', $reservation) }}">
@@ -425,62 +433,73 @@
         </div>
         @endif
 
-        {{-- Room Inspection --}}
-        @if($reservation->status === 'checked_out' && $reservation->roomInspections->count() > 0)
-        @php $insp = $reservation->roomInspections->first(); @endphp
-        <div class="bg-white rounded-2xl shadow-sm border {{ $insp->has_damage ? 'border-red-200' : 'border-emerald-100' }} overflow-hidden">
-            <div class="px-5 py-3 border-b {{ $insp->has_damage ? 'border-red-100' : 'border-emerald-50' }} flex items-center gap-3">
-                <div class="w-8 h-8 rounded-lg {{ $insp->has_damage ? 'bg-red-500' : 'bg-emerald-500' }} flex items-center justify-center shadow-sm">
-                    @if($insp->has_damage)
+        {{-- Room Inspection / Recorded Damages (تُعرض للمقيم والمغادر) --}}
+        @php $damageInspections = $reservation->roomInspections->where('has_damage', true); @endphp
+        @if($damageInspections->count() > 0)
+        <div class="bg-white rounded-2xl shadow-sm border border-red-200 overflow-hidden">
+            <div class="px-5 py-3 border-b border-red-100 flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-red-500 flex items-center justify-center shadow-sm">
                     <svg class="text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:18px;height:18px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                    @else
-                    <svg class="text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:18px;height:18px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <h3 class="font-bold text-gray-800 text-sm">الأضرار المسجّلة</h3>
+                <span class="mr-auto px-2 py-0.5 bg-red-50 text-red-700 text-xs font-bold rounded-full">{{ $damageInspections->count() }}</span>
+            </div>
+            <div class="divide-y divide-gray-50">
+                @foreach($damageInspections as $insp)
+                <div class="p-4 space-y-2.5 text-sm">
+                    <div class="flex items-center justify-between">
+                        <span class="flex items-center gap-2 text-red-700 font-semibold">
+                            <span class="w-2 h-2 rounded-full bg-red-500 inline-block"></span>
+                            ضرر مسجّل
+                        </span>
+                        <span class="text-xs text-gray-400">{{ $insp->inspection_date?->format('d/m/Y H:i') }}</span>
+                    </div>
+                    @if($insp->damage_description)
+                    <p class="text-gray-600 bg-red-50 rounded-xl p-3 text-xs leading-relaxed">{{ $insp->damage_description }}</p>
+                    @endif
+                    @if($insp->compensation_amount > 0)
+                    <div class="flex justify-between items-center bg-orange-50 border border-orange-100 rounded-xl p-3">
+                        <span class="text-orange-800 font-semibold text-sm">مبلغ التعويض</span>
+                        <span class="font-black text-orange-700">{{ number_format($insp->compensation_amount, 0) }} {{ $reservation->currency_symbol }}</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 text-xs">
+                        <span class="w-2.5 h-2.5 rounded-full {{ $insp->compensation_status === 'paid' ? 'bg-emerald-500' : 'bg-amber-500' }} inline-block"></span>
+                        <span class="{{ $insp->compensation_status === 'paid' ? 'text-emerald-700 font-semibold' : 'text-amber-700' }}">
+                            {{ $insp->compensation_status === 'paid' ? 'التعويض مدفوع' : 'التعويض معلق — يُحصَّل من النزيل' }}
+                        </span>
+                    </div>
+                    @endif
+                    @if($insp->images->count() > 0)
+                    <div>
+                        <p class="text-xs text-gray-400 mb-1.5 font-medium">صور الأضرار ({{ $insp->images->count() }})</p>
+                        <div class="flex flex-wrap gap-2">
+                            @foreach($insp->images as $img)
+                            <a href="{{ Storage::disk('private')->url($img->image_path) }}" target="_blank"
+                               class="w-16 h-16 rounded-lg overflow-hidden border border-gray-200 block hover:opacity-90 transition shadow-sm">
+                                <img src="{{ asset('storage/' . $img->image_path) }}" alt="صورة ضرر"
+                                     class="w-full h-full object-cover" onerror="this.parentElement.style.display='none'">
+                            </a>
+                            @endforeach
+                        </div>
+                    </div>
                     @endif
                 </div>
-                <h3 class="font-bold text-gray-800 text-sm">تقرير فحص الغرفة</h3>
-                <span class="mr-auto text-xs text-gray-400">{{ $insp->inspection_date?->format('d/m/Y H:i') }}</span>
+                @endforeach
             </div>
-            <div class="p-4 space-y-2.5 text-sm">
-                @if($insp->has_damage)
-                <div class="flex items-center gap-2 text-red-700 font-semibold text-sm">
-                    <span class="w-2 h-2 rounded-full bg-red-500 inline-block"></span>
-                    تم تسجيل أضرار في الغرفة
+        </div>
+        @elseif($reservation->status === 'checked_out' && $reservation->roomInspections->count() > 0)
+        <div class="bg-white rounded-2xl shadow-sm border border-emerald-100 overflow-hidden">
+            <div class="px-5 py-3 border-b border-emerald-50 flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center shadow-sm">
+                    <svg class="text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:18px;height:18px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
-                @if($insp->damage_description)
-                <p class="text-gray-600 bg-red-50 rounded-xl p-3 text-xs leading-relaxed">{{ $insp->damage_description }}</p>
-                @endif
-                @if($insp->compensation_amount > 0)
-                <div class="flex justify-between items-center bg-orange-50 border border-orange-100 rounded-xl p-3">
-                    <span class="text-orange-800 font-semibold text-sm">مبلغ التعويض</span>
-                    <span class="font-black text-orange-700">{{ number_format($insp->compensation_amount, 0) }} {{ $reservation->currency_symbol }}</span>
-                </div>
-                <div class="flex items-center gap-1.5 text-xs">
-                    <span class="w-2.5 h-2.5 rounded-full {{ $insp->compensation_status === 'paid' ? 'bg-emerald-500' : 'bg-amber-500' }} inline-block"></span>
-                    <span class="{{ $insp->compensation_status === 'paid' ? 'text-emerald-700 font-semibold' : 'text-amber-700' }}">
-                        {{ $insp->compensation_status === 'paid' ? 'التعويض مدفوع' : 'التعويض معلق' }}
-                    </span>
-                </div>
-                @endif
-                @if($insp->images->count() > 0)
-                <div>
-                    <p class="text-xs text-gray-400 mb-1.5 font-medium">صور الأضرار ({{ $insp->images->count() }})</p>
-                    <div class="flex flex-wrap gap-2">
-                        @foreach($insp->images as $img)
-                        <a href="{{ Storage::disk('private')->url($img->image_path) }}" target="_blank"
-                           class="w-16 h-16 rounded-lg overflow-hidden border border-gray-200 block hover:opacity-90 transition shadow-sm">
-                            <img src="{{ asset('storage/' . $img->image_path) }}" alt="صورة ضرر"
-                                 class="w-full h-full object-cover" onerror="this.parentElement.style.display='none'">
-                        </a>
-                        @endforeach
-                    </div>
-                </div>
-                @endif
-                @else
+                <h3 class="font-bold text-gray-800 text-sm">تقرير فحص الغرفة</h3>
+            </div>
+            <div class="p-4">
                 <div class="flex items-center gap-2.5 text-emerald-700 font-semibold text-sm">
                     <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>
                     الغرفة بحالة جيدة — لا توجد أضرار
                 </div>
-                @endif
             </div>
         </div>
         @endif
@@ -842,6 +861,67 @@
                     تطبيق الخصم
                 </button>
                 <button type="button" onclick="document.getElementById('discountModal').classList.add('hidden')"
+                        class="px-5 py-3 border border-gray-300 text-gray-600 rounded-xl text-sm hover:bg-gray-50 transition">
+                    إلغاء
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
+@endcan
+
+{{-- ===== DAMAGE MODAL (record damages for an ongoing guest) ===== --}}
+@can('checkout.process')
+@if($reservation->status === 'checked_in')
+<div id="damageModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto"
+     onclick="if(event.target===this) this.classList.add('hidden')">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto my-auto" onclick="event.stopPropagation()">
+        <div class="px-6 py-5 rounded-t-2xl flex items-center justify-between" style="background:linear-gradient(135deg,#b91c1c,#ef4444);">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                </div>
+                <h3 class="font-bold text-white text-lg">تسجيل أضرار</h3>
+            </div>
+            <button onclick="document.getElementById('damageModal').classList.add('hidden')"
+                    class="w-8 h-8 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <form method="POST" action="{{ route('reservations.addDamage', $reservation) }}" enctype="multipart/form-data" class="p-6 space-y-4">
+            @csrf
+            <div class="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
+                <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>سيُضاف مبلغ التعويض إلى إجمالي حساب النزيل (دَين عليه) ويُسجَّل كمصروف صيانة — دون انتظار تسجيل الخروج.</span>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">وصف الأضرار <span class="text-red-500">*</span></label>
+                <textarea name="damage_description" rows="3" required maxlength="1000"
+                          placeholder="مثال: كسر في مرآة الحمام، حرق في المفرش..."
+                          class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-red-400 outline-none"></textarea>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">مبلغ التعويض (ر.ي) <span class="text-red-500">*</span></label>
+                <input type="number" name="compensation_amount" min="0" step="0.01" required placeholder="0"
+                       class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-red-400 outline-none">
+                <p class="text-xs text-gray-400 mt-1">أدخل 0 إن أردت توثيق الضرر فقط دون تحميل النزيل مبلغاً.</p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">صور الأضرار <span class="text-gray-400 font-normal">(اختياري)</span></label>
+                <input type="file" name="damage_images[]" accept="image/*" multiple
+                       class="w-full text-sm text-gray-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-red-50 file:text-red-700 hover:file:bg-red-100">
+            </div>
+
+            <div class="flex gap-2 pt-1">
+                <button type="submit"
+                        class="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-bold transition">
+                    تسجيل الأضرار
+                </button>
+                <button type="button" onclick="document.getElementById('damageModal').classList.add('hidden')"
                         class="px-5 py-3 border border-gray-300 text-gray-600 rounded-xl text-sm hover:bg-gray-50 transition">
                     إلغاء
                 </button>
