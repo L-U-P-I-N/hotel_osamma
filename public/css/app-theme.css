@@ -251,57 +251,75 @@ html.dark .bg-purple-100,
 html.dark .bg-indigo-100                                { background-color:rgba(168,156,224,.15) !important; }
 html.dark .bg-pink-100                                  { background-color:rgba(221,143,182,.15) !important; }
 
-/* ── Colored text (مخفّف التشبّع) ─────────────────────────────────── */
+/* ── Colored text (مخفّف التشبّع)
+      نشمل الدرجات 900→600 معاً: درجة 900 داكنة جداً في Tailwind فتُصبح شبه
+      مخفية على الخلفيات الداكنة (مثل نص تنبيهات لوحة التحكم) ما لم نتجاوزها. ── */
+html.dark .text-green-900,
 html.dark .text-green-800,
 html.dark .text-green-700,
 html.dark .text-green-600,
+html.dark .text-emerald-900,
 html.dark .text-emerald-800,
 html.dark .text-emerald-700,
 html.dark .text-emerald-600,
 html.dark .text-teal-700,
 html.dark .text-teal-600                                { color:var(--d-green) !important; }
 
+html.dark .text-red-900,
 html.dark .text-red-800,
 html.dark .text-red-700,
 html.dark .text-red-600,
+html.dark .text-rose-900,
 html.dark .text-rose-800,
 html.dark .text-rose-700,
 html.dark .text-rose-600                                { color:var(--d-red) !important; }
 
+html.dark .text-amber-900,
 html.dark .text-amber-800,
 html.dark .text-amber-700,
 html.dark .text-amber-600,
+html.dark .text-yellow-900,
 html.dark .text-yellow-800,
 html.dark .text-yellow-700                              { color:var(--d-amber) !important; }
 
+html.dark .text-orange-900,
 html.dark .text-orange-800,
 html.dark .text-orange-700,
 html.dark .text-orange-600                              { color:var(--d-orange) !important; }
 
+html.dark .text-blue-900,
 html.dark .text-blue-800,
 html.dark .text-blue-700,
 html.dark .text-blue-600,
+html.dark .text-sky-900,
 html.dark .text-sky-800,
 html.dark .text-sky-700,
 html.dark .text-sky-600                                 { color:var(--d-blue) !important; }
 
+html.dark .text-primary-900,
 html.dark .text-primary-800,
 html.dark .text-primary-700,
 html.dark .text-primary-600                             { color:var(--d-primary) !important; }
 
+html.dark .text-violet-900,
 html.dark .text-violet-800,
 html.dark .text-violet-700,
 html.dark .text-violet-600,
+html.dark .text-purple-900,
 html.dark .text-purple-800,
 html.dark .text-purple-700,
 html.dark .text-purple-600,
+html.dark .text-indigo-900,
 html.dark .text-indigo-800,
 html.dark .text-indigo-700,
 html.dark .text-indigo-600                              { color:var(--d-violet) !important; }
 
+html.dark .text-pink-900,
+html.dark .text-pink-800,
 html.dark .text-pink-700,
 html.dark .text-pink-600                                { color:var(--d-pink) !important; }
 
+html.dark .text-teal-900,
 html.dark .text-teal-800,
 html.dark .text-teal-500                                { color:var(--d-teal) !important; }
 
