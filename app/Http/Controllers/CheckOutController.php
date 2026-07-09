@@ -31,11 +31,13 @@ class CheckOutController extends Controller
             'remaining_payment' => 'nullable|numeric|min:0',
             'remaining_method' => 'nullable|in:cash,bank_transfer,pos',
             'remaining_bank_receipt' => 'required_if:remaining_method,bank_transfer|nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
+            'left_unpaid' => 'boolean',
         ]);
 
         try {
             $data = $request->except(['_token', '_method']);
             $data['has_damage'] = $request->boolean('has_damage');
+            $data['left_unpaid'] = $request->boolean('left_unpaid');
 
             if ($request->hasFile('inspection_images')) {
                 $data['inspection_images'] = $request->file('inspection_images');

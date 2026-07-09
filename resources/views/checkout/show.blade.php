@@ -130,8 +130,8 @@
                 <label class="block text-xs font-medium text-gray-600 mb-1.5">المبلغ المدفوع <span class="text-red-500">*</span></label>
                 <input type="number" name="remaining_payment" x-model.number="remainingPayment"
                        step="0.01"
-                       :min="totalRequired" :max="totalRequired"
-                       :placeholder="totalRequired.toFixed(2)"
+                       :min="leftUnpaid ? 0 : totalRequired" :max="totalRequired"
+                       :placeholder="leftUnpaid ? '0.00' : totalRequired.toFixed(2)"
                        class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
                 <p x-show="remainingPayment > 0 && remainingPayment != totalRequired"
                    class="text-xs text-red-600 mt-1 font-medium">
@@ -163,23 +163,40 @@
 
     <!-- Submit -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        {{-- Block checkout if total required > 0 and no payment entered --}}
-        <div x-show="totalRequired > 0 && remainingPayment <= 0"
+        {{-- خيار: النزيل غادر دون سداد (هروب) — يُسجَّل الخروج مع بقاء الدين --}}
+        <div x-show="totalRequired > 0" class="mb-4">
+            <label class="flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition"
+                   :class="leftUnpaid ? 'bg-orange-50 border-orange-300' : 'bg-gray-50 border-gray-200 hover:border-gray-300'">
+                <input type="checkbox" name="left_unpaid" value="1" x-model="leftUnpaid" class="mt-0.5 w-4 h-4 accent-orange-600">
+                <span class="text-sm">
+                    <span class="font-semibold text-gray-800">النزيل غادر دون سداد المبلغ المتبقي</span>
+                    <span class="block text-xs text-gray-500 mt-0.5">اختر هذا الخيار إذا غادر النزيل دون دفع (هروب). سيُسجَّل الخروج ويبقى المبلغ المتبقي كدَين عليه يظهر في تقرير الديون.</span>
+                </span>
+            </label>
+        </div>
+
+        {{-- Block checkout if total required > 0 and no payment entered (unless marked left-unpaid) --}}
+        <div x-show="totalRequired > 0 && !leftUnpaid && remainingPayment <= 0"
              class="bg-red-50 border border-red-200 rounded-xl p-4 mb-4 flex items-center gap-3 text-sm text-red-800">
             <svg class="w-5 h-5 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
-            لا يمكن تسجيل الخروج — يوجد مبالغ مستحقة بلغت <strong class="mx-1" x-text="totalRequired.toLocaleString('ar-SA', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' {{ $reservation->currency_symbol }}'"></strong> يجب تسويتها أولاً
+            لا يمكن تسجيل الخروج — يوجد مبالغ مستحقة بلغت <strong class="mx-1" x-text="totalRequired.toLocaleString('ar-SA', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' {{ $reservation->currency_symbol }}'"></strong> يجب تسويتها أولاً، أو اختَر «غادر دون سداد» أعلاه.
         </div>
-        <div x-show="totalRequired > 0 && remainingPayment > 0 && remainingPayment != totalRequired"
+        <div x-show="totalRequired > 0 && !leftUnpaid && remainingPayment > 0 && remainingPayment != totalRequired"
              class="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4 flex items-center gap-3 text-sm text-orange-800">
             <svg class="w-5 h-5 text-orange-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
             المبلغ المدخل لا يساوي الإجمالي المطلوب (<span x-text="totalRequired.toLocaleString('ar-SA', {minimumFractionDigits:2, maximumFractionDigits:2})"></span> {{ $reservation->currency_symbol }})
+        </div>
+        <div x-show="totalRequired > 0 && leftUnpaid"
+             class="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4 flex items-center gap-3 text-sm text-orange-800">
+            <svg class="w-5 h-5 text-orange-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            سيُسجَّل الخروج مع بقاء دَين قدره <strong class="mx-1" x-text="(totalRequired - (parseFloat(remainingPayment)||0)).toLocaleString('ar-SA', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' {{ $reservation->currency_symbol }}'"></strong> على النزيل.
         </div>
         <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-4 text-sm text-yellow-800">
             <strong>تحذير:</strong> بعد إتمام تسجيل الخروج لا يمكن التراجع عنه.
         </div>
         <div class="flex gap-3">
             <button type="submit"
-                    :disabled="totalRequired > 0 && (remainingPayment <= 0 || remainingPayment != totalRequired)"
+                    :disabled="totalRequired > 0 && !leftUnpaid && (remainingPayment <= 0 || remainingPayment != totalRequired)"
                     class="flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition disabled:opacity-40 disabled:cursor-not-allowed">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
                 إتمام تسجيل الخروج
@@ -199,6 +216,7 @@ function checkoutForm() {
         compensationAmount: 0,
         remainingMethod: 'cash',
         remainingPayment: 0,
+        leftUnpaid: false,
         balance: {{ $reservation->balance }},
         get totalRequired() {
             const comp = this.hasDamage ? (parseFloat(this.compensationAmount) || 0) : 0;

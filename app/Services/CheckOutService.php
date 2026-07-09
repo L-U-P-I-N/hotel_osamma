@@ -94,10 +94,24 @@ class CheckOutService
 
             // e. Update Reservation
             $reservation->refresh();
-            $reservation->update([
-                'status' => 'checked_out',
+
+            // نوقف التجديد التلقائي عند الخروج (حتى لا يُحتسب أي يوم جديد بعد المغادرة)
+            $updates = [
+                'status'           => 'checked_out',
                 'actual_check_out' => now(),
-            ]);
+                'auto_renew'       => false,
+            ];
+
+            // النزيل غادر دون سداد (هروب): نُسجّل الخروج مع بقاء الدين ونوثّق ذلك
+            $remainingDebt = round((float) $reservation->total_amount - (float) $reservation->paid_amount, 2);
+            if (!empty($data['left_unpaid']) && $remainingDebt > 0) {
+                $debtNote = '[غادر النزيل دون سداد — دَين متبقٍ: ' . number_format($remainingDebt, 0) . ' ر.ي]';
+                $updates['notes'] = $reservation->notes
+                    ? $reservation->notes . "\n" . $debtNote
+                    : $debtNote;
+            }
+
+            $reservation->update($updates);
             $reservation->updatePaymentStatus();
 
             // f. Update Room status — always under_inspection after checkout; staff changes manually
