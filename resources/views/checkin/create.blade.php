@@ -161,6 +161,7 @@
 .pay-opt input:checked + .pay-opt-inner { box-shadow: 0 0 0 2px currentColor; }
 .pay-opt-paid input:checked + .pay-opt-inner { border-color: var(--emerald); background: var(--emerald-l); color: var(--emerald); }
 .pay-opt-partial input:checked + .pay-opt-inner { border-color: var(--navy-l); background: var(--navy-g); color: var(--navy); }
+.pay-opt-deferred input:checked + .pay-opt-inner { border-color: #d97706; background: #fffbeb; color: #b45309; }
 
 /* ── Booking panel ── */
 .bpanel {
@@ -1020,7 +1021,7 @@ html.dark [style*="background:var(--gold-l)"] {
                 </div>
 
                 {{-- Payment Status --}}
-                <div class="grid grid-cols-2 gap-2 mb-4">
+                <div class="grid grid-cols-3 gap-2 mb-4">
                     <label class="pay-opt pay-opt-paid">
                         <input type="radio" name="payment_status" value="paid" x-model="paymentStatus">
                         <div class="pay-opt-inner">
@@ -1035,6 +1036,19 @@ html.dark [style*="background:var(--gold-l)"] {
                             <div class="text-xs font-bold">دفعة جزئية</div>
                         </div>
                     </label>
+                    <label class="pay-opt pay-opt-deferred">
+                        <input type="radio" name="payment_status" value="deferred" x-model="paymentStatus">
+                        <div class="pay-opt-inner">
+                            <svg class="w-5 h-5 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <div class="text-xs font-bold">آجل (لاحقاً)</div>
+                        </div>
+                    </label>
+                </div>
+
+                {{-- Deferred note --}}
+                <div x-show="paymentStatus === 'deferred'" x-cloak class="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 flex items-start gap-2 text-xs text-amber-800">
+                    <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span>سيُسجَّل النزيل دون دفع الآن، ويبقى كامل المبلغ كدَين آجل عليه يظهر في تقرير الديون ويُحصَّل لاحقاً.</span>
                 </div>
 
                 {{-- Partial amount --}}
@@ -1045,7 +1059,12 @@ html.dark [style*="background:var(--gold-l)"] {
                 <template x-if="paymentStatus === 'paid'">
                     <input type="hidden" name="paid_amount" :value="totalAmount">
                 </template>
+                <template x-if="paymentStatus === 'deferred'">
+                    <input type="hidden" name="paid_amount" value="0">
+                </template>
 
+                {{-- Payment method + notes + bank (يُخفى في الدفع الآجل) --}}
+                <div x-show="paymentStatus !== 'deferred'">
                 {{-- Payment method --}}
                 <div class="flex gap-4 mb-3">
                     <label class="flex items-center gap-2 cursor-pointer">
@@ -1088,6 +1107,7 @@ html.dark [style*="background:var(--gold-l)"] {
                         </label>
                     </div>
                 </div>
+                </div>{{-- /payment method wrapper (hidden when deferred) --}}
             </div>
 
             {{-- Balance summary --}}
@@ -1182,7 +1202,7 @@ html.dark [style*="background:var(--gold-l)"] {
                         <svg class="w-4 h-4" style="color:var(--navy-l)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                         ملخص المدفوعات
                     </h3>
-                    <div class="rev-row"><span>حالة الدفع</span><span x-text="paymentStatus === 'paid' ? 'مدفوع كامل' : 'دفعة جزئية'"></span></div>
+                    <div class="rev-row"><span>حالة الدفع</span><span x-text="paymentStatus === 'paid' ? 'مدفوع كامل' : (paymentStatus === 'deferred' ? 'آجل (يدفع لاحقاً)' : 'دفعة جزئية')"></span></div>
                     <div class="rev-row"><span>طريقة الدفع</span><span x-text="paymentMethod === 'cash' ? 'نقدي' : 'تحويل بنكي'"></span></div>
                     <div class="rev-row"><span>الإجمالي</span><span class="font-bold" style="color:var(--navy-d)" x-text="formatNumber(totalAmount) + ' ر.ي'"></span></div>
                     <div class="rev-row"><span>المدفوع</span><span class="text-emerald-700" x-text="formatNumber(effectivePaid) + ' ر.ي'"></span></div>
