@@ -1,6 +1,7 @@
 <?php
 namespace App\Services;
 
+use App\Helpers\StorageHelper;
 use App\Models\Payment;
 use App\Models\Reservation;
 use App\Models\User;
@@ -15,7 +16,9 @@ class PaymentService
         return DB::transaction(function () use ($reservation, $data, $user) {
             $bankReceiptPath = null;
             if (!empty($data['bank_receipt'])) {
-                $bankReceiptPath = $data['bank_receipt']->store('bank_receipts', 'private');
+                // نستخدم القرص الخاص المُعرَّف (نفس الذي يقرأ منه عارض السند) حتى
+                // لا يُخزَّن على قرص ويُبحَث عنه في آخر فيظهر خطأ 404.
+                $bankReceiptPath = StorageHelper::store($data['bank_receipt'], 'bank_receipts');
             }
 
             $shift = $this->shiftService->getActiveShift($user);

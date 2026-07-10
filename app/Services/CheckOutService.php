@@ -1,6 +1,7 @@
 <?php
 namespace App\Services;
 
+use App\Helpers\StorageHelper;
 use App\Models\Expense;
 use App\Models\ExtraCharge;
 use App\Models\InspectionImage;
@@ -69,7 +70,8 @@ class CheckOutService
             if (!empty($data['remaining_payment']) && $data['remaining_payment'] > 0) {
                 $bankReceiptPath = null;
                 if (!empty($data['remaining_bank_receipt'])) {
-                    $bankReceiptPath = $data['remaining_bank_receipt']->store('bank_receipts', 'private');
+                    // نفس القرص الخاص الذي يقرأ منه عارض السند (تفادي 404)
+                    $bankReceiptPath = StorageHelper::store($data['remaining_bank_receipt'], 'bank_receipts');
                 }
 
                 Payment::create([
