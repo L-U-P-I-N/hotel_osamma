@@ -1561,7 +1561,11 @@ function checkInForm() {
             this.guestData.id_type       = g.id_type || 'national_id';
             this.guestData.id_number     = g.id_number || '';
             this.guestData.id_issuer     = g.id_issuer || '';
-            this.guestData.id_issue_date = g.id_issue_date || '';
+            // لا نستبدل تاريخ الإصدار إن كان المستخدم قد كتب قيمة بنفسه — نملؤه فقط
+            // من السجل السابق حين تكون الخانة فارغة (حل وقائي لتفادي تغيير ما أدخله).
+            if (!this.guestData.id_issue_date) {
+                this.guestData.id_issue_date = g.id_issue_date || '';
+            }
             this.guestData.phone         = g.phone || '';
             this.existingGuestId         = g.id;
             this.existingGuestHasImage   = !!g.has_id_image;
