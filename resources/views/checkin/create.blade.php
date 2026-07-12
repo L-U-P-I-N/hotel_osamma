@@ -464,7 +464,11 @@ html.dark [style*="background:var(--gold-l)"] {
 
                 <div>
                     <label class="fl">تاريخ الإصدار</label>
-                    <input type="date" name="id_issue_date" x-model="guestData.id_issue_date" class="fi">
+                    {{-- حقل نصّي بصيغة سنة-شهر-يوم بدل حقل التاريخ الأصلي الذي كان
+                         يشوّه ما يُكتب يدوياً (مثلاً 2023/3/6 يصبح 20/03/2026). --}}
+                    <input type="text" name="id_issue_date" x-model="guestData.id_issue_date"
+                           inputmode="numeric" placeholder="مثال: 2023-03-06 (سنة-شهر-يوم)"
+                           class="fi" dir="ltr">
                 </div>
 
                 <div>
@@ -603,7 +607,8 @@ html.dark [style*="background:var(--gold-l)"] {
                             </div>
                             <div>
                                 <label class="fl text-xs">تاريخ الإصدار</label>
-                                <input type="date" :name="`companions[${idx}][id_issue_date]`" x-model="comp.id_issue_date" class="fi text-sm">
+                                <input type="text" :name="`companions[${idx}][id_issue_date]`" x-model="comp.id_issue_date"
+                                       inputmode="numeric" placeholder="2023-03-06" class="fi text-sm" dir="ltr">
                             </div>
                             <div class="md:col-span-2">
                                 <label class="fl text-xs">صورة الهوية <span class="freq">*</span></label>
