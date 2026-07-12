@@ -1422,9 +1422,11 @@ function renewForm() {
             this.calc();
         },
         calc() {
-            this.extraAmount = this.extraNights * (parseFloat(this.pricePerNight) || 0);
-            this.newTotal    = this.currentTotal + this.extraAmount;
-            this.remaining   = Math.max(0, this.newTotal - this.paidAmount - (parseFloat(this.advancePayment) || 0));
+            // الريال اليمني عملة صحيحة عملياً — نقرّب لأقرب ريال حتى لا تظهر كسور
+            // متراكمة (مثل 379,999.99) من عمليات القسمة/الضرب السابقة.
+            this.extraAmount = Math.round(this.extraNights * (parseFloat(this.pricePerNight) || 0));
+            this.newTotal    = Math.round(this.currentTotal + this.extraAmount);
+            this.remaining   = Math.max(0, Math.round(this.newTotal - this.paidAmount - (parseFloat(this.advancePayment) || 0)));
         },
         formatNum(n) { return (parseFloat(n)||0).toLocaleString('ar-YE'); },
     }

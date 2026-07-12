@@ -319,9 +319,10 @@ class Reservation extends Model
         $newCheckOut   = $checkOut->copy()->addDays($added);
 
         // نعيد بناء إجمالي الغرفة قبل الخصم، نطبّق الخصم، ثم نُعيد الرسوم الإضافية
+        // (مقرَّباً لأقرب ريال لتفادي تراكم كسور القسمة)
         $newGross       = $this->gross_total + $extraAmount;
         $discountAmount = $this->discountAmountFor($newGross);
-        $newTotal       = max(0, round($newGross - $discountAmount, 2)) + $this->extra_charges_total;
+        $newTotal       = round(max(0, round($newGross - $discountAmount, 2)) + $this->extra_charges_total, 0);
         $note = "[تجديد تلقائي +{$added} " . ($added === 1 ? 'ليلة' : 'ليالٍ')
               . ' بسعر ' . number_format($pricePerNight, 0) . ' ر.ي/ليلة — حتى '
               . $newCheckOut->format('Y/m/d') . ']';

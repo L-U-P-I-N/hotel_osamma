@@ -294,7 +294,7 @@ class ReservationController extends Controller
             // لا يضيع الخصم ولا تُفقد مصروفات النزيل عند تعديل التاريخ/السعر
             $grossTotal = $billableNights * $pricePerNight;
             $discountAmount = $reservation->discountAmountFor($grossTotal);
-            $newTotal = max(0, round($grossTotal - $discountAmount, 2)) + $reservation->extra_charges_total;
+            $newTotal = round(max(0, round($grossTotal - $discountAmount, 2)) + $reservation->extra_charges_total, 0);
 
             $reservation->update([
                 'check_in_date'  => $validated['check_in_date'],
@@ -392,7 +392,8 @@ class ReservationController extends Controller
         // ونطبّق الخصم المحفوظ على الإجمالي الجديد حتى يبقى الخصم ساري المفعول.
         $newGross       = $reservation->gross_total + $extraAmount;
         $discountAmount = $reservation->discountAmountFor($newGross);
-        $newTotal       = max(0, round($newGross - $discountAmount, 2)) + $reservation->extra_charges_total;
+        // نقرّب الإجمالي لأقرب ريال (عملة صحيحة عملياً) لتفادي تراكم كسور القسمة
+        $newTotal       = round(max(0, round($newGross - $discountAmount, 2)) + $reservation->extra_charges_total, 0);
 
         $old = $reservation->only(['check_out_date', 'total_amount', 'renewal_price_per_night']);
 
@@ -567,7 +568,7 @@ class ReservationController extends Controller
         // إجمالي الغرفة قبل الخصم ثم الخصم ثم إعادة الرسوم الإضافية (تفادي فقدها)
         $grossTotal     = round($stayedNights * $oldPricePerNight + $remainingNights * $newPricePerNight, 2);
         $discountAmount = $reservation->discountAmountFor($grossTotal);
-        $newTotal       = max(0, round($grossTotal - $discountAmount, 2)) + $reservation->extra_charges_total;
+        $newTotal       = round(max(0, round($grossTotal - $discountAmount, 2)) + $reservation->extra_charges_total, 0);
 
         $oldRoom       = $reservation->room;
         $oldLinkedRoom = $reservation->linkedRoom;
@@ -802,8 +803,8 @@ class ReservationController extends Controller
             $discountAmount = round(min((float)$validated['discount_value'], $baseTotal), 2);
         }
 
-        // الصافي بعد الخصم (للغرفة) + الرسوم الإضافية = الإجمالي الجديد
-        $newTotal = max(0, round($baseTotal - $discountAmount, 2)) + $reservation->extra_charges_total;
+        // الصافي بعد الخصم (للغرفة) + الرسوم الإضافية = الإجمالي الجديد (مقرَّب لأقرب ريال)
+        $newTotal = round(max(0, round($baseTotal - $discountAmount, 2)) + $reservation->extra_charges_total, 0);
 
         $reservation->update([
             'discount_type'   => $validated['discount_type'],
