@@ -166,6 +166,14 @@
                     </button>
                     @endif
                     @endcan
+                    @can('payments.create')
+                    @if($reservation->status === 'checked_in')
+                    <button onclick="document.getElementById('chargeModal').classList.remove('hidden')" class="w-full flex items-center gap-2.5 px-4 py-2 text-gray-700 hover:bg-gray-50 transition">
+                        <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                        إضافة رسوم/مشتريات
+                    </button>
+                    @endif
+                    @endcan
                     @can('checkout.process')
                     @if($reservation->status === 'checked_in')
                     <button onclick="document.getElementById('damageModal').classList.remove('hidden')" class="w-full flex items-center gap-2.5 px-4 py-2 text-red-600 hover:bg-red-50 transition">
@@ -421,9 +429,10 @@
             </div>
             <div class="divide-y divide-gray-50">
                 @foreach($reservation->extraCharges as $charge)
+                @php $chargeLabel = ['damage' => 'أضرار', 'compensation' => 'تعويض'][$charge->type] ?? $charge->type; @endphp
                 <div class="px-5 py-2.5 flex items-center justify-between text-sm">
                     <div class="min-w-0">
-                        <p class="font-medium text-gray-700">{{ $charge->type }}</p>
+                        <p class="font-medium text-gray-700">{{ $chargeLabel }}</p>
                         <p class="text-xs text-gray-400">{{ $charge->charge_date->format('d/m/Y') }}@if($charge->description) — {{ $charge->description }}@endif</p>
                     </div>
                     <span class="font-bold text-red-600 whitespace-nowrap">{{ number_format($charge->amount, 0) }} {{ $reservation->currency_symbol }}</span>
@@ -861,6 +870,71 @@
                     تطبيق الخصم
                 </button>
                 <button type="button" onclick="document.getElementById('discountModal').classList.add('hidden')"
+                        class="px-5 py-3 border border-gray-300 text-gray-600 rounded-xl text-sm hover:bg-gray-50 transition">
+                    إلغاء
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
+@endcan
+
+{{-- ===== CHARGE MODAL (add guest purchases/incidentals) ===== --}}
+@can('payments.create')
+@if($reservation->status === 'checked_in')
+<div id="chargeModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto"
+     onclick="if(event.target===this) this.classList.add('hidden')">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto my-auto" onclick="event.stopPropagation()">
+        <div class="hero-gradient px-6 py-5 rounded-t-2xl flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                </div>
+                <h3 class="font-bold text-white text-lg">إضافة رسوم / مشتريات</h3>
+            </div>
+            <button onclick="document.getElementById('chargeModal').classList.add('hidden')"
+                    class="w-8 h-8 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <form method="POST" action="{{ route('reservations.addCharge', $reservation) }}" class="p-6 space-y-4">
+            @csrf
+            <div class="flex items-start gap-2 rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-xs text-emerald-800">
+                <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>يُضاف المبلغ إلى حساب النزيل (دَين عليه) ويُحصَّل مع إجمالي الليالي عند المغادرة.</span>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">نوع الرسم <span class="text-red-500">*</span></label>
+                <select name="charge_type" required
+                        class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-400 outline-none bg-white">
+                    <option value="بقالة">بقالة</option>
+                    <option value="مأكولات">مأكولات ومشروبات</option>
+                    <option value="خدمة غرفة">خدمة غرفة</option>
+                    <option value="غسيل ملابس">غسيل ملابس</option>
+                    <option value="خدمة أخرى">خدمة أخرى</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">الوصف <span class="text-gray-400 font-normal">(اختياري)</span></label>
+                <input type="text" name="description" maxlength="255" placeholder="مثال: ماء + عصير + شيبس"
+                       class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-400 outline-none">
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">المبلغ (ر.ي) <span class="text-red-500">*</span></label>
+                <input type="number" name="amount" min="0.01" step="0.01" required placeholder="0"
+                       class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-400 outline-none">
+            </div>
+
+            <div class="flex gap-2 pt-1">
+                <button type="submit"
+                        class="flex-1 px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition">
+                    إضافة إلى الحساب
+                </button>
+                <button type="button" onclick="document.getElementById('chargeModal').classList.add('hidden')"
                         class="px-5 py-3 border border-gray-300 text-gray-600 rounded-xl text-sm hover:bg-gray-50 transition">
                     إلغاء
                 </button>

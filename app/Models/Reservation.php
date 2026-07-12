@@ -212,13 +212,23 @@ class Reservation extends Model
     }
 
     /**
-     * الإجمالي قبل الخصم = الإجمالي الصافي الحالي + قيمة الخصم المحفوظة. يُستخدم
-     * لإعادة احتساب الخصم عند أي تعديل يعيد حساب الإجمالي (تعديل التاريخ/السعر،
-     * التجديد، النقل، التجديد التلقائي) حتى لا يضيع الخصم.
+     * إجمالي الرسوم الإضافية على الحجز (أضرار + مشتريات/خدمات النزيل). يُستعلَم
+     * مباشرةً حتى تكون القيمة محدَّثة داخل معاملات التعديل.
+     */
+    public function getExtraChargesTotalAttribute(): float
+    {
+        return round((float) $this->extraCharges()->sum('amount'), 2);
+    }
+
+    /**
+     * إجمالي الغرفة قبل الخصم (بدون الرسوم الإضافية) = الإجمالي − الرسوم الإضافية
+     * + الخصم المحفوظ. يُستخدم لإعادة احتساب الخصم وسعر الليلة عند أي تعديل يعيد
+     * حساب الإجمالي (تعديل التاريخ/السعر، التجديد، النقل) حتى لا يضيع الخصم ولا
+     * تُحتسب الرسوم الإضافية ضمن سعر الليلة.
      */
     public function getGrossTotalAttribute(): float
     {
-        return round((float) $this->total_amount + (float) $this->discount_amount, 2);
+        return round((float) $this->total_amount - $this->extra_charges_total + (float) $this->discount_amount, 2);
     }
 
     /**
@@ -308,10 +318,10 @@ class Reservation extends Model
         $extraAmount   = $added * $pricePerNight;
         $newCheckOut   = $checkOut->copy()->addDays($added);
 
-        // نعيد بناء الإجمالي قبل الخصم ونطبّق الخصم المحفوظ على الإجمالي الجديد
+        // نعيد بناء إجمالي الغرفة قبل الخصم، نطبّق الخصم، ثم نُعيد الرسوم الإضافية
         $newGross       = $this->gross_total + $extraAmount;
         $discountAmount = $this->discountAmountFor($newGross);
-        $newTotal       = max(0, round($newGross - $discountAmount, 2));
+        $newTotal       = max(0, round($newGross - $discountAmount, 2)) + $this->extra_charges_total;
         $note = "[تجديد تلقائي +{$added} " . ($added === 1 ? 'ليلة' : 'ليالٍ')
               . ' بسعر ' . number_format($pricePerNight, 0) . ' ر.ي/ليلة — حتى '
               . $newCheckOut->format('Y/m/d') . ']';

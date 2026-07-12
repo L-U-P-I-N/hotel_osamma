@@ -168,8 +168,10 @@ class ReservationController extends Controller
         $nights = ($reservation->check_in_date && $reservation->check_out_date)
             ? $reservation->check_in_date->diffInDays($reservation->check_out_date)
             : 0;
+        // سعر الليلة من إجمالي الغرفة قبل الخصم (بدون الرسوم الإضافية) حتى لا
+        // تُحتسب مشتريات/أضرار النزيل ضمن سعر الليلة في نموذج التعديل
         $currentPricePerNight = $nights > 0
-            ? round($reservation->total_amount / $nights, 2)
+            ? round($reservation->gross_total / $nights, 2)
             : ($reservation->room?->roomType?->base_price ?? 0);
 
         return view('reservations.edit', compact('reservation', 'companionsData', 'currentPricePerNight'));
@@ -288,10 +290,11 @@ class ReservationController extends Controller
                 ? (float) $validated['price_per_night']
                 : null;
             $pricePerNight = $submittedPrice ?? $reservation->room?->roomType?->base_price ?? $reservation->gross_total / $billableNights;
-            // الإجمالي قبل الخصم ثم نطبّق الخصم المحفوظ حتى لا يضيع عند تعديل التاريخ/السعر
+            // إجمالي الغرفة قبل الخصم ثم نطبّق الخصم، ثم نُعيد الرسوم الإضافية حتى
+            // لا يضيع الخصم ولا تُفقد مصروفات النزيل عند تعديل التاريخ/السعر
             $grossTotal = $billableNights * $pricePerNight;
             $discountAmount = $reservation->discountAmountFor($grossTotal);
-            $newTotal = max(0, round($grossTotal - $discountAmount, 2));
+            $newTotal = max(0, round($grossTotal - $discountAmount, 2)) + $reservation->extra_charges_total;
 
             $reservation->update([
                 'check_in_date'  => $validated['check_in_date'],
@@ -389,7 +392,7 @@ class ReservationController extends Controller
         // ونطبّق الخصم المحفوظ على الإجمالي الجديد حتى يبقى الخصم ساري المفعول.
         $newGross       = $reservation->gross_total + $extraAmount;
         $discountAmount = $reservation->discountAmountFor($newGross);
-        $newTotal       = max(0, round($newGross - $discountAmount, 2));
+        $newTotal       = max(0, round($newGross - $discountAmount, 2)) + $reservation->extra_charges_total;
 
         $old = $reservation->only(['check_out_date', 'total_amount', 'renewal_price_per_night']);
 
@@ -561,10 +564,10 @@ class ReservationController extends Controller
             // لا سعر معرّف للغرفة الجديدة → نُبقي السعر الحالي دون تغيير
             $newPricePerNight = $oldPricePerNight;
         }
-        // الإجمالي قبل الخصم ثم نطبّق الخصم المحفوظ حتى لا يضيع عند النقل
+        // إجمالي الغرفة قبل الخصم ثم الخصم ثم إعادة الرسوم الإضافية (تفادي فقدها)
         $grossTotal     = round($stayedNights * $oldPricePerNight + $remainingNights * $newPricePerNight, 2);
         $discountAmount = $reservation->discountAmountFor($grossTotal);
-        $newTotal       = max(0, round($grossTotal - $discountAmount, 2));
+        $newTotal       = max(0, round($grossTotal - $discountAmount, 2)) + $reservation->extra_charges_total;
 
         $oldRoom       = $reservation->room;
         $oldLinkedRoom = $reservation->linkedRoom;
@@ -799,7 +802,8 @@ class ReservationController extends Controller
             $discountAmount = round(min((float)$validated['discount_value'], $baseTotal), 2);
         }
 
-        $newTotal = max(0, round($baseTotal - $discountAmount, 2));
+        // الصافي بعد الخصم (للغرفة) + الرسوم الإضافية = الإجمالي الجديد
+        $newTotal = max(0, round($baseTotal - $discountAmount, 2)) + $reservation->extra_charges_total;
 
         $reservation->update([
             'discount_type'   => $validated['discount_type'],
@@ -898,6 +902,52 @@ class ReservationController extends Controller
 
         return redirect()->route('reservations.show', $reservation)
             ->with('success', 'تم تسجيل الأضرار' . ($amount > 0 ? ' وإضافة ' . number_format($amount, 0) . ' ر.ي إلى حساب النزيل' : ''));
+    }
+
+    /**
+     * إضافة رسم/مصروف على حساب النزيل (مشتريات بقالة، مأكولات، خدمات...) — يُضاف
+     * إلى إجمالي الحجز فيصبح ديناً يُحصَّل مع الليالي عند المغادرة.
+     */
+    public function addCharge(Request $request, Reservation $reservation)
+    {
+        if (!in_array($reservation->status, ['checked_in', 'checked_out'])) {
+            return back()->withErrors(['error' => 'يمكن إضافة الرسوم لنزيل مقيم أو لم تُسوَّ مغادرته بعد']);
+        }
+
+        $validated = $request->validate([
+            'charge_type' => 'required|string|max:50',
+            'description' => 'nullable|string|max:255',
+            'amount'      => 'required|numeric|min:0.01',
+        ], [
+            'charge_type.required' => 'نوع الرسم مطلوب',
+            'amount.required'      => 'المبلغ مطلوب',
+            'amount.min'           => 'المبلغ يجب أن يكون أكبر من صفر',
+        ]);
+
+        $amount = (float) $validated['amount'];
+
+        DB::transaction(function () use ($reservation, $validated, $amount) {
+            \App\Models\ExtraCharge::create([
+                'reservation_id' => $reservation->id,
+                'added_by'       => auth()->id(),
+                'type'           => $validated['charge_type'],
+                'description'    => $validated['description'] ?? null,
+                'amount'         => $amount,
+                'charge_date'    => now(),
+            ]);
+
+            $reservation->increment('total_amount', $amount);
+            $reservation->refresh()->updatePaymentStatus();
+
+            AuditLogService::log('update', $reservation, null, [
+                'action'      => 'charge_added',
+                'charge_type' => $validated['charge_type'],
+                'amount'      => $amount,
+            ], auth()->user());
+        });
+
+        return redirect()->route('reservations.show', $reservation)
+            ->with('success', 'تمت إضافة ' . number_format($amount, 0) . ' ر.ي إلى حساب النزيل');
     }
 
     private function nullIfEmpty(mixed $value): mixed
