@@ -91,7 +91,7 @@
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الغرفة / النزيل</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المبلغ</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الطريقة</th>
-                @if(auth()->user()->isAdmin() && $reassignTargets->where('id', '!=', $activeShift->id)->count() > 0)
+                @if($reassignTargets->where('id', '!=', $activeShift->id)->count() > 0)
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">نقل</th>
                 @endif
             </tr></thead>
@@ -105,7 +105,7 @@
                     </td>
                     <td class="px-4 py-2 font-semibold text-green-700 whitespace-nowrap">{{ number_format($p->amount, 0) }} {{ $p->currency }}</td>
                     <td class="px-4 py-2 text-gray-500 text-xs">{{ match($p->method) { 'cash'=>'نقدي','pos'=>'POS','bank_transfer'=>'تحويل', default=>$p->method } }}</td>
-                    @if(auth()->user()->isAdmin() && $reassignTargets->where('id', '!=', $activeShift->id)->count() > 0)
+                    @if($reassignTargets->where('id', '!=', $activeShift->id)->count() > 0)
                     <td class="px-4 py-2">
                         <button type="button"
                                 @click="reassignPayment = { id: {{ $p->id }}, label: '{{ addslashes(($p->reservation?->display_room_number ?? '—').' · '.number_format($p->amount,0).' '.$p->currency) }}', current: {{ $activeShift->id }} }"
@@ -642,7 +642,7 @@
 @endcan
 
 {{-- Modal: نقل دفعة إلى وردية أخرى --}}
-@if(auth()->user()->isAdmin())
+@if($reassignTargets->count() > 0)
 <div x-show="reassignPayment !== null" x-cloak class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="reassignPayment=null">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
         <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between" style="background:#3730a3; border-radius: 1rem 1rem 0 0;">
