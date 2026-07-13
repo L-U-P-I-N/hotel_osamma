@@ -138,15 +138,16 @@
 
 {{-- Meta --}}
 <table class="meta-table" dir="rtl">
+    {{-- dompdf يرتّب الأعمدة يسار→يمين بترتيب المصدر، فنعكسها ليُقرأ من اليمين --}}
     <tr>
-        <td class="lbl">وقت الفتح:</td>
-        <td class="val ltr">{{ $shift->started_at?->format('H:i') }}</td>
-        <td class="lbl">وقت الإقفال:</td>
-        <td class="val ltr">{{ $shift->closed_at?->format('H:i') ?? '—' }}</td>
-        <td class="lbl">عدد الإيرادات:</td>
-        <td class="val">{{ $payments->count() }}</td>
-        <td class="lbl">عدد السحبيات:</td>
         <td class="val">{{ $withdrawals->count() }}</td>
+        <td class="lbl">عدد السحبيات:</td>
+        <td class="val">{{ $payments->count() }}</td>
+        <td class="lbl">عدد الإيرادات:</td>
+        <td class="val ltr">{{ $shift->closed_at?->format('H:i') ?? '—' }}</td>
+        <td class="lbl">وقت الإقفال:</td>
+        <td class="val ltr">{{ $shift->started_at?->format('H:i') }}</td>
+        <td class="lbl">وقت الفتح:</td>
     </tr>
 </table>
 
@@ -156,37 +157,38 @@
 <table class="data" dir="rtl"><tbody><tr><td style="text-align:center;padding:8px;color:#999;">لا توجد مدفوعات</td></tr></tbody></table>
 @else
 <table class="data" dir="rtl">
+    {{-- أعمدة معكوسة لتُقرأ من اليمين لليسار (dompdf يرتّبها بترتيب المصدر) --}}
     <thead>
         <tr>
-            <th>#</th>
-            <th>الغرفة</th>
-            <th>النزيل</th>
-            <th>نوع الدفع</th>
-            <th>المبلغ</th>
-            <th>العملة</th>
             <th>الوقت</th>
+            <th>العملة</th>
+            <th>المبلغ</th>
+            <th>نوع الدفع</th>
+            <th>النزيل</th>
+            <th>الغرفة</th>
+            <th>#</th>
         </tr>
     </thead>
     <tbody>
         @foreach($payments as $i => $p)
         <tr>
-            <td class="center">{{ $i + 1 }}</td>
-            <td class="center">{{ $p->reservation?->display_room_number ?? '—' }}</td>
-            <td>{{ $p->reservation?->guest?->full_name }}</td>
-            <td>{{ $payLabels[$p->payment_type] ?? 'دفعة' }}</td>
-            <td class="ltr" style="font-weight:bold;">{{ number_format($p->amount, 0) }}</td>
-            <td class="center">{{ $curLabels[$p->currency] ?? $p->currency }}</td>
             <td class="ltr">{{ $p->created_at?->format('H:i') }}</td>
+            <td class="center">{{ $curLabels[$p->currency] ?? $p->currency }}</td>
+            <td class="ltr" style="font-weight:bold;">{{ number_format($p->amount, 0) }}</td>
+            <td>{{ $payLabels[$p->payment_type] ?? 'دفعة' }}</td>
+            <td>{{ $p->reservation?->guest?->full_name }}</td>
+            <td class="center">{{ $p->reservation?->display_room_number ?? '—' }}</td>
+            <td class="center">{{ $i + 1 }}</td>
         </tr>
         @endforeach
         @foreach(['YER','SAR','USD'] as $c)
         @php $cTotal = $payments->where('currency', $c)->sum(fn($p) => (float)$p->amount); @endphp
         @if($cTotal > 0)
         <tr class="total-row">
-            <td colspan="4" style="text-align:right;">المجموع ({{ $curLabels[$c] }})</td>
-            <td class="ltr pos">{{ number_format($cTotal, 0) }}</td>
-            <td class="center">{{ $curLabels[$c] }}</td>
             <td></td>
+            <td class="center">{{ $curLabels[$c] }}</td>
+            <td class="ltr pos">{{ number_format($cTotal, 0) }}</td>
+            <td colspan="4" style="text-align:right;">المجموع ({{ $curLabels[$c] }})</td>
         </tr>
         @endif
         @endforeach
@@ -200,28 +202,25 @@
 <table class="data" dir="rtl"><tbody><tr><td style="text-align:center;padding:8px;color:#999;">لا توجد سحبيات</td></tr></tbody></table>
 @else
 <table class="data" dir="rtl">
+    {{-- أعمدة معكوسة لتُقرأ من اليمين لليسار --}}
     <thead>
         <tr>
-            <th>#</th>
-            <th>المستلم</th>
-            <th>البيان / السبب</th>
-            <th>النوع</th>
-            <th>المبلغ</th>
-            <th>العملة</th>
-            <th>مقابل</th>
-            <th>بواسطة</th>
             <th>الوقت</th>
+            <th>بواسطة</th>
+            <th>مقابل</th>
+            <th>العملة</th>
+            <th>المبلغ</th>
+            <th>النوع</th>
+            <th>البيان / السبب</th>
+            <th>المستلم</th>
+            <th>#</th>
         </tr>
     </thead>
     <tbody>
         @foreach($withdrawals as $i => $w)
         <tr @if($w->isExchange()) class="exchange-row" @endif>
-            <td class="center">{{ $i + 1 }}</td>
-            <td>{{ $w->withdrawn_by_name }}</td>
-            <td>{{ $w->notes }}</td>
-            <td class="center">{{ $w->type_label }}</td>
-            <td class="ltr" style="font-weight:bold;color:#dc2626;">{{ number_format($w->amount, 0) }}</td>
-            <td class="center">{{ $curLabels[$w->currency] ?? $w->currency }}</td>
+            <td class="ltr">{{ $w->created_at?->format('H:i') }}</td>
+            <td>{{ ($w->handed_by_name && $w->handed_by_name !== '-') ? $w->handed_by_name : '—' }}</td>
             <td class="ltr">
                 @if($w->isExchange() && $w->exchange_to_amount)
                 {{ number_format($w->exchange_to_amount, 0) }} {{ $curLabels[$w->exchange_to_currency] ?? '' }}
@@ -229,18 +228,22 @@
                 —
                 @endif
             </td>
-            <td>{{ ($w->handed_by_name && $w->handed_by_name !== '-') ? $w->handed_by_name : '—' }}</td>
-            <td class="ltr">{{ $w->created_at?->format('H:i') }}</td>
+            <td class="center">{{ $curLabels[$w->currency] ?? $w->currency }}</td>
+            <td class="ltr" style="font-weight:bold;color:#dc2626;">{{ number_format($w->amount, 0) }}</td>
+            <td class="center">{{ $w->type_label }}</td>
+            <td>{{ $w->notes }}</td>
+            <td>{{ $w->withdrawn_by_name }}</td>
+            <td class="center">{{ $i + 1 }}</td>
         </tr>
         @endforeach
         @foreach(['YER','SAR','USD'] as $c)
         @php $cTotal = $withdrawals->where('currency', $c)->sum(fn($w) => (float)$w->amount); @endphp
         @if($cTotal > 0)
         <tr class="total-row">
-            <td colspan="4" style="text-align:right;">مجموع السحبيات ({{ $curLabels[$c] }})</td>
-            <td class="ltr neg">{{ number_format($cTotal, 0) }}</td>
+            <td colspan="3"></td>
             <td class="center">{{ $curLabels[$c] }}</td>
-            <td colspan="2"></td>
+            <td class="ltr neg">{{ number_format($cTotal, 0) }}</td>
+            <td colspan="4" style="text-align:right;">مجموع السحبيات ({{ $curLabels[$c] }})</td>
         </tr>
         @endif
         @endforeach
@@ -253,37 +256,38 @@
 {{-- Refunds section --}}
 <h2>الاسترجاعات</h2>
 <table class="data" dir="rtl">
+    {{-- أعمدة معكوسة لتُقرأ من اليمين لليسار --}}
     <thead>
         <tr>
-            <th>#</th>
-            <th>النزيل</th>
-            <th>السبب</th>
-            <th>المبلغ</th>
-            <th>العملة</th>
-            <th>الطريقة</th>
             <th>الوقت</th>
+            <th>الطريقة</th>
+            <th>العملة</th>
+            <th>المبلغ</th>
+            <th>السبب</th>
+            <th>النزيل</th>
+            <th>#</th>
         </tr>
     </thead>
     <tbody>
         @foreach($refunds as $i => $rf)
         <tr>
-            <td class="center">{{ $i + 1 }}</td>
-            <td>{{ $rf->reservation?->guest?->full_name ?? '—' }}</td>
-            <td>{{ $rf->reason }}</td>
-            <td class="ltr" style="font-weight:bold;color:#dc2626;">{{ number_format($rf->amount, 0) }}</td>
-            <td class="center">{{ $curLabels[$rf->currency] ?? $rf->currency }}</td>
-            <td class="center">{{ match($rf->method) { 'cash'=>'نقداً','pos'=>'POS','bank_transfer'=>'تحويل', default=>$rf->method } }}</td>
             <td class="ltr">{{ $rf->refunded_at?->format('H:i') }}</td>
+            <td class="center">{{ match($rf->method) { 'cash'=>'نقداً','pos'=>'POS','bank_transfer'=>'تحويل', default=>$rf->method } }}</td>
+            <td class="center">{{ $curLabels[$rf->currency] ?? $rf->currency }}</td>
+            <td class="ltr" style="font-weight:bold;color:#dc2626;">{{ number_format($rf->amount, 0) }}</td>
+            <td>{{ $rf->reason }}</td>
+            <td>{{ $rf->reservation?->guest?->full_name ?? '—' }}</td>
+            <td class="center">{{ $i + 1 }}</td>
         </tr>
         @endforeach
         @foreach(['YER','SAR','USD'] as $c)
         @php $rTotal = $refunds->where('currency', $c)->sum(fn($rf) => (float)$rf->amount); @endphp
         @if($rTotal > 0)
         <tr class="total-row">
-            <td colspan="3" style="text-align:right;">مجموع الاسترجاعات ({{ $curLabels[$c] }})</td>
-            <td class="ltr neg">{{ number_format($rTotal, 0) }}</td>
-            <td class="center">{{ $curLabels[$c] }}</td>
             <td colspan="2"></td>
+            <td class="center">{{ $curLabels[$c] }}</td>
+            <td class="ltr neg">{{ number_format($rTotal, 0) }}</td>
+            <td colspan="3" style="text-align:right;">مجموع الاسترجاعات ({{ $curLabels[$c] }})</td>
         </tr>
         @endif
         @endforeach
@@ -306,23 +310,24 @@
         }
     @endphp
     <table style="width:100%;border-collapse:collapse;font-size:9.5px;" dir="rtl">
+        {{-- أعمدة معكوسة لتُقرأ من اليمين لليسار --}}
         <thead>
             <tr style="background:#e8f0f7;">
-                <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;width:16%;">العملة</th>
-                <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;width:22%;">الإيرادات</th>
-                <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;width:22%;">السحبيات</th>
-                <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;width:20%;">الاسترجاعات</th>
                 <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;width:20%;">الصافي المتبقي</th>
+                <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;width:20%;">الاسترجاعات</th>
+                <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;width:22%;">السحبيات</th>
+                <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;width:22%;">الإيرادات</th>
+                <th style="padding:4px 8px;border:1px solid #cdd8e3;text-align:right;width:16%;">العملة</th>
             </tr>
         </thead>
         <tbody>
             @forelse($summaryRows as $row)
             <tr>
-                <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;font-weight:bold;">{{ $curLabels[$row['cur']] }}</td>
-                <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;" class="pos">{{ number_format($row['recv'], 0) }}</td>
-                <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;" class="neg">{{ number_format($row['wdr'], 0) }}</td>
-                <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;" class="neg">{{ number_format($row['rfd'], 0) }}</td>
                 <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;font-weight:bold;" class="net">{{ number_format($row['net'], 0) }}</td>
+                <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;" class="neg">{{ number_format($row['rfd'], 0) }}</td>
+                <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;" class="neg">{{ number_format($row['wdr'], 0) }}</td>
+                <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;" class="pos">{{ number_format($row['recv'], 0) }}</td>
+                <td style="padding:4px 8px;border:1px solid #ddd;text-align:right;font-weight:bold;">{{ $curLabels[$row['cur']] }}</td>
             </tr>
             @empty
             <tr><td colspan="5" style="text-align:center;padding:8px;color:#999;">لا توجد بيانات</td></tr>
@@ -349,21 +354,16 @@
         عجز الوردية
     </div>
     <table style="width:100%;border-collapse:collapse;font-size:9.5px;" dir="rtl">
+        {{-- أعمدة معكوسة لتُقرأ من اليمين لليسار --}}
         <thead>
             <tr style="background:#fef2f2;">
-                <th style="padding:5px 8px;border:1px solid #fca5a5;text-align:right;width:34%;">الصافي حسب النظام (ر.ي)</th>
-                <th style="padding:5px 8px;border:1px solid #fca5a5;text-align:right;width:33%;">المبلغ الفعلي في الصندوق (ر.ي)</th>
                 <th style="padding:5px 8px;border:1px solid #fca5a5;text-align:right;width:33%;">الفرق (ر.ي)</th>
+                <th style="padding:5px 8px;border:1px solid #fca5a5;text-align:right;width:33%;">المبلغ الفعلي في الصندوق (ر.ي)</th>
+                <th style="padding:5px 8px;border:1px solid #fca5a5;text-align:right;width:34%;">الصافي حسب النظام (ر.ي)</th>
             </tr>
         </thead>
         <tbody>
             <tr>
-                <td style="padding:6px 8px;border:1px solid #fca5a5;text-align:right;font-weight:bold;font-size:11px;color:#1d4ed8;">
-                    {{ number_format($sysNet, 0) }}
-                </td>
-                <td style="padding:6px 8px;border:1px solid #fca5a5;text-align:right;font-weight:bold;font-size:11px;color:#374151;">
-                    {{ number_format($actual, 0) }}
-                </td>
                 <td style="padding:6px 8px;border:1px solid #fca5a5;text-align:right;font-weight:bold;font-size:11px;">
                     @if($deficit === null)
                         <span style="color:#6b7280;">—</span>
@@ -374,6 +374,12 @@
                     @else
                         <span style="color:#d97706;">▲ {{ number_format($deficit, 0) }} (زيادة)</span>
                     @endif
+                </td>
+                <td style="padding:6px 8px;border:1px solid #fca5a5;text-align:right;font-weight:bold;font-size:11px;color:#374151;">
+                    {{ number_format($actual, 0) }}
+                </td>
+                <td style="padding:6px 8px;border:1px solid #fca5a5;text-align:right;font-weight:bold;font-size:11px;color:#1d4ed8;">
+                    {{ number_format($sysNet, 0) }}
                 </td>
             </tr>
         </tbody>
