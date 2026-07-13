@@ -335,6 +335,22 @@ class RoomController extends Controller
             'status.in'       => 'لا يمكن تعيين هذه الحالة يدوياً — مشغولة ومحجوزة تتغيران تلقائياً عبر الحجوزات فقط',
         ]);
 
+        // منع تغيير حالة غرفة يقيم بها نزيل فعلاً — لا تتحرر إلا بتسجيل خروجه.
+        // نتحقق من وجود حجز نشط (مسجّل دخول) على الغرفة أو الغرفة المرتبطة بها.
+        $hasActiveGuest = \App\Models\Reservation::where('status', 'checked_in')
+            ->where(function ($q) use ($room) {
+                $q->where('room_id', $room->id)->orWhere('linked_room_id', $room->id);
+            })
+            ->exists();
+
+        if ($hasActiveGuest) {
+            $msg = 'الغرفة مشغولة بنزيل حالياً — لا يمكن تغيير حالتها إلا بتسجيل خروج النزيل.';
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => $msg], 422);
+            }
+            return back()->withErrors(['status' => $msg]);
+        }
+
         $old = ['status' => $room->status];
         $room->update(['status' => $request->status, 'notes' => $request->notes]);
         AuditLogService::log('update', $room, $old, ['status' => $request->status], auth()->user());
