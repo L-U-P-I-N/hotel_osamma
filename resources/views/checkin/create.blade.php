@@ -1637,9 +1637,10 @@ function checkInForm() {
             if (prop === 'checkOutDate') {
                 // نحتفظ بمرجع منتقي المغادرة لضبط حدّيه (الأدنى/الأقصى) لاحقاً
                 self._checkOutFp = fp;
-                // المغادرة يجب أن تكون بعد الوصول بيوم على الأقل — لا نفس اليوم
+                // نسمح بالمغادرة في نفس يوم الوصول (تُحتسب ليلة واحدة كحد أدنى) —
+                // فالحدّ الأدنى للمغادرة = يوم الوصول نفسه، لا اليوم التالي.
                 this.$watch('checkInDate', (val) => {
-                    if (el._fp) el._fp.set('minDate', val ? self.addDaysStr(val, 1) : self.today());
+                    if (el._fp) el._fp.set('minDate', val || self.today());
                 });
             }
         },
@@ -1774,7 +1775,8 @@ function checkInForm() {
         applyCheckoutBounds() {
             const fp = this._checkOutFp;
             if (!fp) return;
-            fp.set('minDate', this.checkInDate ? this.addDaysStr(this.checkInDate, 1) : this.today());
+            // نسمح بالمغادرة في نفس يوم الوصول (تُحتسب ليلة واحدة)
+            fp.set('minDate', this.checkInDate || this.today());
             fp.set('maxDate', this.maxCheckoutYmd() || null);
         },
 
