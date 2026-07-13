@@ -1009,28 +1009,6 @@ html.dark [style*="background:var(--gold-l)"] {
                 </div>
             </div>
 
-            {{-- تنبيه الوصول المبكر (قبل 6 صباحاً) — اقتراح سعر دخول مبكر مخفّض --}}
-            <div x-show="isEarlyArrival()" x-cloak x-transition
-                 class="rounded-xl p-3 border border-amber-300 bg-amber-50 space-y-2.5 mb-1">
-                <div class="flex items-start gap-2">
-                    <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    <div class="text-xs text-amber-800">
-                        <p class="font-bold mb-0.5">وصول مبكر (قبل 6 صباحاً)</p>
-                        <p>وصل النزيل فجراً وسيخرج اليوم 1 ظهراً — يمكنك تطبيق سعر دخول مبكر مخفّض بدل ليلة كاملة. يبقى السعر قابلاً للتعديل بعد التطبيق.</p>
-                    </div>
-                </div>
-                <div class="flex items-center gap-2">
-                    <label class="text-xs font-medium text-amber-700">نسبة السعر</label>
-                    <input type="number" min="0" max="100" step="5" x-model.number="earlyArrivalPercent"
-                           class="w-16 border border-amber-300 rounded-lg px-2 py-1 text-xs bg-white focus:border-amber-500 outline-none">
-                    <span class="text-xs text-amber-700">%</span>
-                    <button type="button" @click="applyEarlyArrival()"
-                            class="mr-auto px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition">
-                        تطبيق (<span x-text="formatNumber(Math.round(effectiveRoomPrice() * (parseFloat(earlyArrivalPercent)||0) / 100))"></span> ر.ي)
-                    </button>
-                </div>
-            </div>
-
             <input type="hidden" name="currency" value="YER">
             <input type="hidden" name="total_amount" :value="totalAmount">
             <input type="hidden" name="first_night_price" :value="(nights || 1) > 1 && firstNightPrice !== null && firstNightPrice !== '' ? firstNightPrice : ''">
@@ -1405,8 +1383,6 @@ function checkInForm() {
         showPriceOverride: false,
         showFirstNightPrice: false,
         showRenewalPrice: false,
-        earlyArrivalPercent: 50,
-        earlyArrivalApplied: false,
         idImagePreview: null,
         idImageName: '',
         floorFilter: 'all',
@@ -1536,6 +1512,14 @@ function checkInForm() {
         },
 
         handleSubmit(event) {
+            // منع الإرسال المبكر (مثلاً عند ضغط Enter في خانة نصّية) قبل الوصول
+            // للخطوة الأخيرة — كان يُرسِل الحجز ناقصاً/يعيد العملية. بدل ذلك ننتقل
+            // للخطوة التالية فقط، ولا نُرسل فعلياً إلا من خطوة المراجعة (3).
+            if (this.currentStep !== 3) {
+                event.preventDefault();
+                this.nextStep();
+                return;
+            }
             // نحفظ حالة المعالج لحظة الإرسال، حتى إذا رُفض الطلب (خطأ تحقق، انتهاء جلسة...)
             // يستعيد المستخدم خطوته وبياناته كاملة بدل العودة لخطوة بيانات النزيل فارغةً
             this.saveToSession();
@@ -1742,32 +1726,6 @@ function checkInForm() {
                 return this.roomBasePriceFor('YER') * 2;
             }
             return this.roomBasePriceFor('YER');
-        },
-
-        // وصول مبكر: النزيل يصل بعد منتصف الليل وقبل 6 صباحاً (يخرج نفس اليوم 1 ظهراً)
-        isEarlyArrival() {
-            if (this.earlyArrivalApplied) return false;
-            if (!this.checkInTime) return false;
-            const h = parseInt(this.checkInTime.split(':')[0]);
-            return !isNaN(h) && h >= 0 && h < 6;
-        },
-
-        // تطبيق سعر دخول مبكر مخفّض: للـ ليلة واحدة يُخفّض سعر الليلة، ولأكثر من
-        // ليلة يُطبَّق على الليلة الأولى فقط. السعر يبقى قابلاً للتعديل بعدها.
-        applyEarlyArrival() {
-            const base = this.effectiveRoomPrice();
-            const pct  = parseFloat(this.earlyArrivalPercent) || 0;
-            const discounted = Math.round(base * pct / 100);
-            const n = this.nights || 1;
-            if (n > 1) {
-                this.showFirstNightPrice = true;
-                this.firstNightPrice = discounted;
-            } else {
-                this.showPriceOverride = true;
-                this.customPrice = discounted;
-            }
-            this.earlyArrivalApplied = true;
-            this.calcTotal();
         },
 
         roomSelectionLabel() {
