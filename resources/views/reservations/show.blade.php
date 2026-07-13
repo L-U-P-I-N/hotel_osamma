@@ -216,6 +216,13 @@
                     </button>
                     @endif
                     @endcan
+                    @can('reservations.delete')
+                    <div class="border-t border-gray-100 my-1"></div>
+                    <button onclick="document.getElementById('deleteReservationModal').classList.remove('hidden')" class="w-full flex items-center gap-2.5 px-4 py-2 text-red-700 hover:bg-red-50 transition font-semibold">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        حذف نهائي
+                    </button>
+                    @endcan
                 </div>
             </div>
         </div>
@@ -1358,6 +1365,58 @@
     </div>
 </div>
 @endif
+@endcan
+
+{{-- ===== PERMANENT DELETE MODAL (admin only) ===== --}}
+@can('reservations.delete')
+<div id="deleteReservationModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto"
+     onclick="if(event.target===this) this.classList.add('hidden')">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto my-auto" onclick="event.stopPropagation()"
+         x-data="{ confirmText: '' }">
+        <div class="px-6 py-5 rounded-t-2xl flex items-center justify-between" style="background:linear-gradient(135deg,#991b1b,#dc2626);">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </div>
+                <h3 class="font-bold text-white text-lg">حذف نهائي للحجز</h3>
+            </div>
+            <button onclick="document.getElementById('deleteReservationModal').classList.add('hidden')"
+                    class="w-8 h-8 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <form method="POST" action="{{ route('reservations.destroy', $reservation) }}" class="p-6 space-y-4">
+            @csrf @method('DELETE')
+            <div class="rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-800 space-y-1.5">
+                <p class="font-bold">⚠ تحذير: هذا الإجراء لا يمكن التراجع عنه.</p>
+                <p>سيُحذف نهائياً من قاعدة البيانات:</p>
+                <ul class="list-disc pr-5 space-y-0.5 text-xs">
+                    <li>الحجز وكل تفاصيله</li>
+                    <li>المرافقون ({{ $reservation->companions->count() }})</li>
+                    <li>الدفعات والرسوم ({{ number_format($reservation->paid_amount, 0) }} ر.ي — ستتغير مجاميع الوردية)</li>
+                    <li>النزيل «{{ $reservation->guest?->full_name }}» إن لم يكن له حجز آخر</li>
+                </ul>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">للتأكيد اكتب كلمة «حذف»</label>
+                <input type="text" x-model="confirmText" autocomplete="off" placeholder="حذف"
+                       class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-red-400 outline-none text-center">
+            </div>
+
+            <div class="flex gap-2">
+                <button type="submit" :disabled="confirmText.trim() !== 'حذف'"
+                        class="flex-1 py-3 bg-red-700 hover:bg-red-800 text-white rounded-xl text-sm font-bold transition shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">
+                    حذف نهائي
+                </button>
+                <button type="button" onclick="document.getElementById('deleteReservationModal').classList.add('hidden')"
+                        class="flex-1 py-3 border border-gray-300 text-gray-700 rounded-xl text-sm hover:bg-gray-50 transition font-medium">
+                    تراجع
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 @endcan
 
 @push('scripts')

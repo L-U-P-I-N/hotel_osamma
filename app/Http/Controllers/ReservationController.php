@@ -707,6 +707,62 @@ class ReservationController extends Controller
         return redirect()->route('reservations.index')->with('success', $msg);
     }
 
+    /**
+     * حذف نهائي كامل للحجز وبياناته (للمدير فقط) — لا يمكن التراجع عنه:
+     * يمحو الحجز والمرافقين والدفعات والرسوم والاسترجاعات وتقارير الفحص وصورها،
+     * يحرّر الغرفة، ويحذف النزيل إن لم يعد مرتبطاً بأي حجز آخر، ثم يعيد احتساب
+     * مجاميع الورديات المتأثرة بحذف الدفعات/الاسترجاعات.
+     */
+    public function destroy(Reservation $reservation)
+    {
+        DB::transaction(function () use ($reservation) {
+            // الورديات المتأثرة لإعادة احتساب مجاميعها بعد حذف الدفعات/الاسترجاعات
+            $shiftIds = $reservation->payments()->pluck('shift_id')
+                ->merge($reservation->refunds()->pluck('shift_id'))
+                ->filter()->unique()->values();
+
+            $guest = $reservation->guest; // withTrashed — قد يكون النزيل محذوفاً ناعماً
+
+            // تحرير الغرف المشغولة بهذا الحجز
+            foreach ([$reservation->room, $reservation->linkedRoom] as $room) {
+                if ($room && $room->status === 'occupied') {
+                    $room->update(['status' => 'available']);
+                }
+            }
+
+            // حذف السجلات المرتبطة نهائياً
+            foreach ($reservation->roomInspections()->get() as $insp) {
+                $insp->images()->get()->each->delete();
+                $insp->forceDelete();
+            }
+            $reservation->extraCharges()->get()->each->forceDelete();
+            $reservation->payments()->get()->each->forceDelete();
+            $reservation->refunds()->get()->each->delete();
+            $reservation->companions()->withTrashed()->get()->each->forceDelete();
+
+            $old = $reservation->toArray();
+            AuditLogService::log('delete', $reservation, $old, null, auth()->user());
+
+            $reservation->forceDelete();
+
+            // حذف النزيل إن لم يعد مرتبطاً بأي حجز آخر (بما فيها المحذوفة ناعماً)
+            if ($guest && !Reservation::withTrashed()->where('guest_id', $guest->id)->exists()) {
+                $guest->forceDelete();
+            }
+
+            // إعادة احتساب مجاميع الورديات المتأثرة حتى تبقى التقارير متطابقة
+            $shiftService = app(ShiftService::class);
+            foreach ($shiftIds as $sid) {
+                if ($shift = Shift::find($sid)) {
+                    $shiftService->computeTotals($shift);
+                }
+            }
+        });
+
+        return redirect()->route('reservations.index')
+            ->with('success', 'تم حذف الحجز وجميع بياناته نهائياً');
+    }
+
     public function checkin(Reservation $reservation)
     {
         if ($reservation->status !== 'confirmed') {

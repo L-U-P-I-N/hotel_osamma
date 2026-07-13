@@ -118,6 +118,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/reservations/{reservation}/edit', [ReservationController::class, 'edit'])->name('reservations.edit');
         Route::put('/reservations/{reservation}', [ReservationController::class, 'update'])->name('reservations.update');
         Route::patch('/reservations/{reservation}/cancel', [ReservationController::class, 'cancel'])->name('reservations.cancel');
+        Route::delete('/reservations/{reservation}', [ReservationController::class, 'destroy'])->name('reservations.destroy')->middleware('permission:reservations.delete');
         Route::patch('/reservations/{reservation}/checkin', [ReservationController::class, 'checkin'])->name('reservations.checkin')->middleware('permission:checkin.create');
         Route::post('/reservations/{reservation}/renew', [ReservationController::class, 'renew'])->name('reservations.renew');
         Route::patch('/reservations/{reservation}/auto-renew', [ReservationController::class, 'toggleAutoRenew'])->name('reservations.toggleAutoRenew')->middleware('permission:checkin.create');

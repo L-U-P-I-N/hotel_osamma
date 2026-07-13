@@ -14,6 +14,8 @@ class RolesSeeder extends Seeder
         $permissions = [
             // Reservations
             'checkin.create', 'checkin.view', 'checkout.process',
+            // حذف نهائي للحجز وبياناته (للمدير فقط)
+            'reservations.delete',
             // Guests
             'guests.view', 'guests.sensitive', 'companions.manage',
             // Rooms
