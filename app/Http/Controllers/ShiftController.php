@@ -143,31 +143,32 @@ class ShiftController extends Controller
         }
     }
 
-    public function reassignPayment(Request $request)
+    public function closePastShift(Request $request)
     {
         $request->validate([
-            'target_shift_id' => 'required|exists:shifts,id',
-            'payment_ids'     => 'required|array|min:1',
-            'payment_ids.*'   => 'integer|exists:payments,id',
+            'shift_date'    => 'required|date|before_or_equal:today',
+            'payment_ids'   => 'required|array|min:1',
+            'payment_ids.*' => 'integer|exists:payments,id',
+            'actual_amount' => 'nullable|numeric|min:0',
+            'notes'         => 'nullable|string|max:1000',
         ], [
-            'target_shift_id.required' => 'يجب اختيار الوردية المراد النقل إليها',
-            'target_shift_id.exists'   => 'الوردية المختارة غير موجودة',
-            'payment_ids.required'     => 'يجب تحديد مستلمة واحدة على الأقل',
-            'payment_ids.min'          => 'يجب تحديد مستلمة واحدة على الأقل',
+            'shift_date.required'         => 'يجب تحديد تاريخ الوردية',
+            'shift_date.before_or_equal'  => 'تاريخ الوردية يجب أن يكون اليوم أو تاريخاً سابقاً',
+            'payment_ids.required'        => 'يجب تحديد مستلمة واحدة على الأقل',
+            'payment_ids.min'             => 'يجب تحديد مستلمة واحدة على الأقل',
         ]);
 
         try {
-            $target   = Shift::findOrFail($request->target_shift_id);
-            $payments = \App\Models\Payment::whereIn('id', $request->payment_ids)->get();
-            $moved    = 0;
-            foreach ($payments as $payment) {
-                if ((int) $payment->shift_id === (int) $target->id) {
-                    continue; // موجودة بالفعل في الوردية المختارة
-                }
-                $this->service->reassignPayment($payment, $target, auth()->user());
-                $moved++;
-            }
-            return back()->with('success', "تم نقل {$moved} مستلمة إلى الوردية المحددة بنجاح");
+            $actualAmount = $request->filled('actual_amount') ? (float) $request->actual_amount : null;
+            $shift = $this->service->closePastShiftFromPayments(
+                auth()->user(),
+                $request->payment_ids,
+                $request->shift_date,
+                $actualAmount,
+                $request->notes ?? '',
+                auth()->user()
+            );
+            return back()->with('success', 'تم إنشاء وإقفال وردية بتاريخ ' . $shift->shift_date->format('d/m/Y') . ' تحتوي المستلمات المحددة');
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()]);
         }

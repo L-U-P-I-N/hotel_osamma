@@ -114,6 +114,53 @@ class ShiftService
     }
 
     /**
+     * إنشاء وردية بتاريخ سابق من مجموعة مستلمات محددة ثم إقفالها.
+     * تُستخدم عندما تُسجَّل مستلمات تخصّ يوماً سابقاً ضمن الوردية المفتوحة،
+     * فتُفصَل هذه المستلمات في وردية مستقلة بتاريخها ويُعاد احتساب الوردية المصدر.
+     */
+    public function closePastShiftFromPayments(User $user, array $paymentIds, string $shiftDate, ?float $actualAmount, string $notes, User $actor): Shift
+    {
+        $payments = Payment::whereIn('id', $paymentIds)->get();
+        if ($payments->isEmpty()) {
+            throw new \RuntimeException('لا توجد مستلمات محددة');
+        }
+
+        $date      = \Carbon\Carbon::parse($shiftDate)->startOfDay();
+        $startedAt = $payments->min('payment_date') ?: $date->copy();
+        $endedAt   = $payments->max('payment_date') ?: $date->copy()->endOfDay();
+
+        $shift = Shift::create([
+            'user_id'    => $user->id,
+            'shift_date' => $date->toDateString(),
+            'started_at' => $startedAt,
+            'is_closed'  => false,
+        ]);
+        AuditLogService::log('create', $shift, null, $shift->toArray(), $actor);
+
+        // نقل المستلمات المحددة إلى الوردية الجديدة وإعادة احتساب الورديات المصدر
+        $sourceIds = [];
+        foreach ($payments as $p) {
+            $old      = ['shift_id' => $p->shift_id];
+            $sourceId = $p->shift_id;
+            $p->update(['shift_id' => $shift->id]);
+            if ($sourceId && $sourceId !== $shift->id) {
+                $sourceIds[$sourceId] = true;
+            }
+            AuditLogService::log('update', $p, $old, ['shift_id' => $shift->id], $actor);
+        }
+        foreach (array_keys($sourceIds) as $sid) {
+            if ($src = Shift::find($sid)) {
+                $this->recomputeShiftAfterChange($src);
+            }
+        }
+
+        // إقفال الوردية الجديدة بوقت انتهاء فعلي = آخر مستلمة
+        $this->closeShift($shift, $notes, $actualAmount, \Carbon\Carbon::parse($endedAt));
+
+        return $shift;
+    }
+
+    /**
      * إعادة احتساب مجاميع الوردية، ثم إعادة حساب فرق الصندوق (shortfall)
      * إن كانت الوردية مقفلة وسبق إدخال مبلغ فعلي لها — حتى تبقى المطابقة صحيحة
      * بعد نقل الدفعات بين الورديات.

@@ -79,7 +79,7 @@
 {{-- المستلمات + السحبيات --}}
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
-@php $canReassign = $reassignTargets->where('id', '!=', $activeShift->id)->count() > 0; @endphp
+@php $canReassign = auth()->user()->can('payments.create') || auth()->user()->isAdmin(); @endphp
 <div class="bg-white rounded-xl shadow-sm border border-gray-100">
     <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-3 flex-wrap">
         <h3 class="font-semibold text-gray-700">المستلمات ({{ $activeShift->payments->count() }})</h3>
@@ -89,7 +89,7 @@
             <span class="text-xs text-indigo-700 font-medium">محدَّد: <span x-text="selectedPayments.length"></span></span>
             <button type="button" @click="bulkModal = true"
                     class="text-xs px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition whitespace-nowrap">
-                نقل المحدد إلى وردية
+                إقفال المحدد كوردية بتاريخ سابق
             </button>
             <button type="button" @click="selectedPayments = []"
                     class="text-xs px-2 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition">
@@ -138,7 +138,7 @@
     </div>
     @if($canReassign)
     <div class="px-5 py-2 border-t border-gray-50 text-xs text-gray-400">
-        حدّد المستلمات التي تخصّ وردية أخرى ثم اضغط «نقل المحدد إلى وردية» لإسنادها للوردية الصحيحة.
+        حدّد المستلمات التي تخصّ يوماً سابقاً ثم اضغط «إقفال المحدد كوردية بتاريخ سابق» لفصلها في وردية مستقلة بتاريخها.
     </div>
     @endif
     @else
@@ -663,48 +663,57 @@
 </div>
 @endcan
 
-{{-- Modal: نقل المستلمات المحددة إلى وردية أخرى --}}
-@if($reassignTargets->count() > 0)
-<div x-show="bulkModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="bulkModal=false">
+{{-- Modal: إقفال المستلمات المحددة كوردية بتاريخ سابق --}}
+@if($activeShift && (auth()->user()->can('payments.create') || auth()->user()->isAdmin()))
+<div x-show="bulkModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="bulkModal=false"
+     x-data="{
+        get selectedTotal() {
+            const map = {{ $activeShift->payments->mapWithKeys(fn($p) => [$p->id => round((float)$p->amount)])->toJson() }};
+            return selectedPayments.reduce((s, id) => s + (map[id] || 0), 0);
+        },
+        actualAmount: ''
+     }">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
-        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between" style="background:#3730a3; border-radius: 1rem 1rem 0 0;">
+        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between" style="background:#0F4C75; border-radius: 1rem 1rem 0 0;">
             <h3 class="font-bold text-white flex items-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
-                نقل المستلمات المحددة
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                إقفال كوردية بتاريخ سابق
             </h3>
             <button @click="bulkModal=false" class="text-white/70 hover:text-white">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>
-        <form method="POST" action="{{ route('shifts.payment.reassign') }}" class="p-6 space-y-4">
+        <form method="POST" action="{{ route('shifts.closePast') }}" class="p-6 space-y-4">
             @csrf
-            @method('PATCH')
             {{-- المستلمات المحددة تُرسل كحقول مخفية --}}
             <template x-for="pid in selectedPayments" :key="pid">
                 <input type="hidden" name="payment_ids[]" :value="pid">
             </template>
-            <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-3 text-xs text-indigo-800 leading-relaxed">
-                سيتم نقل <strong x-text="selectedPayments.length"></strong> مستلمة إلى الوردية التي تختارها. يُعاد احتساب مجاميع الورديتين وفرق الصندوق تلقائياً، وتُسجَّل العملية في سجل المراجعة.
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-800 leading-relaxed">
+                ستُفصَل <strong x-text="selectedPayments.length"></strong> مستلمة (بإجمالي <strong x-text="selectedTotal.toLocaleString()"></strong> ر.ي) في وردية مستقلة بالتاريخ الذي تحدده، وتُقفَل مباشرة. يبقى الباقي في الوردية المفتوحة الحالية.
             </div>
             <div>
-                <label class="block text-xs font-semibold text-gray-700 mb-1.5">الوردية المراد النقل إليها <span class="text-red-500">*</span></label>
-                <select name="target_shift_id" required
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition">
-                    <option value="">— اختر وردية —</option>
-                    @foreach($reassignTargets as $t)
-                    <option value="{{ $t->id }}" {{ $t->id === $activeShift->id ? 'disabled' : '' }}>
-                        {{ $t->user?->name ?? 'مستخدم' }} — {{ $t->shift_date->format('d/m/Y') }} (بدأت {{ $t->started_at->format('H:i') }}){{ $t->id === $activeShift->id ? ' — الحالية' : ($t->is_closed ? ' — مقفلة' : ' — مفتوحة') }}
-                    </option>
-                    @endforeach
-                </select>
-                <p class="text-xs text-gray-400 mt-1">يمكن النقل إلى وردية مقفلة سابقة (تظهر بتاريخها)؛ يُعاد احتساب مجاميعها وفرق صندوقها تلقائياً.</p>
+                <label class="block text-xs font-semibold text-gray-700 mb-1.5">تاريخ الوردية <span class="text-red-500">*</span></label>
+                <input type="date" name="shift_date" required max="{{ now()->format('Y-m-d') }}"
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-700 mb-1.5">المبلغ الفعلي في الصندوق (ر.ي) <span class="text-gray-400 font-normal">— اختياري</span></label>
+                <input type="number" name="actual_amount" x-model="actualAmount" step="1" min="0"
+                       :placeholder="`الصافي حسب المحدد: ${selectedTotal.toLocaleString()}`"
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition">
+                <p class="text-xs text-gray-400 mt-1">اتركه فارغاً إن لم ترغب بتسجيل مطابقة الصندوق لهذه الوردية.</p>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">ملاحظات</label>
+                <textarea name="notes" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none resize-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition"></textarea>
             </div>
             <div class="flex gap-3">
                 <button type="submit"
                         class="flex-1 py-2.5 text-white rounded-lg text-sm font-semibold transition hover:opacity-90"
-                        style="background:#3730a3;"
-                        onclick="return confirm('تأكيد نقل المستلمات المحددة إلى الوردية المختارة؟')">
-                    تأكيد النقل
+                        style="background:#0F4C75;"
+                        onclick="return confirm('تأكيد فصل المستلمات المحددة وإقفالها كوردية بالتاريخ المحدد؟')">
+                    تأكيد الإقفال
                 </button>
                 <button type="button" @click="bulkModal=false"
                         class="flex-1 py-2.5 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition">
