@@ -143,19 +143,31 @@ class ShiftController extends Controller
         }
     }
 
-    public function reassignPayment(Request $request, \App\Models\Payment $payment)
+    public function reassignPayment(Request $request)
     {
         $request->validate([
             'target_shift_id' => 'required|exists:shifts,id',
+            'payment_ids'     => 'required|array|min:1',
+            'payment_ids.*'   => 'integer|exists:payments,id',
         ], [
             'target_shift_id.required' => 'يجب اختيار الوردية المراد النقل إليها',
             'target_shift_id.exists'   => 'الوردية المختارة غير موجودة',
+            'payment_ids.required'     => 'يجب تحديد مستلمة واحدة على الأقل',
+            'payment_ids.min'          => 'يجب تحديد مستلمة واحدة على الأقل',
         ]);
 
         try {
-            $target = Shift::findOrFail($request->target_shift_id);
-            $this->service->reassignPayment($payment, $target, auth()->user());
-            return back()->with('success', 'تم نقل الدفعة إلى الوردية المحددة بنجاح');
+            $target   = Shift::findOrFail($request->target_shift_id);
+            $payments = \App\Models\Payment::whereIn('id', $request->payment_ids)->get();
+            $moved    = 0;
+            foreach ($payments as $payment) {
+                if ((int) $payment->shift_id === (int) $target->id) {
+                    continue; // موجودة بالفعل في الوردية المختارة
+                }
+                $this->service->reassignPayment($payment, $target, auth()->user());
+                $moved++;
+            }
+            return back()->with('success', "تم نقل {$moved} مستلمة إلى الوردية المحددة بنجاح");
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()]);
         }

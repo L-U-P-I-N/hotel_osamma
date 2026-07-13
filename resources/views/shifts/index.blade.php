@@ -3,7 +3,7 @@
 @section('page-title', 'الوردية')
 
 @section('content')
-<div x-data="{ closeModal: {{ $errors->has('actual_amount') ? 'true' : 'false' }}, editWithdrawal: null, reopenModal: null, reassignPayment: null }">
+<div x-data="{ closeModal: {{ $errors->has('actual_amount') ? 'true' : 'false' }}, editWithdrawal: null, reopenModal: null, selectedPayments: [], bulkModal: false }">
 
 @if(session('success'))
 <div class="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">{{ session('success') }}</div>
@@ -79,25 +79,51 @@
 {{-- المستلمات + السحبيات --}}
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
+@php $canReassign = $reassignTargets->where('id', '!=', $activeShift->id)->count() > 0; @endphp
 <div class="bg-white rounded-xl shadow-sm border border-gray-100">
-    <div class="px-5 py-4 border-b border-gray-100">
+    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-3 flex-wrap">
         <h3 class="font-semibold text-gray-700">المستلمات ({{ $activeShift->payments->count() }})</h3>
+        @if($canReassign)
+        {{-- شريط الإجراء الجماعي: يظهر عند تحديد مستلمات --}}
+        <div x-show="selectedPayments.length > 0" x-cloak class="flex items-center gap-2">
+            <span class="text-xs text-indigo-700 font-medium">محدَّد: <span x-text="selectedPayments.length"></span></span>
+            <button type="button" @click="bulkModal = true"
+                    class="text-xs px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition whitespace-nowrap">
+                نقل المحدد إلى وردية
+            </button>
+            <button type="button" @click="selectedPayments = []"
+                    class="text-xs px-2 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition">
+                إلغاء التحديد
+            </button>
+        </div>
+        @endif
     </div>
     @if($activeShift->payments->count() > 0)
     <div class="overflow-x-auto">
         <table class="w-full text-sm">
             <thead class="bg-gray-50"><tr>
+                @if($canReassign)
+                <th class="px-4 py-2 text-center w-10">
+                    <input type="checkbox" title="تحديد الكل"
+                           @change="selectedPayments = $event.target.checked ? {{ $activeShift->payments->pluck('id')->toJson() }} : []"
+                           :checked="selectedPayments.length === {{ $activeShift->payments->count() }}"
+                           class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                </th>
+                @endif
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الوقت</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الغرفة / النزيل</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المبلغ</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الطريقة</th>
-                @if($reassignTargets->where('id', '!=', $activeShift->id)->count() > 0)
-                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">نقل</th>
-                @endif
             </tr></thead>
             <tbody class="divide-y divide-gray-50">
                 @foreach($activeShift->payments as $p)
-                <tr>
+                <tr :class="selectedPayments.includes({{ $p->id }}) ? 'bg-indigo-50' : ''">
+                    @if($canReassign)
+                    <td class="px-4 py-2 text-center">
+                        <input type="checkbox" value="{{ $p->id }}" x-model.number="selectedPayments"
+                               class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                    </td>
+                    @endif
                     <td class="px-4 py-2 text-gray-400 text-xs">{{ $p->payment_date->format('H:i') }}</td>
                     <td class="px-4 py-2 text-gray-700 text-xs">
                         <span class="font-medium">{{ $p->reservation?->display_room_number ?? '—' }}</span>
@@ -105,20 +131,16 @@
                     </td>
                     <td class="px-4 py-2 font-semibold text-green-700 whitespace-nowrap">{{ number_format($p->amount, 0) }} {{ $p->currency }}</td>
                     <td class="px-4 py-2 text-gray-500 text-xs">{{ match($p->method) { 'cash'=>'نقدي','pos'=>'POS','bank_transfer'=>'تحويل', default=>$p->method } }}</td>
-                    @if($reassignTargets->where('id', '!=', $activeShift->id)->count() > 0)
-                    <td class="px-4 py-2">
-                        <button type="button"
-                                @click="reassignPayment = { id: {{ $p->id }}, label: '{{ addslashes(($p->reservation?->display_room_number ?? '—').' · '.number_format($p->amount,0).' '.$p->currency) }}', current: {{ $activeShift->id }} }"
-                                class="text-xs px-2 py-1 rounded border border-indigo-200 text-indigo-600 hover:bg-indigo-50 transition whitespace-nowrap">
-                            نقل لوردية
-                        </button>
-                    </td>
-                    @endif
                 </tr>
                 @endforeach
             </tbody>
         </table>
     </div>
+    @if($canReassign)
+    <div class="px-5 py-2 border-t border-gray-50 text-xs text-gray-400">
+        حدّد المستلمات التي تخصّ وردية أخرى ثم اضغط «نقل المحدد إلى وردية» لإسنادها للوردية الصحيحة.
+    </div>
+    @endif
     @else
     <div class="p-8 text-center text-gray-400 text-sm">لا توجد مستلمات بعد</div>
     @endif
@@ -641,29 +663,28 @@
 </div>
 @endcan
 
-{{-- Modal: نقل دفعة إلى وردية أخرى --}}
+{{-- Modal: نقل المستلمات المحددة إلى وردية أخرى --}}
 @if($reassignTargets->count() > 0)
-<div x-show="reassignPayment !== null" x-cloak class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="reassignPayment=null">
+<div x-show="bulkModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="bulkModal=false">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
         <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between" style="background:#3730a3; border-radius: 1rem 1rem 0 0;">
             <h3 class="font-bold text-white flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
-                نقل الدفعة إلى وردية أخرى
+                نقل المستلمات المحددة
             </h3>
-            <button @click="reassignPayment=null" class="text-white/70 hover:text-white">
+            <button @click="bulkModal=false" class="text-white/70 hover:text-white">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>
-        <template x-if="reassignPayment">
-        <form method="POST" :action="`/shifts/payments/${reassignPayment.id}/reassign`" class="p-6 space-y-4">
+        <form method="POST" action="{{ route('shifts.payment.reassign') }}" class="p-6 space-y-4">
             @csrf
             @method('PATCH')
+            {{-- المستلمات المحددة تُرسل كحقول مخفية --}}
+            <template x-for="pid in selectedPayments" :key="pid">
+                <input type="hidden" name="payment_ids[]" :value="pid">
+            </template>
             <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-3 text-xs text-indigo-800 leading-relaxed">
-                تُستخدم هذه الأداة لتصحيح إيراد سُجِّل على وردية خاطئة (مثلاً بسبب نسيان إقفال وردية سابقة). يُعاد احتساب مجاميع الورديتين تلقائياً، وتُسجَّل العملية في سجل المراجعة.
-            </div>
-            <div>
-                <p class="text-xs text-gray-500 mb-1">الدفعة:</p>
-                <p class="text-sm font-semibold text-gray-800" x-text="reassignPayment.label"></p>
+                سيتم نقل <strong x-text="selectedPayments.length"></strong> مستلمة إلى الوردية التي تختارها. يُعاد احتساب مجاميع الورديتين وفرق الصندوق تلقائياً، وتُسجَّل العملية في سجل المراجعة.
             </div>
             <div>
                 <label class="block text-xs font-semibold text-gray-700 mb-1.5">الوردية المراد النقل إليها <span class="text-red-500">*</span></label>
@@ -671,28 +692,26 @@
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition">
                     <option value="">— اختر وردية —</option>
                     @foreach($reassignTargets as $t)
-                    <option value="{{ $t->id }}"
-                            x-bind:disabled="reassignPayment.current === {{ $t->id }}">
-                        {{ $t->user?->name ?? 'مستخدم' }} — {{ $t->shift_date->format('d/m/Y') }} (بدأت {{ $t->started_at->format('H:i') }}){{ $t->is_closed ? ' — مقفلة' : ' — مفتوحة' }}
+                    <option value="{{ $t->id }}" {{ $t->id === $activeShift->id ? 'disabled' : '' }}>
+                        {{ $t->user?->name ?? 'مستخدم' }} — {{ $t->shift_date->format('d/m/Y') }} (بدأت {{ $t->started_at->format('H:i') }}){{ $t->id === $activeShift->id ? ' — الحالية' : ($t->is_closed ? ' — مقفلة' : ' — مفتوحة') }}
                     </option>
                     @endforeach
                 </select>
-                <p class="text-xs text-gray-400 mt-1">يمكن النقل إلى وردية مقفلة سابقة؛ يُعاد احتساب مجاميعها وفرق صندوقها تلقائياً.</p>
+                <p class="text-xs text-gray-400 mt-1">يمكن النقل إلى وردية مقفلة سابقة (تظهر بتاريخها)؛ يُعاد احتساب مجاميعها وفرق صندوقها تلقائياً.</p>
             </div>
             <div class="flex gap-3">
                 <button type="submit"
                         class="flex-1 py-2.5 text-white rounded-lg text-sm font-semibold transition hover:opacity-90"
                         style="background:#3730a3;"
-                        onclick="return confirm('تأكيد نقل هذه الدفعة إلى الوردية المحددة؟')">
+                        onclick="return confirm('تأكيد نقل المستلمات المحددة إلى الوردية المختارة؟')">
                     تأكيد النقل
                 </button>
-                <button type="button" @click="reassignPayment=null"
+                <button type="button" @click="bulkModal=false"
                         class="flex-1 py-2.5 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition">
                     إلغاء
                 </button>
             </div>
         </form>
-        </template>
     </div>
 </div>
 @endif
