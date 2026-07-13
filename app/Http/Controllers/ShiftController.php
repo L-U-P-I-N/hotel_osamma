@@ -30,7 +30,12 @@ class ShiftController extends Controller
         $allActive       = $user->isAdmin() ? $this->service->getAllActiveShifts() : collect();
         $allUsersStatus  = $user->isAdmin() ? $this->service->getAllUsersShiftStatus() : collect();
 
-        return view('shifts.index', compact('activeShift', 'recentShifts', 'allActive', 'allUsersStatus'));
+        // الورديات المفتوحة الصالحة كوجهة لنقل الدفعات (للمدير فقط)
+        $reassignTargets = $user->isAdmin()
+            ? $this->service->getAllActiveShifts()->load('user')
+            : collect();
+
+        return view('shifts.index', compact('activeShift', 'recentShifts', 'allActive', 'allUsersStatus', 'reassignTargets'));
     }
 
     public function addWithdrawal(Request $request)
@@ -112,10 +117,12 @@ class ShiftController extends Controller
         $request->validate([
             'notes'         => 'nullable|string|max:1000',
             'actual_amount' => 'required|numeric|min:0',
+            'ended_at'      => 'nullable|date',
         ], [
             'actual_amount.required' => 'يجب إدخال المبلغ الفعلي في الصندوق قبل الإقفال',
             'actual_amount.numeric'  => 'المبلغ الفعلي يجب أن يكون رقماً',
             'actual_amount.min'      => 'المبلغ الفعلي لا يمكن أن يكون سالباً',
+            'ended_at.date'          => 'وقت انتهاء الوردية غير صالح',
         ]);
 
         $shift = $this->service->getActiveShift(auth()->user());
@@ -125,8 +132,27 @@ class ShiftController extends Controller
 
         try {
             $actualAmount = $request->filled('actual_amount') ? (float) $request->actual_amount : null;
-            $this->service->closeShift($shift, $request->notes ?? '', $actualAmount);
+            $endedAt      = $request->filled('ended_at') ? \Carbon\Carbon::parse($request->ended_at) : null;
+            $this->service->closeShift($shift, $request->notes ?? '', $actualAmount, $endedAt);
             return redirect()->route('shifts.index')->with('success', 'تم إقفال الوردية بنجاح');
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
+        }
+    }
+
+    public function reassignPayment(Request $request, \App\Models\Payment $payment)
+    {
+        $request->validate([
+            'target_shift_id' => 'required|exists:shifts,id',
+        ], [
+            'target_shift_id.required' => 'يجب اختيار الوردية المراد النقل إليها',
+            'target_shift_id.exists'   => 'الوردية المختارة غير موجودة',
+        ]);
+
+        try {
+            $target = Shift::findOrFail($request->target_shift_id);
+            $this->service->reassignPayment($payment, $target, auth()->user());
+            return back()->with('success', 'تم نقل الدفعة إلى الوردية المحددة بنجاح');
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()]);
         }

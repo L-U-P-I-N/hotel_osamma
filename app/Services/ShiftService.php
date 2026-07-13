@@ -40,10 +40,20 @@ class ShiftService
             ->first();
     }
 
-    public function closeShift(Shift $shift, string $notes = '', ?float $actualAmount = null): void
+    public function closeShift(Shift $shift, string $notes = '', ?float $actualAmount = null, ?\Carbon\Carbon $endedAt = null): void
     {
         if ($shift->is_closed) {
             throw new \RuntimeException('الوردية مقفلة مسبقاً');
+        }
+
+        // وقت انتهاء الوردية: افتراضياً الآن، أو وقت فعلي سابق يحدده المستخدم
+        // (لمعالجة الورديات المنسية التي تُقفَل متأخراً)
+        $ended = $endedAt ?? now();
+        if ($ended->lessThan($shift->started_at)) {
+            throw new \RuntimeException('وقت انتهاء الوردية لا يمكن أن يكون قبل وقت بدايتها');
+        }
+        if ($ended->greaterThan(now()->addMinute())) {
+            throw new \RuntimeException('وقت انتهاء الوردية لا يمكن أن يكون في المستقبل');
         }
 
         $this->computeTotals($shift);
@@ -56,6 +66,7 @@ class ShiftService
         $closeEvents   = $shift->close_events ?? [];
         $closeEvents[] = [
             'closed_at'      => now()->toDateTimeString(),
+            'ended_at'       => $ended->toDateTimeString(),
             'actual_amount'  => $actualAmount,
             'net_balance'    => $netBalance,
             'shortfall'      => $shortfall,
@@ -68,7 +79,7 @@ class ShiftService
         $shift->update([
             'is_closed'     => true,
             'closed_at'     => now(),
-            'ended_at'      => now(),
+            'ended_at'      => $ended,
             'notes'         => $notes ?: null,
             'actual_amount' => $actualAmount,
             'shortfall'     => $shortfall,
@@ -76,6 +87,35 @@ class ShiftService
         ]);
 
         AuditLogService::log('update', $shift, ['is_closed' => false], ['is_closed' => true], auth()->user());
+    }
+
+    /**
+     * إعادة إسناد دفعة إلى وردية أخرى (لمعالجة إيرادات سُجِّلت على الوردية الخطأ
+     * بسبب نسيان إقفال وردية سابقة). يُعيد احتساب مجاميع الورديتين.
+     */
+    public function reassignPayment(Payment $payment, Shift $targetShift, User $actor): void
+    {
+        $sourceShift = $payment->shift_id ? Shift::find($payment->shift_id) : null;
+
+        if ($sourceShift && $sourceShift->id === $targetShift->id) {
+            throw new \RuntimeException('الدفعة موجودة بالفعل في هذه الوردية');
+        }
+        if ($sourceShift && $sourceShift->is_closed) {
+            throw new \RuntimeException('لا يمكن نقل دفعة من وردية مقفلة، أعد فتحها أولاً');
+        }
+        if ($targetShift->is_closed) {
+            throw new \RuntimeException('لا يمكن نقل دفعة إلى وردية مقفلة، أعد فتحها أولاً');
+        }
+
+        $old = ['shift_id' => $payment->shift_id];
+        $payment->update(['shift_id' => $targetShift->id]);
+
+        if ($sourceShift) {
+            $this->computeTotals($sourceShift);
+        }
+        $this->computeTotals($targetShift);
+
+        AuditLogService::log('update', $payment, $old, ['shift_id' => $targetShift->id], $actor);
     }
 
     public function reopenShift(Shift $shift, User $requestingUser, string $notes = ''): void
