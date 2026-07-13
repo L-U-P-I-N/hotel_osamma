@@ -256,14 +256,17 @@ class ReservationController extends Controller
                 }
                 if (empty($comp['full_name'])) continue;
 
+                // id_type و relationship عمودان enum غير قابلين للـ null (لهما قيم
+                // افتراضية) — لا نمرّر null وإلا فشل الإدراج عند إضافة مرافق جديد
+                // في التعديل، فيرتد النموذج ويضيع ما أُدخِل.
                 $data = [
                     'full_name'      => $comp['full_name'],
                     'nationality'    => $this->nullIfEmpty($comp['nationality'] ?? null),
-                    'id_type'        => $this->nullIfEmpty($comp['id_type'] ?? null),
+                    'id_type'        => $this->nullIfEmpty($comp['id_type'] ?? null) ?: 'national_id',
                     'id_number'      => $this->nullIfEmpty($comp['id_number'] ?? null),
                     'id_issuer'      => $this->nullIfEmpty($comp['id_issuer'] ?? null),
                     'id_issue_date'  => $this->nullIfEmpty($comp['id_issue_date'] ?? null),
-                    'relationship'   => $this->nullIfEmpty($comp['relationship'] ?? null),
+                    'relationship'   => $this->nullIfEmpty($comp['relationship'] ?? null) ?: 'other',
                 ];
 
                 // Handle ID image upload (replace only when a new file is provided)
