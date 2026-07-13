@@ -30,9 +30,10 @@ class ShiftController extends Controller
         $allActive       = $user->isAdmin() ? $this->service->getAllActiveShifts() : collect();
         $allUsersStatus  = $user->isAdmin() ? $this->service->getAllUsersShiftStatus() : collect();
 
-        // الورديات المفتوحة الصالحة كوجهة لنقل الدفعات (للمدير فقط)
+        // الورديات الصالحة كوجهة لنقل الدفعات (للمدير فقط) — تشمل المفتوحة والمقفلة
+        // الحديثة، لأن الدفعة المُساءة الإسناد غالباً تخصّ وردية سابقة مقفلة.
         $reassignTargets = $user->isAdmin()
-            ? $this->service->getAllActiveShifts()->load('user')
+            ? Shift::with('user')->orderByDesc('shift_date')->orderByDesc('id')->limit(40)->get()
             : collect();
 
         return view('shifts.index', compact('activeShift', 'recentShifts', 'allActive', 'allUsersStatus', 'reassignTargets'));

@@ -91,7 +91,7 @@
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الغرفة / النزيل</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المبلغ</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الطريقة</th>
-                @if(auth()->user()->isAdmin() && $reassignTargets->count() > 1)
+                @if(auth()->user()->isAdmin() && $reassignTargets->where('id', '!=', $activeShift->id)->count() > 0)
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">نقل</th>
                 @endif
             </tr></thead>
@@ -105,7 +105,7 @@
                     </td>
                     <td class="px-4 py-2 font-semibold text-green-700 whitespace-nowrap">{{ number_format($p->amount, 0) }} {{ $p->currency }}</td>
                     <td class="px-4 py-2 text-gray-500 text-xs">{{ match($p->method) { 'cash'=>'نقدي','pos'=>'POS','bank_transfer'=>'تحويل', default=>$p->method } }}</td>
-                    @if(auth()->user()->isAdmin() && $reassignTargets->count() > 1)
+                    @if(auth()->user()->isAdmin() && $reassignTargets->where('id', '!=', $activeShift->id)->count() > 0)
                     <td class="px-4 py-2">
                         <button type="button"
                                 @click="reassignPayment = { id: {{ $p->id }}, label: '{{ addslashes(($p->reservation?->display_room_number ?? '—').' · '.number_format($p->amount,0).' '.$p->currency) }}', current: {{ $activeShift->id }} }"
@@ -673,11 +673,11 @@
                     @foreach($reassignTargets as $t)
                     <option value="{{ $t->id }}"
                             x-bind:disabled="reassignPayment.current === {{ $t->id }}">
-                        {{ $t->user?->name ?? 'مستخدم' }} — {{ $t->shift_date->format('d/m/Y') }} (بدأت {{ $t->started_at->format('H:i') }})
+                        {{ $t->user?->name ?? 'مستخدم' }} — {{ $t->shift_date->format('d/m/Y') }} (بدأت {{ $t->started_at->format('H:i') }}){{ $t->is_closed ? ' — مقفلة' : ' — مفتوحة' }}
                     </option>
                     @endforeach
                 </select>
-                <p class="text-xs text-gray-400 mt-1">تظهر الورديات المفتوحة فقط. إن كانت الوردية الصحيحة مقفلة، أعد فتحها أولاً.</p>
+                <p class="text-xs text-gray-400 mt-1">يمكن النقل إلى وردية مقفلة سابقة؛ يُعاد احتساب مجاميعها وفرق صندوقها تلقائياً.</p>
             </div>
             <div class="flex gap-3">
                 <button type="submit"

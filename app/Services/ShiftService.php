@@ -100,22 +100,33 @@ class ShiftService
         if ($sourceShift && $sourceShift->id === $targetShift->id) {
             throw new \RuntimeException('الدفعة موجودة بالفعل في هذه الوردية');
         }
-        if ($sourceShift && $sourceShift->is_closed) {
-            throw new \RuntimeException('لا يمكن نقل دفعة من وردية مقفلة، أعد فتحها أولاً');
-        }
-        if ($targetShift->is_closed) {
-            throw new \RuntimeException('لا يمكن نقل دفعة إلى وردية مقفلة، أعد فتحها أولاً');
-        }
 
         $old = ['shift_id' => $payment->shift_id];
         $payment->update(['shift_id' => $targetShift->id]);
 
+        // إعادة احتساب مجاميع الورديتين (وفرق الصندوق إن كانتا مقفلتين مع مبلغ فعلي)
         if ($sourceShift) {
-            $this->computeTotals($sourceShift);
+            $this->recomputeShiftAfterChange($sourceShift);
         }
-        $this->computeTotals($targetShift);
+        $this->recomputeShiftAfterChange($targetShift);
 
         AuditLogService::log('update', $payment, $old, ['shift_id' => $targetShift->id], $actor);
+    }
+
+    /**
+     * إعادة احتساب مجاميع الوردية، ثم إعادة حساب فرق الصندوق (shortfall)
+     * إن كانت الوردية مقفلة وسبق إدخال مبلغ فعلي لها — حتى تبقى المطابقة صحيحة
+     * بعد نقل الدفعات بين الورديات.
+     */
+    private function recomputeShiftAfterChange(Shift $shift): void
+    {
+        $this->computeTotals($shift);
+        $shift->refresh();
+
+        if ($shift->is_closed && $shift->actual_amount !== null) {
+            $netBalance = $shift->total_received_yer - $shift->total_withdrawals_yer - $shift->total_refunds_yer;
+            $shift->update(['shortfall' => (float) $shift->actual_amount - $netBalance]);
+        }
     }
 
     public function reopenShift(Shift $shift, User $requestingUser, string $notes = ''): void
