@@ -22,8 +22,10 @@ class ShiftController extends Controller
             $this->service->computeTotals($activeShift);
             $activeShift->refresh();
             $activeShift->load([
-                'payments.reservation.guest', 'withdrawals',
-                // withTrashed ضروري: قد يكون الاسترجاع ناتجاً عن إلغاء حجز (محذوف حذفاً ناعماً)
+                // withTrashed ضروري: قد تخصّ الدفعة/الاسترجاع حجزاً أُلغي (محذوف
+                // حذفاً ناعماً) — فنعرض اسم النزيل والغرفة بدل "—".
+                'payments' => fn($q) => $q->with(['reservation' => fn($q2) => $q2->withTrashed(), 'reservation.guest']),
+                'withdrawals',
                 'refunds' => fn($q) => $q->with(['reservation' => fn($q2) => $q2->withTrashed(), 'reservation.guest']),
             ]);
         }

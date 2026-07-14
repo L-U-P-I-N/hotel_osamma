@@ -128,6 +128,9 @@
                     <td class="px-4 py-2 text-gray-700 text-xs">
                         <span class="font-medium">{{ $p->reservation?->display_room_number ?? '—' }}</span>
                         <span class="text-gray-400 mr-1">{{ $p->reservation?->guest?->full_name ?? '' }}</span>
+                        @if($p->reservation && $p->reservation->trashed())
+                        <span class="inline-block px-1.5 py-0.5 bg-rose-100 text-rose-700 rounded text-[10px] mr-1" title="حجز ملغى — قابله استرجاع">ملغى</span>
+                        @endif
                     </td>
                     <td class="px-4 py-2 font-semibold text-green-700 whitespace-nowrap">{{ number_format($p->amount, 0) }} {{ $p->currency }}</td>
                     <td class="px-4 py-2 text-gray-500 text-xs">{{ match($p->method) { 'cash'=>'نقدي','pos'=>'POS','bank_transfer'=>'تحويل', default=>$p->method } }}</td>
