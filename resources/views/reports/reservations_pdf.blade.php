@@ -1,5 +1,5 @@
 @php
-    $fontSize = 14;
+    $fontSize = 16;
 @endphp
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
