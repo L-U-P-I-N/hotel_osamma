@@ -1,5 +1,5 @@
 @php
-    $fontSize = 12;
+    $fontSize = 14;
 @endphp
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -152,7 +152,17 @@
             'render' => fn($r, $g) => number_format(max(0, (float)$r->total_amount - (float)$r->paid_amount), 0)],
         'notes'          => ['label' => 'ملاحظات',         'class' => '',
             'render' => function ($r, $g) use ($strip) {
-                $rNote   = $strip($r->notes);
+                // نستبعد أسطر التجديد (اليدوي والتلقائي) من الملاحظات — يريد المستخدم
+                // عرض بيانات الدفع والملاحظات الأخرى فقط دون ضجيج نصوص التجديد.
+                $rawNote = $strip($r->notes);
+                $rNote = null;
+                if ($rawNote) {
+                    $kept = collect(preg_split('/\r?\n/', $rawNote))
+                        ->map(fn($line) => trim($line))
+                        ->filter(fn($line) => $line !== '' && !str_starts_with($line, '[تجديد'))
+                        ->implode(' | ');
+                    $rNote = $kept !== '' ? $kept : null;
+                }
                 $payNote = $strip($r->payments->first(fn($p) => $p->notes)?->notes);
                 if (!$rNote && !$payNote) return '—';
                 return trim(($rNote ?? '') . ($rNote && $payNote ? ' | ' : '') . ($payNote ? '[دفع] ' . $payNote : ''));
