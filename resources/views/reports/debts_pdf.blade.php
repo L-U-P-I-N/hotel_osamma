@@ -14,7 +14,7 @@
         src: url("{{ storage_path('fonts') }}/NotoNaskhArabic-Bold.ttf") format('truetype');
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'NotoNaskhArabic', sans-serif; font-size: 10px; direction: rtl; color: #1a1a1a; background: #fff; padding: 16px; }
+    body { font-family: 'NotoNaskhArabic', sans-serif; font-size: 14px; direction: rtl; color: #1a1a1a; background: #fff; padding: 16px; }
     .header { text-align: center; border-bottom: 2px solid #0F4C75; padding-bottom: 10px; margin-bottom: 14px; }
     .header h1 { font-size: 16px; color: #0F4C75; font-weight: bold; }
     .header .sub { font-size: 9px; color: #555; margin-top: 4px; }
@@ -24,7 +24,7 @@
     /* لا table-layout:fixed ولا عرض ثابت — عرض كل عمود يُحسب تلقائياً من محتواه
        الفعلي (مرن حسب البيانات). white-space:nowrap أُزيلت لأنها كانت تمنع
        التفاف الأسماء الطويلة فتضخّم عمودها على حساب باقي الأعمدة. */
-    table.data { width: 100%; border-collapse: collapse; font-size: 10px; direction: rtl; }
+    table.data { width: 100%; border-collapse: collapse; font-size: 14px; direction: rtl; }
     table.data thead tr { background: #0F4C75; color: #fff; }
     table.data thead th { padding: 6px 8px; font-weight: bold; border: 1px solid #0a3a5e; text-align: right; }
     table.data tbody tr:nth-child(even) { background: #f4f8fc; }
