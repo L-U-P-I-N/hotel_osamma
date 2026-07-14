@@ -380,12 +380,21 @@ class Reservation extends Model
                 }
             }
         }
+        $roomIds = array_keys($roomIds);
 
+        // اضبط الغرف التي بها نزيل وصل فعلاً على "مشغول"
         if (!empty($roomIds)) {
-            Room::whereIn('id', array_keys($roomIds))
+            Room::whereIn('id', $roomIds)
                 ->where('status', '!=', 'occupied')
                 ->update(['status' => 'occupied']);
         }
+
+        // حرّر أي غرفة "مشغولة" لم يعد بها نزيل حالي (حجز مستقبلي فقط أو لا شيء)
+        // فتعود "متاحة" لتُحجز لنزيل مؤقت قبل موعد الحجز القادم. لا نلمس حالتَي
+        // "تحت الفحص" و"الصيانة" — تحريرهما يبقى يدوياً/بالتفتيش.
+        Room::where('status', 'occupied')
+            ->when(!empty($roomIds), fn($q) => $q->whereNotIn('id', $roomIds))
+            ->update(['status' => 'available']);
     }
 
     public function getDisplayRoomNumberAttribute(): string
