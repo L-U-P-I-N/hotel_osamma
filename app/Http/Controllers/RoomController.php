@@ -13,6 +13,10 @@ class RoomController extends Controller
 {
     public function index(Request $request)
     {
+        // مزامنة حالة الغرف: أي غرفة وصل نزيلها فعلاً تُضبط "مشغولة" (تعالج
+        // الغرف العالقة على "تحت الفحص" رغم وجود نزيل حالي بها).
+        \App\Models\Reservation::syncRoomOccupancy();
+
         $query = Room::with(['roomType', 'hotel']);
 
         // عدّادات الحالات الإجمالية (مستقلة عن الفلاتر) للشرائح العلوية

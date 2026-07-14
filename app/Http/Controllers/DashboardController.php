@@ -14,6 +14,8 @@ class DashboardController extends Controller
     {
         // احتساب التجديد التلقائي للإقامات المفعّل بها (لا مجدول زمني في التشغيل)
         Reservation::runAutoRenewals();
+        // مزامنة حالة الغرف: ضبط الغرف التي وصل نزلاؤها فعلاً على "مشغولة"
+        Reservation::syncRoomOccupancy();
 
         $totalRooms       = Room::count();
         $occupiedRooms    = Room::where('status', 'occupied')->count();

@@ -359,6 +359,35 @@ class Reservation extends Model
             ->each(fn (self $r) => $r->applyAutoRenewCatchUp());
     }
 
+    /**
+     * مزامنة حالة الغرف مع الحجوزات: أي غرفة بها نزيل وصل فعلاً (حجز مسجّل دخول
+     * وتاريخ وصوله اليوم أو قبله) تُضبط "مشغولة". يعالج الحالة التي حجز فيها نزيل
+     * غرفة بتاريخ مستقبلي (فبقيت الغرفة متاحة/تحت الفحص) ثم حلّ موعد وصوله دون
+     * أن يقلب النظام حالتها تلقائياً (لا مجدول زمني). لا نحرّر أي غرفة هنا؛
+     * التحرير يتم فقط عبر تسجيل الخروج.
+     */
+    public static function syncRoomOccupancy(): void
+    {
+        $active = static::where('status', 'checked_in')
+            ->whereDate('check_in_date', '<=', today())
+            ->get(['room_id', 'linked_room_id']);
+
+        $roomIds = [];
+        foreach ($active as $r) {
+            foreach ([$r->room_id, $r->linked_room_id] as $rid) {
+                if ($rid) {
+                    $roomIds[$rid] = true;
+                }
+            }
+        }
+
+        if (!empty($roomIds)) {
+            Room::whereIn('id', array_keys($roomIds))
+                ->where('status', '!=', 'occupied')
+                ->update(['status' => 'occupied']);
+        }
+    }
+
     public function getDisplayRoomNumberAttribute(): string
     {
         if (!$this->room) {
