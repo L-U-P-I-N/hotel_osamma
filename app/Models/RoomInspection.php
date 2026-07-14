@@ -34,4 +34,20 @@ class RoomInspection extends Model
     {
         return $this->hasMany(InspectionImage::class);
     }
+
+    /**
+     * الرسم الإضافي (دَين على النزيل) المرتبط بهذا الضرر — يُستخدم عند تعديل أو حذف الضرر.
+     */
+    public function extraCharge()
+    {
+        return $this->hasOne(ExtraCharge::class);
+    }
+
+    /**
+     * مصروف الصيانة المرتبط بهذا الضرر — يُستخدم عند تعديل أو حذف الضرر.
+     */
+    public function expense()
+    {
+        return $this->hasOne(Expense::class);
+    }
 }

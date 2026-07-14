@@ -468,7 +468,30 @@
                             <span class="w-2 h-2 rounded-full bg-red-500 inline-block"></span>
                             ضرر مسجّل
                         </span>
-                        <span class="text-xs text-gray-400">{{ $insp->inspection_date?->format('d/m/Y H:i') }}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-gray-400">{{ $insp->inspection_date?->format('d/m/Y H:i') }}</span>
+                            @can('checkout.process')
+                            @if($reservation->status !== 'cancelled')
+                            <button type="button"
+                                    data-damage-id="{{ $insp->id }}"
+                                    data-damage-amount="{{ (float) $insp->compensation_amount }}"
+                                    data-damage-description="{{ $insp->damage_description }}"
+                                    onclick="openEditDamage(this)"
+                                    class="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition" title="تعديل الضرر">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                            </button>
+                            <form method="POST" action="{{ route('reservations.removeDamage', [$reservation, $insp]) }}"
+                                  onsubmit="return confirm('هل تريد حذف هذا الضرر؟ سيُخصم مبلغ التعويض ({{ number_format($insp->compensation_amount, 0) }} ر.ي) من حساب النزيل وتُحذف الصور والمصروف المرتبط.')"
+                                  class="inline">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="p-1.5 rounded-lg text-red-600 hover:bg-red-50 transition" title="حذف الضرر">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                </button>
+                            </form>
+                            @endif
+                            @endcan
+                        </div>
                     </div>
                     @if($insp->damage_description)
                     <p class="text-gray-600 bg-red-50 rounded-xl p-3 text-xs leading-relaxed">{{ $insp->damage_description }}</p>
@@ -1011,6 +1034,72 @@
     </div>
 </div>
 @endif
+
+{{-- ===== EDIT DAMAGE MODAL (متاح للمقيم والمغادر) ===== --}}
+<div id="editDamageModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto"
+     onclick="if(event.target===this) this.classList.add('hidden')">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto my-auto" onclick="event.stopPropagation()">
+        <div class="px-6 py-5 rounded-t-2xl flex items-center justify-between" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6);">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                </div>
+                <h3 class="font-bold text-white text-lg">تعديل الضرر المسجّل</h3>
+            </div>
+            <button type="button" onclick="document.getElementById('editDamageModal').classList.add('hidden')"
+                    class="w-8 h-8 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <form id="editDamageForm" method="POST" enctype="multipart/form-data" class="p-6 space-y-4">
+            @csrf
+            @method('PUT')
+            <div class="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
+                <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>سيُعدَّل مبلغ التعويض في حساب النزيل (الدَّين) ومصروف الصيانة تلقائياً بفارق المبلغ.</span>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">وصف الأضرار <span class="text-red-500">*</span></label>
+                <textarea id="editDamageDescription" name="damage_description" rows="3" required maxlength="1000"
+                          class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-400 outline-none"></textarea>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">مبلغ التعويض (ر.ي) <span class="text-red-500">*</span></label>
+                <input id="editCompensationAmount" type="number" name="compensation_amount" min="0" step="0.01" required
+                       class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-400 outline-none">
+                <p class="text-xs text-gray-400 mt-1">أدخل 0 لإزالة المبلغ من حساب النزيل مع الإبقاء على توثيق الضرر.</p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">إضافة صور <span class="text-gray-400 font-normal">(اختياري)</span></label>
+                <input type="file" name="damage_images[]" accept="image/*" multiple
+                       class="w-full text-sm text-gray-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+            </div>
+
+            <div class="flex gap-2 pt-1">
+                <button type="submit"
+                        class="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition">
+                    حفظ التعديل
+                </button>
+                <button type="button" onclick="document.getElementById('editDamageModal').classList.add('hidden')"
+                        class="px-5 py-3 border border-gray-300 text-gray-600 rounded-xl text-sm hover:bg-gray-50 transition">
+                    إلغاء
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+    function openEditDamage(btn) {
+        var form = document.getElementById('editDamageForm');
+        form.action = '{{ url('reservations/' . $reservation->id . '/damage') }}/' + btn.dataset.damageId;
+        document.getElementById('editDamageDescription').value = btn.dataset.damageDescription || '';
+        document.getElementById('editCompensationAmount').value = btn.dataset.damageAmount;
+        document.getElementById('editDamageModal').classList.remove('hidden');
+    }
+</script>
 @endcan
 
 {{-- ===== MODALS (checked_in only) ===== --}}

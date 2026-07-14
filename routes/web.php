@@ -134,6 +134,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/checkout/{reservation}/done', [CheckOutController::class, 'done'])->name('checkout.done');
         // تسجيل أضرار لنزيل مقيم (دون انتظار الخروج)
         Route::post('/reservations/{reservation}/damage', [ReservationController::class, 'addDamage'])->name('reservations.addDamage');
+        // تعديل / حذف ضرر مسجّل
+        Route::put('/reservations/{reservation}/damage/{inspection}', [ReservationController::class, 'updateDamage'])->name('reservations.updateDamage');
+        Route::delete('/reservations/{reservation}/damage/{inspection}', [ReservationController::class, 'removeDamage'])->name('reservations.removeDamage');
     });
 
     // Payments

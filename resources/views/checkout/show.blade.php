@@ -47,6 +47,42 @@
             <div class="text-xs {{ $reservation->balance > 0 ? 'text-red-400' : 'text-gray-400' }}">{{ $reservation->currency_symbol }}</div>
         </div>
     </div>
+
+    {{-- تفصيل الحساب: إجمالي الغرفة قبل الخصم، الخصم، الرسوم/الأضرار، ثم الإجمالي --}}
+    @php
+        $grossTotal = $reservation->gross_total;
+        $extraChargesTotal = $reservation->extra_charges_total;
+        $damageCharges = $reservation->extraCharges->where('type', 'damage');
+        $otherCharges = $reservation->extraCharges->where('type', '!=', 'damage');
+    @endphp
+    <div class="mt-4 bg-gray-50 rounded-xl border border-gray-200 p-4 space-y-2 text-sm">
+        <div class="flex items-center justify-between text-gray-600">
+            <span>إجمالي الغرفة (قبل الخصم)</span>
+            <span class="font-semibold text-gray-800">{{ number_format($grossTotal, 2) }} {{ $reservation->currency_symbol }}</span>
+        </div>
+        @if($reservation->discount_amount > 0)
+        <div class="flex items-center justify-between text-emerald-600">
+            <span>خصم {{ $reservation->discount_reason ? '(' . $reservation->discount_reason . ')' : '' }}</span>
+            <span class="font-semibold">- {{ number_format($reservation->discount_amount, 2) }} {{ $reservation->currency_symbol }}</span>
+        </div>
+        @endif
+        @if($otherCharges->sum('amount') > 0)
+        <div class="flex items-center justify-between text-red-600">
+            <span>رسوم إضافية</span>
+            <span class="font-semibold">+ {{ number_format($otherCharges->sum('amount'), 2) }} {{ $reservation->currency_symbol }}</span>
+        </div>
+        @endif
+        @if($damageCharges->sum('amount') > 0)
+        <div class="flex items-center justify-between text-red-600">
+            <span>تعويض أضرار مسجّلة سابقاً</span>
+            <span class="font-semibold">+ {{ number_format($damageCharges->sum('amount'), 2) }} {{ $reservation->currency_symbol }}</span>
+        </div>
+        @endif
+        <div class="border-t border-gray-200 pt-2 flex items-center justify-between">
+            <span class="font-bold text-gray-800">الإجمالي المستحق</span>
+            <span class="font-black text-gray-900">{{ number_format($reservation->total_amount, 2) }} {{ $reservation->currency_symbol }}</span>
+        </div>
+    </div>
 </div>
 
 <form method="POST" action="{{ route('checkout.process', $reservation) }}" enctype="multipart/form-data" class="space-y-5">

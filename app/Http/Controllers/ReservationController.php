@@ -940,22 +940,24 @@ class ReservationController extends Controller
 
             if ($amount > 0) {
                 \App\Models\ExtraCharge::create([
-                    'reservation_id' => $reservation->id,
-                    'added_by'       => auth()->id(),
-                    'type'           => 'damage',
-                    'description'    => $validated['damage_description'],
-                    'amount'         => $amount,
-                    'charge_date'    => now(),
+                    'reservation_id'     => $reservation->id,
+                    'room_inspection_id' => $inspection->id,
+                    'added_by'           => auth()->id(),
+                    'type'               => 'damage',
+                    'description'        => $validated['damage_description'],
+                    'amount'             => $amount,
+                    'charge_date'        => now(),
                 ]);
 
                 \App\Models\Expense::create([
-                    'amount'       => $amount,
-                    'currency'     => 'YER',
-                    'category'     => 'maintenance',
-                    'description'  => 'أضرار غرفة ' . ($reservation->room->room_number ?? '') . ' — ' . $validated['damage_description'],
-                    'expense_date' => now()->toDateString(),
-                    'paid_by'      => auth()->id(),
-                    'shift_id'     => null,
+                    'amount'             => $amount,
+                    'currency'           => 'YER',
+                    'category'           => 'maintenance',
+                    'description'        => 'أضرار غرفة ' . ($reservation->room->room_number ?? '') . ' — ' . $validated['damage_description'],
+                    'expense_date'       => now()->toDateString(),
+                    'paid_by'            => auth()->id(),
+                    'shift_id'           => null,
+                    'room_inspection_id' => $inspection->id,
                 ]);
 
                 $reservation->increment('total_amount', $amount);
@@ -971,6 +973,156 @@ class ReservationController extends Controller
 
         return redirect()->route('reservations.show', $reservation)
             ->with('success', 'تم تسجيل الأضرار' . ($amount > 0 ? ' وإضافة ' . number_format($amount, 0) . ' ر.ي إلى حساب النزيل' : ''));
+    }
+
+    /**
+     * تعديل ضرر مسجّل: تحديث الوصف ومبلغ التعويض، مع مزامنة الرسم الإضافي (الدَّين)
+     * ومصروف الصيانة وإجمالي الحجز بفارق المبلغ فقط، ثم إعادة احتساب حالة الدفع.
+     */
+    public function updateDamage(Request $request, Reservation $reservation, \App\Models\RoomInspection $inspection)
+    {
+        if ($inspection->reservation_id !== $reservation->id) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'damage_description'  => 'required|string|max:1000',
+            'compensation_amount' => 'required|numeric|min:0',
+            'damage_images.*'     => 'nullable|file|mimes:jpg,jpeg,png|max:5120',
+        ], [
+            'damage_description.required'  => 'وصف الأضرار مطلوب',
+            'compensation_amount.required' => 'مبلغ التعويض مطلوب',
+            'compensation_amount.numeric'  => 'مبلغ التعويض يجب أن يكون رقماً',
+        ]);
+
+        $newAmount = (float) $validated['compensation_amount'];
+        $oldAmount = (float) $inspection->compensation_amount;
+        $delta     = round($newAmount - $oldAmount, 2);
+
+        DB::transaction(function () use ($reservation, $inspection, $validated, $newAmount, $oldAmount, $delta, $request) {
+            $inspection->update([
+                'has_damage'          => true,
+                'damage_description'  => $validated['damage_description'],
+                'compensation_amount' => $newAmount,
+                'compensation_status' => $newAmount > 0 ? ($inspection->compensation_status === 'paid' ? 'paid' : 'pending') : 'none',
+            ]);
+
+            // صور إضافية جديدة (اختياري) — تُضاف دون حذف القديمة
+            if ($request->hasFile('damage_images')) {
+                foreach ($request->file('damage_images') as $image) {
+                    \App\Models\InspectionImage::create([
+                        'room_inspection_id' => $inspection->id,
+                        'image_path'         => $image->store('inspection_images', 'private'),
+                    ]);
+                }
+            }
+
+            // مزامنة الرسم الإضافي (الدَّين على النزيل)
+            $charge = $inspection->extraCharge()->first();
+            if ($newAmount > 0) {
+                if ($charge) {
+                    $charge->update([
+                        'description' => $validated['damage_description'],
+                        'amount'      => $newAmount,
+                    ]);
+                } else {
+                    \App\Models\ExtraCharge::create([
+                        'reservation_id'     => $reservation->id,
+                        'room_inspection_id' => $inspection->id,
+                        'added_by'           => auth()->id(),
+                        'type'               => 'damage',
+                        'description'        => $validated['damage_description'],
+                        'amount'             => $newAmount,
+                        'charge_date'        => now(),
+                    ]);
+                }
+            } elseif ($charge) {
+                $charge->delete();
+            }
+
+            // مزامنة مصروف الصيانة
+            $expense = $inspection->expense()->first();
+            $expenseDescription = 'أضرار غرفة ' . ($reservation->room->room_number ?? '') . ' — ' . $validated['damage_description'];
+            if ($newAmount > 0) {
+                if ($expense) {
+                    $expense->update([
+                        'amount'      => $newAmount,
+                        'description' => $expenseDescription,
+                    ]);
+                } else {
+                    \App\Models\Expense::create([
+                        'amount'             => $newAmount,
+                        'currency'           => 'YER',
+                        'category'           => 'maintenance',
+                        'description'        => $expenseDescription,
+                        'expense_date'       => now()->toDateString(),
+                        'paid_by'            => auth()->id(),
+                        'shift_id'           => null,
+                        'room_inspection_id' => $inspection->id,
+                    ]);
+                }
+            } elseif ($expense) {
+                $expense->delete();
+            }
+
+            // تعديل إجمالي الحجز بفارق المبلغ فقط
+            if ($delta !== 0.0) {
+                $reservation->total_amount = max(0, round((float) $reservation->total_amount + $delta, 2));
+                $reservation->save();
+            }
+            $reservation->refresh()->updatePaymentStatus();
+
+            AuditLogService::log('update', $reservation, ['compensation_amount' => $oldAmount], [
+                'action'              => 'damage_updated',
+                'compensation_amount' => $newAmount,
+                'damage_description'  => $validated['damage_description'],
+            ], auth()->user());
+        });
+
+        return redirect()->route('reservations.show', $reservation)
+            ->with('success', 'تم تعديل الضرر المسجّل وتحديث حساب النزيل');
+    }
+
+    /**
+     * حذف ضرر مسجّل: عكس أثره المالي بالكامل — إنقاص الإجمالي بمبلغ التعويض، وحذف
+     * الرسم الإضافي ومصروف الصيانة والصور المرتبطة، ثم إعادة احتساب حالة الدفع.
+     */
+    public function removeDamage(Reservation $reservation, \App\Models\RoomInspection $inspection)
+    {
+        if ($inspection->reservation_id !== $reservation->id) {
+            abort(404);
+        }
+
+        $amount = (float) $inspection->compensation_amount;
+
+        DB::transaction(function () use ($reservation, $inspection, $amount) {
+            // حذف الرسم الإضافي (الدَّين) ومصروف الصيانة المرتبطَين
+            $inspection->extraCharge()->get()->each->delete();
+            $inspection->expense()->get()->each->delete();
+
+            // حذف صور الأضرار (الملفات ثم السجلات)
+            foreach ($inspection->images()->get() as $img) {
+                \Illuminate\Support\Facades\Storage::disk('private')->delete($img->image_path);
+                $img->delete();
+            }
+
+            $inspection->forceDelete();
+
+            // إنقاص إجمالي الحجز بمبلغ التعويض المحذوف
+            if ($amount > 0) {
+                $reservation->total_amount = max(0, round((float) $reservation->total_amount - $amount, 2));
+                $reservation->save();
+                $reservation->refresh()->updatePaymentStatus();
+            }
+
+            AuditLogService::log('update', $reservation, ['compensation_amount' => $amount], [
+                'action'              => 'damage_deleted',
+                'compensation_amount' => $amount,
+            ], auth()->user());
+        });
+
+        return redirect()->route('reservations.show', $reservation)
+            ->with('success', 'تم حذف الضرر المسجّل' . ($amount > 0 ? ' وخصم ' . number_format($amount, 0) . ' ر.ي من حساب النزيل' : ''));
     }
 
     /**

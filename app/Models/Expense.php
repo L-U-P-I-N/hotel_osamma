@@ -20,6 +20,7 @@ class Expense extends Model
         'paid_by',
         'employee_id',
         'shift_id',
+        'room_inspection_id',
         'payment_method',
         'settled_at',
         'settled_by',

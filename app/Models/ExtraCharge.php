@@ -10,7 +10,7 @@ class ExtraCharge extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'reservation_id', 'added_by', 'type', 'description', 'amount', 'charge_date',
+        'reservation_id', 'room_inspection_id', 'added_by', 'type', 'description', 'amount', 'charge_date',
     ];
 
     protected $casts = [

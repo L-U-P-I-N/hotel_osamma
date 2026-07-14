@@ -11,7 +11,7 @@ class CheckOutController extends Controller
 
     public function show(Reservation $reservation)
     {
-        $reservation->load(['guest', 'room.roomType', 'payments', 'companions']);
+        $reservation->load(['guest', 'room.roomType', 'payments', 'companions', 'extraCharges', 'roomInspections']);
         return view('checkout.show', compact('reservation'));
     }
 

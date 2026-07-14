@@ -44,22 +44,24 @@ class CheckOutService
 
             if ($hasDamage && $compensationAmount > 0) {
                 ExtraCharge::create([
-                    'reservation_id' => $reservation->id,
-                    'added_by'       => $user->id,
-                    'type'           => 'damage',
-                    'description'    => $data['damage_description'] ?? 'تعويض أضرار',
-                    'amount'         => $compensationAmount,
-                    'charge_date'    => now(),
+                    'reservation_id'     => $reservation->id,
+                    'room_inspection_id' => $inspection->id,
+                    'added_by'           => $user->id,
+                    'type'               => 'damage',
+                    'description'        => $data['damage_description'] ?? 'تعويض أضرار',
+                    'amount'             => $compensationAmount,
+                    'charge_date'        => now(),
                 ]);
 
                 Expense::create([
-                    'amount'       => $compensationAmount,
-                    'currency'     => $data['currency'] ?? 'YER',
-                    'category'     => 'maintenance',
-                    'description'  => 'أضرار غرفة ' . ($reservation->room->room_number ?? '') . ' — ' . ($data['damage_description'] ?? 'تعويض أضرار'),
-                    'expense_date' => now()->toDateString(),
-                    'paid_by'      => $user->id,
-                    'shift_id'     => null,
+                    'amount'             => $compensationAmount,
+                    'currency'           => $data['currency'] ?? 'YER',
+                    'category'           => 'maintenance',
+                    'description'        => 'أضرار غرفة ' . ($reservation->room->room_number ?? '') . ' — ' . ($data['damage_description'] ?? 'تعويض أضرار'),
+                    'expense_date'       => now()->toDateString(),
+                    'paid_by'            => $user->id,
+                    'shift_id'           => null,
+                    'room_inspection_id' => $inspection->id,
                 ]);
 
                 $reservation->increment('total_amount', $compensationAmount);
