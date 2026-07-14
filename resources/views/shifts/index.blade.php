@@ -3,7 +3,7 @@
 @section('page-title', 'الوردية')
 
 @section('content')
-<div x-data="{ closeModal: {{ $errors->has('actual_amount') ? 'true' : 'false' }}, editWithdrawal: null, reopenModal: null, selectedPayments: [], bulkModal: false }">
+<div x-data="{ closeModal: {{ $errors->has('actual_amount') ? 'true' : 'false' }}, editWithdrawal: null, reopenModal: null, selectedPayments: [], bulkModal: false, selectedOrphans: [] }">
 
 @if(session('success'))
 <div class="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">{{ session('success') }}</div>
@@ -245,6 +245,63 @@
                     <td class="px-4 py-2 font-semibold text-rose-600 whitespace-nowrap">-{{ number_format($r->amount, 0) }} {{ $r->currency }}</td>
                     <td class="px-4 py-2 text-gray-500 text-xs">{{ match($r->method) { 'cash'=>'نقدي','pos'=>'POS','bank_transfer'=>'تحويل', default=>$r->method } }}</td>
                     <td class="px-4 py-2 text-gray-400 text-xs max-w-xs truncate" title="{{ $r->reason }}">{{ $r->reason }}</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+</div>
+@endif
+
+{{-- مستلمات غير مرتبطة بأي وردية — تُضمّ إلى الوردية المفتوحة --}}
+@if($orphanPayments->count() > 0)
+<div class="bg-white rounded-xl shadow-sm border border-amber-200 mt-5">
+    <div class="px-5 py-4 border-b border-amber-100 bg-amber-50 rounded-t-xl flex items-center justify-between gap-3 flex-wrap">
+        <div>
+            <h3 class="font-semibold text-amber-800">مستلمات غير مرتبطة بوردية ({{ $orphanPayments->count() }})</h3>
+            <p class="text-xs text-amber-600 mt-0.5">دفعات لم تُربط بأي وردية — حدّدها واضمّها إلى ورديتك المفتوحة لتظهر عند الإقفال.</p>
+        </div>
+        <div x-show="selectedOrphans.length > 0" x-cloak class="flex items-center gap-2">
+            <span class="text-xs text-amber-700 font-medium">محدَّد: <span x-text="selectedOrphans.length"></span></span>
+            <form method="POST" action="{{ route('shifts.attachOrphans') }}" @submit="return confirm('ضمّ المستلمات المحددة إلى ورديتك المفتوحة؟')">
+                @csrf @method('PATCH')
+                <template x-for="pid in selectedOrphans" :key="pid">
+                    <input type="hidden" name="payment_ids[]" :value="pid">
+                </template>
+                <button type="submit" class="text-xs px-3 py-1.5 rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition whitespace-nowrap">
+                    ضمّ المحدد إلى ورديتي
+                </button>
+            </form>
+        </div>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50"><tr>
+                <th class="px-4 py-2 text-center w-10">
+                    <input type="checkbox" title="تحديد الكل"
+                           @change="selectedOrphans = $event.target.checked ? {{ $orphanPayments->pluck('id')->toJson() }} : []"
+                           :checked="selectedOrphans.length === {{ $orphanPayments->count() }}"
+                           class="rounded border-gray-300 text-amber-600 focus:ring-amber-500">
+                </th>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">التاريخ</th>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الغرفة / النزيل</th>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المبلغ</th>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">النوع</th>
+            </tr></thead>
+            <tbody class="divide-y divide-gray-50">
+                @foreach($orphanPayments as $op)
+                <tr :class="selectedOrphans.includes({{ $op->id }}) ? 'bg-amber-50' : ''">
+                    <td class="px-4 py-2 text-center">
+                        <input type="checkbox" value="{{ $op->id }}" x-model.number="selectedOrphans"
+                               class="rounded border-gray-300 text-amber-600 focus:ring-amber-500">
+                    </td>
+                    <td class="px-4 py-2 text-gray-400 text-xs">{{ $op->payment_date->format('d/m H:i') }}</td>
+                    <td class="px-4 py-2 text-gray-700 text-xs">
+                        <span class="font-medium">{{ $op->reservation?->display_room_number ?? '—' }}</span>
+                        <span class="text-gray-400 mr-1">{{ $op->reservation?->guest?->full_name ?? '' }}</span>
+                    </td>
+                    <td class="px-4 py-2 font-semibold text-green-700 whitespace-nowrap">{{ number_format($op->amount, 0) }} {{ $op->currency }}</td>
+                    <td class="px-4 py-2 text-gray-500 text-xs">{{ match($op->type) { 'reservation'=>'حجز','renewal'=>'تجديد', default=>$op->type } }}</td>
                 </tr>
                 @endforeach
             </tbody>

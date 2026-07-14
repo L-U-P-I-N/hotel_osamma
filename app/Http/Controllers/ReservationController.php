@@ -415,8 +415,13 @@ class ReservationController extends Controller
         ]);
 
         if (!empty($validated['advance_payment']) && $validated['advance_payment'] > 0) {
+            // ربط دفعة التجديد بالوردية المفتوحة للموظف الحالي حتى تظهر عند إقفالها
+            $shiftService = app(\App\Services\ShiftService::class);
+            $shift = $shiftService->getActiveShift(auth()->user());
+
             \App\Models\Payment::create([
                 'reservation_id' => $reservation->id,
+                'shift_id'       => $shift?->id,
                 'received_by'    => auth()->id(),
                 'amount'         => $validated['advance_payment'],
                 'currency'       => 'YER',
@@ -427,6 +432,10 @@ class ReservationController extends Controller
             ]);
             $reservation->increment('paid_amount', $validated['advance_payment']);
             $reservation->refresh()->updatePaymentStatus();
+
+            if ($shift) {
+                $shiftService->computeTotals($shift);
+            }
         }
 
         AuditLogService::log('update', $reservation, $old, [

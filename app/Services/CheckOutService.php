@@ -74,8 +74,13 @@ class CheckOutService
                     $bankReceiptPath = StorageHelper::store($data['remaining_bank_receipt'], 'bank_receipts');
                 }
 
+                // ربط دفعة الخروج بالوردية المفتوحة للموظف حتى تظهر عند إقفالها
+                $shiftService = app(ShiftService::class);
+                $shift = $shiftService->getActiveShift($user);
+
                 Payment::create([
                     'reservation_id' => $reservation->id,
+                    'shift_id' => $shift?->id,
                     'received_by' => $user->id,
                     'amount' => $data['remaining_payment'],
                     'currency' => 'YER',
@@ -87,6 +92,10 @@ class CheckOutService
                 ]);
 
                 $reservation->increment('paid_amount', $data['remaining_payment']);
+
+                if ($shift) {
+                    $shiftService->computeTotals($shift);
+                }
 
                 // Mark compensation as paid if damage was included in this combined payment
                 if ($hasDamage && $compensationAmount > 0) {

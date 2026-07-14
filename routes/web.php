@@ -169,6 +169,7 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/shifts/withdrawals/{withdrawal}', [ShiftController::class, 'destroyWithdrawal'])->name('shifts.withdrawal.destroy')->middleware('permission:withdrawal.delete');
     Route::post('/shifts/{shift}/reopen', [ShiftController::class, 'reopen'])->name('shifts.reopen')->middleware('permission:shifts.reopen');
     Route::post('/shifts/close-past', [ShiftController::class, 'closePastShift'])->name('shifts.closePast')->middleware('permission:payments.create');
+    Route::patch('/shifts/attach-orphans', [ShiftController::class, 'attachOrphans'])->name('shifts.attachOrphans')->middleware('permission:payments.create');
     Route::post('/shifts/{shift}/deduct-salary', [ShiftController::class, 'deductSalary'])->name('shifts.deductSalary')->middleware('permission:users.manage');
 
     // Reports

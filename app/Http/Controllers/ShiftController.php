@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use App\Models\CashWithdrawal;
 use App\Models\Shift;
 use App\Services\ShiftService;
+use App\Services\AuditLogService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
@@ -38,7 +39,52 @@ class ShiftController extends Controller
                 ->orderByDesc('shift_date')->orderByDesc('id')->limit(40)->get()
             : collect();
 
-        return view('shifts.index', compact('activeShift', 'recentShifts', 'allActive', 'allUsersStatus', 'reassignTargets'));
+        // مستلمات غير مرتبطة بأي وردية (shift_id = null) — قد تنشأ من دفعات
+        // سابقة لم تُربط بوردية. تُعرض ليتمكن الموظف من ضمّها إلى وردية مفتوحة.
+        $orphanPayments = collect();
+        if ($activeShift) {
+            $orphanPayments = \App\Models\Payment::with('reservation.guest')
+                ->whereNull('shift_id')
+                ->when(!$user->isAdmin(), fn($q) => $q->where('received_by', $user->id))
+                ->orderByDesc('payment_date')
+                ->limit(50)
+                ->get();
+        }
+
+        return view('shifts.index', compact('activeShift', 'recentShifts', 'allActive', 'allUsersStatus', 'reassignTargets', 'orphanPayments'));
+    }
+
+    public function attachOrphans(Request $request)
+    {
+        $request->validate([
+            'payment_ids'   => 'required|array|min:1',
+            'payment_ids.*' => 'integer|exists:payments,id',
+        ], [
+            'payment_ids.required' => 'يجب تحديد مستلمة واحدة على الأقل',
+            'payment_ids.min'      => 'يجب تحديد مستلمة واحدة على الأقل',
+        ]);
+
+        $shift = $this->service->getActiveShift(auth()->user());
+        if (!$shift) {
+            return back()->withErrors(['error' => 'لا توجد وردية مفتوحة لك لضمّ المستلمات إليها']);
+        }
+
+        try {
+            $payments = \App\Models\Payment::whereIn('id', $request->payment_ids)
+                ->whereNull('shift_id')
+                ->get();
+            $count = 0;
+            foreach ($payments as $payment) {
+                $old = ['shift_id' => null];
+                $payment->update(['shift_id' => $shift->id]);
+                AuditLogService::log('update', $payment, $old, ['shift_id' => $shift->id], auth()->user());
+                $count++;
+            }
+            $this->service->computeTotals($shift);
+            return back()->with('success', "تم ضمّ {$count} مستلمة إلى ورديتك المفتوحة بنجاح");
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
+        }
     }
 
     public function addWithdrawal(Request $request)
