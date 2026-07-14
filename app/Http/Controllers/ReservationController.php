@@ -168,11 +168,14 @@ class ReservationController extends Controller
         $nights = ($reservation->check_in_date && $reservation->check_out_date)
             ? $reservation->check_in_date->diffInDays($reservation->check_out_date)
             : 0;
-        // سعر الليلة من إجمالي الغرفة قبل الخصم (بدون الرسوم الإضافية) حتى لا
-        // تُحتسب مشتريات/أضرار النزيل ضمن سعر الليلة في نموذج التعديل
-        $currentPricePerNight = $nights > 0
-            ? round($reservation->gross_total / $nights, 2)
-            : ($reservation->room?->roomType?->base_price ?? 0);
+        // سعر الليلة الأولى في نموذج التعديل: إن كان محفوظاً صراحةً نستخدمه كما هو
+        // (حتى لا ينحرف الإجمالي عند إعادة الحفظ)، وإلا نشتقّه من إجمالي الغرفة قبل
+        // الخصم (بدون الرسوم الإضافية) مقسوماً على الليالي — دون احتساب مشتريات/أضرار النزيل.
+        $currentPricePerNight = $reservation->first_night_price !== null
+            ? (float) $reservation->first_night_price
+            : ($nights > 0
+                ? round($reservation->gross_total / $nights, 2)
+                : ($reservation->room?->roomType?->base_price ?? 0));
 
         return view('reservations.edit', compact('reservation', 'companionsData', 'currentPricePerNight'));
     }
@@ -289,13 +292,29 @@ class ReservationController extends Controller
 
             $nights = Carbon::parse($validated['check_in_date'])->diffInDays($validated['check_out_date']);
             $billableNights = max($nights, 1); // المبيت في نفس اليوم يُحتسب ليلة واحدة كحد أدنى
-            $submittedPrice = isset($validated['price_per_night']) && $validated['price_per_night'] > 0
+
+            // نموذج التسعير: الليلة الأولى بسعرها الخاص + بقية الليالي (بما فيها كل
+            // التجديدات) بسعر التجديد. لذا تعديل سعر التجديد هنا يعيد حساب كامل مدة
+            // الإقامة فيصحّح التجديدات السابقة أيضاً — لا القادمة فقط.
+            $submittedFirstNight = isset($validated['price_per_night']) && $validated['price_per_night'] > 0
                 ? (float) $validated['price_per_night']
                 : null;
-            $pricePerNight = $submittedPrice ?? $reservation->room?->roomType?->base_price ?? $reservation->gross_total / $billableNights;
-            // إجمالي الغرفة قبل الخصم ثم نطبّق الخصم، ثم نُعيد الرسوم الإضافية حتى
-            // لا يضيع الخصم ولا تُفقد مصروفات النزيل عند تعديل التاريخ/السعر
-            $grossTotal = $billableNights * $pricePerNight;
+            $submittedRenewal = isset($validated['renewal_price_per_night']) && $validated['renewal_price_per_night'] !== ''
+                ? (float) $validated['renewal_price_per_night']
+                : null;
+
+            $firstNightPrice = $submittedFirstNight
+                ?? ($reservation->first_night_price !== null ? (float) $reservation->first_night_price : null)
+                ?? $reservation->room?->roomType?->base_price
+                ?? ($reservation->gross_total / $billableNights);
+            // إن لم يُحدَّد سعر تجديد صراحةً نستخدم سعر الليلة الأولى نفسه لبقية الليالي
+            $renewalPrice = $submittedRenewal
+                ?? ($reservation->renewal_price_per_night !== null ? (float) $reservation->renewal_price_per_night : null)
+                ?? $firstNightPrice;
+
+            // إجمالي الغرفة قبل الخصم = الليلة الأولى + (بقية الليالي × سعر التجديد)،
+            // ثم نطبّق الخصم ونُعيد الرسوم الإضافية حتى لا يضيع الخصم ولا تُفقد مصروفات النزيل
+            $grossTotal = round($firstNightPrice + max(0, $billableNights - 1) * $renewalPrice, 2);
             $discountAmount = $reservation->discountAmountFor($grossTotal);
             $newTotal = round(max(0, round($grossTotal - $discountAmount, 2)) + $reservation->extra_charges_total, 0);
 
@@ -307,14 +326,18 @@ class ReservationController extends Controller
                 'notes'          => $this->nullIfEmpty($validated['notes'] ?? null),
                 'discount_amount'=> $discountAmount,
                 'total_amount'   => $newTotal,
-                'renewal_price_per_night' => isset($validated['renewal_price_per_night']) && $validated['renewal_price_per_night'] !== ''
-                    ? $validated['renewal_price_per_night'] : null,
+                // نحفظ سعر الليلة الأولى فقط عند وجود أكثر من ليلة واختلافه عن سعر التجديد
+                // حتى يظهر تفصيل السعرين في صفحة الحجز والفاتورة، وإلا فسعر موحّد
+                'first_night_price' => ($billableNights > 1 && round($firstNightPrice, 2) != round($renewalPrice, 2))
+                    ? $firstNightPrice : null,
+                'renewal_price_per_night' => $submittedRenewal,
             ]);
 
-            // إن أصبح الإجمالي الجديد أقل من المبلغ المسجَّل كمدفوع (تصحيح خطأ في السعر)،
-            // نُخفّض الدفعات المسجَّلة لتطابق الإجمالي الجديد ونُعيد حساب الورديات المتأثرة،
-            // وإلا ستبقى مستلمات الوردية محسوبة بالسعر القديم الخاطئ.
-            $this->reconcileOverpayment($reservation);
+            // مهم: تعديل السعر لا يمسّ الدفعات المسجَّلة إطلاقاً — المبلغ المدفوع حقيقةٌ
+            // تاريخية لا يجوز حذفها عند تصحيح التسعيرة. إن قلّ الإجمالي الجديد عن المدفوع
+            // يظهر ذلك كفائض/رصيد للنزيل يُعالَج عبر الاسترجاع، لا بإنقاص دفعاته.
+            $reservation->refresh();
+            $reservation->updatePaymentStatus();
 
             AuditLogService::log('update', $reservation, $old, $reservation->fresh()->toArray(), auth()->user());
 
@@ -482,8 +505,7 @@ class ReservationController extends Controller
      * تعديل تاريخ وصول النزيل فقط (بدون المساس بالمبلغ أو المدفوعات) — لحالة
      * نزيل دفع مسبقاً لكنه أبلغ بأن وصوله الفعلي سيتأخر عدة أيام. نُحرِّك
      * تاريخ الخروج بنفس عدد الأيام حتى تبقى مدة الإقامة والإجمالي كما هما،
-     * بخلاف نموذج تعديل الحجز العام الذي يعيد حساب الإجمالي من عدد الليالي
-     * وقد يُنقص المدفوعات المسجَّلة (reconcileOverpayment) إن قصُرت المدة.
+     * بخلاف نموذج تعديل الحجز العام الذي يعيد حساب الإجمالي من عدد الليالي.
      */
     public function updateCheckInDate(Request $request, Reservation $reservation)
     {
@@ -1174,61 +1196,5 @@ class ReservationController extends Controller
     private function nullIfEmpty(mixed $value): mixed
     {
         return ($value === '' || $value === null) ? null : $value;
-    }
-
-    /**
-     * عند تخفيض إجمالي الحجز إلى ما دون المبلغ المدفوع (تصحيح خطأ في السعر)،
-     * يُخفّض هذا التابع الدفعات المرتبطة بالحجز لتطابق الإجمالي الجديد بدءاً
-     * من الأحدث، ثم يُعيد حساب المبلغ المدفوع وحالة الدفع وإجماليات الورديات
-     * المتأثرة — حتى تعكس الوردية السعر المصحَّح لا القديم.
-     */
-    private function reconcileOverpayment(Reservation $reservation): void
-    {
-        $reservation->refresh();
-        $excess = round((float) $reservation->paid_amount - (float) $reservation->total_amount, 2);
-        if ($excess <= 0) {
-            return; // لا يوجد فائض — لا حاجة لأي تعديل على الدفعات أو الوردية
-        }
-
-        // نُخفّض الدفعات النقدية للحجز بدءاً من الأحدث حتى يُستوعب الفائض بالكامل
-        $payments = $reservation->payments()
-            ->where('currency', 'YER')
-            ->orderByDesc('payment_date')
-            ->orderByDesc('id')
-            ->get();
-
-        $affectedShiftIds = [];
-
-        foreach ($payments as $payment) {
-            if ($excess <= 0) {
-                break;
-            }
-
-            $affectedShiftIds[$payment->shift_id] = $payment->shift_id;
-            $amount = (float) $payment->amount;
-
-            if ($amount <= $excess) {
-                // الدفعة بالكامل ضمن الفائض → نحذفها
-                $excess = round($excess - $amount, 2);
-                $payment->delete();
-            } else {
-                // تخفيض جزئي يطابق ما تبقى من الفائض
-                $payment->update(['amount' => round($amount - $excess, 2)]);
-                $excess = 0;
-            }
-        }
-
-        // إعادة حساب المبلغ المدفوع من الدفعات المتبقية ثم تحديث حالة الدفع
-        $newPaid = (float) $reservation->payments()->where('currency', 'YER')->sum('amount');
-        $reservation->update(['paid_amount' => $newPaid]);
-        $reservation->updatePaymentStatus();
-
-        // إعادة حساب إجماليات كل وردية تأثّرت بتعديل دفعاتها
-        $shiftService = app(ShiftService::class);
-        foreach (array_filter($affectedShiftIds) as $shiftId) {
-            if ($shift = Shift::find($shiftId)) {
-                $shiftService->computeTotals($shift);
-            }
-        }
     }
 }
