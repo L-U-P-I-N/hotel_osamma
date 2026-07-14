@@ -921,8 +921,8 @@ html.dark [style*="background:var(--gold-l)"] {
                 <div class="h-px bg-gray-100"></div>
                 <div class="flex gap-2">
                     <div class="stat-box bg-blue-50 border border-blue-100">
-                        <div class="text-xl font-black text-blue-700" x-text="nights || 1"></div>
-                        <div class="text-xs text-blue-400 font-semibold mt-0.5">ليلة</div>
+                        <div class="text-xl font-black text-blue-700" x-text="nights + 1"></div>
+                        <div class="text-xs text-blue-400 font-semibold mt-0.5">يوم</div>
                     </div>
                     <div class="stat-box bg-amber-50 border border-amber-100 relative">
                         <div class="text-lg font-black text-amber-700 leading-tight" x-text="formatNumber(effectiveRoomPrice())"></div>
@@ -957,8 +957,8 @@ html.dark [style*="background:var(--gold-l)"] {
                     </div>
                 </div>
 
-                {{-- First-night different price --}}
-                <div x-show="(nights || 1) > 1">
+                {{-- First-night different price (يظهر عند أكثر من يوم محاسبة) --}}
+                <div x-show="nights >= 1">
                     <button type="button" x-show="!showFirstNightPrice" @click="showFirstNightPrice = true"
                             class="w-full py-2 px-3 rounded-xl border border-purple-200 bg-purple-50 text-purple-700 text-xs font-semibold hover:bg-purple-100 transition flex items-center justify-center gap-1.5">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -979,7 +979,7 @@ html.dark [style*="background:var(--gold-l)"] {
                         </p>
                         <p x-show="firstNightPrice !== null && firstNightPrice !== ''" class="text-xs font-bold text-purple-800">
                             <span x-text="'الليلة الأولى: ' + formatNumber(parseFloat(firstNightPrice) || 0)"></span>
-                            <span x-show="(nights || 1) > 1" x-text="' + ' + ((nights || 1) - 1) + ' ليلة × ' + formatNumber(effectiveRoomPrice())"></span>
+                            <span x-show="nights >= 1" x-text="' + ' + nights + ' يوم × ' + formatNumber(effectiveRoomPrice())"></span>
                             <span x-text="' = ' + formatNumber(totalAmount) + ' ر.ي'"></span>
                         </p>
                     </div>
@@ -1011,7 +1011,7 @@ html.dark [style*="background:var(--gold-l)"] {
 
             <input type="hidden" name="currency" value="YER">
             <input type="hidden" name="total_amount" :value="totalAmount">
-            <input type="hidden" name="first_night_price" :value="(nights || 1) > 1 && firstNightPrice !== null && firstNightPrice !== '' ? firstNightPrice : ''">
+            <input type="hidden" name="first_night_price" :value="nights >= 1 && firstNightPrice !== null && firstNightPrice !== '' ? firstNightPrice : ''">
             <input type="hidden" name="price_per_night" :value="effectiveRoomPrice()">
             <input type="hidden" name="renewal_price_per_night" :value="renewalPrice !== null && renewalPrice !== '' ? renewalPrice : ''">
             <input type="hidden" name="booking_mode" value="{{ $mode }}">
@@ -1181,7 +1181,7 @@ html.dark [style*="background:var(--gold-l)"] {
                     <div class="rev-row" x-show="checkInTime"><span>وقت الوصول</span><span x-text="checkInTime"></span></div>
                     <div class="rev-row"><span>تاريخ الخروج</span><span x-text="checkOutDate || '—'"></span></div>
                     <div class="rev-row" x-show="checkOutTime"><span>وقت المغادرة</span><span x-text="checkOutTime"></span></div>
-                    <div class="rev-row"><span>عدد الليالي</span><span x-text="nights"></span></div>
+                    <div class="rev-row"><span>عدد الأيام</span><span x-text="nights + 1"></span></div>
                 </div>
 
                 {{-- Companions --}}
@@ -1813,15 +1813,16 @@ function checkInForm() {
                 }
                 this.nights     = Math.max(0, Math.floor((d2c - d1) / 86400000));
                 this.nightsInput = this.nights || 1;
-                const n = this.nights || 1;
+                // أيام المحاسبة = فرق التواريخ + 1 (يُحتسب يوم الخروج؛ المبيت نفس اليوم = يوم)
+                const days = this.nights + 1;
                 const perNight = this.effectiveRoomPrice();
-                // سعر مختلف لليلة الأولى (إن أُدخل ولو كانت هناك أكثر من ليلة):
-                // الإجمالي = سعر الليلة الأولى + (عدد الليالي − 1) × سعر باقي الليالي
-                if (n > 1 && this.firstNightPrice !== null && this.firstNightPrice !== '') {
+                // الإجمالي = سعر الليلة الأولى + (بقية الأيام − سعر الليلة) عند وجود سعر
+                // خاص لليوم الأول، وإلا كل الأيام بسعر موحّد
+                if (days > 1 && this.firstNightPrice !== null && this.firstNightPrice !== '') {
                     const fn = parseFloat(this.firstNightPrice) || 0;
-                    this.totalAmount = this.selectedRoom ? fn + (n - 1) * perNight : 0;
+                    this.totalAmount = this.selectedRoom ? fn + (days - 1) * perNight : 0;
                 } else {
-                    this.totalAmount = this.selectedRoom ? n * perNight : 0;
+                    this.totalAmount = this.selectedRoom ? days * perNight : 0;
                 }
                 this.saveToSession();
             }

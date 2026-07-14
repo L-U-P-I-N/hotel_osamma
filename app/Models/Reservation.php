@@ -249,9 +249,15 @@ class Reservation extends Model
         return round(min((float) $this->discount_value, $grossTotal), 2);
     }
 
+    /**
+     * عدد أيام المحاسبة = فرق التواريخ + 1، لأن الفندق يحاسب على يوم الخروج أيضاً
+     * (كل يوم من الدخول حتى الخروج ضمناً). فالمبيت نفس اليوم = يوم واحد، والدخول
+     * 12/07 مع الخروج 15/07 = 4 أيام (12،13،14،15). يبقى الاسم "nights" لتوافق
+     * بقية الشيفرة، لكنه يمثّل عدد الأيام المحاسَبة.
+     */
     public function getNightsAttribute(): int
     {
-        return $this->check_in_date->diffInDays($this->check_out_date);
+        return (int) $this->check_in_date->diffInDays($this->check_out_date) + 1;
     }
 
     /**

@@ -17,6 +17,22 @@ class CheckInService
     {
         return DB::transaction(function () use ($data, $user) {
 
+            // إعادة حساب الإجمالي على الخادم كمصدر موثوق (بدل الاعتماد على حساب المتصفح):
+            // أيام المحاسبة = فرق التواريخ + 1 لأن الفندق يحاسب على يوم الخروج أيضاً.
+            // الإجمالي = سعر الليلة الأولى + (بقية الأيام × سعر الليلة).
+            $pricePerNight = isset($data['price_per_night']) ? (float) $data['price_per_night'] : 0;
+            if ($pricePerNight > 0 && !empty($data['check_in_date']) && !empty($data['check_out_date'])) {
+                $billedDays = (int) Carbon::parse($data['check_in_date'])->diffInDays($data['check_out_date']) + 1;
+                $firstNight = (isset($data['first_night_price']) && $data['first_night_price'] !== '' && $data['first_night_price'] !== null)
+                    ? (float) $data['first_night_price']
+                    : $pricePerNight;
+                $data['total_amount'] = round($firstNight + max(0, $billedDays - 1) * $pricePerNight, 0);
+                // عند الدفع الكامل نطابق المدفوع مع الإجمالي المُعاد حسابه
+                if (($data['payment_status'] ?? '') === 'paid') {
+                    $data['paid_amount'] = $data['total_amount'];
+                }
+            }
+
             // حجز بتاريخ وصول لاحق (عربون مسبق): لا نجعل الغرفة "مشغولة" فوراً،
             // لأن هذا يمنعها من أي نزيل آخر طوال فترة الانتظار حتى لو كانت فارغة
             // فعلياً. الغرفة تبقى متاحة إلى حين الوصول الفعلي (اليوم نفسه).
