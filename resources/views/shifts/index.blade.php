@@ -287,6 +287,7 @@
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الغرفة / النزيل</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المبلغ</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">النوع</th>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">استلمها</th>
             </tr></thead>
             <tbody class="divide-y divide-gray-50">
                 @foreach($orphanPayments as $op)
@@ -302,6 +303,7 @@
                     </td>
                     <td class="px-4 py-2 font-semibold text-green-700 whitespace-nowrap">{{ number_format($op->amount, 0) }} {{ $op->currency }}</td>
                     <td class="px-4 py-2 text-gray-500 text-xs">{{ match($op->type) { 'reservation'=>'حجز','renewal'=>'تجديد', default=>$op->type } }}</td>
+                    <td class="px-4 py-2 text-gray-500 text-xs">{{ $op->receivedBy?->name ?? '—' }}</td>
                 </tr>
                 @endforeach
             </tbody>

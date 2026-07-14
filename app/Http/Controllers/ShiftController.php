@@ -41,13 +41,14 @@ class ShiftController extends Controller
 
         // مستلمات غير مرتبطة بأي وردية (shift_id = null) — قد تنشأ من دفعات
         // سابقة لم تُربط بوردية. تُعرض ليتمكن الموظف من ضمّها إلى وردية مفتوحة.
+        // نعرض كل المستلمات غير المرتبطة بوردية (لا نقصرها على مستلم بعينه) حتى
+        // لا تختفي بسبب اختلاف المستخدم المُستلِم (حساب مشترك/تسجيل بواسطة زميل).
         $orphanPayments = collect();
         if ($activeShift) {
-            $orphanPayments = \App\Models\Payment::with('reservation.guest')
+            $orphanPayments = \App\Models\Payment::with(['reservation.guest', 'receivedBy'])
                 ->whereNull('shift_id')
-                ->when(!$user->isAdmin(), fn($q) => $q->where('received_by', $user->id))
                 ->orderByDesc('payment_date')
-                ->limit(50)
+                ->limit(100)
                 ->get();
         }
 
