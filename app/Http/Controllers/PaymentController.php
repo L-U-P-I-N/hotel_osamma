@@ -58,26 +58,38 @@ class PaymentController extends Controller
     {
         $reservation = $payment->reservation;
 
-        $validated = $request->validate([
+        $oldAmount = (float) $payment->amount;
+        // الحد الأقصى: بقية الدفعات (بدون هذه الدفعة) + المبلغ الجديد يجب ألا يتجاوز الإجمالي
+        $otherPaid  = (float) $reservation->paid_amount - $oldAmount;
+        $maxAllowed = (float) $reservation->total_amount - $otherPaid;
+
+        // نتحقّق يدوياً حتى نتمكّن من إعادة فتح نافذة التصحيح للدفعة نفسها عند أي خطأ
+        // (كانت النافذة تبقى مخفية فيبدو للمستخدم أن التصحيح "لم يُحفَظ" دون سبب ظاهر).
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'amount'            => ['required', 'numeric', 'min:0.01'],
             'correction_reason' => ['required', 'string', 'max:255'],
         ], [
             'amount.required'            => 'حقل المبلغ مطلوب',
+            'amount.numeric'             => 'يجب أن يكون المبلغ رقماً',
             'amount.min'                 => 'يجب أن يكون المبلغ أكبر من صفر',
             'correction_reason.required' => 'سبب التصحيح مطلوب',
         ]);
 
-        $oldAmount = (float) $payment->amount;
-        $newAmount = (float) $validated['amount'];
+        $validator->after(function ($v) use ($request, $maxAllowed) {
+            if (!$v->errors()->has('amount') && (float) $request->input('amount') > $maxAllowed) {
+                $v->errors()->add('amount',
+                    'المبلغ الجديد يجعل إجمالي المدفوع يتجاوز إجمالي الحجز (الحد الأقصى ' . number_format($maxAllowed, 2) . ')');
+            }
+        });
 
-        // الحد الأقصى: بقية الدفعات (بدون هذه الدفعة) + المبلغ الجديد يجب ألا يتجاوز الإجمالي
-        $otherPaid = (float) $reservation->paid_amount - $oldAmount;
-        $maxAllowed = (float) $reservation->total_amount - $otherPaid;
-        if ($newAmount > $maxAllowed) {
-            return back()->withInput()->withErrors([
-                'amount' => 'المبلغ الجديد يجعل إجمالي المدفوع يتجاوز إجمالي الحجز (الحد الأقصى ' . number_format($maxAllowed, 2) . ')',
-            ]);
+        if ($validator->fails()) {
+            return back()->withInput()
+                ->withErrors($validator)
+                ->with('correcting_payment_id', $payment->id);
         }
+
+        $validated = $validator->validated();
+        $newAmount = (float) $validated['amount'];
 
         $old = $payment->only(['amount', 'notes']);
         $delta = $newAmount - $oldAmount;

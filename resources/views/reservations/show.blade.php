@@ -784,12 +784,15 @@
                 <label class="block text-sm font-semibold text-gray-700 mb-2">المبلغ الصحيح <span class="text-red-500">*</span></label>
                 <input type="number" id="editPaymentAmount" name="amount" step="0.01" min="0.01" required
                        class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition">
+                @if(session('correcting_payment_id'))@error('amount')<p class="mt-1.5 text-xs text-red-600 font-medium">{{ $message }}</p>@enderror @endif
             </div>
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">سبب التصحيح <span class="text-red-500">*</span></label>
-                <input type="text" name="correction_reason" required maxlength="255"
+                <input type="text" id="editPaymentReason" name="correction_reason" required maxlength="255"
+                       value="{{ session('correcting_payment_id') ? old('correction_reason') : '' }}"
                        placeholder="مثال: تم اختيار دفع كامل بالخطأ، الزبون دفع جزئياً فقط"
                        class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition">
+                @if(session('correcting_payment_id'))@error('correction_reason')<p class="mt-1.5 text-xs text-red-600 font-medium">{{ $message }}</p>@enderror @endif
             </div>
             <div class="flex gap-3 pt-1">
                 <button type="submit"
@@ -811,6 +814,13 @@
         document.getElementById('editPaymentAmount').value = currentAmount;
         document.getElementById('editPaymentModal').classList.remove('hidden');
     }
+
+    // إعادة فتح نافذة التصحيح تلقائياً عند فشل التحقق حتى يرى المستخدم سبب عدم الحفظ
+    @if(session('correcting_payment_id'))
+    document.addEventListener('DOMContentLoaded', function () {
+        openEditPaymentModal({{ session('correcting_payment_id') }}, @json(old('amount')));
+    });
+    @endif
 </script>
 @endcan
 
