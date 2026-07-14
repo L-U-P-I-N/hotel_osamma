@@ -336,8 +336,11 @@ class RoomController extends Controller
         ]);
 
         // منع تغيير حالة غرفة يقيم بها نزيل فعلاً — لا تتحرر إلا بتسجيل خروجه.
-        // نتحقق من وجود حجز نشط (مسجّل دخول) على الغرفة أو الغرفة المرتبطة بها.
+        // نتحقق من وجود حجز نشط (مسجّل دخول) وصل فعلاً (تاريخ وصوله اليوم أو قبله)
+        // على الغرفة أو الغرفة المرتبطة بها. أما الحجز المستقبلي (نزيل سيصل لاحقاً)
+        // فلا يقفل حالة الغرفة، حتى يمكن إعادتها إلى "متاحة" وحجزها لنزيل مؤقت آخر.
         $hasActiveGuest = \App\Models\Reservation::where('status', 'checked_in')
+            ->whereDate('check_in_date', '<=', today())
             ->where(function ($q) use ($room) {
                 $q->where('room_id', $room->id)->orWhere('linked_room_id', $room->id);
             })
