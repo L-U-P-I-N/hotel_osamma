@@ -374,8 +374,10 @@
             </div>
             <div class="p-4 space-y-2 text-sm">
                 @if($showSegments)
-                {{-- تفصيل فترات الغرفة: الحجز الأولي + كل تجديد بتاريخه وسعره --}}
-                <div class="rounded-xl border border-gray-100 bg-gray-50 divide-y divide-gray-100 mb-1">
+                {{-- تفصيل فترات الغرفة: الحجز الأولي + كل تجديد بتاريخه وسعره.
+                     القائمة تُمرَّر داخلياً (max-height) فلا تُطيل الكارت ولا تُمرِّر الصفحة. --}}
+                <div class="rounded-xl border border-gray-100 bg-gray-50 mb-1 overflow-hidden">
+                    <div class="divide-y divide-gray-100 overflow-y-auto" style="max-height:12.5rem;">
                     @php $renewalNo = 0; @endphp
                     @foreach($roomSegments as $seg)
                     @php if($seg->type === 'renewal') $renewalNo++; @endphp
@@ -397,7 +399,9 @@
                         <span class="font-bold text-gray-800 whitespace-nowrap">{{ number_format($seg->amount, 0) }} {{ $reservation->currency_symbol }}</span>
                     </div>
                     @endforeach
-                    <div class="flex justify-between items-center px-3 py-2 bg-white">
+                    </div>
+                    {{-- صف الإجمالي مثبَّت أسفل القائمة (خارج التمرير) --}}
+                    <div class="flex justify-between items-center px-3 py-2 bg-white border-t border-gray-100">
                         <span class="text-xs font-bold text-gray-600">إجمالي الغرفة ({{ $roomSegments->sum('nights') }} ليلة)</span>
                         <span class="font-black text-gray-800">{{ number_format($roomSegments->sum('amount'), 0) }} {{ $reservation->currency_symbol }}</span>
                     </div>
