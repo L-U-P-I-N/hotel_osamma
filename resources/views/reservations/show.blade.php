@@ -60,9 +60,11 @@
             $reservation->check_in_date, $reservation->check_out_date,
             $reservation->check_out_time, $reservation->check_in_time
         );
+        // عند غياب سعر محفوظ صراحةً، نشتقّه من السعر الفعّال الحالي (لا سعر الغرفة
+        // الافتراضي العام) حتى لا نُسقط سعراً متفاوَضاً عليه يختلف عن الافتراضي.
         $recomputeFirstPrice = $reservation->first_night_price !== null
             ? (float) $reservation->first_night_price
-            : ($reservation->room?->roomType?->base_price ?? round($grossTotal / max(1, $reservation->nights), 2));
+            : round($grossTotal / max(1, $reservation->nights), 2);
         $recomputeRenewalPrice = $reservation->renewal_price_per_night !== null
             ? (float) $reservation->renewal_price_per_night
             : $recomputeFirstPrice;

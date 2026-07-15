@@ -315,10 +315,14 @@ class ReservationController extends Controller
                 ? (float) $validated['renewal_price_per_night']
                 : null;
 
+            // عند غياب سعر مُرسَل أو محفوظ صراحةً، نشتقّه من السعر الفعّال الحالي
+            // (الإجمالي ÷ الليالي) لا سعر الغرفة الافتراضي العام — فقد يكون هذا
+            // الحجز مسعَّراً بسعر متفاوَض عليه يختلف عن سعر الغرفة الافتراضي.
             $firstNightPrice = $submittedFirstNight
                 ?? ($reservation->first_night_price !== null ? (float) $reservation->first_night_price : null)
+                ?? ($billableNights > 0 ? round($reservation->gross_total / $billableNights, 2) : null)
                 ?? $reservation->room?->roomType?->base_price
-                ?? ($reservation->gross_total / $billableNights);
+                ?? 0;
             // إن لم يُحدَّد سعر تجديد صراحةً نستخدم سعر الليلة الأولى نفسه لبقية الليالي
             $renewalPrice = $submittedRenewal
                 ?? ($reservation->renewal_price_per_night !== null ? (float) $reservation->renewal_price_per_night : null)
@@ -1509,9 +1513,13 @@ class ReservationController extends Controller
             $reservation->check_out_time, $reservation->check_in_time
         );
 
+        // عند غياب سعر محفوظ صراحةً، نشتقّه من السعر الفعّال الحالي (الإجمالي ÷
+        // الليالي) لا سعر الغرفة الافتراضي العام — فقد يكون هذا الحجز مسعَّراً
+        // بسعر متفاوَض عليه يختلف عن سعر الغرفة الافتراضي (مثال: 50,000 بدل
+        // السعر الافتراضي 45,000)، فلا يجوز إسقاط ذلك التفاوض عند إعادة الاحتساب.
         $firstNightPrice = $reservation->first_night_price !== null
             ? (float) $reservation->first_night_price
-            : ($reservation->room?->roomType?->base_price ?? round((float) $reservation->gross_total / max(1, $reservation->nights), 2));
+            : round((float) $reservation->gross_total / max(1, $reservation->nights), 2);
         $renewalPrice = $reservation->renewal_price_per_night !== null
             ? (float) $reservation->renewal_price_per_night
             : $firstNightPrice;
@@ -1593,9 +1601,13 @@ class ReservationController extends Controller
             $validated['check_out_time'] ?? null, $validated['check_in_time'] ?? null
         );
 
+        // عند غياب سعر محفوظ صراحةً، نشتقّه من السعر الفعّال الحالي (الإجمالي ÷
+        // الليالي) لا سعر الغرفة الافتراضي العام — فقد يكون هذا الحجز مسعَّراً
+        // بسعر متفاوَض عليه يختلف عن سعر الغرفة الافتراضي (مثال: 50,000 بدل
+        // السعر الافتراضي 45,000)، فلا يجوز إسقاط ذلك التفاوض عند إعادة الاحتساب.
         $firstNightPrice = $reservation->first_night_price !== null
             ? (float) $reservation->first_night_price
-            : ($reservation->room?->roomType?->base_price ?? round((float) $reservation->gross_total / max(1, $reservation->nights), 2));
+            : round((float) $reservation->gross_total / max(1, $reservation->nights), 2);
         $renewalPrice = $reservation->renewal_price_per_night !== null
             ? (float) $reservation->renewal_price_per_night
             : $firstNightPrice;
