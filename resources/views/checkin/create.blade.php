@@ -921,8 +921,8 @@ html.dark [style*="background:var(--gold-l)"] {
                 <div class="h-px bg-gray-100"></div>
                 <div class="flex gap-2">
                     <div class="stat-box bg-blue-50 border border-blue-100">
-                        <div class="text-xl font-black text-blue-700" x-text="nights + 1"></div>
-                        <div class="text-xs text-blue-400 font-semibold mt-0.5">يوم</div>
+                        <div class="text-xl font-black text-blue-700" x-text="Math.max(1, nights)"></div>
+                        <div class="text-xs text-blue-400 font-semibold mt-0.5">ليلة</div>
                     </div>
                     <div class="stat-box bg-amber-50 border border-amber-100 relative">
                         <div class="text-lg font-black text-amber-700 leading-tight" x-text="formatNumber(effectiveRoomPrice())"></div>
@@ -979,7 +979,7 @@ html.dark [style*="background:var(--gold-l)"] {
                         </p>
                         <p x-show="firstNightPrice !== null && firstNightPrice !== ''" class="text-xs font-bold text-purple-800">
                             <span x-text="'الليلة الأولى: ' + formatNumber(parseFloat(firstNightPrice) || 0)"></span>
-                            <span x-show="nights >= 1" x-text="' + ' + nights + ' يوم × ' + formatNumber(effectiveRoomPrice())"></span>
+                            <span x-show="nights > 1" x-text="' + ' + (nights - 1) + ' ليلة × ' + formatNumber(effectiveRoomPrice())"></span>
                             <span x-text="' = ' + formatNumber(totalAmount) + ' ر.ي'"></span>
                         </p>
                     </div>
@@ -1181,7 +1181,7 @@ html.dark [style*="background:var(--gold-l)"] {
                     <div class="rev-row" x-show="checkInTime"><span>وقت الوصول</span><span x-text="checkInTime"></span></div>
                     <div class="rev-row"><span>تاريخ الخروج</span><span x-text="checkOutDate || '—'"></span></div>
                     <div class="rev-row" x-show="checkOutTime"><span>وقت المغادرة</span><span x-text="checkOutTime"></span></div>
-                    <div class="rev-row"><span>عدد الأيام</span><span x-text="nights + 1"></span></div>
+                    <div class="rev-row"><span>عدد الليالي</span><span x-text="Math.max(1, nights)"></span></div>
                 </div>
 
                 {{-- Companions --}}
@@ -1813,17 +1813,16 @@ function checkInForm() {
                 }
                 this.nights     = Math.max(0, Math.floor((d2c - d1) / 86400000));
                 this.nightsInput = this.nights || 1;
-                // أيام المحاسبة = فرق التواريخ + 1 (يُحتسب يوم الخروج؛ المبيت نفس اليوم = يوم)
-                const days = this.nights + 1;
+                // عدد الليالي = فرق التواريخ (يوم الخروج لا يُحتسب)؛ حد أدنى ليلة واحدة
+                // لحالة الدخول والخروج في اليوم نفسه. الطريقة الفندقية المعتادة.
+                const days = Math.max(1, this.nights);
                 const perNight = this.effectiveRoomPrice();
-                // الإجمالي = سعر الليلة الأولى + (بقية الأيام − سعر الليلة) عند وجود سعر
-                // خاص لليوم الأول، وإلا كل الأيام بسعر موحّد
-                if (days > 1 && this.firstNightPrice !== null && this.firstNightPrice !== '') {
-                    const fn = parseFloat(this.firstNightPrice) || 0;
-                    this.totalAmount = this.selectedRoom ? fn + (days - 1) * perNight : 0;
-                } else {
-                    this.totalAmount = this.selectedRoom ? days * perNight : 0;
-                }
+                // الإجمالي = سعر الليلة الأولى + (بقية الليالي × سعر الليلة). لليلة
+                // واحدة يُدفَع سعر الليلة الأولى فقط. (يطابق حساب الخادم تماماً)
+                const fn = (this.firstNightPrice !== null && this.firstNightPrice !== '')
+                    ? (parseFloat(this.firstNightPrice) || 0)
+                    : perNight;
+                this.totalAmount = this.selectedRoom ? fn + Math.max(0, days - 1) * perNight : 0;
                 this.saveToSession();
             }
         },

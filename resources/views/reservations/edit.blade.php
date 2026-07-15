@@ -426,10 +426,11 @@ function editReservation() {
         _nextKey: {{ $reservation->companions->count() + 1 }},
 
         get nights() {
-            // أيام المحاسبة = فرق التواريخ + 1 (يُحتسب يوم الخروج؛ المبيت نفس اليوم = يوم)
+            // عدد الليالي = فرق التواريخ (يوم الخروج لا يُحتسب)؛ حد أدنى ليلة واحدة
+            // لحالة الدخول والخروج في اليوم نفسه. الطريقة الفندقية المعتادة.
             if (!this.checkIn || !this.checkOut) return 0;
             const d = Math.floor((new Date(this.checkOut) - new Date(this.checkIn)) / 86400000);
-            return d >= 0 ? d + 1 : 0;
+            return d > 0 ? d : (d === 0 ? 1 : 0);
         },
         get total() { return this.nights * (this.customPrice > 0 ? this.customPrice : this.basePrice); },
 
