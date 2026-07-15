@@ -51,8 +51,10 @@ class ReservationSegmentService
 
     /**
      * يسجّل فترة تجديد واحدة (يدوي أو تلقائي) — تُضاف كسطر مستقل بتاريخها وسعرها.
+     * تُربط بالوردية المفتوحة وقت التجديد (إن وُجدت) حتى يُمنَع لاحقاً تعديل/حذف
+     * تجديدٍ يخصّ وردية أُقفلت بالفعل، فلا تتغيّر أرقام عمل وردية سابقة منتهية.
      */
-    public function recordRenewal(Reservation $reservation, $start, $end, int $nights, float $price, float $amount, ?int $userId = null): void
+    public function recordRenewal(Reservation $reservation, $start, $end, int $nights, float $price, float $amount, ?int $userId = null, ?int $shiftId = null): void
     {
         $this->create(
             $reservation,
@@ -62,7 +64,8 @@ class ReservationSegmentService
             max(1, $nights),
             $price,
             round($amount, 2),
-            $userId
+            $userId,
+            $shiftId
         );
     }
 
@@ -175,7 +178,7 @@ class ReservationSegmentService
         return abs($sum - (float) $reservation->gross_total) <= self::TOLERANCE;
     }
 
-    private function create(Reservation $reservation, string $type, Carbon $start, Carbon $end, int $nights, float $price, float $amount, ?int $userId): void
+    private function create(Reservation $reservation, string $type, Carbon $start, Carbon $end, int $nights, float $price, float $amount, ?int $userId, ?int $shiftId = null): void
     {
         ReservationSegment::create([
             'reservation_id'  => $reservation->id,
@@ -186,6 +189,7 @@ class ReservationSegmentService
             'price_per_night' => round($price, 2),
             'amount'          => round($amount, 2),
             'created_by'      => $userId,
+            'shift_id'        => $shiftId,
         ]);
     }
 }

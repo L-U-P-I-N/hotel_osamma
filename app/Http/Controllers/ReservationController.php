@@ -445,6 +445,11 @@ class ReservationController extends Controller
 
         $oldCheckOut = $reservation->check_out_date->copy();
 
+        // الوردية المفتوحة حالياً (إن وُجدت) — تُربط بها فترة التجديد حتى يُمنَع
+        // لاحقاً تعديل/حذف تجديدٍ يخصّ وردية أُقفلت بالفعل
+        $shiftService = app(\App\Services\ShiftService::class);
+        $shift = $shiftService->getActiveShift(auth()->user());
+
         $reservation->update([
             'check_out_date'          => $validated['new_check_out_date'],
             'total_amount'            => $newTotal,
@@ -463,14 +468,11 @@ class ReservationController extends Controller
             $extraNights,
             $pricePerNight,
             $extraAmount,
-            auth()->id()
+            auth()->id(),
+            $shift?->id
         );
 
         if (!empty($validated['advance_payment']) && $validated['advance_payment'] > 0) {
-            // ربط دفعة التجديد بالوردية المفتوحة للموظف الحالي حتى تظهر عند إقفالها
-            $shiftService = app(\App\Services\ShiftService::class);
-            $shift = $shiftService->getActiveShift(auth()->user());
-
             \App\Models\Payment::create([
                 'reservation_id' => $reservation->id,
                 'shift_id'       => $shift?->id,
@@ -1320,6 +1322,9 @@ class ReservationController extends Controller
         if (!$reservation || !in_array($reservation->status, ['checked_in', 'checked_out']) || $segment->type !== 'renewal') {
             abort(404);
         }
+        if ($segment->isLocked()) {
+            return back()->withErrors(['error' => 'لا يمكن تعديل هذا التجديد لأنه يخصّ وردية أُقفلت بالفعل — تصحيح سعره قد يُغيّر أرقام عملٍ سابق مُصفّى.']);
+        }
 
         $validated = $request->validate([
             'price_per_night' => 'required|numeric|min:0',
@@ -1367,6 +1372,9 @@ class ReservationController extends Controller
         $reservation = $segment->reservation;
         if (!$reservation || !in_array($reservation->status, ['checked_in', 'checked_out']) || $segment->type !== 'renewal') {
             abort(404);
+        }
+        if ($segment->isLocked()) {
+            return back()->withErrors(['error' => 'لا يمكن حذف هذا التجديد لأنه يخصّ وردية أُقفلت بالفعل — حذفه قد يُغيّر أرقام عملٍ سابق مُصفّى.']);
         }
 
         $amount = (float) $segment->amount;

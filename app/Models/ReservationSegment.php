@@ -15,7 +15,7 @@ class ReservationSegment extends Model
 
     protected $fillable = [
         'reservation_id', 'type', 'start_date', 'end_date',
-        'nights', 'price_per_night', 'amount', 'created_by',
+        'nights', 'price_per_night', 'amount', 'created_by', 'shift_id',
     ];
 
     protected $casts = [
@@ -36,8 +36,22 @@ class ReservationSegment extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function shift()
+    {
+        return $this->belongsTo(Shift::class);
+    }
+
     public function getTypeLabelAttribute(): string
     {
         return $this->type === 'renewal' ? 'تجديد' : 'الحجز الأولي';
+    }
+
+    /**
+     * هل التعديل/الحذف على هذه الفترة مسموح؟ يُمنَع إذا كانت مرتبطة بوردية
+     * أُقفلت بالفعل — فلا نُغيّر أرقام حجزٍ يخصّ عمل وردية سابقة منتهية ومُصفّاة.
+     */
+    public function isLocked(): bool
+    {
+        return $this->shift_id !== null && (bool) $this->shift?->is_closed;
     }
 }
