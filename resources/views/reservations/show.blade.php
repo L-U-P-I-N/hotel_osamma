@@ -48,6 +48,11 @@
     $roomSegments = $reservation->segments;
     $showSegments = $roomSegments->isNotEmpty()
         && abs(round((float) $roomSegments->sum('amount'), 2) - (float) $grossTotal) <= 1.0;
+    // أوقات الفترات: أول فترة تبدأ بوقت الوصول، آخر فترة تنتهي بوقت الخروج، وكل
+    // الحدود الداخلية عند حد الساعة 1 ظهراً (بداية اليوم الفندقي الجديد).
+    $segBoundaryTime = sprintf('%02d:00', \App\Models\Reservation::AUTO_RENEW_BOUNDARY_HOUR);
+    $segCheckInTime  = $reservation->check_in_time  ? \Illuminate\Support\Str::substr($reservation->check_in_time, 0, 5)  : $segBoundaryTime;
+    $segCheckOutTime = $reservation->check_out_time ? \Illuminate\Support\Str::substr($reservation->check_out_time, 0, 5) : $segBoundaryTime;
     // سعر ليلة التجديد الافتراضي (قد يختلف عن متوسط سعر الليلة أعلاه) — يُعبّأ
     // مسبقاً في نافذة التجديد ويظل قابلاً للتعديل من الموظف.
     $renewalPrice  = $reservation->effective_renewal_price_per_night;
@@ -379,8 +384,12 @@
                             <p class="font-semibold {{ $seg->type === 'renewal' ? 'text-blue-700' : 'text-purple-700' }} text-xs">
                                 {{ $seg->type_label }}@if($seg->type === 'renewal' && $roomSegments->where('type','renewal')->count() > 1) {{ $renewalNo }}@endif
                             </p>
+                            @php
+                                $segStartTime = $loop->first ? $segCheckInTime : $segBoundaryTime;
+                                $segEndTime   = $loop->last  ? $segCheckOutTime : $segBoundaryTime;
+                            @endphp
                             <p class="text-xs text-gray-400 mt-0.5" dir="ltr">
-                                {{ $seg->start_date->format('d/m') }} ← {{ $seg->end_date->format('d/m') }}
+                                {{ $seg->start_date->format('d/m') }} {{ $segStartTime }} → {{ $seg->end_date->format('d/m') }} {{ $segEndTime }}
                                 <span class="text-gray-300">|</span>
                                 {{ $seg->nights }} × {{ number_format($seg->price_per_night, 0) }}
                             </p>

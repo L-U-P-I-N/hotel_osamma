@@ -257,6 +257,10 @@ table.mini td { padding: 5px 9px; border-bottom: 1px solid #f0ece0; text-align: 
     $roomSegments = $reservation->segments;
     $showSegments = $roomSegments->isNotEmpty()
         && abs(round((float) $roomSegments->sum('amount'), 2) - (float) $grossTotal) <= 1.0;
+    // أوقات الفترات: أول فترة بوقت الوصول، آخرها بوقت الخروج، والحدود الداخلية 1 ظهراً
+    $segBoundaryTime = sprintf('%02d:00', \App\Models\Reservation::AUTO_RENEW_BOUNDARY_HOUR);
+    $segCheckInTime  = $reservation->check_in_time  ? \Illuminate\Support\Str::substr($reservation->check_in_time, 0, 5)  : $segBoundaryTime;
+    $segCheckOutTime = $reservation->check_out_time ? \Illuminate\Support\Str::substr($reservation->check_out_time, 0, 5) : $segBoundaryTime;
     $extraTotal    = $reservation->extraCharges->sum('amount');
     $subtotal      = $roomTotal + $extraTotal;
     $discount      = (float)($reservation->discount_amount ?? 0);
@@ -340,7 +344,11 @@ table.mini td { padding: 5px 9px; border-bottom: 1px solid #f0ece0; text-align: 
       @if($showSegments)
       @php $renewalNo = 0; $renewalCount = $roomSegments->where('type','renewal')->count(); @endphp
       @foreach($roomSegments as $seg)
-      @php if($seg->type === 'renewal') $renewalNo++; @endphp
+      @php
+        if($seg->type === 'renewal') $renewalNo++;
+        $segStartTime = $loop->first ? $segCheckInTime : $segBoundaryTime;
+        $segEndTime   = $loop->last  ? $segCheckOutTime : $segBoundaryTime;
+      @endphp
       <tr>
         <td class="c">{{ number_format($seg->amount, 0) }} {{ $cur }}</td>
         <td class="c">{{ number_format($seg->price_per_night, 0) }} {{ $cur }}</td>
@@ -348,7 +356,7 @@ table.mini td { padding: 5px 9px; border-bottom: 1px solid #f0ece0; text-align: 
         <td>
           @if($seg->type === 'renewal')تجديد @if($renewalCount > 1){{ $renewalNo }} @endif@else إقامة (الحجز الأولي) @endif
           — غرفة {{ $reservation->display_room_number }}
-          <span class="muted">({{ $seg->start_date->format('d/m') }} → {{ $seg->end_date->format('d/m') }})</span>
+          <span class="muted" dir="ltr">({{ $seg->start_date->format('d/m') }} {{ $segStartTime }} → {{ $seg->end_date->format('d/m') }} {{ $segEndTime }})</span>
         </td>
       </tr>
       @endforeach
