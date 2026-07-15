@@ -424,15 +424,21 @@ function editReservation() {
         customPrice: {{ old('price_per_night', $currentPricePerNight) }},
         companions: @json($companionsData),
         _nextKey: {{ $reservation->companions->count() + 1 }},
-        // يُحتسب يوم الخروج حسب وقت الخروج المحفوظ (حد 1 ظهراً) — لا يُعدَّل من هذا النموذج
-        checkoutDayBilled: {{ \App\Models\Reservation::checkoutDayIsBilled($reservation->check_out_time) ? 'true' : 'false' }},
+        // أوقات الوصول/الخروج المحفوظة (لا تُعدَّل من هذا النموذج) — تُستخدم لحساب الأيام
+        checkInTime: '{{ \Illuminate\Support\Str::substr($reservation->check_in_time ?? '', 0, 5) ?: '00:00' }}',
+        checkOutTime: '{{ \Illuminate\Support\Str::substr($reservation->check_out_time ?? '', 0, 5) ?: '13:00' }}',
 
         get nights() {
-            // عدد الأيام = فرق التواريخ + (يوم الخروج إن كان 1 ظهراً أو بعده)، بحد أدنى يوم
+            // عدد الأيام = عدد مرّات مرور حد 1 ظهراً حصراً بين لحظتي الوصول والخروج + 1
             if (!this.checkIn || !this.checkOut) return 0;
-            const d = Math.floor((new Date(this.checkOut) - new Date(this.checkIn)) / 86400000);
-            const base = d > 0 ? d : 0;
-            return Math.max(1, base + (this.checkoutDayBilled ? 1 : 0));
+            const ci = new Date(this.checkIn + 'T' + this.checkInTime);
+            const co = new Date(this.checkOut + 'T' + this.checkOutTime);
+            if (isNaN(ci) || isNaN(co) || co <= ci) return 1;
+            let b = new Date(this.checkIn + 'T13:00');
+            if (b <= ci) b.setDate(b.getDate() + 1);
+            let crossings = 0;
+            while (b < co) { crossings++; b.setDate(b.getDate() + 1); }
+            return Math.max(1, crossings + 1);
         },
         get total() { return this.nights * (this.customPrice > 0 ? this.customPrice : this.basePrice); },
 

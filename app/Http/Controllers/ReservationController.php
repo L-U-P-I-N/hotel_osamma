@@ -296,12 +296,13 @@ class ReservationController extends Controller
                 }
             }
 
-            // عدد الأيام حسب وقت الخروج نسبةً لحد 1 ظهراً (يُحتسب يوم الخروج إن كان 1م
-            // أو بعده). وقت الخروج لا يُعدَّل من هذا النموذج فنستخدم المحفوظ في الحجز.
+            // عدد الأيام حسب حد 1 ظهراً اعتماداً على لحظتي الوصول والخروج. الأوقات لا
+            // تُعدَّل من هذا النموذج فنستخدم المحفوظة في الحجز مع التواريخ الجديدة.
             $billableNights = Reservation::billableNightsFor(
                 $validated['check_in_date'],
                 $validated['check_out_date'],
-                $reservation->check_out_time
+                $reservation->check_out_time,
+                $reservation->check_in_time
             );
 
             // نموذج التسعير: الليلة الأولى بسعرها الخاص + بقية الليالي (بما فيها كل

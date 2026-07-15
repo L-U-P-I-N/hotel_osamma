@@ -259,48 +259,55 @@ class Reservation extends Model
     }
 
     /**
-     * عدد أيام المحاسبة حسب وقت الخروج نسبةً لحد الساعة 1 ظهراً (AUTO_RENEW_BOUNDARY_HOUR):
-     * فرق التواريخ + يوم إضافي إذا كان الخروج عند 1 ظهراً أو بعده (لأن النزيل استخدم
-     * الغرفة في يوم الخروج أيضاً)، وإلا لا يُحتسب يوم الخروج. بحد أدنى يوم واحد.
-     * أمثلة: دخول 11 وخروج 14 (13:00) = 4 أيام؛ دخول 14 وخروج 15 صباحاً = يوم واحد.
+     * عدد أيام المحاسبة حسب حد الساعة 1 ظهراً (AUTO_RENEW_BOUNDARY_HOUR) اعتماداً
+     * على لحظتي الوصول والخروج معاً: يُحسب عدد مرّات مرور حد 1 ظهراً حصراً بين
+     * لحظة الوصول ولحظة الخروج، + 1 (يوم الوصول)، بحد أدنى يوم واحد.
+     * أمثلة:
+     *   - وصول 11 (04:00 فجراً) وخروج 14 (13:00) = 4 أيام.
+     *   - وصول 15 (02:48 مساءً، بعد 1ظ) وخروج 16 (13:00) = يوم واحد.
+     *   - وصول 15 (صباحاً قبل 1ظ) وخروج 16 (13:00) = يومان.
      */
     public function getNightsAttribute(): int
     {
-        return self::billableNightsFor($this->check_in_date, $this->check_out_date, $this->check_out_time);
+        return self::billableNightsFor($this->check_in_date, $this->check_out_date, $this->check_out_time, $this->check_in_time);
     }
 
     /**
-     * يحسب عدد أيام المحاسبة من تاريخي الدخول/الخروج ووقت الخروج، وفق قاعدة حد
-     * الساعة 1 ظهراً. مصدر موحّد يُستخدَم في النموذج وخدمات التسجيل والتعديل.
+     * يحسب عدد أيام المحاسبة من تاريخي/وقتي الوصول والخروج وفق قاعدة حد الساعة 1
+     * ظهراً. مصدر موحّد يُستخدَم في النموذج وخدمات التسجيل والتعديل.
+     * عند غياب وقت الوصول نفترض بداية اليوم (قبل الحد)، وعند غياب وقت الخروج نفترض
+     * الخروج القياسي عند الحد (1 ظهراً).
      */
-    public static function billableNightsFor($checkInDate, $checkOutDate, $checkOutTime = null): int
+    public static function billableNightsFor($checkInDate, $checkOutDate, $checkOutTime = null, $checkInTime = null): int
     {
-        $in   = \Carbon\Carbon::parse($checkInDate)->startOfDay();
-        $out  = \Carbon\Carbon::parse($checkOutDate)->startOfDay();
-        $days = (int) $in->diffInDays($out);
+        $boundaryHour = self::AUTO_RENEW_BOUNDARY_HOUR;
 
-        if (self::checkoutDayIsBilled($checkOutTime)) {
-            $days += 1;
+        // لحظة الوصول: التاريخ + وقت الوصول (أو بداية اليوم إن لم يُحدَّد)
+        $in = \Carbon\Carbon::parse($checkInDate)->startOfDay();
+        if ($checkInTime !== null && $checkInTime !== '') {
+            try { $t = \Carbon\Carbon::parse($checkInTime); $in->setTime($t->hour, $t->minute); } catch (\Throwable $e) {}
         }
 
-        return max(1, $days);
-    }
+        // لحظة الخروج: التاريخ + وقت الخروج (أو الحد 1 ظهراً إن لم يُحدَّد)
+        $out = \Carbon\Carbon::parse($checkOutDate)->startOfDay();
+        if ($checkOutTime !== null && $checkOutTime !== '') {
+            try { $t = \Carbon\Carbon::parse($checkOutTime); $out->setTime($t->hour, $t->minute); } catch (\Throwable $e) { $out->setTime($boundaryHour, 0); }
+        } else {
+            $out->setTime($boundaryHour, 0);
+        }
 
-    /**
-     * هل يُحتسب يوم الخروج؟ نعم إذا كان وقت الخروج عند الساعة 1 ظهراً أو بعدها.
-     * عند غياب وقت الخروج نفترض الخروج القياسي (1 ظهراً) فيُحتسب.
-     */
-    public static function checkoutDayIsBilled($checkOutTime): bool
-    {
-        if ($checkOutTime === null || $checkOutTime === '') {
-            return true;
+        // عُدّ حدود الساعة 1 ظهراً الواقعة حصراً بين لحظتي الوصول والخروج
+        $boundary = $in->copy()->setTime($boundaryHour, 0);
+        if ($boundary->lte($in)) {
+            $boundary->addDay(); // أول حدّ يقع فعلاً بعد لحظة الوصول
         }
-        try {
-            $t = \Carbon\Carbon::parse($checkOutTime);
-        } catch (\Throwable $e) {
-            return true;
+        $crossings = 0;
+        while ($boundary->lt($out)) {
+            $crossings++;
+            $boundary->addDay();
         }
-        return ($t->hour * 60 + $t->minute) >= self::AUTO_RENEW_BOUNDARY_HOUR * 60;
+
+        return max(1, $crossings + 1);
     }
 
     /**

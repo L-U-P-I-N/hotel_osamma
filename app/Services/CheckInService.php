@@ -25,7 +25,7 @@ class CheckInService
             $billedDays = 0;
             $firstNight = $pricePerNight;
             if ($pricePerNight > 0 && !empty($data['check_in_date']) && !empty($data['check_out_date'])) {
-                $billedDays = Reservation::billableNightsFor($data['check_in_date'], $data['check_out_date'], $data['check_out_time'] ?? null);
+                $billedDays = Reservation::billableNightsFor($data['check_in_date'], $data['check_out_date'], $data['check_out_time'] ?? null, $data['check_in_time'] ?? null);
                 $firstNight = (isset($data['first_night_price']) && $data['first_night_price'] !== '' && $data['first_night_price'] !== null)
                     ? (float) $data['first_night_price']
                     : $pricePerNight;

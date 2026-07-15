@@ -898,7 +898,7 @@ html.dark [style*="background:var(--gold-l)"] {
                         </div>
                         <div>
                             <label class="fl text-xs">وقت الوصول</label>
-                            <input type="time" name="check_in_time" x-model="checkInTime" class="fi">
+                            <input type="time" name="check_in_time" x-model="checkInTime" @input="calcTotal()" class="fi">
                         </div>
                     </div>
 
@@ -1791,19 +1791,19 @@ function checkInForm() {
             }
         },
 
-        // يُحتسب يوم الخروج إذا كان وقت الخروج عند الساعة 1 ظهراً (13:00) أو بعده
-        checkoutDayBilled() {
-            const t = this.checkOutTime;
-            if (!t) return true; // بدون وقت = الخروج القياسي 1 ظهراً
-            const parts = String(t).split(':');
-            const h = parseInt(parts[0]) || 0;
-            const m = parseInt(parts[1]) || 0;
-            return (h * 60 + m) >= 13 * 60;
-        },
-
-        // عدد أيام المحاسبة = فرق التواريخ + (يوم الخروج إن كان 1م أو بعده)، بحد أدنى 1
+        // عدد أيام المحاسبة = عدد مرّات مرور حد الساعة 1 ظهراً حصراً بين لحظتي
+        // الوصول والخروج + 1 (يوم الوصول)، بحد أدنى 1. يراعي وقت الوصول والخروج معاً.
         billedDays() {
-            return Math.max(1, this.nights + (this.checkoutDayBilled() ? 1 : 0));
+            if (!this.checkInDate || !this.checkOutDate) return 1;
+            const ci = new Date(this.checkInDate + 'T' + (this.checkInTime || '00:00'));
+            const co = new Date(this.checkOutDate + 'T' + (this.checkOutTime || '13:00'));
+            if (isNaN(ci) || isNaN(co) || co <= ci) return 1;
+            // أول حدّ 1 ظهراً يقع فعلاً بعد لحظة الوصول
+            let b = new Date(this.checkInDate + 'T13:00');
+            if (b <= ci) b.setDate(b.getDate() + 1);
+            let crossings = 0;
+            while (b < co) { crossings++; b.setDate(b.getDate() + 1); }
+            return Math.max(1, crossings + 1);
         },
 
         calcTotal() {
