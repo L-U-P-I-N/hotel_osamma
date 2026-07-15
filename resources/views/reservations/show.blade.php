@@ -428,7 +428,31 @@
                                 {{ $seg->nights }} × {{ number_format($seg->price_per_night, 0) }}
                             </p>
                         </div>
-                        <span class="font-bold text-gray-800 whitespace-nowrap">{{ number_format($seg->amount, 0) }} {{ $reservation->currency_symbol }}</span>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <span class="font-bold text-gray-800 whitespace-nowrap">{{ number_format($seg->amount, 0) }} {{ $reservation->currency_symbol }}</span>
+                            @can('payments.create')
+                            @if($seg->type === 'renewal' && $reservation->status !== 'cancelled')
+                            <button type="button"
+                                    data-segment-id="{{ $seg->id }}"
+                                    data-segment-label="{{ $seg->type_label }}@if($roomSegments->where('type','renewal')->count() > 1) {{ $renewalNo }}@endif"
+                                    data-segment-nights="{{ $seg->nights }}"
+                                    data-segment-price="{{ (float) $seg->price_per_night }}"
+                                    onclick="openEditSegment(this)"
+                                    class="p-1 rounded-lg text-blue-600 hover:bg-blue-50 transition" title="تعديل سعر التجديد">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                            </button>
+                            <form method="POST" action="{{ route('reservations.deleteSegment', $seg) }}"
+                                  onsubmit="return confirm('هل تريد حذف هذا التجديد؟ سيُخصم مبلغه ({{ number_format($seg->amount, 0) }} ر.ي) من حساب النزيل، ويُقصَّر تاريخ الخروج بعدد لياليه ({{ $seg->nights }}).')"
+                                  class="inline">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="p-1 rounded-lg text-red-600 hover:bg-red-50 transition" title="حذف التجديد">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                </button>
+                            </form>
+                            @endif
+                            @endcan
+                        </div>
                     </div>
                     @endforeach
                     </div>
@@ -1257,6 +1281,81 @@
         document.getElementById('editChargeDescription').value = btn.dataset.chargeDescription || '';
         document.getElementById('editChargeAmount').value = btn.dataset.chargeAmount;
         document.getElementById('editChargeModal').classList.remove('hidden');
+    }
+</script>
+@endcan
+
+{{-- ===== EDIT RENEWAL SEGMENT MODAL (تصحيح سعر تجديد واحد) ===== --}}
+@can('payments.create')
+<div id="editSegmentModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto"
+     onclick="if(event.target===this) this.classList.add('hidden')">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto my-auto" onclick="event.stopPropagation()">
+        <div class="px-6 py-5 rounded-t-2xl flex items-center justify-between" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6);">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                </div>
+                <h3 class="font-bold text-white text-lg" id="editSegmentTitle">تعديل سعر التجديد</h3>
+            </div>
+            <button type="button" onclick="document.getElementById('editSegmentModal').classList.add('hidden')"
+                    class="w-8 h-8 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <form id="editSegmentForm" method="POST" class="p-6 space-y-4">
+            @csrf
+            @method('PUT')
+            <div class="flex items-start gap-2 rounded-xl bg-blue-50 border border-blue-200 p-3 text-xs text-blue-800">
+                <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>سيُعدَّل إجمالي الحجز بفارق المبلغ فقط، ولن تتأثر أي دفعة مسجَّلة سابقاً.</span>
+            </div>
+
+            <div class="rounded-xl bg-gray-50 border border-gray-100 p-3 flex justify-between items-center text-sm">
+                <span class="text-gray-500">عدد ليالي هذا التجديد</span>
+                <strong id="editSegmentNights" class="text-gray-800">—</strong>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">سعر الليلة الصحيح (ر.ي) <span class="text-red-500">*</span></label>
+                <input id="editSegmentPrice" type="number" name="price_per_night" min="0" step="0.01" required
+                       oninput="updateSegmentPreview()"
+                       class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-400 outline-none">
+            </div>
+
+            <div class="rounded-xl bg-blue-50 border border-blue-100 p-3 flex justify-between items-center">
+                <span class="text-blue-800 font-semibold text-sm">مبلغ هذا التجديد بعد التعديل</span>
+                <span id="editSegmentPreview" class="font-black text-blue-700">—</span>
+            </div>
+
+            <div class="flex gap-2 pt-1">
+                <button type="submit"
+                        class="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition">
+                    حفظ التعديل
+                </button>
+                <button type="button" onclick="document.getElementById('editSegmentModal').classList.add('hidden')"
+                        class="px-5 py-3 border border-gray-300 text-gray-600 rounded-xl text-sm hover:bg-gray-50 transition">
+                    إلغاء
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+    var _editSegmentNights = 1;
+    function openEditSegment(btn) {
+        var form = document.getElementById('editSegmentForm');
+        form.action = '{{ url('/reservations/segment') }}/' + btn.dataset.segmentId;
+        document.getElementById('editSegmentTitle').textContent = 'تعديل سعر — ' + (btn.dataset.segmentLabel || 'تجديد');
+        _editSegmentNights = parseInt(btn.dataset.segmentNights) || 1;
+        document.getElementById('editSegmentNights').textContent = _editSegmentNights + (_editSegmentNights === 1 ? ' ليلة' : ' ليالٍ');
+        document.getElementById('editSegmentPrice').value = btn.dataset.segmentPrice;
+        updateSegmentPreview();
+        document.getElementById('editSegmentModal').classList.remove('hidden');
+    }
+    function updateSegmentPreview() {
+        var price = parseFloat(document.getElementById('editSegmentPrice').value) || 0;
+        var amount = Math.round(price * _editSegmentNights);
+        document.getElementById('editSegmentPreview').textContent = amount.toLocaleString('en-US') + ' {{ $reservation->currency_symbol }}';
     }
 </script>
 @endcan

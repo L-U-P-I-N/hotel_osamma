@@ -125,6 +125,9 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/reservations/{reservation}/charge', [ReservationController::class, 'addCharge'])->name('reservations.addCharge')->middleware('permission:payments.create');
         Route::put('/reservations/charge/{charge}', [ReservationController::class, 'updateCharge'])->name('reservations.updateCharge')->middleware('permission:payments.create');
         Route::delete('/reservations/charge/{charge}', [ReservationController::class, 'deleteCharge'])->name('reservations.deleteCharge')->middleware('permission:payments.create');
+        // تعديل / حذف فترة تجديد واحدة (تصحيح سعر خاطئ لتجديد معيّن)
+        Route::put('/reservations/segment/{segment}', [ReservationController::class, 'updateSegment'])->name('reservations.updateSegment')->middleware('permission:payments.create');
+        Route::delete('/reservations/segment/{segment}', [ReservationController::class, 'deleteSegment'])->name('reservations.deleteSegment')->middleware('permission:payments.create');
         Route::patch('/reservations/{reservation}/checkin-date', [ReservationController::class, 'updateCheckInDate'])->name('reservations.updateCheckInDate');
         Route::post('/reservations/{reservation}/transfer-room', [ReservationController::class, 'transferRoom'])->name('reservations.transferRoom');
     });

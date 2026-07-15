@@ -1307,6 +1307,105 @@ class ReservationController extends Controller
             ->with('success', 'تم حذف الرسم' . ($amount > 0 ? ' وخصم ' . number_format($amount, 0) . ' ر.ي من حساب النزيل' : ''));
     }
 
+    /**
+     * تعديل سعر فترة تجديد واحدة (مثال: التجديد رقم 5 دُخِل بسعر خاطئ) — يُحدَّث
+     * سعر الليلة ويُعاد احتساب مبلغ الفترة (عدد لياليها × السعر الجديد)، ويُعدَّل
+     * إجمالي الحجز بفارق المبلغ فقط. لا يمسّ أي دفعة مسجَّلة ولا أي إيراد وردية،
+     * فالدفعات سجلٌّ تاريخي مستقل عن إجمالي الحجز المطلوب. مقصور على فترات
+     * التجديد (لا الحجز الأولي، الذي يُعدَّل عبر نموذج "تعديل الحجز" العام).
+     */
+    public function updateSegment(Request $request, \App\Models\ReservationSegment $segment)
+    {
+        $reservation = $segment->reservation;
+        if (!$reservation || !in_array($reservation->status, ['checked_in', 'checked_out']) || $segment->type !== 'renewal') {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'price_per_night' => 'required|numeric|min:0',
+        ], [
+            'price_per_night.required' => 'سعر الليلة مطلوب',
+            'price_per_night.numeric'  => 'سعر الليلة يجب أن يكون رقماً',
+        ]);
+
+        $newPrice  = (float) $validated['price_per_night'];
+        $oldAmount = (float) $segment->amount;
+        $newAmount = round($newPrice * $segment->nights, 2);
+        $delta     = round($newAmount - $oldAmount, 2);
+
+        DB::transaction(function () use ($reservation, $segment, $newPrice, $newAmount, $oldAmount, $delta) {
+            $segment->update([
+                'price_per_night' => $newPrice,
+                'amount'          => $newAmount,
+            ]);
+
+            if ($delta !== 0.0) {
+                $reservation->total_amount = max(0, round((float) $reservation->total_amount + $delta, 2));
+                $reservation->save();
+            }
+            $reservation->refresh()->updatePaymentStatus();
+
+            AuditLogService::log('update', $reservation, ['segment_amount' => $oldAmount], [
+                'action'          => 'renewal_segment_updated',
+                'segment_id'      => $segment->id,
+                'price_per_night' => $newPrice,
+                'amount'          => $newAmount,
+            ], auth()->user());
+        });
+
+        return redirect()->route('reservations.show', $reservation)
+            ->with('success', 'تم تعديل سعر التجديد بنجاح');
+    }
+
+    /**
+     * حذف فترة تجديد أُضيفت بالخطأ: تُنقَص قيمتها من إجمالي الحجز، ويُزاح تاريخ
+     * الخروج وكل الفترات اللاحقة إلى الوراء بعدد لياليها (حتى يبقى تسلسل التواريخ
+     * متّصلاً)، ثم تُحذف الفترة. لا يمسّ أي دفعة مسجَّلة. مقصور على فترات التجديد.
+     */
+    public function deleteSegment(\App\Models\ReservationSegment $segment)
+    {
+        $reservation = $segment->reservation;
+        if (!$reservation || !in_array($reservation->status, ['checked_in', 'checked_out']) || $segment->type !== 'renewal') {
+            abort(404);
+        }
+
+        $amount = (float) $segment->amount;
+        $nights = $segment->nights;
+
+        DB::transaction(function () use ($reservation, $segment, $amount, $nights) {
+            // إزاحة الفترات اللاحقة (إن وُجدت) إلى الوراء بعدد ليالي الفترة المحذوفة
+            $reservation->segments()
+                ->where('id', '!=', $segment->id)
+                ->where('start_date', '>=', $segment->end_date)
+                ->get()
+                ->each(function ($later) use ($nights) {
+                    $later->update([
+                        'start_date' => $later->start_date->copy()->subDays($nights),
+                        'end_date'   => $later->end_date->copy()->subDays($nights),
+                    ]);
+                });
+
+            $segment->delete();
+
+            $reservation->check_out_date = $reservation->check_out_date->copy()->subDays($nights);
+            if ($amount > 0) {
+                $reservation->total_amount = max(0, round((float) $reservation->total_amount - $amount, 2));
+            }
+            $reservation->save();
+            $reservation->refresh()->updatePaymentStatus();
+
+            AuditLogService::log('update', $reservation, ['segment_amount' => $amount], [
+                'action'     => 'renewal_segment_deleted',
+                'segment_id' => $segment->id,
+                'amount'     => $amount,
+                'nights'     => $nights,
+            ], auth()->user());
+        });
+
+        return redirect()->route('reservations.show', $reservation)
+            ->with('success', 'تم حذف التجديد' . ($amount > 0 ? ' وخصم ' . number_format($amount, 0) . ' ر.ي من حساب النزيل' : ''));
+    }
+
     private function nullIfEmpty(mixed $value): mixed
     {
         return ($value === '' || $value === null) ? null : $value;
