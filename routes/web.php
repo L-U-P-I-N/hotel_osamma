@@ -123,6 +123,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/reservations/{reservation}/renew', [ReservationController::class, 'renew'])->name('reservations.renew');
         Route::patch('/reservations/{reservation}/auto-renew', [ReservationController::class, 'toggleAutoRenew'])->name('reservations.toggleAutoRenew')->middleware('permission:checkin.create');
         Route::post('/reservations/{reservation}/charge', [ReservationController::class, 'addCharge'])->name('reservations.addCharge')->middleware('permission:payments.create');
+        Route::put('/reservations/charge/{charge}', [ReservationController::class, 'updateCharge'])->name('reservations.updateCharge')->middleware('permission:payments.create');
+        Route::delete('/reservations/charge/{charge}', [ReservationController::class, 'deleteCharge'])->name('reservations.deleteCharge')->middleware('permission:payments.create');
         Route::patch('/reservations/{reservation}/checkin-date', [ReservationController::class, 'updateCheckInDate'])->name('reservations.updateCheckInDate');
         Route::post('/reservations/{reservation}/transfer-room', [ReservationController::class, 'transferRoom'])->name('reservations.transferRoom');
     });

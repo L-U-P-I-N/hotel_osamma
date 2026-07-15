@@ -1195,6 +1195,87 @@ class ReservationController extends Controller
             ->with('success', 'تمت إضافة ' . number_format($amount, 0) . ' ر.ي إلى حساب النزيل');
     }
 
+    /**
+     * تعديل رسم إضافي: تحديث النوع/الوصف/المبلغ، مع تعديل إجمالي الحجز بفارق المبلغ
+     * فقط، ثم إعادة احتساب حالة الدفع.
+     */
+    public function updateCharge(Request $request, \App\Models\ExtraCharge $charge)
+    {
+        $reservation = $charge->reservation;
+        if (!$reservation || !in_array($reservation->status, ['checked_in', 'checked_out'])) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'charge_type' => 'required|string|max:50',
+            'description' => 'nullable|string|max:255',
+            'amount'      => 'required|numeric|min:0.01',
+        ], [
+            'charge_type.required' => 'نوع الرسم مطلوب',
+            'amount.required'      => 'المبلغ مطلوب',
+            'amount.min'           => 'المبلغ يجب أن يكون أكبر من صفر',
+        ]);
+
+        $newAmount = (float) $validated['amount'];
+        $oldAmount = (float) $charge->amount;
+        $delta     = round($newAmount - $oldAmount, 2);
+
+        DB::transaction(function () use ($reservation, $charge, $validated, $newAmount, $oldAmount, $delta) {
+            $charge->update([
+                'type'        => $validated['charge_type'],
+                'description' => $validated['description'] ?? null,
+                'amount'      => $newAmount,
+            ]);
+
+            if ($delta !== 0.0) {
+                $reservation->total_amount = max(0, round((float) $reservation->total_amount + $delta, 2));
+                $reservation->save();
+            }
+            $reservation->refresh()->updatePaymentStatus();
+
+            AuditLogService::log('update', $reservation, ['amount' => $oldAmount], [
+                'action'       => 'charge_updated',
+                'charge_type'  => $validated['charge_type'],
+                'amount'       => $newAmount,
+            ], auth()->user());
+        });
+
+        return redirect()->route('reservations.show', $reservation)
+            ->with('success', 'تم تعديل الرسم بنجاح');
+    }
+
+    /**
+     * حذف رسم إضافي: عكس أثره المالي بالكامل — إنقاص الإجمالي بمبلغ الرسم،
+     * ثم إعادة احتساب حالة الدفع.
+     */
+    public function deleteCharge(\App\Models\ExtraCharge $charge)
+    {
+        $reservation = $charge->reservation;
+        if (!$reservation || !in_array($reservation->status, ['checked_in', 'checked_out'])) {
+            abort(404);
+        }
+
+        $amount = (float) $charge->amount;
+
+        DB::transaction(function () use ($reservation, $charge, $amount) {
+            $charge->delete();
+
+            if ($amount > 0) {
+                $reservation->total_amount = max(0, round((float) $reservation->total_amount - $amount, 2));
+                $reservation->save();
+                $reservation->refresh()->updatePaymentStatus();
+            }
+
+            AuditLogService::log('update', $reservation, ['amount' => $amount], [
+                'action' => 'charge_deleted',
+                'amount' => $amount,
+            ], auth()->user());
+        });
+
+        return redirect()->route('reservations.show', $reservation)
+            ->with('success', 'تم حذف الرسم' . ($amount > 0 ? ' وخصم ' . number_format($amount, 0) . ' ر.ي من حساب النزيل' : ''));
+    }
+
     private function nullIfEmpty(mixed $value): mixed
     {
         return ($value === '' || $value === null) ? null : $value;
