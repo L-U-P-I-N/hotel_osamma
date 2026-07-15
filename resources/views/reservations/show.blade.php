@@ -431,7 +431,7 @@
                         <div class="flex items-center gap-1.5 shrink-0">
                             <span class="font-bold text-gray-800 whitespace-nowrap">{{ number_format($seg->amount, 0) }} {{ $reservation->currency_symbol }}</span>
                             @can('payments.create')
-                            @if($seg->type === 'renewal' && $reservation->status !== 'cancelled')
+                            @if($reservation->status !== 'cancelled')
                                 @if($seg->isLocked())
                                 <span class="p-1 text-gray-300" title="مقفل — يخصّ وردية أُقفلت بالفعل، لا يمكن تعديله">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
@@ -439,13 +439,14 @@
                                 @else
                                 <button type="button"
                                         data-segment-id="{{ $seg->id }}"
-                                        data-segment-label="{{ $seg->type_label }}@if($roomSegments->where('type','renewal')->count() > 1) {{ $renewalNo }}@endif"
+                                        data-segment-label="{{ $seg->type_label }}@if($seg->type === 'renewal' && $roomSegments->where('type','renewal')->count() > 1) {{ $renewalNo }}@endif"
                                         data-segment-nights="{{ $seg->nights }}"
                                         data-segment-price="{{ (float) $seg->price_per_night }}"
                                         onclick="openEditSegment(this)"
-                                        class="p-1 rounded-lg text-blue-600 hover:bg-blue-50 transition" title="تعديل سعر التجديد">
+                                        class="p-1 rounded-lg text-blue-600 hover:bg-blue-50 transition" title="تعديل السعر">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                 </button>
+                                @if($seg->type === 'renewal')
                                 <form method="POST" action="{{ route('reservations.deleteSegment', $seg) }}"
                                       onsubmit="return confirm('هل تريد حذف هذا التجديد؟ سيُخصم مبلغه ({{ number_format($seg->amount, 0) }} ر.ي) من حساب النزيل، ويُقصَّر تاريخ الخروج بعدد لياليه ({{ $seg->nights }}).')"
                                       class="inline">
@@ -455,6 +456,7 @@
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                     </button>
                                 </form>
+                                @endif
                                 @endif
                             @endif
                             @endcan
@@ -468,6 +470,14 @@
                         <span class="font-black text-gray-800">{{ number_format($roomSegments->sum('amount'), 0) }} {{ $reservation->currency_symbol }}</span>
                     </div>
                 </div>
+                @can('payments.create')
+                @if(in_array($reservation->status, ['checked_in', 'checked_out']))
+                <button type="button" onclick="document.getElementById('addSegmentModal').classList.remove('hidden')"
+                        class="w-full py-1.5 rounded-lg border border-dashed border-blue-200 text-blue-600 text-xs font-semibold hover:bg-blue-50 transition mb-1">
+                    + تصحيح: إضافة تجديد لم يُسجَّل
+                </button>
+                @endif
+                @endcan
                 @elseif($hasFirstNight)
                 <div class="flex justify-between items-center">
                     <span class="text-gray-500">سعر الليلة الأولى</span>
@@ -1364,6 +1374,76 @@
         document.getElementById('editSegmentPreview').textContent = amount.toLocaleString('en-US') + ' {{ $reservation->currency_symbol }}';
     }
 </script>
+@endcan
+
+{{-- ===== ADD SEGMENT MODAL (تصحيح: تجديد لم يُسجَّل في حينه) ===== --}}
+@can('payments.create')
+@if(in_array($reservation->status, ['checked_in', 'checked_out']))
+<div id="addSegmentModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto"
+     onclick="if(event.target===this) this.classList.add('hidden')">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto my-auto" onclick="event.stopPropagation()">
+        <div class="hero-gradient px-6 py-5 rounded-t-2xl flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                </div>
+                <h3 class="font-bold text-white text-lg">إضافة تجديد (تصحيح)</h3>
+            </div>
+            <button type="button" onclick="document.getElementById('addSegmentModal').classList.add('hidden')"
+                    class="w-8 h-8 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <form method="POST" action="{{ route('reservations.addSegment', $reservation) }}" class="p-6 space-y-4">
+            @csrf
+            <div class="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
+                <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>استخدم هذا فقط لتصحيح تجديد فعلي لم يُسجَّل — سيُضاف كفترة جديدة بعد آخر فترة مسجَّلة، ويُمدَّد تاريخ الخروج ويُزاد إجمالي الحجز بمبلغه.</span>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">عدد الليالي <span class="text-red-500">*</span></label>
+                <input id="addSegmentNights" type="number" name="nights" min="1" step="1" value="1" required
+                       oninput="updateAddSegmentPreview()"
+                       class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">سعر الليلة (ر.ي) <span class="text-red-500">*</span></label>
+                <input id="addSegmentPrice" type="number" name="price_per_night" min="0" step="0.01"
+                       value="{{ (float) $renewalPrice }}" required
+                       oninput="updateAddSegmentPreview()"
+                       class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+
+            <div class="rounded-xl bg-blue-50 border border-blue-100 p-3 flex justify-between items-center">
+                <span class="text-blue-800 font-semibold text-sm">المبلغ الذي سيُضاف</span>
+                <span id="addSegmentPreview" class="font-black text-blue-700">—</span>
+            </div>
+
+            <div class="flex gap-2 pt-1">
+                <button type="submit"
+                        class="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition">
+                    إضافة التجديد
+                </button>
+                <button type="button" onclick="document.getElementById('addSegmentModal').classList.add('hidden')"
+                        class="px-5 py-3 border border-gray-300 text-gray-600 rounded-xl text-sm hover:bg-gray-50 transition">
+                    إلغاء
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+    function updateAddSegmentPreview() {
+        var nights = parseInt(document.getElementById('addSegmentNights').value) || 0;
+        var price = parseFloat(document.getElementById('addSegmentPrice').value) || 0;
+        var amount = Math.round(nights * price);
+        document.getElementById('addSegmentPreview').textContent = amount.toLocaleString('en-US') + ' {{ $reservation->currency_symbol }}';
+    }
+    document.addEventListener('DOMContentLoaded', updateAddSegmentPreview);
+</script>
+@endif
 @endcan
 
 {{-- ===== MODALS (checked_in only) ===== --}}

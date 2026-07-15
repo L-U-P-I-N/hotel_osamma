@@ -151,9 +151,12 @@ class CheckInService
             ]);
 
             // 6.5 تسجيل فترة الحجز الأولي (لعرض تفصيل أسعار الغرفة بدل متوسط الليلة)
+            // — تُربط بالوردية المفتوحة وقت تسجيل الدخول (إن وُجدت) حتى يُمنَع لاحقاً
+            // تعديل سعرها إن أُقفلت تلك الوردية.
             if ($billedDays > 0 && $pricePerNight > 0) {
+                $activeShift = app(ShiftService::class)->getActiveShift($user);
                 app(ReservationSegmentService::class)
-                    ->recordInitial($reservation, $firstNight, $pricePerNight, $billedDays, $user->id);
+                    ->recordInitial($reservation, $firstNight, $pricePerNight, $billedDays, $user->id, $activeShift?->id);
             }
 
             // 7. تحديث حالة الغرف — فقط عند وصول فعلي اليوم، وليس لحجز مستقبلي

@@ -1310,20 +1310,21 @@ class ReservationController extends Controller
     }
 
     /**
-     * تعديل سعر فترة تجديد واحدة (مثال: التجديد رقم 5 دُخِل بسعر خاطئ) — يُحدَّث
-     * سعر الليلة ويُعاد احتساب مبلغ الفترة (عدد لياليها × السعر الجديد)، ويُعدَّل
-     * إجمالي الحجز بفارق المبلغ فقط. لا يمسّ أي دفعة مسجَّلة ولا أي إيراد وردية،
-     * فالدفعات سجلٌّ تاريخي مستقل عن إجمالي الحجز المطلوب. مقصور على فترات
-     * التجديد (لا الحجز الأولي، الذي يُعدَّل عبر نموذج "تعديل الحجز" العام).
+     * تعديل سعر فترة واحدة — حجز أولي أو تجديد (مثال: سعر الليلة الأولى أو التجديد
+     * رقم 5 دُخِل بسعر خاطئ) — يُحدَّث سعر الليلة ويُعاد احتساب مبلغ الفترة (عدد
+     * لياليها × السعر الجديد)، ويُعدَّل إجمالي الحجز بفارق المبلغ فقط. لا يمسّ أي
+     * دفعة مسجَّلة ولا أي إيراد وردية، فالدفعات سجلٌّ تاريخي مستقل عن إجمالي الحجز
+     * المطلوب. عدد ليالي الفترة وتواريخها لا يتغيران من هنا (فقط السعر) حتى يبقى
+     * تسلسل الفترات متّصلاً؛ لتغيير عدد الليالي استخدم إضافة/حذف تجديد.
      */
     public function updateSegment(Request $request, \App\Models\ReservationSegment $segment)
     {
         $reservation = $segment->reservation;
-        if (!$reservation || !in_array($reservation->status, ['checked_in', 'checked_out']) || $segment->type !== 'renewal') {
+        if (!$reservation || !in_array($reservation->status, ['checked_in', 'checked_out'])) {
             abort(404);
         }
         if ($segment->isLocked()) {
-            return back()->withErrors(['error' => 'لا يمكن تعديل هذا التجديد لأنه يخصّ وردية أُقفلت بالفعل — تصحيح سعره قد يُغيّر أرقام عملٍ سابق مُصفّى.']);
+            return back()->withErrors(['error' => 'لا يمكن تعديل هذه الفترة لأنها تخصّ وردية أُقفلت بالفعل — تصحيح سعرها قد يُغيّر أرقام عملٍ سابق مُصفّى.']);
         }
 
         $validated = $request->validate([
@@ -1351,15 +1352,16 @@ class ReservationController extends Controller
             $reservation->refresh()->updatePaymentStatus();
 
             AuditLogService::log('update', $reservation, ['segment_amount' => $oldAmount], [
-                'action'          => 'renewal_segment_updated',
+                'action'          => 'segment_updated',
                 'segment_id'      => $segment->id,
+                'segment_type'    => $segment->type,
                 'price_per_night' => $newPrice,
                 'amount'          => $newAmount,
             ], auth()->user());
         });
 
         return redirect()->route('reservations.show', $reservation)
-            ->with('success', 'تم تعديل سعر التجديد بنجاح');
+            ->with('success', 'تم تعديل السعر بنجاح');
     }
 
     /**
@@ -1412,6 +1414,79 @@ class ReservationController extends Controller
 
         return redirect()->route('reservations.show', $reservation)
             ->with('success', 'تم حذف التجديد' . ($amount > 0 ? ' وخصم ' . number_format($amount, 0) . ' ر.ي من حساب النزيل' : ''));
+    }
+
+    /**
+     * إضافة تجديد لم يُسجَّل في حينه (تصحيح: النزيل جدّد فعلياً أكثر مما يظهر في
+     * السجل) — تُضاف كفترة تجديد جديدة تلي آخر فترة مسجَّلة مباشرةً، ويُمدَّد
+     * تاريخ الخروج ويُزاد إجمالي الحجز بمبلغها. لحجزٍ نشط (مسجّل دخول) نمنع
+     * التعارض مع حجزٍ قادم على نفس الغرفة قبل تمديد الخروج.
+     */
+    public function addSegment(Request $request, Reservation $reservation)
+    {
+        if (!in_array($reservation->status, ['checked_in', 'checked_out'])) {
+            return back()->withErrors(['error' => 'يمكن إضافة تجديد فقط لحجزٍ نشط أو مغادر']);
+        }
+
+        $validated = $request->validate([
+            'nights'          => 'required|integer|min:1|max:365',
+            'price_per_night' => 'required|numeric|min:0',
+        ], [
+            'nights.required'          => 'عدد الليالي مطلوب',
+            'nights.integer'           => 'عدد الليالي يجب أن يكون رقماً صحيحاً',
+            'nights.min'               => 'عدد الليالي يجب أن يكون ليلة واحدة على الأقل',
+            'price_per_night.required' => 'سعر الليلة مطلوب',
+            'price_per_night.numeric'  => 'سعر الليلة يجب أن يكون رقماً',
+        ]);
+
+        $nights      = (int) $validated['nights'];
+        $price       = (float) $validated['price_per_night'];
+        $oldCheckOut = $reservation->check_out_date->copy();
+        $newCheckOut = $oldCheckOut->copy()->addDays($nights);
+
+        if ($reservation->status === 'checked_in') {
+            $conflict = Reservation::findOverlap(
+                $reservation->occupiedRoomIds(),
+                $reservation->check_in_date,
+                $newCheckOut,
+                $reservation->id
+            );
+            if ($conflict) {
+                $arrival     = Carbon::parse($conflict->check_in_date)->format('Y/m/d');
+                $maxCheckout = Carbon::parse($conflict->check_in_date)
+                    ->subDays(Reservation::TURNOVER_BUFFER_DAYS)->format('Y/m/d');
+                return back()->withErrors(['nights' =>
+                    'الغرفة محجوزة لنزيل قادم (' . ($conflict->guest?->full_name ?? '—') . ') يصل بتاريخ '
+                    . $arrival . '، ويجب ترك يوم فاصل للتنظيف قبل وصوله. أقصى عدد ليالٍ يمكن إضافته يبقي الخروج قبل '
+                    . $maxCheckout
+                ]);
+            }
+        }
+
+        $amount = round($nights * $price, 2);
+        $shift  = app(\App\Services\ShiftService::class)->getActiveShift(auth()->user());
+
+        DB::transaction(function () use ($reservation, $oldCheckOut, $newCheckOut, $nights, $price, $amount, $shift) {
+            $reservation->check_out_date = $newCheckOut->toDateString();
+            $reservation->total_amount   = round((float) $reservation->total_amount + $amount, 2);
+            $reservation->save();
+            $reservation->refresh()->updatePaymentStatus();
+
+            app(\App\Services\ReservationSegmentService::class)->recordRenewal(
+                $reservation, $oldCheckOut, $newCheckOut, $nights, $price, $amount, auth()->id(), $shift?->id
+            );
+
+            AuditLogService::log('update', $reservation, ['check_out_date' => $oldCheckOut->toDateString()], [
+                'action'          => 'segment_added',
+                'nights'          => $nights,
+                'price_per_night' => $price,
+                'amount'          => $amount,
+                'check_out_date'  => $newCheckOut->toDateString(),
+            ], auth()->user());
+        });
+
+        return redirect()->route('reservations.show', $reservation)
+            ->with('success', 'تمت إضافة تجديد بمبلغ ' . number_format($amount, 0) . ' ر.ي، وتمديد تاريخ الخروج إلى ' . $newCheckOut->format('Y/m/d'));
     }
 
     private function nullIfEmpty(mixed $value): mixed

@@ -19,7 +19,7 @@ class ReservationSegmentService
      * يسجّل فترة/فترات الحجز الأولي عند تسجيل الدخول. إن اختلف سعر الليلة الأولى
      * عن سعر باقي الليالي (وكان أكثر من ليلة) نُنشئ فترتين منفصلتين، وإلا فترة واحدة.
      */
-    public function recordInitial(Reservation $reservation, float $firstNight, float $restPrice, int $nights, ?int $userId = null): void
+    public function recordInitial(Reservation $reservation, float $firstNight, float $restPrice, int $nights, ?int $userId = null, ?int $shiftId = null): void
     {
         $nights = max(1, $nights);
         $start  = $reservation->check_in_date->copy();
@@ -37,15 +37,15 @@ class ReservationSegmentService
             if ($firstEnd->gt($end)) {
                 $firstEnd = $end->copy();
             }
-            $this->create($reservation, 'initial', $start, $firstEnd, 1, $firstNight, $firstNight, $userId);
+            $this->create($reservation, 'initial', $start, $firstEnd, 1, $firstNight, $firstNight, $userId, $shiftId);
             // باقي ليالي الحجز الأولي بسعر الليلة العادي
             $rest = $nights - 1;
-            $this->create($reservation, 'initial', $firstEnd, $end, $rest, $restPrice, round($rest * $restPrice, 2), $userId);
+            $this->create($reservation, 'initial', $firstEnd, $end, $rest, $restPrice, round($rest * $restPrice, 2), $userId, $shiftId);
         } else {
             // سعر موحّد لكل ليالي الحجز الأولي (أو ليلة واحدة/يوم الوصول)
             $price  = $nights === 1 ? $firstNight : $restPrice;
             $amount = round($firstNight + max(0, $nights - 1) * $restPrice, 2);
-            $this->create($reservation, 'initial', $start, $end, $nights, $price, $amount, $userId);
+            $this->create($reservation, 'initial', $start, $end, $nights, $price, $amount, $userId, $shiftId);
         }
     }
 
