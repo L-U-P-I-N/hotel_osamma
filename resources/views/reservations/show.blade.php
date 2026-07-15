@@ -421,6 +421,15 @@
                     </div>
                 </div>
             </div>
+            @can('payments.create')
+            @if(in_array($reservation->status, ['checked_in', 'checked_out']))
+            <button type="button" onclick="document.getElementById('stayDatesModal').classList.remove('hidden')"
+                    class="w-full mt-3 py-1.5 rounded-lg border border-dashed border-gray-200 text-gray-500 text-xs font-semibold hover:bg-gray-50 hover:border-gray-300 transition flex items-center justify-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                تصحيح: تعديل تاريخ ووقت الوصول/المغادرة
+            </button>
+            @endif
+            @endcan
         </div>
 
         {{-- Financial Summary --}}
@@ -1487,6 +1496,76 @@
     }
     document.addEventListener('DOMContentLoaded', updateAddSegmentPreview);
 </script>
+@endif
+@endcan
+
+{{-- ===== EDIT STAY DATES MODAL (تصحيح: تعديل تاريخ ووقت الوصول/المغادرة) ===== --}}
+@can('payments.create')
+@if(in_array($reservation->status, ['checked_in', 'checked_out']))
+<div id="stayDatesModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto"
+     onclick="if(event.target===this) this.classList.add('hidden')">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto my-auto" onclick="event.stopPropagation()">
+        <div class="px-6 py-5 rounded-t-2xl flex items-center justify-between" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6);">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                </div>
+                <h3 class="font-bold text-white text-lg">تعديل تاريخ ووقت الإقامة</h3>
+            </div>
+            <button type="button" onclick="document.getElementById('stayDatesModal').classList.add('hidden')"
+                    class="w-8 h-8 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <form method="POST" action="{{ route('reservations.updateStayDates', $reservation) }}" class="p-6 space-y-4">
+            @csrf
+            @method('PUT')
+            <div class="flex items-start gap-2 rounded-xl bg-blue-50 border border-blue-200 p-3 text-xs text-blue-800">
+                <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>استخدم هذا عند تغيّر موعد الوصول/المغادرة المتّفق عليه فعلياً — سيُعاد احتساب الإجمالي وفترات الغرفة تلقائياً بأسعار الحجز الحالية (سعر الليلة الأولى وسعر التجديد)، دون المساس بأي دفعة مسجَّلة.</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">تاريخ الوصول <span class="text-red-500">*</span></label>
+                    <input type="date" name="check_in_date" value="{{ $reservation->check_in_date?->format('Y-m-d') }}" required
+                           class="w-full border border-gray-300 rounded-xl px-3 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">وقت الوصول</label>
+                    <input type="time" name="check_in_time" value="{{ $reservation->check_in_time ? \Illuminate\Support\Str::substr($reservation->check_in_time,0,5) : '' }}"
+                           class="w-full border border-gray-300 rounded-xl px-3 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">تاريخ المغادرة <span class="text-red-500">*</span></label>
+                    <input type="date" name="check_out_date" value="{{ $reservation->check_out_date?->format('Y-m-d') }}" required
+                           class="w-full border border-gray-300 rounded-xl px-3 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">وقت المغادرة</label>
+                    <input type="time" name="check_out_time" value="{{ $reservation->check_out_time ? \Illuminate\Support\Str::substr($reservation->check_out_time,0,5) : '' }}"
+                           class="w-full border border-gray-300 rounded-xl px-3 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    <p class="text-xs text-gray-400 mt-1">1 ظهراً أو بعده = يُحتسب ذلك اليوم</p>
+                </div>
+            </div>
+
+            <div class="flex gap-2 pt-1">
+                <button type="submit"
+                        onclick="return confirm('سيُعاد احتساب عدد الليالي والإجمالي وفترات الغرفة بناءً على التاريخ/الوقت الجديد. هل تريد المتابعة؟')"
+                        class="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition">
+                    حفظ وإعادة الاحتساب
+                </button>
+                <button type="button" onclick="document.getElementById('stayDatesModal').classList.add('hidden')"
+                        class="px-5 py-3 border border-gray-300 text-gray-600 rounded-xl text-sm hover:bg-gray-50 transition">
+                    إلغاء
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 @endif
 @endcan
 

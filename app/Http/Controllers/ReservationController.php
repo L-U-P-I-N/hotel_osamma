@@ -1542,6 +1542,98 @@ class ReservationController extends Controller
             ->with('success', 'تمت إعادة احتساب فترات الغرفة والإجمالي بنجاح');
     }
 
+    /**
+     * تعديل تاريخ ووقت الوصول والمغادرة معاً (تصحيح: تغيّر الموعد المتّفق عليه مع
+     * النزيل) — يُعيد احتساب عدد الليالي والإجمالي وفق أسعار الحجز المحفوظة
+     * (سعر الليلة الأولى وسعر التجديد) بناءً على التواريخ/الأوقات الجديدة، ويُعيد
+     * بناء فترات الغرفة بالكامل. لا يمسّ أي دفعة مسجَّلة. يعمل للحجوزات النشطة
+     * والمغادرة معاً (بخلاف "تعديل الحجز" العام المقصور على النشطة)، ولحجزٍ نشط
+     * يمنع التعارض مع حجزٍ قادم على نفس الغرفة إن اتُّسِعت مدة الإقامة.
+     */
+    public function updateStayDates(Request $request, Reservation $reservation)
+    {
+        if (!in_array($reservation->status, ['checked_in', 'checked_out'])) {
+            return back()->withErrors(['error' => 'تعديل تاريخ الإقامة متاح فقط للحجوزات النشطة أو المغادرة']);
+        }
+
+        $validated = $request->validate([
+            'check_in_date'  => 'required|date',
+            'check_in_time'  => 'nullable',
+            'check_out_date' => 'required|date|after_or_equal:check_in_date',
+            'check_out_time' => 'nullable',
+        ], [
+            'check_in_date.required'     => 'تاريخ الوصول مطلوب',
+            'check_out_date.required'    => 'تاريخ المغادرة مطلوب',
+            'check_out_date.after_or_equal' => 'تاريخ المغادرة لا يمكن أن يكون قبل تاريخ الوصول',
+        ]);
+
+        $newCheckOut = Carbon::parse($validated['check_out_date']);
+
+        if ($reservation->status === 'checked_in' && $newCheckOut->gt($reservation->check_out_date)) {
+            $conflict = Reservation::findOverlap(
+                $reservation->occupiedRoomIds(),
+                $validated['check_in_date'],
+                $newCheckOut,
+                $reservation->id
+            );
+            if ($conflict) {
+                $arrival     = Carbon::parse($conflict->check_in_date)->format('Y/m/d');
+                $maxCheckout = Carbon::parse($conflict->check_in_date)
+                    ->subDays(Reservation::TURNOVER_BUFFER_DAYS)->format('Y/m/d');
+                return back()->withErrors(['check_out_date' =>
+                    'الغرفة محجوزة لنزيل قادم (' . ($conflict->guest?->full_name ?? '—') . ') يصل بتاريخ '
+                    . $arrival . '، ويجب ترك يوم فاصل للتنظيف قبل وصوله. أقصى تاريخ خروج متاح: '
+                    . $maxCheckout
+                ])->withInput();
+            }
+        }
+
+        $newBillableNights = Reservation::billableNightsFor(
+            $validated['check_in_date'], $validated['check_out_date'],
+            $validated['check_out_time'] ?? null, $validated['check_in_time'] ?? null
+        );
+
+        $firstNightPrice = $reservation->first_night_price !== null
+            ? (float) $reservation->first_night_price
+            : ($reservation->room?->roomType?->base_price ?? round((float) $reservation->gross_total / max(1, $reservation->nights), 2));
+        $renewalPrice = $reservation->renewal_price_per_night !== null
+            ? (float) $reservation->renewal_price_per_night
+            : $firstNightPrice;
+
+        $newGross       = round($firstNightPrice + max(0, $newBillableNights - 1) * $renewalPrice, 2);
+        $discountAmount = $reservation->discountAmountFor($newGross);
+        $newTotal       = round(max(0, round($newGross - $discountAmount, 2)) + $reservation->extra_charges_total, 0);
+
+        $old = $reservation->only(['check_in_date', 'check_in_time', 'check_out_date', 'check_out_time', 'total_amount']);
+
+        DB::transaction(function () use ($reservation, $validated, $newBillableNights, $firstNightPrice, $renewalPrice, $newTotal, $discountAmount, $old) {
+            $reservation->check_in_date   = $validated['check_in_date'];
+            $reservation->check_in_time   = $this->nullIfEmpty($validated['check_in_time'] ?? null);
+            $reservation->check_out_date  = $validated['check_out_date'];
+            $reservation->check_out_time  = $this->nullIfEmpty($validated['check_out_time'] ?? null);
+            $reservation->total_amount    = $newTotal;
+            $reservation->discount_amount = $discountAmount;
+            $reservation->save();
+            $reservation->refresh()->updatePaymentStatus();
+
+            app(\App\Services\ReservationSegmentService::class)
+                ->rebuildFromCurrentPricing($reservation, $firstNightPrice, $renewalPrice, $newBillableNights, auth()->id());
+
+            AuditLogService::log('update', $reservation, $old, [
+                'action'          => 'stay_dates_updated',
+                'check_in_date'   => $reservation->check_in_date->toDateString(),
+                'check_in_time'   => $reservation->check_in_time,
+                'check_out_date'  => $reservation->check_out_date->toDateString(),
+                'check_out_time'  => $reservation->check_out_time,
+                'total_amount'    => $newTotal,
+                'nights'          => $newBillableNights,
+            ], auth()->user());
+        });
+
+        return redirect()->route('reservations.show', $reservation)
+            ->with('success', 'تم تعديل تاريخ الإقامة بنجاح — الإجمالي الجديد: ' . number_format($newTotal, 0) . ' ر.ي');
+    }
+
     private function nullIfEmpty(mixed $value): mixed
     {
         return ($value === '' || $value === null) ? null : $value;
