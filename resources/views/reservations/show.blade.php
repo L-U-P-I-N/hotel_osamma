@@ -448,15 +448,111 @@
                 <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 <div class="flex-1">
                     <p class="font-semibold mb-1">فترات هذا الحجز قديمة ولا تطابق صيغة حساب الليالي الحالية.</p>
-                    <form method="POST" action="{{ route('reservations.recomputeSegments', $reservation) }}"
-                          onsubmit="return confirm('سيُعاد احتساب فترات الغرفة وفق صيغة حساب الليالي الحالية.\nالإجمالي الحالي: {{ number_format((float) $reservation->total_amount, 0) }} ر.ي\nالإجمالي بعد التصحيح: {{ number_format($recomputeNewTotal, 0) }} ر.ي ({{ $recomputeDelta > 0 ? '+' : '' }}{{ number_format($recomputeDelta, 0) }})\n\nهل تريد المتابعة؟')">
-                        @csrf
-                        <button type="submit" class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition">
-                            🔄 تصحيح: إعادة احتساب الفترات والإجمالي
-                        </button>
-                    </form>
+                    <button type="button" onclick="showRecomputeModal()" class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition">
+                        🔄 تصحيح: إعادة احتساب الفترات والإجمالي
+                    </button>
                 </div>
             </div>
+
+            {{-- نافذة modal توضيح إعادة الاحتساب --}}
+            <div id="recomputeModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full">
+                    {{-- الرأس --}}
+                    <div class="bg-gradient-to-r from-amber-500 to-amber-600 px-6 py-4 rounded-t-2xl">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                            إعادة احتساب الفترات والإجمالي
+                        </h3>
+                    </div>
+
+                    {{-- المحتوى الرئيسي --}}
+                    <div class="p-6 space-y-4">
+                        {{-- السبب --}}
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <h4 class="font-semibold text-blue-900 mb-2 text-sm">🔍 لماذا يظهر هذا التحذير؟</h4>
+                            <p class="text-sm text-blue-800 leading-relaxed">
+                                النظام لاحظ أن بيانات هذا الحجز لم تُحدّث بناءً على <strong>قاعدة حساب الليالي الحالية</strong> (العد عند عبور حد الساعة 1 ظهراً).
+                                هذا يحدث عادة عندما يتم تعديل التواريخ أو عندما يكون الحجز قديماً.
+                            </p>
+                        </div>
+
+                        {{-- المقارنة --}}
+                        <div class="space-y-2">
+                            <h4 class="font-semibold text-gray-800 text-sm">📊 مقارنة القيم:</h4>
+                            <div class="grid grid-cols-2 gap-3">
+                                {{-- الإجمالي الحالي --}}
+                                <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                                    <p class="text-xs text-gray-600 mb-1">الإجمالي الحالي</p>
+                                    <p class="text-lg font-bold text-gray-800">
+                                        {{ number_format((float) $reservation->total_amount, 0) }}
+                                        <span class="text-xs text-gray-500 font-normal">ر.ي</span>
+                                    </p>
+                                </div>
+
+                                {{-- الإجمالي الجديد --}}
+                                <div class="bg-amber-50 rounded-lg p-3 border border-amber-200">
+                                    <p class="text-xs text-amber-700 mb-1">الإجمالي بعد التصحيح</p>
+                                    <p class="text-lg font-bold text-amber-800">
+                                        {{ number_format($recomputeNewTotal, 0) }}
+                                        <span class="text-xs text-amber-600 font-normal">ر.ي</span>
+                                    </p>
+                                </div>
+                            </div>
+
+                            {{-- الفرق --}}
+                            @if(abs($recomputeDelta) > 0.01)
+                            <div class="bg-gradient-to-r {{ $recomputeDelta > 0 ? 'from-red-50 to-orange-50 border-orange-200' : 'from-green-50 to-emerald-50 border-emerald-200' }} rounded-lg p-3 border">
+                                <p class="text-xs {{ $recomputeDelta > 0 ? 'text-orange-700' : 'text-emerald-700' }} mb-1 font-semibold">
+                                    {{ $recomputeDelta > 0 ? '⬆️ زيادة' : '⬇️ انخفاض' }}
+                                </p>
+                                <p class="text-2xl font-bold {{ $recomputeDelta > 0 ? 'text-red-600' : 'text-emerald-600' }}">
+                                    {{ $recomputeDelta > 0 ? '+' : '' }}{{ number_format($recomputeDelta, 0) }} ر.ي
+                                </p>
+                            </div>
+                            @endif
+                        </div>
+
+                        {{-- التنبيه النهائي --}}
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                            <p class="text-xs text-yellow-800">
+                                <strong>ملاحظة:</strong> هذا التصحيح سيُحدّث الفترات والإجمالي فقط، دون المساس بأي دفعات مسجّلة.
+                            </p>
+                        </div>
+                    </div>
+
+                    {{-- الأزرار --}}
+                    <div class="flex gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
+                        <button type="button" onclick="closeRecomputeModal()" class="flex-1 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-100 transition">
+                            إلغاء
+                        </button>
+                        <form method="POST" action="{{ route('reservations.recomputeSegments', $reservation) }}" class="flex-1">
+                            @csrf
+                            <button type="submit" class="w-full px-4 py-2 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 text-white font-semibold hover:from-amber-600 hover:to-amber-700 transition">
+                                تطبيق التصحيح ✓
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+                function showRecomputeModal() {
+                    document.getElementById('recomputeModal').classList.remove('hidden');
+                    document.body.style.overflow = 'hidden';
+                }
+                function closeRecomputeModal() {
+                    document.getElementById('recomputeModal').classList.add('hidden');
+                    document.body.style.overflow = '';
+                }
+                // إغلاق عند النقر خارج النافذة
+                document.getElementById('recomputeModal')?.addEventListener('click', function(e) {
+                    if (e.target === this) closeRecomputeModal();
+                });
+                // إغلاق عند الضغط على Escape
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') closeRecomputeModal();
+                });
+            </script>
             @endif
             @endcan
             <div class="p-4 space-y-2 text-sm">
@@ -1555,8 +1651,7 @@
             </div>
 
             <div class="flex gap-2 pt-1">
-                <button type="submit"
-                        onclick="return confirm('سيُعاد احتساب عدد الليالي والإجمالي وفترات الغرفة بناءً على التاريخ/الوقت الجديد. هل تريد المتابعة؟')"
+                <button type="button" onclick="showStayDatesConfirmModal()"
                         class="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition">
                     حفظ وإعادة الاحتساب
                 </button>
@@ -1565,6 +1660,87 @@
                     إلغاء
                 </button>
             </div>
+
+            {{-- نافذة تأكيد تعديل التواريخ --}}
+            <div id="stayDatesConfirmModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full">
+                    {{-- الرأس --}}
+                    <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4 rounded-t-2xl">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            تأكيد تعديل التواريخ والأوقات
+                        </h3>
+                    </div>
+
+                    {{-- المحتوى الرئيسي --}}
+                    <div class="p-6 space-y-4">
+                        {{-- التحذير --}}
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <h4 class="font-semibold text-blue-900 mb-2 text-sm">⚙️ ماذا سيحدث؟</h4>
+                            <div class="space-y-2 text-sm text-blue-800">
+                                <p class="flex items-start gap-2">
+                                    <span class="text-lg">📅</span>
+                                    <span><strong>إعادة حساب الليالي:</strong> سيتم حساب عدد الليالي من جديد بناءً على التاريخ/الوقت الجديد</span>
+                                </p>
+                                <p class="flex items-start gap-2">
+                                    <span class="text-lg">💰</span>
+                                    <span><strong>تحديث الإجمالي:</strong> سيتم إعادة حساب الإجمالي حسب الأسعار الحالية (ليلة أولى وتجديدات)</span>
+                                </p>
+                                <p class="flex items-start gap-2">
+                                    <span class="text-lg">📊</span>
+                                    <span><strong>تحديث الفترات:</strong> ستُعاد بناء فترات الغرفة حسب الحساب الجديد</span>
+                                </p>
+                                <p class="flex items-start gap-2">
+                                    <span class="text-lg">💳</span>
+                                    <span><strong>الدفعات آمنة:</strong> جميع الدفعات المسجّلة ستبقى كما هي دون تغيير</span>
+                                </p>
+                            </div>
+                        </div>
+
+                        {{-- ملاحظة مهمة --}}
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                            <p class="text-xs text-yellow-800 flex gap-2">
+                                <span class="text-sm">⚠️</span>
+                                <span>لا يمكن التراجع عن هذا التعديل. تأكّد من صحة التواريخ والأوقات قبل الحفظ.</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    {{-- الأزرار --}}
+                    <div class="flex gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
+                        <button type="button" onclick="closeStayDatesConfirmModal()" class="flex-1 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-100 transition">
+                            إلغاء
+                        </button>
+                        <button type="button" onclick="submitStayDatesForm()" class="flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold hover:from-blue-600 hover:to-blue-700 transition">
+                            نعم، تطبيق التعديل ✓
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+                function showStayDatesConfirmModal() {
+                    document.getElementById('stayDatesConfirmModal').classList.remove('hidden');
+                    document.body.style.overflow = 'hidden';
+                }
+                function closeStayDatesConfirmModal() {
+                    document.getElementById('stayDatesConfirmModal').classList.add('hidden');
+                    document.body.style.overflow = '';
+                }
+                function submitStayDatesForm() {
+                    document.querySelector('#stayDatesModal form').submit();
+                }
+                // إغلاق عند النقر خارج النافذة
+                document.getElementById('stayDatesConfirmModal')?.addEventListener('click', function(e) {
+                    if (e.target === this) closeStayDatesConfirmModal();
+                });
+                // إغلاق عند الضغط على Escape
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && !document.getElementById('stayDatesConfirmModal').classList.contains('hidden')) {
+                        closeStayDatesConfirmModal();
+                    }
+                });
+            </script>
         </form>
     </div>
 </div>
