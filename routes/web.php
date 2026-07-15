@@ -129,6 +129,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/reservations/{reservation}/segment', [ReservationController::class, 'addSegment'])->name('reservations.addSegment')->middleware('permission:payments.create');
         Route::put('/reservations/segment/{segment}', [ReservationController::class, 'updateSegment'])->name('reservations.updateSegment')->middleware('permission:payments.create');
         Route::delete('/reservations/segment/{segment}', [ReservationController::class, 'deleteSegment'])->name('reservations.deleteSegment')->middleware('permission:payments.create');
+        // تصحيح: إعادة احتساب فترات الغرفة والإجمالي وفق صيغة حساب الليالي الحالية
+        Route::post('/reservations/{reservation}/recompute-segments', [ReservationController::class, 'recomputeSegments'])->name('reservations.recomputeSegments')->middleware('permission:payments.create');
         Route::patch('/reservations/{reservation}/checkin-date', [ReservationController::class, 'updateCheckInDate'])->name('reservations.updateCheckInDate');
         Route::post('/reservations/{reservation}/transfer-room', [ReservationController::class, 'transferRoom'])->name('reservations.transferRoom');
     });

@@ -48,6 +48,33 @@
     $roomSegments = $reservation->segments;
     $showSegments = $roomSegments->isNotEmpty()
         && abs(round((float) $roomSegments->sum('amount'), 2) - (float) $grossTotal) <= 1.0;
+
+    // معاينة "تصحيح: إعادة احتساب الفترات" — تُقارن ما هو محفوظ حالياً بما ستنتجه
+    // الصيغة الحالية لحساب الليالي (حد 1 ظهراً بلحظتي الوصول والخروج)، فيظهر الزر
+    // فقط عند وجود فرق فعلي (حجوزات قديمة أُنشئت بصيغة حساب سابقة).
+    $recomputeNeeded = false;
+    $recomputeNewTotal = (float) $reservation->total_amount;
+    $recomputeDelta = 0.0;
+    if (in_array($reservation->status, ['checked_in', 'checked_out'])) {
+        $recomputeNights = \App\Models\Reservation::billableNightsFor(
+            $reservation->check_in_date, $reservation->check_out_date,
+            $reservation->check_out_time, $reservation->check_in_time
+        );
+        $recomputeFirstPrice = $reservation->first_night_price !== null
+            ? (float) $reservation->first_night_price
+            : ($reservation->room?->roomType?->base_price ?? round($grossTotal / max(1, $reservation->nights), 2));
+        $recomputeRenewalPrice = $reservation->renewal_price_per_night !== null
+            ? (float) $reservation->renewal_price_per_night
+            : $recomputeFirstPrice;
+        $recomputeGross   = round($recomputeFirstPrice + max(0, $recomputeNights - 1) * $recomputeRenewalPrice, 2);
+        $recomputeDiscount = $reservation->discountAmountFor($recomputeGross);
+        $recomputeNewTotal = round(max(0, round($recomputeGross - $recomputeDiscount, 2)) + $reservation->extra_charges_total, 0);
+        $recomputeDelta   = round($recomputeNewTotal - (float) $reservation->total_amount, 2);
+        $recomputeNeeded  = !$showSegments
+            || abs($recomputeDelta) > 1.0
+            || (int) $roomSegments->sum('nights') !== $recomputeNights;
+    }
+
     // أوقات الفترات: أول فترة تبدأ بوقت الوصول، آخر فترة تنتهي بوقت الخروج، وكل
     // الحدود الداخلية عند حد الساعة 1 ظهراً (بداية اليوم الفندقي الجديد).
     $segBoundaryTime = sprintf('%02d:00', \App\Models\Reservation::AUTO_RENEW_BOUNDARY_HOUR);
@@ -404,6 +431,23 @@
                 </div>
                 <h3 class="font-bold text-gray-800 text-sm">تفاصيل الأيام والأسعار</h3>
             </div>
+            @can('payments.create')
+            @if($recomputeNeeded)
+            <div class="mx-4 mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-2.5 text-xs text-amber-800">
+                <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <div class="flex-1">
+                    <p class="font-semibold mb-1">فترات هذا الحجز قديمة ولا تطابق صيغة حساب الليالي الحالية.</p>
+                    <form method="POST" action="{{ route('reservations.recomputeSegments', $reservation) }}"
+                          onsubmit="return confirm('سيُعاد احتساب فترات الغرفة وفق صيغة حساب الليالي الحالية.\nالإجمالي الحالي: {{ number_format((float) $reservation->total_amount, 0) }} ر.ي\nالإجمالي بعد التصحيح: {{ number_format($recomputeNewTotal, 0) }} ر.ي ({{ $recomputeDelta > 0 ? '+' : '' }}{{ number_format($recomputeDelta, 0) }})\n\nهل تريد المتابعة؟')">
+                        @csrf
+                        <button type="submit" class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition">
+                            🔄 تصحيح: إعادة احتساب الفترات والإجمالي
+                        </button>
+                    </form>
+                </div>
+            </div>
+            @endif
+            @endcan
             <div class="p-4 space-y-2 text-sm">
                 @if($showSegments)
                 {{-- تفصيل فترات الغرفة: الحجز الأولي + كل تجديد بتاريخه وسعره.

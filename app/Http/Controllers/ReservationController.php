@@ -1489,6 +1489,59 @@ class ReservationController extends Controller
             ->with('success', 'تمت إضافة تجديد بمبلغ ' . number_format($amount, 0) . ' ر.ي، وتمديد تاريخ الخروج إلى ' . $newCheckOut->format('Y/m/d'));
     }
 
+    /**
+     * إعادة احتساب فترات الغرفة والإجمالي وفق الصيغة الحالية لحساب عدد الليالي
+     * (حد الساعة 1 ظهراً بلحظتي الوصول والخروج الفعليتين) — دون تغيير أي تاريخ
+     * أو وقت مسجَّل، فقط تصحيح كيفية تقسيم الفترات وحساب المجموع. يُستخدَم
+     * لتصحيح حجوزات قديمة أُنشئت بصيغة حساب سابقة (فبقيت فتراتها/إجماليها غير
+     * متطابقين مع الصيغة الحالية). يعمل للحجوزات النشطة والمغادرة معاً (بخلاف
+     * "تعديل الحجز" العام المقصور على النشطة). الواجهة تعرض معاينة الفارق قبل
+     * الضغط، فهذا الإجراء يُطبِّق مباشرةً بعد موافقة الموظف.
+     */
+    public function recomputeSegments(Reservation $reservation)
+    {
+        if (!in_array($reservation->status, ['checked_in', 'checked_out'])) {
+            return back()->withErrors(['error' => 'إعادة الاحتساب متاحة فقط للحجوزات النشطة أو المغادرة']);
+        }
+
+        $billableNights = Reservation::billableNightsFor(
+            $reservation->check_in_date, $reservation->check_out_date,
+            $reservation->check_out_time, $reservation->check_in_time
+        );
+
+        $firstNightPrice = $reservation->first_night_price !== null
+            ? (float) $reservation->first_night_price
+            : ($reservation->room?->roomType?->base_price ?? round((float) $reservation->gross_total / max(1, $reservation->nights), 2));
+        $renewalPrice = $reservation->renewal_price_per_night !== null
+            ? (float) $reservation->renewal_price_per_night
+            : $firstNightPrice;
+
+        $newGross       = round($firstNightPrice + max(0, $billableNights - 1) * $renewalPrice, 2);
+        $discountAmount = $reservation->discountAmountFor($newGross);
+        $newTotal       = round(max(0, round($newGross - $discountAmount, 2)) + $reservation->extra_charges_total, 0);
+
+        $old = $reservation->only(['total_amount', 'discount_amount']);
+
+        DB::transaction(function () use ($reservation, $billableNights, $firstNightPrice, $renewalPrice, $newTotal, $discountAmount, $old) {
+            $reservation->total_amount    = $newTotal;
+            $reservation->discount_amount = $discountAmount;
+            $reservation->save();
+            $reservation->refresh()->updatePaymentStatus();
+
+            app(\App\Services\ReservationSegmentService::class)
+                ->rebuildFromCurrentPricing($reservation, $firstNightPrice, $renewalPrice, $billableNights, auth()->id());
+
+            AuditLogService::log('update', $reservation, $old, [
+                'action'       => 'segments_recomputed',
+                'total_amount' => $newTotal,
+                'nights'       => $billableNights,
+            ], auth()->user());
+        });
+
+        return redirect()->route('reservations.show', $reservation)
+            ->with('success', 'تمت إعادة احتساب فترات الغرفة والإجمالي بنجاح');
+    }
+
     private function nullIfEmpty(mixed $value): mixed
     {
         return ($value === '' || $value === null) ? null : $value;

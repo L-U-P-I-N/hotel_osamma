@@ -280,6 +280,21 @@ class Reservation extends Model
      */
     public static function billableNightsFor($checkInDate, $checkOutDate, $checkOutTime = null, $checkInTime = null): int
     {
+        return count(self::splitBillingPeriods($checkInDate, $checkOutDate, $checkOutTime, $checkInTime));
+    }
+
+    /**
+     * يُقسِّم الإقامة إلى ليالٍ فردية وفق عبور حد الساعة 1 ظهراً بين لحظتي الوصول
+     * والخروج الفعليتين (لا تواريخ تقويمية مجرّدة) — كل عنصر [start, end] يمثّل
+     * ليلة محاسَبة واحدة. أول عنصر يبدأ بلحظة الوصول الحقيقية (قد تكون جزءاً من
+     * يوم إن وصل قبل 1 ظهراً)، وآخر عنصر ينتهي بلحظة الخروج الحقيقية، وكل الحدود
+     * الداخلية عند 1 ظهراً بالضبط. مصدر موحّد يضمن تطابق عدد الليالي مع تفصيل
+     * فترات الغرفة دائماً (لا فجوة بين billableNightsFor وفترات الحجز).
+     *
+     * @return array<int, array{start: \Carbon\Carbon, end: \Carbon\Carbon}>
+     */
+    public static function splitBillingPeriods($checkInDate, $checkOutDate, $checkOutTime = null, $checkInTime = null): array
+    {
         $boundaryHour = self::AUTO_RENEW_BOUNDARY_HOUR;
 
         // لحظة الوصول: التاريخ + وقت الوصول (أو بداية اليوم إن لم يُحدَّد)
@@ -295,19 +310,25 @@ class Reservation extends Model
         } else {
             $out->setTime($boundaryHour, 0);
         }
+        if ($out->lte($in)) {
+            $out = $in->copy()->addDay(); // حماية من بيانات غير متّسقة (خروج قبل/عند الوصول)
+        }
 
-        // عُدّ حدود الساعة 1 ظهراً الواقعة حصراً بين لحظتي الوصول والخروج
         $boundary = $in->copy()->setTime($boundaryHour, 0);
         if ($boundary->lte($in)) {
             $boundary->addDay(); // أول حدّ يقع فعلاً بعد لحظة الوصول
         }
-        $crossings = 0;
+
+        $periods = [];
+        $cursor = $in->copy();
         while ($boundary->lt($out)) {
-            $crossings++;
+            $periods[] = ['start' => $cursor->copy(), 'end' => $boundary->copy()];
+            $cursor = $boundary->copy();
             $boundary->addDay();
         }
+        $periods[] = ['start' => $cursor->copy(), 'end' => $out->copy()];
 
-        return max(1, $crossings + 1);
+        return $periods;
     }
 
     /**

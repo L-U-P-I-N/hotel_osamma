@@ -17,32 +17,32 @@ class ReservationSegmentService
 
     /**
      * يسجّل فترة/فترات الحجز الأولي عند تسجيل الدخول. إن اختلف سعر الليلة الأولى
-     * عن سعر باقي الليالي (وكان أكثر من ليلة) نُنشئ فترتين منفصلتين، وإلا فترة واحدة.
+     * عن سعر باقي الليالي (وكان أكثر من ليلة) نُقسّم الإقامة إلى ليالٍ فردية وفق
+     * حدود الساعة 1 ظهراً الفعلية بين لحظتي الوصول والخروج (نفس خوارزمية
+     * Reservation::billableNightsFor بالضبط) — فوصول مبكر قبل 1 ظهراً يجعل الليلة
+     * الأولى جزئية بنفس يوم الوصول بدل الظهور كيوم كامل خاطئ. إن كان السعر موحّداً
+     * فترة واحدة تكفي (لا داعي للتقسيم لغياب فرق الأسعار).
      */
     public function recordInitial(Reservation $reservation, float $firstNight, float $restPrice, int $nights, ?int $userId = null, ?int $shiftId = null): void
     {
         $nights = max(1, $nights);
-        $start  = $reservation->check_in_date->copy();
-        // نهاية الحجز الأولي = تاريخ الخروج الفعلي، لا (الوصول + الليالي): فالمبيت
-        // نفس اليوم (وصول فجراً وخروج ظهراً) يُعرَض 11→11 لا 11→12، وأي تجديد لاحق
-        // يمدّد يوماً كاملاً حتى الخروج.
-        $end = $reservation->check_out_date->copy();
-        if ($end->lt($start)) {
-            $end = $start->copy();
-        }
 
         if ($nights > 1 && round($firstNight, 2) != round($restPrice, 2)) {
-            // فترة الليلة الأولى بسعرها الخاص
-            $firstEnd = $start->copy()->addDay();
-            if ($firstEnd->gt($end)) {
-                $firstEnd = $end->copy();
+            $periods = Reservation::splitBillingPeriods(
+                $reservation->check_in_date, $reservation->check_out_date,
+                $reservation->check_out_time, $reservation->check_in_time
+            );
+            foreach ($periods as $i => $period) {
+                $price = $i === 0 ? $firstNight : $restPrice;
+                $this->create($reservation, 'initial', $period['start'], $period['end'], 1, $price, round($price, 2), $userId, $shiftId);
             }
-            $this->create($reservation, 'initial', $start, $firstEnd, 1, $firstNight, $firstNight, $userId, $shiftId);
-            // باقي ليالي الحجز الأولي بسعر الليلة العادي
-            $rest = $nights - 1;
-            $this->create($reservation, 'initial', $firstEnd, $end, $rest, $restPrice, round($rest * $restPrice, 2), $userId, $shiftId);
         } else {
-            // سعر موحّد لكل ليالي الحجز الأولي (أو ليلة واحدة/يوم الوصول)
+            // سعر موحّد لكل ليالي الحجز الأولي (أو ليلة واحدة/يوم الوصول) — فترة واحدة
+            $start = $reservation->check_in_date->copy();
+            $end   = $reservation->check_out_date->copy();
+            if ($end->lt($start)) {
+                $end = $start->copy();
+            }
             $price  = $nights === 1 ? $firstNight : $restPrice;
             $amount = round($firstNight + max(0, $nights - 1) * $restPrice, 2);
             $this->create($reservation, 'initial', $start, $end, $nights, $price, $amount, $userId, $shiftId);
