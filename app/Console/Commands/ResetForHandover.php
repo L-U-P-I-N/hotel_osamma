@@ -51,7 +51,7 @@ class ResetForHandover extends Command
         // (نُبقي employees و suppliers كبيانات أساسية — المستخدمون مرتبطون
         //  بالموظفين إلزامياً، وحذفهم يكسر الحسابات.)
         $wipe = [
-            'audit_logs', 'extra_charges', 'payments', 'companions', 'reservations', 'guests',
+            'audit_logs', 'extra_charges', 'reservation_segments', 'payments', 'companions', 'reservations', 'guests',
             'refunds', 'room_inspections', 'inspection_images',
             'cash_withdrawals', 'cash_settlements', 'expenses', 'budgets', 'seasonal_prices',
             'salaries', 'attendances', 'leaves', 'shifts',

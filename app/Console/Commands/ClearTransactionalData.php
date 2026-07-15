@@ -24,6 +24,7 @@ class ClearTransactionalData extends Command
         $tables = [
             'audit_logs',
             'extra_charges',
+            'reservation_segments',
             'payments',
             'companions',
             'reservations',

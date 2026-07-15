@@ -61,7 +61,12 @@ class ReservationController extends Controller
         // في بيئة التشغيل، فنُعوّض الأيام المتأخرة انتهازياً عند فتح الصفحة.
         $reservation->applyAutoRenewCatchUp();
 
-        $reservation->load(['guest', 'room.roomType', 'companions', 'payments', 'extraCharges', 'roomInspections.images', 'createdBy', 'adminApproval']);
+        // تعبئة فترات الغرفة للحجوزات القائمة التي أُنشئت قبل ميزة التفصيل (مرّة واحدة)
+        if (!$reservation->segments()->exists() && in_array($reservation->status, ['checked_in', 'checked_out'])) {
+            app(\App\Services\ReservationSegmentService::class)->backfillFromHistory($reservation);
+        }
+
+        $reservation->load(['guest', 'room.roomType', 'companions', 'payments', 'extraCharges', 'roomInspections.images', 'createdBy', 'adminApproval', 'segments']);
         $availableRooms = $reservation->status === 'checked_in'
             ? Room::with('roomType')->where('status', 'available')->orderBy('floor')->orderBy('room_number')->get()
             : collect();
@@ -341,6 +346,10 @@ class ReservationController extends Controller
             $reservation->refresh();
             $reservation->updatePaymentStatus();
 
+            // إعادة بناء فترات الغرفة وفق التسعيرة الجديدة (ليلة أولى + باقي الليالي)
+            app(\App\Services\ReservationSegmentService::class)
+                ->rebuildFromCurrentPricing($reservation, $firstNightPrice, $renewalPrice, $billableNights, auth()->id());
+
             AuditLogService::log('update', $reservation, $old, $reservation->fresh()->toArray(), auth()->user());
 
         } catch (\Illuminate\Database\QueryException $e) {
@@ -429,6 +438,8 @@ class ReservationController extends Controller
         $renewalNote = "[تجديد +{$extraNights} ليلة بسعر " . number_format($pricePerNight, 0) . " ر.ي/ليلة]"
             . (!empty($validated['notes']) ? ': ' . $validated['notes'] : '');
 
+        $oldCheckOut = $reservation->check_out_date->copy();
+
         $reservation->update([
             'check_out_date'          => $validated['new_check_out_date'],
             'total_amount'            => $newTotal,
@@ -438,6 +449,17 @@ class ReservationController extends Controller
                                     ? $reservation->notes . "\n" . $renewalNote
                                     : $renewalNote,
         ]);
+
+        // تسجيل فترة التجديد كسطر مستقل (لعرض تفصيل أسعار الغرفة)
+        app(\App\Services\ReservationSegmentService::class)->recordRenewal(
+            $reservation,
+            $oldCheckOut,
+            $validated['new_check_out_date'],
+            $extraNights,
+            $pricePerNight,
+            $extraAmount,
+            auth()->id()
+        );
 
         if (!empty($validated['advance_payment']) && $validated['advance_payment'] > 0) {
             // ربط دفعة التجديد بالوردية المفتوحة للموظف الحالي حتى تظهر عند إقفالها
@@ -859,7 +881,11 @@ class ReservationController extends Controller
 
     public function invoice(Reservation $reservation)
     {
-        $reservation->load(['guest', 'room.roomType', 'payments.receivedBy', 'extraCharges', 'createdBy', 'roomInspections.images']);
+        if (!$reservation->segments()->exists() && in_array($reservation->status, ['checked_in', 'checked_out'])) {
+            app(\App\Services\ReservationSegmentService::class)->backfillFromHistory($reservation);
+        }
+
+        $reservation->load(['guest', 'room.roomType', 'payments.receivedBy', 'extraCharges', 'createdBy', 'roomInspections.images', 'segments']);
 
         $pdf = pdf_load_view('reservations.invoice', compact('reservation'));
         $pdf->setPaper('a4', 'portrait');

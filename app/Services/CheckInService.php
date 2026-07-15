@@ -8,6 +8,7 @@ use App\Models\Reservation;
 use App\Models\Room;
 use App\Models\User;
 use App\Helpers\StorageHelper;
+use App\Services\ReservationSegmentService;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -21,6 +22,8 @@ class CheckInService
             // عدد الليالي = فرق التواريخ (يوم الخروج لا يُحتسب) — الطريقة الفندقية المعتادة.
             // الإجمالي = سعر الليلة الأولى + (بقية الليالي × سعر الليلة).
             $pricePerNight = isset($data['price_per_night']) ? (float) $data['price_per_night'] : 0;
+            $billedDays = 0;
+            $firstNight = $pricePerNight;
             if ($pricePerNight > 0 && !empty($data['check_in_date']) && !empty($data['check_out_date'])) {
                 $billedDays = max(1, (int) Carbon::parse($data['check_in_date'])->diffInDays($data['check_out_date']));
                 $firstNight = (isset($data['first_night_price']) && $data['first_night_price'] !== '' && $data['first_night_price'] !== null)
@@ -146,6 +149,12 @@ class CheckInService
                 'admin_approval_id'  => $data['payment_status'] === 'deferred'
                                             ? ($data['admin_approval_id'] ?? null) : null,
             ]);
+
+            // 6.5 تسجيل فترة الحجز الأولي (لعرض تفصيل أسعار الغرفة بدل متوسط الليلة)
+            if ($billedDays > 0 && $pricePerNight > 0) {
+                app(ReservationSegmentService::class)
+                    ->recordInitial($reservation, $firstNight, $pricePerNight, $billedDays, $user->id);
+            }
 
             // 7. تحديث حالة الغرف — فقط عند وصول فعلي اليوم، وليس لحجز مستقبلي
             if ($isImmediate) {

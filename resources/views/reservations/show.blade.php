@@ -43,6 +43,11 @@
     $otherNightPrice = $hasFirstNight
         ? round(($grossTotal - (float) $reservation->first_night_price) / ($reservation->nights - 1), 2)
         : $pricePerNight;
+    // فترات الغرفة المفصّلة (الحجز الأولي + التجديدات) — تُعرض بدل متوسط الليلة إذا
+    // كان مجموعها يطابق إجمالي الغرفة قبل الخصم.
+    $roomSegments = $reservation->segments;
+    $showSegments = $roomSegments->isNotEmpty()
+        && abs(round((float) $roomSegments->sum('amount'), 2) - (float) $grossTotal) <= 1.0;
     // سعر ليلة التجديد الافتراضي (قد يختلف عن متوسط سعر الليلة أعلاه) — يُعبّأ
     // مسبقاً في نافذة التجديد ويظل قابلاً للتعديل من الموظف.
     $renewalPrice  = $reservation->effective_renewal_price_per_night;
@@ -363,7 +368,32 @@
                 <h3 class="font-bold text-gray-800 text-sm">الملخص المالي</h3>
             </div>
             <div class="p-4 space-y-2 text-sm">
-                @if($hasFirstNight)
+                @if($showSegments)
+                {{-- تفصيل فترات الغرفة: الحجز الأولي + كل تجديد بتاريخه وسعره --}}
+                <div class="rounded-xl border border-gray-100 bg-gray-50 divide-y divide-gray-100 mb-1">
+                    @php $renewalNo = 0; @endphp
+                    @foreach($roomSegments as $seg)
+                    @php if($seg->type === 'renewal') $renewalNo++; @endphp
+                    <div class="flex items-start justify-between gap-2 px-3 py-2">
+                        <div class="min-w-0">
+                            <p class="font-semibold {{ $seg->type === 'renewal' ? 'text-blue-700' : 'text-purple-700' }} text-xs">
+                                {{ $seg->type_label }}@if($seg->type === 'renewal' && $roomSegments->where('type','renewal')->count() > 1) {{ $renewalNo }}@endif
+                            </p>
+                            <p class="text-xs text-gray-400 mt-0.5" dir="ltr">
+                                {{ $seg->start_date->format('d/m') }} ← {{ $seg->end_date->format('d/m') }}
+                                <span class="text-gray-300">|</span>
+                                {{ $seg->nights }} × {{ number_format($seg->price_per_night, 0) }}
+                            </p>
+                        </div>
+                        <span class="font-bold text-gray-800 whitespace-nowrap">{{ number_format($seg->amount, 0) }} {{ $reservation->currency_symbol }}</span>
+                    </div>
+                    @endforeach
+                    <div class="flex justify-between items-center px-3 py-2 bg-white">
+                        <span class="text-xs font-bold text-gray-600">إجمالي الغرفة ({{ $roomSegments->sum('nights') }} ليلة)</span>
+                        <span class="font-black text-gray-800">{{ number_format($roomSegments->sum('amount'), 0) }} {{ $reservation->currency_symbol }}</span>
+                    </div>
+                </div>
+                @elseif($hasFirstNight)
                 <div class="flex justify-between items-center">
                     <span class="text-gray-500">سعر الليلة الأولى</span>
                     <span class="font-semibold text-purple-700">{{ number_format($reservation->first_night_price, 0) }} {{ $reservation->currency_symbol }}</span>

@@ -87,6 +87,15 @@ class Reservation extends Model
         return $this->hasMany(ExtraCharge::class);
     }
 
+    /**
+     * فترات محاسبة الغرفة (الحجز الأولي + التجديدات) مرتّبةً زمنياً — تُستخدم لعرض
+     * تفصيل أسعار الغرفة بدل متوسط الليلة.
+     */
+    public function segments()
+    {
+        return $this->hasMany(ReservationSegment::class)->orderBy('start_date')->orderBy('id');
+    }
+
     public function refunds()
     {
         return $this->hasMany(Refund::class);
@@ -334,6 +343,7 @@ class Reservation extends Model
               . $newCheckOut->format('Y/m/d') . ']';
 
         $old = $this->only(['check_out_date', 'total_amount']);
+        $oldCheckOut = $this->check_out_date->copy();
 
         $this->update([
             'check_out_date'  => $newCheckOut->toDateString(),
@@ -342,6 +352,11 @@ class Reservation extends Model
             'notes'           => $this->notes ? $this->notes . "\n" . $note : $note,
         ]);
         $this->refresh()->updatePaymentStatus();
+
+        // تسجيل فترة التجديد التلقائي كسطر مستقل (لعرض تفصيل أسعار الغرفة)
+        app(\App\Services\ReservationSegmentService::class)->recordRenewal(
+            $this, $oldCheckOut, $newCheckOut, $added, $pricePerNight, $extraAmount, null
+        );
 
         \App\Services\AuditLogService::log('update', $this, $old, [
             'auto_renew_nights' => $added,

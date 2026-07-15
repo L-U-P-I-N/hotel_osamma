@@ -252,6 +252,11 @@ table.mini td { padding: 5px 9px; border-bottom: 1px solid #f0ece0; text-align: 
     $otherNightPrice = $hasFirstNight
         ? round(($grossTotal - $firstNightPrice) / ($nights - 1), 0)
         : $pricePerNight;
+    // فترات الغرفة المفصّلة (الحجز الأولي + التجديدات) — تُعرض كبنود منفصلة إذا
+    // تطابق مجموعها مع إجمالي الغرفة قبل الخصم.
+    $roomSegments = $reservation->segments;
+    $showSegments = $roomSegments->isNotEmpty()
+        && abs(round((float) $roomSegments->sum('amount'), 2) - (float) $grossTotal) <= 1.0;
     $extraTotal    = $reservation->extraCharges->sum('amount');
     $subtotal      = $roomTotal + $extraTotal;
     $discount      = (float)($reservation->discount_amount ?? 0);
@@ -332,7 +337,22 @@ table.mini td { padding: 5px 9px; border-bottom: 1px solid #f0ece0; text-align: 
       </tr>
     </thead>
     <tbody>
-      @if($hasFirstNight)
+      @if($showSegments)
+      @php $renewalNo = 0; $renewalCount = $roomSegments->where('type','renewal')->count(); @endphp
+      @foreach($roomSegments as $seg)
+      @php if($seg->type === 'renewal') $renewalNo++; @endphp
+      <tr>
+        <td class="c">{{ number_format($seg->amount, 0) }} {{ $cur }}</td>
+        <td class="c">{{ number_format($seg->price_per_night, 0) }} {{ $cur }}</td>
+        <td class="c">{{ $seg->nights }} × ليلة</td>
+        <td>
+          @if($seg->type === 'renewal')تجديد @if($renewalCount > 1){{ $renewalNo }} @endif@else إقامة (الحجز الأولي) @endif
+          — غرفة {{ $reservation->display_room_number }}
+          <span class="muted">({{ $seg->start_date->format('d/m') }} → {{ $seg->end_date->format('d/m') }})</span>
+        </td>
+      </tr>
+      @endforeach
+      @elseif($hasFirstNight)
       <tr>
         <td class="c">{{ number_format($firstNightPrice, 0) }} {{ $cur }}</td>
         <td class="c">{{ number_format($firstNightPrice, 0) }} {{ $cur }}</td>
