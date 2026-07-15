@@ -910,7 +910,8 @@ html.dark [style*="background:var(--gold-l)"] {
                         </div>
                         <div>
                             <label class="fl text-xs">وقت المغادرة</label>
-                            <input type="time" name="check_out_time" x-model="checkOutTime" class="fi">
+                            <input type="time" name="check_out_time" x-model="checkOutTime" @input="calcTotal()" class="fi">
+                            <p class="text-xs text-gray-400 mt-1">الخروج 1 ظهراً أو بعده يُحتسب يوماً إضافياً</p>
                         </div>
                     </div>
                 </div>
@@ -921,8 +922,8 @@ html.dark [style*="background:var(--gold-l)"] {
                 <div class="h-px bg-gray-100"></div>
                 <div class="flex gap-2">
                     <div class="stat-box bg-blue-50 border border-blue-100">
-                        <div class="text-xl font-black text-blue-700" x-text="Math.max(1, nights)"></div>
-                        <div class="text-xs text-blue-400 font-semibold mt-0.5">ليلة</div>
+                        <div class="text-xl font-black text-blue-700" x-text="billedDays()"></div>
+                        <div class="text-xs text-blue-400 font-semibold mt-0.5">يوم</div>
                     </div>
                     <div class="stat-box bg-amber-50 border border-amber-100 relative">
                         <div class="text-lg font-black text-amber-700 leading-tight" x-text="formatNumber(effectiveRoomPrice())"></div>
@@ -979,7 +980,7 @@ html.dark [style*="background:var(--gold-l)"] {
                         </p>
                         <p x-show="firstNightPrice !== null && firstNightPrice !== ''" class="text-xs font-bold text-purple-800">
                             <span x-text="'الليلة الأولى: ' + formatNumber(parseFloat(firstNightPrice) || 0)"></span>
-                            <span x-show="nights > 1" x-text="' + ' + (nights - 1) + ' ليلة × ' + formatNumber(effectiveRoomPrice())"></span>
+                            <span x-show="billedDays() > 1" x-text="' + ' + (billedDays() - 1) + ' يوم × ' + formatNumber(effectiveRoomPrice())"></span>
                             <span x-text="' = ' + formatNumber(totalAmount) + ' ر.ي'"></span>
                         </p>
                     </div>
@@ -1181,7 +1182,7 @@ html.dark [style*="background:var(--gold-l)"] {
                     <div class="rev-row" x-show="checkInTime"><span>وقت الوصول</span><span x-text="checkInTime"></span></div>
                     <div class="rev-row"><span>تاريخ الخروج</span><span x-text="checkOutDate || '—'"></span></div>
                     <div class="rev-row" x-show="checkOutTime"><span>وقت المغادرة</span><span x-text="checkOutTime"></span></div>
-                    <div class="rev-row"><span>عدد الليالي</span><span x-text="Math.max(1, nights)"></span></div>
+                    <div class="rev-row"><span>عدد الأيام</span><span x-text="billedDays()"></span></div>
                 </div>
 
                 {{-- Companions --}}
@@ -1790,6 +1791,21 @@ function checkInForm() {
             }
         },
 
+        // يُحتسب يوم الخروج إذا كان وقت الخروج عند الساعة 1 ظهراً (13:00) أو بعده
+        checkoutDayBilled() {
+            const t = this.checkOutTime;
+            if (!t) return true; // بدون وقت = الخروج القياسي 1 ظهراً
+            const parts = String(t).split(':');
+            const h = parseInt(parts[0]) || 0;
+            const m = parseInt(parts[1]) || 0;
+            return (h * 60 + m) >= 13 * 60;
+        },
+
+        // عدد أيام المحاسبة = فرق التواريخ + (يوم الخروج إن كان 1م أو بعده)، بحد أدنى 1
+        billedDays() {
+            return Math.max(1, this.nights + (this.checkoutDayBilled() ? 1 : 0));
+        },
+
         calcTotal() {
             if (this.checkInDate && this.checkOutDate) {
                 const d1 = new Date(this.checkInDate), d2 = new Date(this.checkOutDate);
@@ -1813,9 +1829,9 @@ function checkInForm() {
                 }
                 this.nights     = Math.max(0, Math.floor((d2c - d1) / 86400000));
                 this.nightsInput = this.nights || 1;
-                // عدد الليالي = فرق التواريخ (يوم الخروج لا يُحتسب)؛ حد أدنى ليلة واحدة
-                // لحالة الدخول والخروج في اليوم نفسه. الطريقة الفندقية المعتادة.
-                const days = Math.max(1, this.nights);
+                // عدد الأيام حسب وقت الخروج نسبةً لحد 1 ظهراً: يُحتسب يوم الخروج إن كان
+                // الخروج 1م أو بعده، وإلا لا. بحد أدنى يوم واحد.
+                const days = this.billedDays();
                 const perNight = this.effectiveRoomPrice();
                 // الإجمالي = سعر الليلة الأولى + (بقية الليالي × سعر الليلة). لليلة
                 // واحدة يُدفَع سعر الليلة الأولى فقط. (يطابق حساب الخادم تماماً)

@@ -170,9 +170,9 @@ class ReservationController extends Controller
             '_key'           => $c->id,
         ])->values()->toArray();
 
-        // عدد الليالي = فرق التواريخ (يوم الخروج لا يُحتسب) — لتوحيد اشتقاق سعر الليلة
+        // عدد الأيام حسب وقت الخروج (حد 1 ظهراً) — لتوحيد اشتقاق سعر الليلة
         $nights = ($reservation->check_in_date && $reservation->check_out_date)
-            ? max(1, (int) $reservation->check_in_date->diffInDays($reservation->check_out_date))
+            ? $reservation->nights
             : 0;
         // سعر الليلة الأولى في نموذج التعديل: إن كان محفوظاً صراحةً نستخدمه كما هو
         // (حتى لا ينحرف الإجمالي عند إعادة الحفظ)، وإلا نشتقّه من إجمالي الغرفة قبل
@@ -296,9 +296,13 @@ class ReservationController extends Controller
                 }
             }
 
-            // عدد الليالي = فرق التواريخ (يوم الخروج لا يُحتسب)؛ المبيت نفس اليوم =
-            // ليلة واحدة كحد أدنى. الطريقة الفندقية المعتادة (عدد المبيتات).
-            $billableNights = max(1, (int) Carbon::parse($validated['check_in_date'])->diffInDays($validated['check_out_date']));
+            // عدد الأيام حسب وقت الخروج نسبةً لحد 1 ظهراً (يُحتسب يوم الخروج إن كان 1م
+            // أو بعده). وقت الخروج لا يُعدَّل من هذا النموذج فنستخدم المحفوظ في الحجز.
+            $billableNights = Reservation::billableNightsFor(
+                $validated['check_in_date'],
+                $validated['check_out_date'],
+                $reservation->check_out_time
+            );
 
             // نموذج التسعير: الليلة الأولى بسعرها الخاص + بقية الليالي (بما فيها كل
             // التجديدات) بسعر التجديد. لذا تعديل سعر التجديد هنا يعيد حساب كامل مدة

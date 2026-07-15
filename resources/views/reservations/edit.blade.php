@@ -424,13 +424,15 @@ function editReservation() {
         customPrice: {{ old('price_per_night', $currentPricePerNight) }},
         companions: @json($companionsData),
         _nextKey: {{ $reservation->companions->count() + 1 }},
+        // يُحتسب يوم الخروج حسب وقت الخروج المحفوظ (حد 1 ظهراً) — لا يُعدَّل من هذا النموذج
+        checkoutDayBilled: {{ \App\Models\Reservation::checkoutDayIsBilled($reservation->check_out_time) ? 'true' : 'false' }},
 
         get nights() {
-            // عدد الليالي = فرق التواريخ (يوم الخروج لا يُحتسب)؛ حد أدنى ليلة واحدة
-            // لحالة الدخول والخروج في اليوم نفسه. الطريقة الفندقية المعتادة.
+            // عدد الأيام = فرق التواريخ + (يوم الخروج إن كان 1 ظهراً أو بعده)، بحد أدنى يوم
             if (!this.checkIn || !this.checkOut) return 0;
             const d = Math.floor((new Date(this.checkOut) - new Date(this.checkIn)) / 86400000);
-            return d > 0 ? d : (d === 0 ? 1 : 0);
+            const base = d > 0 ? d : 0;
+            return Math.max(1, base + (this.checkoutDayBilled ? 1 : 0));
         },
         get total() { return this.nights * (this.customPrice > 0 ? this.customPrice : this.basePrice); },
 

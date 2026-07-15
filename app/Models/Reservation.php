@@ -259,14 +259,48 @@ class Reservation extends Model
     }
 
     /**
-     * عدد ليالي المحاسبة = فرق التواريخ (عدد المبيتات) — الطريقة الفندقية المعتادة:
-     * يوم الخروج لا يُحتسب. فالدخول 14/07 والخروج 15/07 = ليلة واحدة، والدخول
-     * 11/07 والخروج 14/07 = 3 ليالٍ. نضمن حداً أدنى ليلة واحدة لحالة الدخول
-     * والخروج في اليوم نفسه (فرق = 0). يبقى الاسم "nights" ويمثّل عدد الليالي.
+     * عدد أيام المحاسبة حسب وقت الخروج نسبةً لحد الساعة 1 ظهراً (AUTO_RENEW_BOUNDARY_HOUR):
+     * فرق التواريخ + يوم إضافي إذا كان الخروج عند 1 ظهراً أو بعده (لأن النزيل استخدم
+     * الغرفة في يوم الخروج أيضاً)، وإلا لا يُحتسب يوم الخروج. بحد أدنى يوم واحد.
+     * أمثلة: دخول 11 وخروج 14 (13:00) = 4 أيام؛ دخول 14 وخروج 15 صباحاً = يوم واحد.
      */
     public function getNightsAttribute(): int
     {
-        return max(1, (int) $this->check_in_date->diffInDays($this->check_out_date));
+        return self::billableNightsFor($this->check_in_date, $this->check_out_date, $this->check_out_time);
+    }
+
+    /**
+     * يحسب عدد أيام المحاسبة من تاريخي الدخول/الخروج ووقت الخروج، وفق قاعدة حد
+     * الساعة 1 ظهراً. مصدر موحّد يُستخدَم في النموذج وخدمات التسجيل والتعديل.
+     */
+    public static function billableNightsFor($checkInDate, $checkOutDate, $checkOutTime = null): int
+    {
+        $in   = \Carbon\Carbon::parse($checkInDate)->startOfDay();
+        $out  = \Carbon\Carbon::parse($checkOutDate)->startOfDay();
+        $days = (int) $in->diffInDays($out);
+
+        if (self::checkoutDayIsBilled($checkOutTime)) {
+            $days += 1;
+        }
+
+        return max(1, $days);
+    }
+
+    /**
+     * هل يُحتسب يوم الخروج؟ نعم إذا كان وقت الخروج عند الساعة 1 ظهراً أو بعدها.
+     * عند غياب وقت الخروج نفترض الخروج القياسي (1 ظهراً) فيُحتسب.
+     */
+    public static function checkoutDayIsBilled($checkOutTime): bool
+    {
+        if ($checkOutTime === null || $checkOutTime === '') {
+            return true;
+        }
+        try {
+            $t = \Carbon\Carbon::parse($checkOutTime);
+        } catch (\Throwable $e) {
+            return true;
+        }
+        return ($t->hour * 60 + $t->minute) >= self::AUTO_RENEW_BOUNDARY_HOUR * 60;
     }
 
     /**

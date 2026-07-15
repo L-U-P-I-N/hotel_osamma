@@ -19,13 +19,13 @@ class CheckInService
         return DB::transaction(function () use ($data, $user) {
 
             // إعادة حساب الإجمالي على الخادم كمصدر موثوق (بدل الاعتماد على حساب المتصفح):
-            // عدد الليالي = فرق التواريخ (يوم الخروج لا يُحتسب) — الطريقة الفندقية المعتادة.
-            // الإجمالي = سعر الليلة الأولى + (بقية الليالي × سعر الليلة).
+            // عدد الأيام حسب وقت الخروج نسبةً لحد 1 ظهراً (يُحتسب يوم الخروج إن كان 1م أو بعده).
+            // الإجمالي = سعر الليلة الأولى + (بقية الأيام × سعر الليلة).
             $pricePerNight = isset($data['price_per_night']) ? (float) $data['price_per_night'] : 0;
             $billedDays = 0;
             $firstNight = $pricePerNight;
             if ($pricePerNight > 0 && !empty($data['check_in_date']) && !empty($data['check_out_date'])) {
-                $billedDays = max(1, (int) Carbon::parse($data['check_in_date'])->diffInDays($data['check_out_date']));
+                $billedDays = Reservation::billableNightsFor($data['check_in_date'], $data['check_out_date'], $data['check_out_time'] ?? null);
                 $firstNight = (isset($data['first_night_price']) && $data['first_night_price'] !== '' && $data['first_night_price'] !== null)
                     ? (float) $data['first_night_price']
                     : $pricePerNight;
