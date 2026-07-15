@@ -295,6 +295,37 @@
 </table>
 @endif
 
+{{-- النزلاء المسجّلين للدخول --}}
+@php $checkedInGuests = $checkedInGuests ?? collect(); @endphp
+@if($checkedInGuests->isNotEmpty())
+<h2>النزلاء المسجّلين للدخول</h2>
+<table class="data" dir="rtl">
+    {{-- أعمدة معكوسة لتُقرأ من اليمين لليسار --}}
+    <thead>
+        <tr>
+            <th>وقت الدخول</th>
+            <th>تاريخ الخروج</th>
+            <th>تاريخ الدخول</th>
+            <th>الغرفة</th>
+            <th>النزيل</th>
+            <th>#</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach($checkedInGuests as $i => $res)
+        <tr>
+            <td class="ltr">{{ $res->check_in_time ?? '—' }}</td>
+            <td>{{ $res->check_out_date?->format('d/m/Y') ?? '—' }}</td>
+            <td>{{ $res->check_in_date?->format('d/m/Y') ?? '—' }}</td>
+            <td class="center">{{ $res->room?->display_room_number ?? '—' }}</td>
+            <td>{{ $res->guest?->full_name ?? '—' }}</td>
+            <td class="center">{{ $i + 1 }}</td>
+        </tr>
+        @endforeach
+    </tbody>
+</table>
+@endif
+
 {{-- Summary --}}
 <div class="summary-box">
     <h3>ملخص الوردية</h3>

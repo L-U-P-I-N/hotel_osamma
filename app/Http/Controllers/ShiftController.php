@@ -265,7 +265,18 @@ class ShiftController extends Controller
             'refunds' => fn($q) => $q->with(['reservation' => fn($q2) => $q2->withTrashed(), 'reservation.guest', 'reservation.room']),
         ]);
 
-        $pdf = pdf_load_view('shifts.report_pdf', compact('shift'));
+        // النزلاء الذين تم تسجيل دخولهم خلال هذه الوردية
+        // (عبر الحجوزات التي لها فترات مرتبطة بالوردية)
+        $checkedInGuests = \App\Models\Reservation::distinct()
+            ->select('reservations.*')
+            ->join('reservation_segments', 'reservations.id', '=', 'reservation_segments.reservation_id')
+            ->where('reservation_segments.shift_id', $shift->id)
+            ->where('reservation_segments.type', 'initial')
+            ->with(['guest', 'room'])
+            ->orderBy('reservations.created_at')
+            ->get();
+
+        $pdf = pdf_load_view('shifts.report_pdf', compact('shift', 'checkedInGuests'));
         $pdf->setPaper('a4', 'portrait');
 
         $dompdf = $pdf->getDomPDF();
