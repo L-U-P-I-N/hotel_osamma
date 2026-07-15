@@ -23,18 +23,29 @@ class ReservationSegmentService
     {
         $nights = max(1, $nights);
         $start  = $reservation->check_in_date->copy();
+        // نهاية الحجز الأولي = تاريخ الخروج الفعلي، لا (الوصول + الليالي): فالمبيت
+        // نفس اليوم (وصول فجراً وخروج ظهراً) يُعرَض 11→11 لا 11→12، وأي تجديد لاحق
+        // يمدّد يوماً كاملاً حتى الخروج.
+        $end = $reservation->check_out_date->copy();
+        if ($end->lt($start)) {
+            $end = $start->copy();
+        }
 
         if ($nights > 1 && round($firstNight, 2) != round($restPrice, 2)) {
             // فترة الليلة الأولى بسعرها الخاص
-            $this->create($reservation, 'initial', $start, $start->copy()->addDay(), 1, $firstNight, $firstNight, $userId);
+            $firstEnd = $start->copy()->addDay();
+            if ($firstEnd->gt($end)) {
+                $firstEnd = $end->copy();
+            }
+            $this->create($reservation, 'initial', $start, $firstEnd, 1, $firstNight, $firstNight, $userId);
             // باقي ليالي الحجز الأولي بسعر الليلة العادي
             $rest = $nights - 1;
-            $this->create($reservation, 'initial', $start->copy()->addDay(), $start->copy()->addDays($nights), $rest, $restPrice, round($rest * $restPrice, 2), $userId);
+            $this->create($reservation, 'initial', $firstEnd, $end, $rest, $restPrice, round($rest * $restPrice, 2), $userId);
         } else {
-            // سعر موحّد لكل ليالي الحجز الأولي (أو ليلة واحدة)
+            // سعر موحّد لكل ليالي الحجز الأولي (أو ليلة واحدة/يوم الوصول)
             $price  = $nights === 1 ? $firstNight : $restPrice;
             $amount = round($firstNight + max(0, $nights - 1) * $restPrice, 2);
-            $this->create($reservation, 'initial', $start, $start->copy()->addDays($nights), $nights, $price, $amount, $userId);
+            $this->create($reservation, 'initial', $start, $end, $nights, $price, $amount, $userId);
         }
     }
 
@@ -112,15 +123,21 @@ class ReservationSegmentService
             ? (float) $reservation->first_night_price
             : round($initialAmount / $initialNights, 2);
 
-        // نبني الفترات متسلسلةً من تاريخ الدخول
-        $rows   = [];
-        $cursor = $reservation->check_in_date->copy();
+        // نبني الفترات بحيث ينتهي آخر تجديد عند تاريخ الخروج بالضبط (تسلسل مثبَّت من
+        // الخروج للخلف): فيصبح الحجز الأولي في يوم الوصول نفسه (11→11 لمن جاء فجراً
+        // وخرج ظهراً)، ثم كل تجديد يوماً كاملاً — دون تجاوز تاريخ الخروج.
+        $checkIn    = $reservation->check_in_date->copy();
+        $initialEnd = $reservation->check_out_date->copy()->subDays($renewalNights);
+        if ($initialEnd->lt($checkIn)) {
+            $initialEnd = $checkIn->copy(); // بيانات غير متّسقة: نُبقي الأولي في يوم الوصول
+        }
 
+        $rows   = [];
         $rows[] = [
-            'type' => 'initial', 'start' => $cursor->copy(), 'end' => $cursor->copy()->addDays($initialNights),
+            'type' => 'initial', 'start' => $checkIn->copy(), 'end' => $initialEnd->copy(),
             'nights' => $initialNights, 'price' => $initialPrice, 'amount' => $initialAmount,
         ];
-        $cursor = $cursor->copy()->addDays($initialNights);
+        $cursor = $initialEnd->copy();
 
         foreach ($renewals as $r) {
             $rows[] = [
