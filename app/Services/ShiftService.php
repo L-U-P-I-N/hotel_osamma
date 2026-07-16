@@ -321,6 +321,24 @@ class ShiftService
             ->get();
     }
 
+    /**
+     * الورديات المقفلة (لأي موظف) القابلة لإعادة الفتح فعلياً — أي أن صاحبها لا
+     * يملك وردية مفتوحة حالياً (نفس الشرط الذي تتحقّق منه reopenShift). تُستخدم
+     * لعرض قائمة موحّدة للمدير يستطيع منها إعادة فتح وردية أي موظف، بدل الاقتصار
+     * على تاريخ ورديات المستخدم الحالي وحده.
+     */
+    public function getReopenableShifts(int $limit = 40): Collection
+    {
+        $usersWithOpenShift = Shift::where('is_closed', false)->pluck('user_id')->unique();
+
+        return Shift::with('user')
+            ->where('is_closed', true)
+            ->whereNotIn('user_id', $usersWithOpenShift)
+            ->orderByDesc('shift_date')->orderByDesc('id')
+            ->limit($limit)
+            ->get();
+    }
+
     public function deductFromSalary(Shift $shift, User $requestingUser): void
     {
         if (!$shift->is_closed) {

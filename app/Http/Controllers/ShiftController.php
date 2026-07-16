@@ -33,6 +33,16 @@ class ShiftController extends Controller
         $allActive       = $user->isAdmin() ? $this->service->getAllActiveShifts() : collect();
         $allUsersStatus  = $user->isAdmin() ? $this->service->getAllUsersShiftStatus() : collect();
 
+        // الورديات المقفلة لكل الموظفين القابلة لإعادة الفتح — كانت "الوردية
+        // الأخيرة" تعرض تاريخ المستخدم الحالي فقط، فلا يرى صاحب صلاحية
+        // shifts.reopen زر إعادة الفتح إطلاقاً لوردية موظف آخر (حتى لو كانت
+        // الصلاحية ممنوحة له فعلياً).
+        $canReopen = $user->can('shifts.reopen') || $user->isAdmin();
+        // نستبعد ورديات المستخدم الحالي — تظهر أصلاً في جدول "الوردية الأخيرة" أعلاه.
+        $reopenableShifts = $canReopen
+            ? $this->service->getReopenableShifts()->where('user_id', '!=', $user->id)->values()
+            : collect();
+
         // الورديات الصالحة كوجهة لنقل الدفعات — تشمل المفتوحة والمقفلة الحديثة،
         // لأن الدفعة المُساءة الإسناد غالباً تخصّ وردية سابقة مقفلة.
         $canReassign = $user->can('payments.create') || $user->isAdmin();
@@ -54,7 +64,7 @@ class ShiftController extends Controller
                 ->get();
         }
 
-        return view('shifts.index', compact('activeShift', 'recentShifts', 'allActive', 'allUsersStatus', 'reassignTargets', 'orphanPayments'));
+        return view('shifts.index', compact('activeShift', 'recentShifts', 'allActive', 'allUsersStatus', 'reassignTargets', 'orphanPayments', 'reopenableShifts'));
     }
 
     public function attachOrphans(Request $request)

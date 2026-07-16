@@ -521,6 +521,51 @@
 </div>
 @endif
 
+{{-- ورديات موظفين آخرين قابلة لإعادة الفتح — الجدول أعلاه يعرض ورديات المستخدم
+     الحالي فقط، فمن يملك صلاحية shifts.reopen ولا يجد الزر هناك يقصد غالباً
+     وردية موظف آخر لا تظهر في تاريخه الشخصي. --}}
+@can('shifts.reopen')
+@if($reopenableShifts->isNotEmpty())
+<div class="mt-5 bg-white rounded-xl shadow-sm border border-gray-100">
+    <div class="px-5 py-3 border-b border-gray-100">
+        <h3 class="font-semibold text-gray-700 text-sm">إعادة فتح وردية موظف آخر</h3>
+        <p class="text-xs text-gray-400 mt-0.5">ورديات مقفلة لموظفين لا يملكون وردية مفتوحة حالياً</p>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50"><tr>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الموظف</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">التاريخ</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">وقت الإقفال</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الصافي (ر.ي)</th>
+                <th class="px-4 py-3"></th>
+            </tr></thead>
+            <tbody class="divide-y divide-gray-50">
+                @foreach($reopenableShifts as $s)
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 font-medium text-gray-700">{{ $s->user?->name ?? '—' }}</td>
+                    <td class="px-4 py-3 text-gray-600">{{ $s->shift_date->format('d/m/Y') }}</td>
+                    <td class="px-4 py-3 text-gray-500 text-xs">{{ $s->closed_at?->format('d/m/Y H:i') ?? '—' }}</td>
+                    <td class="px-4 py-3 font-bold {{ $s->net_balance_yer >= 0 ? 'text-primary-700' : 'text-red-700' }}">
+                        {{ number_format($s->net_balance_yer, 0) }}
+                    </td>
+                    <td class="px-4 py-3">
+                        <button type="button"
+                                @click="reopenModal = { id: {{ $s->id }}, url: '{{ route('shifts.reopen', $s) }}', date: '{{ $s->shift_date->format('d/m/Y') }} — {{ $s->user?->name }}' }"
+                                class="flex items-center gap-1 px-2 py-1 border border-amber-300 text-amber-700 rounded text-xs hover:bg-amber-50 transition">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
+                            فتح
+                        </button>
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+</div>
+@endif
+@endcan
+
 {{-- Modal: تعديل سحب --}}
 @can('withdrawal.edit')
 <div x-show="editWithdrawal !== null" x-cloak class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="editWithdrawal=null">
