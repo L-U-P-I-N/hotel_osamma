@@ -150,6 +150,13 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // Payments
+    // دفعة موحدة لعدة حجوزات (شخص واحد يدفع لعدة حجوزات فيُوزَّع المبلغ عليها)
+    Route::middleware('permission:payments.create')->group(function () {
+        Route::get('/payments/group', [\App\Http\Controllers\GroupPaymentController::class, 'create'])->name('payments.group.create');
+        Route::get('/payments/group/search', [\App\Http\Controllers\GroupPaymentController::class, 'search'])->name('payments.group.search');
+        Route::post('/payments/group', [\App\Http\Controllers\GroupPaymentController::class, 'store'])->name('payments.group.store');
+    });
+
     Route::post('/payments', [PaymentController::class, 'store'])
         ->name('payments.store')
         ->middleware('permission:payments.create');

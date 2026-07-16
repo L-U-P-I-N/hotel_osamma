@@ -223,6 +223,14 @@
             </a>
             @endcan
 
+            @can('payments.create')
+            <a href="{{ route('payments.group.create') }}"
+               class="nav-link {{ request()->routeIs('payments.group.*') ? 'active' : '' }}">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m3-6h8a2 2 0 012 2v6a2 2 0 01-2 2h-8a2 2 0 01-2-2V9a2 2 0 012-2z"/></svg>
+                دفعة موحدة
+            </a>
+            @endcan
+
             <!-- إدارة -->
             <div class="nav-section-label mt-2">إدارة</div>
 

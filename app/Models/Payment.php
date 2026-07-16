@@ -10,7 +10,7 @@ class Payment extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'reservation_id','shift_id','received_by','amount','currency','method',
+        'reservation_id','group_id','paid_by_name','shift_id','received_by','amount','currency','method',
         'bank_receipt_path','bank_transfer_ref','payment_date','type','notes',
     ];
 
