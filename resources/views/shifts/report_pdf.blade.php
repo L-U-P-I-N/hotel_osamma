@@ -330,7 +330,7 @@
             <td class="ltr">{{ $res->check_in_time ?? '—' }}</td>
             <td>{{ $res->check_out_date?->format('d/m/Y') ?? '—' }}</td>
             <td>{{ $res->check_in_date?->format('d/m/Y') ?? '—' }}</td>
-            <td class="center">{{ $res->room?->display_room_number ?? '—' }}</td>
+            <td class="center">{{ $res->display_room_number }}</td>
             <td>{{ $res->guest?->full_name ?? '—' }}</td>
             <td class="center">{{ $i + 1 }}</td>
         </tr>
