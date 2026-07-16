@@ -286,11 +286,14 @@
                            :checked="selectedOrphans.length === {{ $orphanPayments->count() }}"
                            class="rounded border-gray-300 text-amber-600 focus:ring-amber-500">
                 </th>
-                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">التاريخ</th>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">تاريخ ووقت المستلمة</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الغرفة / النزيل</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المبلغ</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">النوع</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">استلمها</th>
+                @if($reassignTargets->isNotEmpty())
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">نقل إلى وردية محدَّدة</th>
+                @endif
             </tr></thead>
             <tbody class="divide-y divide-gray-50">
                 @foreach($orphanPayments as $op)
@@ -299,7 +302,9 @@
                         <input type="checkbox" value="{{ $op->id }}" x-model.number="selectedOrphans"
                                class="rounded border-gray-300 text-amber-600 focus:ring-amber-500">
                     </td>
-                    <td class="px-4 py-2 text-gray-400 text-xs">{{ $op->payment_date->format('d/m H:i') }}</td>
+                    {{-- تاريخ ووقت المستلمة كاملاً (يوم/شهر/سنة) — يحدّد الموظف منه أي
+                         وردية تخصّها المستلمة فعلياً قبل نقلها إليها. --}}
+                    <td class="px-4 py-2 text-gray-500 text-xs whitespace-nowrap">{{ $op->payment_date->format('d/m/Y H:i') }}</td>
                     <td class="px-4 py-2 text-gray-700 text-xs">
                         <span class="font-medium">{{ $op->reservation?->display_room_number ?? '—' }}</span>
                         <span class="text-gray-400 mr-1">{{ $op->reservation?->guest?->full_name ?? '' }}</span>
@@ -307,6 +312,26 @@
                     <td class="px-4 py-2 font-semibold text-green-700 whitespace-nowrap">{{ number_format($op->amount, 0) }} {{ $op->currency }}</td>
                     <td class="px-4 py-2 text-gray-500 text-xs">{{ match($op->type) { 'reservation'=>'حجز','renewal'=>'تجديد', default=>$op->type } }}</td>
                     <td class="px-4 py-2 text-gray-500 text-xs">{{ $op->receivedBy?->name ?? '—' }}</td>
+                    @if($reassignTargets->isNotEmpty())
+                    <td class="px-4 py-2">
+                        <form method="POST" action="{{ route('shifts.reassignPayment', $op) }}" class="flex items-center gap-1.5"
+                              onsubmit="return confirm('نقل هذه المستلمة إلى الوردية المحددة؟')">
+                            @csrf @method('PATCH')
+                            <select name="target_shift_id" required
+                                    class="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:ring-1 focus:ring-amber-500 outline-none max-w-[160px]">
+                                <option value="">اختر وردية...</option>
+                                @foreach($reassignTargets as $rt)
+                                <option value="{{ $rt->id }}">
+                                    {{ $rt->shift_date->format('d/m/Y') }} — {{ $rt->user?->name }}@if($rt->is_closed) (مقفلة)@endif
+                                </option>
+                                @endforeach
+                            </select>
+                            <button type="submit" class="text-xs px-2 py-1 rounded-lg bg-gray-700 text-white hover:bg-gray-800 transition whitespace-nowrap">
+                                نقل
+                            </button>
+                        </form>
+                    </td>
+                    @endif
                 </tr>
                 @endforeach
             </tbody>

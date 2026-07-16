@@ -98,6 +98,28 @@ class ShiftController extends Controller
         }
     }
 
+    /**
+     * نقل مستلمة (غير مرتبطة بوردية، أو مرتبطة بوردية خطأ) إلى وردية محدَّدة
+     * بعينها — يُستخدم عندما تخصّ المستلمة تاريخاً سابقاً فتُنسَب لورديتها
+     * الصحيحة بدل الوردية المفتوحة حالياً فقط.
+     */
+    public function reassignPayment(Request $request, \App\Models\Payment $payment)
+    {
+        $request->validate([
+            'target_shift_id' => 'required|exists:shifts,id',
+        ], [
+            'target_shift_id.required' => 'يجب اختيار الوردية المستهدفة',
+        ]);
+
+        try {
+            $targetShift = Shift::findOrFail($request->target_shift_id);
+            $this->service->reassignPayment($payment, $targetShift, auth()->user());
+            return back()->with('success', 'تم نقل المستلمة إلى وردية ' . $targetShift->shift_date->format('d/m/Y') . ' (' . ($targetShift->user?->name ?? '—') . ') بنجاح');
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
+        }
+    }
+
     public function addWithdrawal(Request $request)
     {
         $isExchange = $request->input('withdrawal_type') === 'currency_exchange';
