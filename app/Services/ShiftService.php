@@ -114,6 +114,35 @@ class ShiftService
     }
 
     /**
+     * نقل سحب (مصروف/صرف عملة) إلى وردية محدَّدة بعينها — يُستخدم عندما يكون
+     * السحب منسوباً خطأً لوردية غير التي يخصّها تاريخه فعلياً (مثال: مصروف
+     * بتاريخ سابق سُجِّل بينما الوردية المفتوحة يومها كانت وردية لاحقة). إن كان
+     * السحب مرتبطاً بمصروف (Expense) نُحدّث نسبته أيضاً حتى يبقى متّسقاً معه.
+     */
+    public function reassignWithdrawal(CashWithdrawal $withdrawal, Shift $targetShift, User $actor): void
+    {
+        $sourceShift = $withdrawal->shift_id ? Shift::find($withdrawal->shift_id) : null;
+
+        if ($sourceShift && $sourceShift->id === $targetShift->id) {
+            throw new \RuntimeException('السحب موجود بالفعل في هذه الوردية');
+        }
+
+        $old = ['shift_id' => $withdrawal->shift_id];
+        $withdrawal->update(['shift_id' => $targetShift->id]);
+
+        if ($withdrawal->expense_id) {
+            Expense::where('id', $withdrawal->expense_id)->update(['shift_id' => $targetShift->id]);
+        }
+
+        if ($sourceShift) {
+            $this->recomputeShiftAfterChange($sourceShift);
+        }
+        $this->recomputeShiftAfterChange($targetShift);
+
+        AuditLogService::log('update', $withdrawal, $old, ['shift_id' => $targetShift->id], $actor);
+    }
+
+    /**
      * إنشاء وردية بتاريخ سابق من مجموعة مستلمات محددة ثم إقفالها.
      * تُستخدم عندما تُسجَّل مستلمات تخصّ يوماً سابقاً ضمن الوردية المفتوحة،
      * فتُفصَل هذه المستلمات في وردية مستقلة بتاريخها ويُعاد احتساب الوردية المصدر.

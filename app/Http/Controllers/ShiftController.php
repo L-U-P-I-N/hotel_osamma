@@ -120,6 +120,27 @@ class ShiftController extends Controller
         }
     }
 
+    /**
+     * نقل سحب (مصروف/صرف عملة) إلى وردية محدَّدة بعينها — لتصحيح سحب نُسِب خطأً
+     * لوردية غير التي يخصّها تاريخه فعلياً.
+     */
+    public function reassignWithdrawal(Request $request, CashWithdrawal $withdrawal)
+    {
+        $request->validate([
+            'target_shift_id' => 'required|exists:shifts,id',
+        ], [
+            'target_shift_id.required' => 'يجب اختيار الوردية المستهدفة',
+        ]);
+
+        try {
+            $targetShift = Shift::findOrFail($request->target_shift_id);
+            $this->service->reassignWithdrawal($withdrawal, $targetShift, auth()->user());
+            return back()->with('success', 'تم نقل السحب إلى وردية ' . $targetShift->shift_date->format('d/m/Y') . ' (' . ($targetShift->user?->name ?? '—') . ') بنجاح');
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
+        }
+    }
+
     public function addWithdrawal(Request $request)
     {
         $isExchange = $request->input('withdrawal_type') === 'currency_exchange';

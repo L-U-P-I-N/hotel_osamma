@@ -194,6 +194,8 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/shifts/attach-orphans', [ShiftController::class, 'attachOrphans'])->name('shifts.attachOrphans')->middleware('permission:payments.create');
     // نقل مستلمة (غير مرتبطة أو مرتبطة بوردية خطأ) إلى وردية محدَّدة بعينها
     Route::patch('/shifts/payments/{payment}/reassign', [ShiftController::class, 'reassignPayment'])->name('shifts.reassignPayment')->middleware('permission:payments.create');
+    // نقل سحب (مصروف/صرف عملة) إلى وردية محدَّدة بعينها
+    Route::patch('/shifts/withdrawals/{withdrawal}/reassign', [ShiftController::class, 'reassignWithdrawal'])->name('shifts.reassignWithdrawal')->middleware('permission:payments.create');
     Route::post('/shifts/{shift}/deduct-salary', [ShiftController::class, 'deductSalary'])->name('shifts.deductSalary')->middleware('permission:users.manage');
 
     // Reports

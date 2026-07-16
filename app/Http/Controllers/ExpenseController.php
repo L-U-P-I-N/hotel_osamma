@@ -122,18 +122,37 @@ class ExpenseController extends Controller
         $data['paid_by']        = auth()->id();
         $data['payment_method'] = $request->input('payment_method', 'cash');
 
-        $activeShift = Shift::where('is_closed', false)->where('user_id', auth()->id())->latest()->first();
-        if ($activeShift) {
-            $data['shift_id'] = $activeShift->id;
+        $targetShift = $this->resolveShiftForExpense($data['expense_date']);
+        if ($targetShift) {
+            $data['shift_id'] = $targetShift->id;
         }
 
         $expense = Expense::create($data);
 
         if ($expense->isPaidFromCash()) {
-            $this->syncWithdrawal($expense, $activeShift);
+            $this->syncWithdrawal($expense, $targetShift);
         }
 
         return redirect()->route('expenses.index')->with('success', 'تم تسجيل المصروف بنجاح');
+    }
+
+    /**
+     * الوردية التي يجب نسب هذا المصروف إليها: نُفضّل وردية المستخدم التي يخصّها
+     * تاريخ المصروف فعلياً (ولو كانت مقفلة) — فمصروف مسجَّل بتاريخ سابق (تصحيح
+     * متأخر) يُنسَب ليوم حدوثه الفعلي، لا وردية اليوم المفتوحة حالياً. هذا يضمن
+     * ظهور المصروف عند مراجعة/إعادة فتح وردية ذلك اليوم لاحقاً بدل ضياعه في
+     * وردية لاحقة لا علاقة لها بتاريخه. نسقط لوردية المستخدم المفتوحة حالياً
+     * فقط إن لم توجد له وردية بتاريخ المصروف نفسه.
+     */
+    private function resolveShiftForExpense(string $expenseDate): ?Shift
+    {
+        $user = auth()->user();
+
+        return Shift::where('user_id', $user->id)
+                ->whereDate('shift_date', $expenseDate)
+                ->latest()
+                ->first()
+            ?? Shift::where('is_closed', false)->where('user_id', $user->id)->latest()->first();
     }
 
     public function edit(Expense $expense)
@@ -156,12 +175,15 @@ class ExpenseController extends Controller
         ]);
 
         $data['currency'] = 'YER';
+        // إعادة نسب المصروف لوردية تاريخه الجديد إن تغيّر التاريخ عند التعديل —
+        // وإلا يبقى منسوباً لوردية تاريخه القديم رغم تعديل التاريخ.
+        $targetShift = $this->resolveShiftForExpense($data['expense_date']);
+        $data['shift_id'] = $targetShift?->id;
         $expense->update($data);
         $expense->refresh();
 
         if ($expense->isPaidFromCash()) {
-            $activeShift = Shift::where('is_closed', false)->where('user_id', auth()->id())->latest()->first();
-            $this->syncWithdrawal($expense, $activeShift);
+            $this->syncWithdrawal($expense, $targetShift);
         } else {
             // طريقة الدفع تغيّرت → احذف السحب المرتبط (Observer يعيد الحساب تلقائياً)
             $expense->cashWithdrawal()?->delete();

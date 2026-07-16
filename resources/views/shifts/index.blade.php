@@ -157,6 +157,7 @@
     <div class="overflow-x-auto">
         <table class="w-full text-sm">
             <thead class="bg-gray-50"><tr>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">التاريخ</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المستلم</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المبلغ</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">النوع</th>
@@ -169,6 +170,9 @@
             <tbody class="divide-y divide-gray-50">
                 @foreach($activeShift->withdrawals as $w)
                 <tr class="{{ $w->isExchange() ? 'bg-yellow-50' : '' }}">
+                    {{-- تاريخ ووقت السحب كاملاً — يوضّح إن كان تاريخه لا يطابق يوم هذه
+                         الوردية (سحب مُسجَّل بتاريخ سابق نُسِب هنا خطأً). --}}
+                    <td class="px-4 py-2 text-gray-500 text-xs whitespace-nowrap">{{ $w->withdrawal_date?->format('d/m/Y H:i') ?? $w->created_at?->format('d/m/Y H:i') }}</td>
                     <td class="px-4 py-2 text-gray-700 text-xs">{{ $w->withdrawn_by_name }}</td>
                     <td class="px-4 py-2 font-semibold text-red-600 whitespace-nowrap">
                         {{ number_format($w->amount, 0) }} {{ $w->currency }}
@@ -196,7 +200,7 @@
                     </td>
                     @canany(['withdrawal.edit','withdrawal.delete'])
                     <td class="px-4 py-2">
-                        <div class="flex items-center gap-1.5">
+                        <div class="flex items-center gap-1.5 flex-wrap">
                             @can('withdrawal.edit')
                             @if(!$w->isExchange())
                             <button type="button"
@@ -211,6 +215,29 @@
                                 @csrf @method('DELETE')
                                 <button type="submit" class="text-xs px-2 py-1 rounded border border-red-200 text-red-600 hover:bg-red-50 transition">حذف</button>
                             </form>
+                            @endcan
+                            {{-- نقل السحب إلى وردية أخرى — لتصحيح سحب نُسِب خطأً لوردية غير
+                                 التي يخصّها تاريخه (مثال: أُدخل بتاريخ سابق بينما الوردية
+                                 المفتوحة يومها كانت وردية لاحقة). --}}
+                            @can('payments.create')
+                            @if($reassignTargets->isNotEmpty())
+                            <form method="POST" action="{{ route('shifts.reassignWithdrawal', $w) }}" class="flex items-center gap-1"
+                                  onsubmit="return confirm('نقل هذا السحب إلى الوردية المحددة؟')">
+                                @csrf @method('PATCH')
+                                <select name="target_shift_id" required
+                                        class="text-xs border border-gray-200 rounded-lg px-1.5 py-1 focus:ring-1 focus:ring-amber-500 outline-none max-w-[130px]">
+                                    <option value="">نقل إلى...</option>
+                                    @foreach($reassignTargets as $rt)
+                                    @if($rt->id !== $activeShift->id)
+                                    <option value="{{ $rt->id }}">
+                                        {{ $rt->shift_date->format('d/m/Y') }} — {{ $rt->user?->name }}@if($rt->is_closed) (مقفلة)@endif
+                                    </option>
+                                    @endif
+                                    @endforeach
+                                </select>
+                                <button type="submit" class="text-xs px-2 py-1 rounded border border-gray-200 text-gray-600 hover:bg-gray-50 transition whitespace-nowrap">نقل</button>
+                            </form>
+                            @endif
                             @endcan
                         </div>
                     </td>
