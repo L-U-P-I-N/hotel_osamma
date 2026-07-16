@@ -311,6 +311,12 @@
                         <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                         الأرباح والخسائر
                     </a>
+                    @if(auth()->user()->isAdmin())
+                    <a href="{{ route('reports.financialIntegrity') }}" class="nav-link text-xs {{ request()->routeIs('reports.financialIntegrity') ? 'active' : '' }}">
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        فحص تكامل البيانات المالية
+                    </a>
+                    @endif
                 </div>
             </div>
             @endcan
