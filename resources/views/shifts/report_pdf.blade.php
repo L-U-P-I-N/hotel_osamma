@@ -140,12 +140,17 @@
 @endphp
 
 {{-- Header --}}
+@php
+    // تاريخ العنوان: تاريخ الإقفال الفعلي إن أُقفلت الوردية (قد يختلف عن يوم فتحها
+    // إذا عبرت منتصف الليل دون إقفال)، وإلا يوم فتحها إن ما زالت مفتوحة.
+    $reportDate = $shift->closed_at?->format('d/m/Y') ?? $shift->shift_date->format('d/m/Y');
+@endphp
 <div class="header">
     @include('partials.pdf-logo')
     <h1>تقرير الوردية</h1>
     <div class="sub">
-        {{ $shift->shift_date->format('d/m/Y') }}
-        &nbsp;|&nbsp;
+        {{ $reportDate }}
+        <span style="margin:0 6px;">|</span>
         الموظف: {{ $shift->user?->name }}
     </div>
 </div>
@@ -158,7 +163,7 @@
         <td class="lbl">عدد السحبيات:</td>
         <td class="val">{{ $payments->count() }}</td>
         <td class="lbl">عدد الإيرادات:</td>
-        <td class="val ltr">{{ $shift->closed_at?->format('H:i') ?? '—' }}</td>
+        <td class="val ltr">{{ $shift->closed_at?->format('H:i d/m/Y') ?? '—' }}</td>
         <td class="lbl">وقت الإقفال:</td>
         <td class="val ltr">{{ $shift->started_at?->format('H:i') }}</td>
         <td class="lbl">وقت الفتح:</td>
