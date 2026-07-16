@@ -33,13 +33,11 @@ class ShiftController extends Controller
         $allActive       = $user->isAdmin() ? $this->service->getAllActiveShifts() : collect();
         $allUsersStatus  = $user->isAdmin() ? $this->service->getAllUsersShiftStatus() : collect();
 
-        // الورديات المقفلة لكل الموظفين القابلة لإعادة الفتح — كانت "الوردية
-        // الأخيرة" تعرض تاريخ المستخدم الحالي فقط، فلا يرى صاحب صلاحية
-        // shifts.reopen زر إعادة الفتح إطلاقاً لوردية موظف آخر (حتى لو كانت
-        // الصلاحية ممنوحة له فعلياً).
-        $canReopen = $user->can('shifts.reopen') || $user->isAdmin();
-        // نستبعد ورديات المستخدم الحالي — تظهر أصلاً في جدول "الوردية الأخيرة" أعلاه.
-        $reopenableShifts = $canReopen
+        // الورديات المقفلة لكل الموظفين القابلة لإعادة الفتح — مقصورة على المدير
+        // فقط (لا يكفي امتلاك صلاحية shifts.reopen وحدها، فهذه تمنح الموظف حق
+        // إعادة فتح ورديته هو، لا وردية أي موظف آخر). كانت "الوردية الأخيرة" تعرض
+        // تاريخ المستخدم الحالي فقط، فلم يكن للمدير مكان يعيد منه فتح وردية موظف.
+        $reopenableShifts = $user->isAdmin()
             ? $this->service->getReopenableShifts()->where('user_id', '!=', $user->id)->values()
             : collect();
 

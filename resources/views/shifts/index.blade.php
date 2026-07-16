@@ -491,6 +491,14 @@
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
                                 فتح
                             </button>
+                            @else
+                            {{-- زر إعادة الفتح مُعطَّل لأن لدى الموظف وردية مفتوحة حالياً — نوضّح
+                                 السبب بدل إخفاء الزر بصمت، فلا يبدو الأمر وكأن الصلاحية معطوبة. --}}
+                            <span title="لديك وردية مفتوحة حالياً — أقفلها أولاً لتتمكن من إعادة فتح وردية سابقة"
+                                  class="flex items-center gap-1 px-2 py-1 border border-gray-200 text-gray-400 rounded text-xs cursor-not-allowed">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
+                                أقفل ورديتك الحالية أولاً
+                            </span>
                             @endif
                             @endcan
                             @if(auth()->user()->isAdmin() && $s->shortfall !== null && $s->shortfall < 0)
@@ -521,9 +529,9 @@
 </div>
 @endif
 
-{{-- ورديات موظفين آخرين قابلة لإعادة الفتح — الجدول أعلاه يعرض ورديات المستخدم
-     الحالي فقط، فمن يملك صلاحية shifts.reopen ولا يجد الزر هناك يقصد غالباً
-     وردية موظف آخر لا تظهر في تاريخه الشخصي. --}}
+{{-- ورديات موظفين آخرين قابلة لإعادة الفتح — للمدير فقط (صلاحية shifts.reopen
+     وحدها تمنح الموظف حق إعادة فتح ورديته هو حصراً، لا وردية أي موظف آخر). --}}
+@if(auth()->user()->isAdmin())
 @can('shifts.reopen')
 @if($reopenableShifts->isNotEmpty())
 <div class="mt-5 bg-white rounded-xl shadow-sm border border-gray-100">
@@ -565,6 +573,7 @@
 </div>
 @endif
 @endcan
+@endif
 
 {{-- Modal: تعديل سحب --}}
 @can('withdrawal.edit')
