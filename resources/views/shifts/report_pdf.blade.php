@@ -50,6 +50,7 @@
     }
     table.data {
         width: 100%;
+        table-layout: fixed;
         border-collapse: collapse;
         font-size: 9px;
         margin-bottom: 14px;
@@ -69,9 +70,21 @@
         border: 1px solid #e0e7ef;
         text-align: right;
         white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     table.data tbody td.ltr { text-align: left; direction: ltr; }
     table.data tbody td.center { text-align: center; }
+    {{-- عمود نص حر (بيان/سبب/ملاحظات) قد يطول جداً — يُسمَح له بالالتفاف ضمن عرضه
+         بدل دفع الجدول بالكامل خارج حدود الصفحة (table-layout: fixed يُثبّت عرض
+         بقية الأعمدة، وهذا العمود وحده يلتف). --}}
+    table.data tbody td.wrap {
+        white-space: normal;
+        overflow-wrap: break-word;
+        word-break: break-word;
+        overflow: visible;
+        text-overflow: clip;
+    }
     .exchange-row td { background: #fff8e1 !important; }
     .total-row td { font-weight: bold; background: #f0f4f8; }
 
@@ -160,13 +173,13 @@
     {{-- أعمدة معكوسة لتُقرأ من اليمين لليسار (dompdf يرتّبها بترتيب المصدر) --}}
     <thead>
         <tr>
-            <th>الوقت</th>
-            <th>العملة</th>
-            <th>المبلغ</th>
-            <th>نوع الدفع</th>
-            <th>النزيل</th>
-            <th>الغرفة</th>
-            <th>#</th>
+            <th style="width:10%;">الوقت</th>
+            <th style="width:9%;">العملة</th>
+            <th style="width:14%;">المبلغ</th>
+            <th style="width:14%;">نوع الدفع</th>
+            <th style="width:32%;">النزيل</th>
+            <th style="width:16%;">الغرفة</th>
+            <th style="width:5%;">#</th>
         </tr>
     </thead>
     <tbody>
@@ -205,15 +218,15 @@
     {{-- أعمدة معكوسة لتُقرأ من اليمين لليسار --}}
     <thead>
         <tr>
-            <th>الوقت</th>
-            <th>بواسطة</th>
-            <th>مقابل</th>
-            <th>العملة</th>
-            <th>المبلغ</th>
-            <th>النوع</th>
-            <th>البيان / السبب</th>
-            <th>المستلم</th>
-            <th>#</th>
+            <th style="width:7%;">الوقت</th>
+            <th style="width:11%;">بواسطة</th>
+            <th style="width:10%;">مقابل</th>
+            <th style="width:6%;">العملة</th>
+            <th style="width:10%;">المبلغ</th>
+            <th style="width:9%;">النوع</th>
+            <th style="width:26%;">البيان / السبب</th>
+            <th style="width:14%;">المستلم</th>
+            <th style="width:4%;">#</th>
         </tr>
     </thead>
     <tbody>
@@ -231,7 +244,7 @@
             <td class="center">{{ $curLabels[$w->currency] ?? $w->currency }}</td>
             <td class="ltr" style="font-weight:bold;color:#dc2626;">{{ number_format($w->amount, 0) }}</td>
             <td class="center">{{ $w->type_label }}</td>
-            <td>{{ $w->notes }}</td>
+            <td class="wrap">{{ $w->notes }}</td>
             <td>{{ $w->withdrawn_by_name }}</td>
             <td class="center">{{ $i + 1 }}</td>
         </tr>
@@ -259,13 +272,13 @@
     {{-- أعمدة معكوسة لتُقرأ من اليمين لليسار --}}
     <thead>
         <tr>
-            <th>الوقت</th>
-            <th>الطريقة</th>
-            <th>العملة</th>
-            <th>المبلغ</th>
-            <th>السبب</th>
-            <th>النزيل</th>
-            <th>#</th>
+            <th style="width:9%;">الوقت</th>
+            <th style="width:12%;">الطريقة</th>
+            <th style="width:9%;">العملة</th>
+            <th style="width:13%;">المبلغ</th>
+            <th style="width:32%;">السبب</th>
+            <th style="width:20%;">النزيل</th>
+            <th style="width:5%;">#</th>
         </tr>
     </thead>
     <tbody>
@@ -275,7 +288,7 @@
             <td class="center">{{ match($rf->method) { 'cash'=>'نقداً','pos'=>'POS','bank_transfer'=>'تحويل', default=>$rf->method } }}</td>
             <td class="center">{{ $curLabels[$rf->currency] ?? $rf->currency }}</td>
             <td class="ltr" style="font-weight:bold;color:#dc2626;">{{ number_format($rf->amount, 0) }}</td>
-            <td>{{ $rf->reason }}</td>
+            <td class="wrap">{{ $rf->reason }}</td>
             <td>{{ $rf->reservation?->guest?->full_name ?? '—' }}</td>
             <td class="center">{{ $i + 1 }}</td>
         </tr>
@@ -303,12 +316,12 @@
     {{-- أعمدة معكوسة لتُقرأ من اليمين لليسار --}}
     <thead>
         <tr>
-            <th>وقت الدخول</th>
-            <th>تاريخ الخروج</th>
-            <th>تاريخ الدخول</th>
-            <th>الغرفة</th>
-            <th>النزيل</th>
-            <th>#</th>
+            <th style="width:14%;">وقت الدخول</th>
+            <th style="width:16%;">تاريخ الخروج</th>
+            <th style="width:16%;">تاريخ الدخول</th>
+            <th style="width:16%;">الغرفة</th>
+            <th style="width:33%;">النزيل</th>
+            <th style="width:5%;">#</th>
         </tr>
     </thead>
     <tbody>
