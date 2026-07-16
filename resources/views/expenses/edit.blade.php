@@ -32,6 +32,21 @@
             </div>
         </div>
 
+        @if($shifts->isNotEmpty())
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">الوردية *</label>
+            <select name="shift_id" required
+                    class="w-full border @error('shift_id') border-red-400 @else border-gray-300 @enderror rounded-lg px-4 py-2.5 text-sm outline-none focus:border-blue-400">
+                @foreach($shifts as $s)
+                <option value="{{ $s->id }}" {{ old('shift_id', $expense->shift_id) == $s->id ? 'selected' : '' }}>
+                    {{ $s->shift_date->format('d/m/Y') }}@if(!$s->is_closed) (مفتوحة الآن) @else (مقفلة) @endif
+                </option>
+                @endforeach
+            </select>
+            <p class="text-xs text-gray-400 mt-1">اختر الوردية التي يخصّها هذا المصروف فعلياً — ليست بالضرورة الوردية المفتوحة حالياً.</p>
+        </div>
+        @endif
+
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1.5">الفئة *</label>
             <select name="category" required class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-blue-400">

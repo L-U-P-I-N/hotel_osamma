@@ -103,7 +103,24 @@ class ExpenseController extends Controller
     {
         $categories = $this->categories;
         $employees  = \App\Models\Employee::where('is_active', true)->orderBy('name')->get();
-        return view('expenses.create', compact('categories', 'employees'));
+        $shifts     = $this->userShiftOptions();
+        $defaultShiftId = Shift::where('is_closed', false)->where('user_id', auth()->id())->latest()->value('id');
+        return view('expenses.create', compact('categories', 'employees', 'shifts', 'defaultShiftId'));
+    }
+
+    /**
+     * ورديات مستخدم مُعطى الأحدث — تُعرض كقائمة صريحة في نموذج المصروف حتى
+     * يختار الموظف يدوياً الوردية التي يخصّها المصروف فعلاً، بدل الاعتماد فقط
+     * على مطابقة تلقائية بالتاريخ (قد تُخطئ إن تعدّدت ورديات نفس اليوم). عند
+     * التعديل نستخدم صاحب المصروف الأصلي (paid_by) لا محرِّره الحالي — فقد
+     * يعدّل مديرٌ مصروف موظفٍ آخر.
+     */
+    private function userShiftOptions(?int $userId = null)
+    {
+        return Shift::where('user_id', $userId ?? auth()->id())
+            ->orderByDesc('shift_date')->orderByDesc('id')
+            ->limit(20)
+            ->get();
     }
 
     public function store(Request $request)
@@ -116,16 +133,15 @@ class ExpenseController extends Controller
             'description'    => 'nullable|string',
             'expense_date'   => 'required|date',
             'payment_method' => 'required|in:cash,bank_transfer,later',
+            'shift_id'       => 'nullable|exists:shifts,id',
         ]);
 
         $data['currency']       = 'YER';
         $data['paid_by']        = auth()->id();
         $data['payment_method'] = $request->input('payment_method', 'cash');
 
-        $targetShift = $this->resolveShiftForExpense($data['expense_date']);
-        if ($targetShift) {
-            $data['shift_id'] = $targetShift->id;
-        }
+        $targetShift = $this->resolveShiftForExpense($data['expense_date'], $request->input('shift_id'));
+        $data['shift_id'] = $targetShift?->id;
 
         $expense = Expense::create($data);
 
@@ -137,29 +153,36 @@ class ExpenseController extends Controller
     }
 
     /**
-     * الوردية التي يجب نسب هذا المصروف إليها: نُفضّل وردية المستخدم التي يخصّها
-     * تاريخ المصروف فعلياً (ولو كانت مقفلة) — فمصروف مسجَّل بتاريخ سابق (تصحيح
-     * متأخر) يُنسَب ليوم حدوثه الفعلي، لا وردية اليوم المفتوحة حالياً. هذا يضمن
-     * ظهور المصروف عند مراجعة/إعادة فتح وردية ذلك اليوم لاحقاً بدل ضياعه في
-     * وردية لاحقة لا علاقة لها بتاريخه. نسقط لوردية المستخدم المفتوحة حالياً
-     * فقط إن لم توجد له وردية بتاريخ المصروف نفسه.
+     * الوردية التي يجب نسب هذا المصروف إليها. الأولوية للوردية التي اختارها
+     * الموظف صراحةً (يجب أن تخصّه هو، لا موظفاً آخر) — فالاختيار اليدوي أدقّ من
+     * أي تخمين. إن لم يختر، نفضّل وردية المستخدم التي يخصّها تاريخ المصروف
+     * فعلياً (ولو كانت مقفلة) كتخمين افتراضي معقول، ونسقط لوردية المستخدم
+     * المفتوحة حالياً فقط إن لم توجد له وردية بتاريخ المصروف نفسه.
      */
-    private function resolveShiftForExpense(string $expenseDate): ?Shift
+    private function resolveShiftForExpense(string $expenseDate, ?int $explicitShiftId = null, ?int $ownerId = null): ?Shift
     {
-        $user = auth()->user();
+        $ownerId = $ownerId ?? auth()->id();
 
-        return Shift::where('user_id', $user->id)
+        if ($explicitShiftId) {
+            $chosen = Shift::where('id', $explicitShiftId)->where('user_id', $ownerId)->first();
+            if ($chosen) {
+                return $chosen;
+            }
+        }
+
+        return Shift::where('user_id', $ownerId)
                 ->whereDate('shift_date', $expenseDate)
                 ->latest()
                 ->first()
-            ?? Shift::where('is_closed', false)->where('user_id', $user->id)->latest()->first();
+            ?? Shift::where('is_closed', false)->where('user_id', $ownerId)->latest()->first();
     }
 
     public function edit(Expense $expense)
     {
         $categories = $this->categories;
         $employees  = \App\Models\Employee::where('is_active', true)->orderBy('name')->get();
-        return view('expenses.edit', compact('expense', 'categories', 'employees'));
+        $shifts     = $this->userShiftOptions($expense->paid_by);
+        return view('expenses.edit', compact('expense', 'categories', 'employees', 'shifts'));
     }
 
     public function update(Request $request, Expense $expense)
@@ -172,12 +195,11 @@ class ExpenseController extends Controller
             'description'    => 'nullable|string',
             'expense_date'   => 'required|date',
             'payment_method' => 'required|in:cash,bank_transfer,later',
+            'shift_id'       => 'nullable|exists:shifts,id',
         ]);
 
         $data['currency'] = 'YER';
-        // إعادة نسب المصروف لوردية تاريخه الجديد إن تغيّر التاريخ عند التعديل —
-        // وإلا يبقى منسوباً لوردية تاريخه القديم رغم تعديل التاريخ.
-        $targetShift = $this->resolveShiftForExpense($data['expense_date']);
+        $targetShift = $this->resolveShiftForExpense($data['expense_date'], $request->input('shift_id'), $expense->paid_by);
         $data['shift_id'] = $targetShift?->id;
         $expense->update($data);
         $expense->refresh();
