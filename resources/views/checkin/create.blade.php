@@ -948,13 +948,13 @@ html.dark [style*="background:var(--gold-l)"] {
                             <span class="text-xs font-bold text-amber-800">سعر التفاوض (ر.ي/ليلة)</span>
                             <button type="button" @click="showPriceOverride = false; customPrice = null; calcTotal()" class="text-xs text-gray-400 hover:text-red-500 underline">إلغاء</button>
                         </div>
-                        <input type="number" min="3000" max="100000" step="100"
+                        <input type="number" min="3000" step="100"
                                :placeholder="'الأصلي: ' + formatNumber(roomBasePriceFor('YER'))"
                                x-model.number="customPrice" @input="calcTotal()"
                                class="fi text-sm border-amber-300 bg-white focus:border-amber-500">
-                        <p class="text-xs text-amber-600">النطاق المسموح: 3,000 إلى 100,000 ر.ي</p>
-                        <p x-show="customPrice !== null && customPrice !== '' && (parseFloat(customPrice) < 3000 || parseFloat(customPrice) > 100000)"
-                           class="text-xs text-red-600 font-semibold">⚠ السعر خارج النطاق المسموح</p>
+                        <p class="text-xs text-amber-600">الحد الأدنى: 3,000 ر.ي (لا يوجد حد أقصى)</p>
+                        <p x-show="customPrice !== null && customPrice !== '' && parseFloat(customPrice) < 3000"
+                           class="text-xs text-red-600 font-semibold">⚠ السعر أقل من الحد الأدنى المسموح</p>
                     </div>
                 </div>
 
@@ -1874,7 +1874,6 @@ function checkInForm() {
                 if (this.customPrice !== null && this.customPrice !== '') {
                     const cp = parseFloat(this.customPrice) || 0;
                     if (cp < 3000)   return 'مبلغ التفاوض لا يمكن أن يقل عن 3,000 ر.ي';
-                    if (cp > 100000) return 'مبلغ التفاوض لا يمكن أن يتجاوز 100,000 ر.ي';
                 }
                 if (this.effectiveRoomPrice() <= 0) return 'لا يوجد سعر للغرفة — أدخل السعر يدوياً';
                 if (this.paymentStatus === 'partial' && (parseFloat(this.paidAmount) || 0) <= 0) return 'يرجى إدخال المبلغ المدفوع';
