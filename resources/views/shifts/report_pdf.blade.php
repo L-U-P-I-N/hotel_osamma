@@ -140,16 +140,14 @@
 @endphp
 
 {{-- Header --}}
-@php
-    // تاريخ العنوان: تاريخ الإقفال الفعلي إن أُقفلت الوردية (قد يختلف عن يوم فتحها
-    // إذا عبرت منتصف الليل دون إقفال)، وإلا يوم فتحها إن ما زالت مفتوحة.
-    $reportDate = $shift->closed_at?->format('d/m/Y') ?? $shift->shift_date->format('d/m/Y');
-@endphp
 <div class="header">
     @include('partials.pdf-logo')
     <h1>تقرير الوردية</h1>
     <div class="sub">
-        {{ $reportDate }}
+        {{-- تاريخ العنوان: يوم إنشاء (فتح) الوردية دائماً — هو "اليوم المحاسبي"
+             الذي تخصّه أرقام هذا التقرير، بصرف النظر عن وقت إقفالها الفعلي أو
+             تاريخ تصدير الـ PDF. --}}
+        {{ $shift->shift_date->format('d/m/Y') }}
         <span style="margin:0 6px;">|</span>
         الموظف: {{ $shift->user?->name }}
     </div>
