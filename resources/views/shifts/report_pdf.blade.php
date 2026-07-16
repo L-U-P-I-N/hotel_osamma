@@ -122,6 +122,7 @@
 @php
     $curLabels  = ['YER' => 'ر.ي', 'SAR' => 'ر.س', 'USD' => '$'];
     $payLabels  = ['unpaid' => 'غير مدفوع', 'partial' => 'جزئي', 'paid' => 'مدفوع', 'deferred' => 'مؤجل'];
+    $methodLabels = ['cash' => 'نقداً', 'bank_transfer' => 'تحويل بنكي', 'pos' => 'شبكة (POS)'];
 
     $payments = $shift->payments ?? collect();
     $recvByCur = [];
@@ -173,12 +174,12 @@
     {{-- أعمدة معكوسة لتُقرأ من اليمين لليسار (dompdf يرتّبها بترتيب المصدر) --}}
     <thead>
         <tr>
-            <th style="width:10%;">الوقت</th>
-            <th style="width:9%;">العملة</th>
-            <th style="width:14%;">المبلغ</th>
-            <th style="width:14%;">نوع الدفع</th>
-            <th style="width:32%;">النزيل</th>
-            <th style="width:16%;">الغرفة</th>
+            <th style="width:9%;">الوقت</th>
+            <th style="width:8%;">العملة</th>
+            <th style="width:12%;">المبلغ</th>
+            <th style="width:19%;">طريقة الدفع</th>
+            <th style="width:27%;">النزيل</th>
+            <th style="width:14%;">الغرفة</th>
             <th style="width:5%;">#</th>
         </tr>
     </thead>
@@ -188,7 +189,12 @@
             <td class="ltr">{{ $p->created_at?->format('H:i') }}</td>
             <td class="center">{{ $curLabels[$p->currency] ?? $p->currency }}</td>
             <td class="ltr" style="font-weight:bold;">{{ number_format($p->amount, 0) }}</td>
-            <td>{{ $payLabels[$p->payment_type] ?? 'دفعة' }}</td>
+            <td class="wrap">
+                {{ $methodLabels[$p->method] ?? $p->method }}
+                @if($p->method === 'bank_transfer' && $p->bank_transfer_ref)
+                <br><span style="font-size:7.5px;color:#666;">سند: {{ $p->bank_transfer_ref }}</span>
+                @endif
+            </td>
             <td>{{ $p->reservation?->guest?->full_name }}</td>
             <td class="center">{{ $p->reservation?->display_room_number ?? '—' }}</td>
             <td class="center">{{ $i + 1 }}</td>
