@@ -131,6 +131,8 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/reservations/segment/{segment}', [ReservationController::class, 'deleteSegment'])->name('reservations.deleteSegment')->middleware('permission:payments.create');
         // تصحيح: إعادة احتساب فترات الغرفة والإجمالي وفق صيغة حساب الليالي الحالية
         Route::post('/reservations/{reservation}/recompute-segments', [ReservationController::class, 'recomputeSegments'])->name('reservations.recomputeSegments')->middleware('permission:payments.create');
+        // إخفاء/إظهار تنبيه إعادة الاحتساب لهذا الحجز (فتراته مقصودة كما هي)
+        Route::post('/reservations/{reservation}/toggle-recompute-dismiss', [ReservationController::class, 'toggleRecomputeDismiss'])->name('reservations.toggleRecomputeDismiss')->middleware('permission:payments.create');
         // تصحيح: تعديل تاريخ ووقت الوصول/المغادرة مع إعادة احتساب الإجمالي والفترات
         Route::put('/reservations/{reservation}/stay-dates', [ReservationController::class, 'updateStayDates'])->name('reservations.updateStayDates')->middleware('permission:payments.create');
         Route::patch('/reservations/{reservation}/checkin-date', [ReservationController::class, 'updateCheckInDate'])->name('reservations.updateCheckInDate');

@@ -1551,6 +1551,26 @@ class ReservationController extends Controller
     }
 
     /**
+     * إخفاء/إظهار تنبيه "تصحيح: إعادة احتساب الفترات والإجمالي" لهذا الحجز. يُستخدم
+     * حين تكون فترات الحجز مقصودةً كما هي (سُعّرت يدوياً بأسعار تجديد مختلفة عبر
+     * الزمن)، فلا يجوز توحيدها كلها بآخر سعر — والتنبيه المتكرّر مزعج ولا معنى له
+     * لهذا الحجز. الإخفاء لا يمسّ أي أرقام؛ يُبدّل علماً فقط.
+     */
+    public function toggleRecomputeDismiss(Reservation $reservation)
+    {
+        $dismissed = !$reservation->recompute_dismissed;
+        $reservation->update(['recompute_dismissed' => $dismissed]);
+
+        AuditLogService::log('update', $reservation, ['recompute_dismissed' => !$dismissed], [
+            'recompute_dismissed' => $dismissed,
+        ], auth()->user());
+
+        return back()->with('success', $dismissed
+            ? 'تم إخفاء تنبيه إعادة الاحتساب لهذا الحجز — فتراته محفوظة كما هي'
+            : 'تم إعادة تفعيل تنبيه إعادة الاحتساب لهذا الحجز');
+    }
+
+    /**
      * تعديل تاريخ ووقت الوصول والمغادرة معاً (تصحيح: تغيّر الموعد المتّفق عليه مع
      * النزيل) — يُعيد احتساب عدد الليالي والإجمالي وفق أسعار الحجز المحفوظة
      * (سعر الليلة الأولى وسعر التجديد) بناءً على التواريخ/الأوقات الجديدة، ويُعيد

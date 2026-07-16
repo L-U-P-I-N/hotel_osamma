@@ -75,6 +75,11 @@
         $recomputeNeeded  = !$showSegments
             || abs($recomputeDelta) > 1.0
             || (int) $roomSegments->sum('nights') !== $recomputeNights;
+        // إن أخفى الموظف التنبيه لهذا الحجز صراحةً، لا نُظهره (فترات هذا الحجز
+        // مقصودة كما هي — أسعار تجديد مختلفة عبر الزمن لا يجوز توحيدها بآخر سعر).
+        if ($reservation->recompute_dismissed) {
+            $recomputeNeeded = false;
+        }
     }
 
     // أوقات الفترات: أول فترة تبدأ بوقت الوصول، آخر فترة تنتهي بوقت الخروج، وكل
@@ -448,10 +453,33 @@
                 <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 <div class="flex-1">
                     <p class="font-semibold mb-1">فترات هذا الحجز قديمة ولا تطابق صيغة حساب الليالي الحالية.</p>
-                    <button type="button" onclick="showRecomputeModal()" class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition">
-                        🔄 تصحيح: إعادة احتساب الفترات والإجمالي
-                    </button>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button type="button" onclick="showRecomputeModal()" class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition">
+                            🔄 تصحيح: إعادة احتساب الفترات والإجمالي
+                        </button>
+                        {{-- إخفاء التنبيه: فترات هذا الحجز مقصودة كما هي (أسعار تجديد
+                             مختلفة عبر الزمن) فلا نريد التنبيه المتكرّر ولا توحيدها. --}}
+                        <form method="POST" action="{{ route('reservations.toggleRecomputeDismiss', $reservation) }}"
+                              onsubmit="return confirm('سيتم إخفاء هذا التنبيه لهذا الحجز فقط، وتبقى الفترات والإجمالي كما هي دون أي تغيير. يمكنك إعادة إظهاره لاحقاً. متابعة؟')">
+                            @csrf
+                            <button type="submit" class="px-3 py-1.5 rounded-lg bg-white border border-amber-300 text-amber-700 hover:bg-amber-100 text-xs font-bold transition">
+                                🙈 إخفاء هذا التنبيه لهذا الحجز
+                            </button>
+                        </form>
+                    </div>
                 </div>
+            </div>
+            @elseif($reservation->recompute_dismissed && in_array($reservation->status, ['checked_in', 'checked_out']))
+            {{-- التنبيه مُخفى صراحةً لهذا الحجز — نعرض تلميحاً صغيراً لإعادة إظهاره --}}
+            <div class="mx-4 mt-3 px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between gap-2 text-[11px] text-gray-500">
+                <span class="flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>
+                    تنبيه إعادة الاحتساب مُخفى لهذا الحجز (الفترات محفوظة كما هي)
+                </span>
+                <form method="POST" action="{{ route('reservations.toggleRecomputeDismiss', $reservation) }}">
+                    @csrf
+                    <button type="submit" class="text-blue-600 hover:text-blue-800 font-bold underline">إعادة إظهاره</button>
+                </form>
             </div>
 
             {{-- نافذة modal توضيح إعادة الاحتساب --}}
