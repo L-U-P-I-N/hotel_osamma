@@ -143,20 +143,24 @@ class ShiftService
     }
 
     /**
-     * إنشاء وردية بتاريخ سابق من مجموعة مستلمات محددة ثم إقفالها.
-     * تُستخدم عندما تُسجَّل مستلمات تخصّ يوماً سابقاً ضمن الوردية المفتوحة،
-     * فتُفصَل هذه المستلمات في وردية مستقلة بتاريخها ويُعاد احتساب الوردية المصدر.
+     * إنشاء وردية بتاريخ سابق من مجموعة مستلمات (وسحبيات اختيارية) محددة ثم
+     * إقفالها. تُستخدم عندما تُسجَّل مستلمات وسحبيات تخصّ يوماً سابقاً ضمن
+     * الوردية المفتوحة، فتُفصَل جميعها في وردية مستقلة بتاريخها ويُعاد احتساب
+     * الورديات المصدر. تمرير withdrawalIds اختياري — فقد تُقفَل وردية سابقة من
+     * مستلمات فقط دون سحبيات.
      */
-    public function closePastShiftFromPayments(User $user, array $paymentIds, string $shiftDate, ?float $actualAmount, string $notes, User $actor): Shift
+    public function closePastShiftFromPayments(User $user, array $paymentIds, string $shiftDate, ?float $actualAmount, string $notes, User $actor, array $withdrawalIds = []): Shift
     {
-        $payments = Payment::whereIn('id', $paymentIds)->get();
-        if ($payments->isEmpty()) {
-            throw new \RuntimeException('لا توجد مستلمات محددة');
+        $payments    = Payment::whereIn('id', $paymentIds)->get();
+        $withdrawals = empty($withdrawalIds) ? collect() : CashWithdrawal::whereIn('id', $withdrawalIds)->get();
+        if ($payments->isEmpty() && $withdrawals->isEmpty()) {
+            throw new \RuntimeException('لا توجد مستلمات أو سحبيات محددة');
         }
 
-        $date      = \Carbon\Carbon::parse($shiftDate)->startOfDay();
-        $startedAt = $payments->min('payment_date') ?: $date->copy();
-        $endedAt   = $payments->max('payment_date') ?: $date->copy()->endOfDay();
+        $date = \Carbon\Carbon::parse($shiftDate)->startOfDay();
+        $allDates = $payments->pluck('payment_date')->merge($withdrawals->pluck('withdrawal_date'))->filter();
+        $startedAt = $allDates->min() ?: $date->copy();
+        $endedAt   = $allDates->max() ?: $date->copy()->endOfDay();
 
         $shift = Shift::create([
             'user_id'    => $user->id,
@@ -166,7 +170,8 @@ class ShiftService
         ]);
         AuditLogService::log('create', $shift, null, $shift->toArray(), $actor);
 
-        // نقل المستلمات المحددة إلى الوردية الجديدة وإعادة احتساب الورديات المصدر
+        // نقل المستلمات والسحبيات المحددة إلى الوردية الجديدة وإعادة احتساب
+        // الورديات المصدر (وتحديث المصروف المرتبط بكل سحب إن وُجد)
         $sourceIds = [];
         foreach ($payments as $p) {
             $old      = ['shift_id' => $p->shift_id];
@@ -177,13 +182,25 @@ class ShiftService
             }
             AuditLogService::log('update', $p, $old, ['shift_id' => $shift->id], $actor);
         }
+        foreach ($withdrawals as $w) {
+            $old      = ['shift_id' => $w->shift_id];
+            $sourceId = $w->shift_id;
+            $w->update(['shift_id' => $shift->id]);
+            if ($w->expense_id) {
+                Expense::where('id', $w->expense_id)->update(['shift_id' => $shift->id]);
+            }
+            if ($sourceId && $sourceId !== $shift->id) {
+                $sourceIds[$sourceId] = true;
+            }
+            AuditLogService::log('update', $w, $old, ['shift_id' => $shift->id], $actor);
+        }
         foreach (array_keys($sourceIds) as $sid) {
             if ($src = Shift::find($sid)) {
                 $this->recomputeShiftAfterChange($src);
             }
         }
 
-        // إقفال الوردية الجديدة بوقت انتهاء فعلي = آخر مستلمة
+        // إقفال الوردية الجديدة بوقت انتهاء فعلي = آخر مستلمة أو سحب
         $this->closeShift($shift, $notes, $actualAmount, \Carbon\Carbon::parse($endedAt));
 
         return $shift;

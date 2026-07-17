@@ -3,7 +3,7 @@
 @section('page-title', 'الوردية')
 
 @section('content')
-<div x-data="{ closeModal: {{ $errors->has('actual_amount') ? 'true' : 'false' }}, editWithdrawal: null, reopenModal: null, selectedPayments: [], bulkModal: false, selectedOrphans: [] }">
+<div x-data="{ closeModal: {{ $errors->has('actual_amount') ? 'true' : 'false' }}, editWithdrawal: null, reopenModal: null, selectedPayments: [], selectedWithdrawals: [], bulkModal: false, selectedOrphans: [] }">
 
 @if(session('success'))
 <div class="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">{{ session('success') }}</div>
@@ -84,14 +84,16 @@
     <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-3 flex-wrap">
         <h3 class="font-semibold text-gray-700">المستلمات ({{ $activeShift->payments->count() }})</h3>
         @if($canReassign)
-        {{-- شريط الإجراء الجماعي: يظهر عند تحديد مستلمات --}}
-        <div x-show="selectedPayments.length > 0" x-cloak class="flex items-center gap-2">
-            <span class="text-xs text-indigo-700 font-medium">محدَّد: <span x-text="selectedPayments.length"></span></span>
+        {{-- شريط الإجراء الجماعي: يظهر عند تحديد مستلمات و/أو سحبيات (من الجدولين معاً) --}}
+        <div x-show="selectedPayments.length > 0 || selectedWithdrawals.length > 0" x-cloak class="flex items-center gap-2">
+            <span class="text-xs text-indigo-700 font-medium">
+                محدَّد: <span x-text="selectedPayments.length"></span> مستلمة<template x-if="selectedWithdrawals.length > 0"> + <span x-text="selectedWithdrawals.length"></span> سحب</template>
+            </span>
             <button type="button" @click="bulkModal = true"
                     class="text-xs px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition whitespace-nowrap">
                 إقفال المحدد كوردية بتاريخ سابق
             </button>
-            <button type="button" @click="selectedPayments = []"
+            <button type="button" @click="selectedPayments = []; selectedWithdrawals = []"
                     class="text-xs px-2 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition">
                 إلغاء التحديد
             </button>
@@ -150,13 +152,39 @@
 </div>
 
 <div class="bg-white rounded-xl shadow-sm border border-gray-100">
-    <div class="px-5 py-4 border-b border-gray-100">
+    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-3 flex-wrap">
         <h3 class="font-semibold text-gray-700">السحبيات ({{ $activeShift->withdrawals->count() }})</h3>
+        @if($canReassign)
+        {{-- شريط الإجراء الجماعي: نفس شريط المستلمات — تحديد سحبيات هنا يُضاف
+             لنفس عملية "إقفال المحدد كوردية بتاريخ سابق" حتى تُنقَل السحبيات
+             السابقة مع مستلماتها معاً دفعة واحدة. --}}
+        <div x-show="selectedPayments.length > 0 || selectedWithdrawals.length > 0" x-cloak class="flex items-center gap-2">
+            <span class="text-xs text-indigo-700 font-medium">
+                محدَّد: <span x-text="selectedPayments.length"></span> مستلمة<template x-if="selectedWithdrawals.length > 0"> + <span x-text="selectedWithdrawals.length"></span> سحب</template>
+            </span>
+            <button type="button" @click="bulkModal = true"
+                    class="text-xs px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition whitespace-nowrap">
+                إقفال المحدد كوردية بتاريخ سابق
+            </button>
+            <button type="button" @click="selectedPayments = []; selectedWithdrawals = []"
+                    class="text-xs px-2 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition">
+                إلغاء التحديد
+            </button>
+        </div>
+        @endif
     </div>
     @if($activeShift->withdrawals->count() > 0)
     <div class="overflow-x-auto">
         <table class="w-full text-sm">
             <thead class="bg-gray-50"><tr>
+                @if($canReassign)
+                <th class="px-4 py-2 text-center w-10">
+                    <input type="checkbox" title="تحديد الكل"
+                           @change="selectedWithdrawals = $event.target.checked ? {{ $activeShift->withdrawals->pluck('id')->toJson() }} : []"
+                           :checked="selectedWithdrawals.length === {{ $activeShift->withdrawals->count() }}"
+                           class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                </th>
+                @endif
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">التاريخ</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المستلم</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المبلغ</th>
@@ -169,7 +197,13 @@
             </tr></thead>
             <tbody class="divide-y divide-gray-50">
                 @foreach($activeShift->withdrawals as $w)
-                <tr class="{{ $w->isExchange() ? 'bg-yellow-50' : '' }}">
+                <tr class="{{ $w->isExchange() ? 'bg-yellow-50' : '' }}" :class="selectedWithdrawals.includes({{ $w->id }}) ? 'bg-indigo-50' : ''">
+                    @if($canReassign)
+                    <td class="px-4 py-2 text-center">
+                        <input type="checkbox" value="{{ $w->id }}" x-model.number="selectedWithdrawals"
+                               class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                    </td>
+                    @endif
                     {{-- تاريخ ووقت السحب كاملاً — يوضّح إن كان تاريخه لا يطابق يوم هذه
                          الوردية (سحب مُسجَّل بتاريخ سابق نُسِب هنا خطأً). --}}
                     <td class="px-4 py-2 text-gray-500 text-xs whitespace-nowrap">{{ $w->withdrawal_date?->format('d/m/Y H:i') ?? $w->created_at?->format('d/m/Y H:i') }}</td>
@@ -835,10 +869,15 @@
 @if($activeShift && (auth()->user()->can('payments.create') || auth()->user()->isAdmin()))
 <div x-show="bulkModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="bulkModal=false"
      x-data="{
-        get selectedTotal() {
+        get paymentsTotal() {
             const map = {{ $activeShift->payments->mapWithKeys(fn($p) => [$p->id => round((float)$p->amount)])->toJson() }};
             return selectedPayments.reduce((s, id) => s + (map[id] || 0), 0);
         },
+        get withdrawalsTotal() {
+            const map = {{ $activeShift->withdrawals->mapWithKeys(fn($w) => [$w->id => round((float)$w->amount)])->toJson() }};
+            return selectedWithdrawals.reduce((s, id) => s + (map[id] || 0), 0);
+        },
+        get netTotal() { return this.paymentsTotal - this.withdrawalsTotal; },
         actualAmount: ''
      }">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
@@ -853,12 +892,19 @@
         </div>
         <form method="POST" action="{{ route('shifts.closePast') }}" class="p-6 space-y-4">
             @csrf
-            {{-- المستلمات المحددة تُرسل كحقول مخفية --}}
-            <template x-for="pid in selectedPayments" :key="pid">
+            {{-- المستلمات والسحبيات المحددة تُرسل كحقول مخفية --}}
+            <template x-for="pid in selectedPayments" :key="'p'+pid">
                 <input type="hidden" name="payment_ids[]" :value="pid">
             </template>
+            <template x-for="wid in selectedWithdrawals" :key="'w'+wid">
+                <input type="hidden" name="withdrawal_ids[]" :value="wid">
+            </template>
             <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-800 leading-relaxed">
-                ستُفصَل <strong x-text="selectedPayments.length"></strong> مستلمة (بإجمالي <strong x-text="selectedTotal.toLocaleString()"></strong> ر.ي) في وردية مستقلة بالتاريخ الذي تحدده، وتُقفَل مباشرة. يبقى الباقي في الوردية المفتوحة الحالية.
+                ستُفصَل <strong x-text="selectedPayments.length"></strong> مستلمة (<strong x-text="paymentsTotal.toLocaleString()"></strong> ر.ي)
+                <template x-if="selectedWithdrawals.length > 0">
+                    <span>و<strong x-text="selectedWithdrawals.length"></strong> سحب (<strong x-text="withdrawalsTotal.toLocaleString()"></strong> ر.ي)</span>
+                </template>
+                في وردية مستقلة بالتاريخ الذي تحدده، وتُقفَل مباشرة. يبقى الباقي في الوردية المفتوحة الحالية.
             </div>
             <div>
                 <label class="block text-xs font-semibold text-gray-700 mb-1.5">تاريخ الوردية <span class="text-red-500">*</span></label>
@@ -868,7 +914,7 @@
             <div>
                 <label class="block text-xs font-semibold text-gray-700 mb-1.5">المبلغ الفعلي في الصندوق (ر.ي) <span class="text-gray-400 font-normal">— اختياري</span></label>
                 <input type="number" name="actual_amount" x-model="actualAmount" step="1" min="0"
-                       :placeholder="`الصافي حسب المحدد: ${selectedTotal.toLocaleString()}`"
+                       :placeholder="`الصافي حسب المحدد: ${netTotal.toLocaleString()}`"
                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition">
                 <p class="text-xs text-gray-400 mt-1">اتركه فارغاً إن لم ترغب بتسجيل مطابقة الصندوق لهذه الوردية.</p>
             </div>
@@ -880,7 +926,7 @@
                 <button type="submit"
                         class="flex-1 py-2.5 text-white rounded-lg text-sm font-semibold transition hover:opacity-90"
                         style="background:#0F4C75;"
-                        onclick="return confirm('تأكيد فصل المستلمات المحددة وإقفالها كوردية بالتاريخ المحدد؟')">
+                        onclick="return confirm('تأكيد فصل المستلمات والسحبيات المحددة وإقفالها كوردية بالتاريخ المحدد؟')">
                     تأكيد الإقفال
                 </button>
                 <button type="button" @click="bulkModal=false"

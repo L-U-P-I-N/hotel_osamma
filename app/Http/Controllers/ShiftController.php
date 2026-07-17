@@ -246,29 +246,34 @@ class ShiftController extends Controller
     public function closePastShift(Request $request)
     {
         $request->validate([
-            'shift_date'    => 'required|date|before_or_equal:today',
-            'payment_ids'   => 'required|array|min:1',
-            'payment_ids.*' => 'integer|exists:payments,id',
-            'actual_amount' => 'nullable|numeric|min:0',
-            'notes'         => 'nullable|string|max:1000',
+            'shift_date'      => 'required|date|before_or_equal:today',
+            'payment_ids'     => 'nullable|array',
+            'payment_ids.*'   => 'integer|exists:payments,id',
+            'withdrawal_ids'   => 'nullable|array',
+            'withdrawal_ids.*' => 'integer|exists:cash_withdrawals,id',
+            'actual_amount'   => 'nullable|numeric|min:0',
+            'notes'           => 'nullable|string|max:1000',
         ], [
             'shift_date.required'         => 'يجب تحديد تاريخ الوردية',
             'shift_date.before_or_equal'  => 'تاريخ الوردية يجب أن يكون اليوم أو تاريخاً سابقاً',
-            'payment_ids.required'        => 'يجب تحديد مستلمة واحدة على الأقل',
-            'payment_ids.min'             => 'يجب تحديد مستلمة واحدة على الأقل',
         ]);
+
+        if (empty($request->payment_ids) && empty($request->withdrawal_ids)) {
+            return back()->withErrors(['error' => 'يجب تحديد مستلمة أو سحب واحد على الأقل']);
+        }
 
         try {
             $actualAmount = $request->filled('actual_amount') ? (float) $request->actual_amount : null;
             $shift = $this->service->closePastShiftFromPayments(
                 auth()->user(),
-                $request->payment_ids,
+                $request->payment_ids ?? [],
                 $request->shift_date,
                 $actualAmount,
                 $request->notes ?? '',
-                auth()->user()
+                auth()->user(),
+                $request->withdrawal_ids ?? []
             );
-            return back()->with('success', 'تم إنشاء وإقفال وردية بتاريخ ' . $shift->shift_date->format('d/m/Y') . ' تحتوي المستلمات المحددة');
+            return back()->with('success', 'تم إنشاء وإقفال وردية بتاريخ ' . $shift->shift_date->format('d/m/Y') . ' تحتوي المستلمات والسحبيات المحددة');
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()]);
         }
