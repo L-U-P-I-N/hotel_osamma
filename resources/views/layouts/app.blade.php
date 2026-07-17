@@ -515,13 +515,19 @@
         </div>
         @endif
 
+        {{-- رسالة الخطأ (حمراء) لا تختفي تلقائياً — تبقى حتى يُغلقها المستخدم بنفسه.
+             الاختفاء التلقائي السابق (5 ثوانٍ) كان يجعل الموظف يفوّت سبب فشل عملية
+             مهمة (كتسجيل الدخول) فيظن أن "لا شيء حدث" ويُعيد المحاولة. --}}
         @if(session('error'))
-        <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show=false, 5000)"
+        <div x-data="{ show: true }" x-show="show"
              class="mx-6 mt-4 p-3.5 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-red-800 text-sm shadow-sm">
             <div class="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
-                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>
+                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             </div>
             <span class="flex-1">{{ session('error') }}</span>
+            <button @click="show=false" class="text-red-400 hover:text-red-600 ml-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
         </div>
         @endif
 
