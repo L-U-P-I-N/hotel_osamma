@@ -253,7 +253,27 @@ class ReservationController extends Controller
                     $guestData['id_image_path'] = StorageHelper::store($request->file('guest_id_image'), 'id_images/guests');
                 }
 
-                $reservation->guest->update($guestData);
+                // إن كان سجل النزيل مشتركاً مع حجوزات أخرى (نفس guest_id لأكثر من
+                // حجز)، فتعديله مباشرةً يُغيّر اسم/بيانات نزلاء تلك الحجوزات الأخرى
+                // أيضاً — وهو ما حدث فعلاً بين غرفتين لنزيلين مختلفين اختلط سجلهما.
+                // نتجنّب ذلك بنسخ السجل إلى نزيل جديد خاص بهذا الحجز (copy-on-write)
+                // ونربط الحجز به، فلا تتأثّر بقية الحجوزات. أما إن كان السجل خاصاً
+                // بهذا الحجز وحده فنعدّله مباشرةً كالمعتاد.
+                $sharedByOthers = \App\Models\Reservation::withTrashed()
+                    ->where('guest_id', $reservation->guest_id)
+                    ->where('id', '!=', $reservation->id)
+                    ->exists();
+
+                if ($sharedByOthers) {
+                    $newGuest = $reservation->guest->replicate();
+                    $newGuest->fill($guestData);
+                    $newGuest->save();
+                    $reservation->guest_id = $newGuest->id;
+                    $reservation->save();
+                    $reservation->setRelation('guest', $newGuest);
+                } else {
+                    $reservation->guest->update($guestData);
+                }
             }
 
             // Update companions
