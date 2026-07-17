@@ -1969,14 +1969,18 @@ function checkInForm() {
             return (parseFloat(n) || 0).toLocaleString('ar-YE');
         },
 
-        // يضغط صورة الهوية في المتصفح قبل الرفع: صور الجوال قد تصل 5–12 ميجابايت
-        // فتتجاوز حد الرفع في الخادم ويُرفَض الطلب صامتاً (بلا رسالة، دون حفظ
-        // الحجز). نُصغّر الأبعاد ونعيد ضغطها JPEG فتصبح أقل من ميجابايت غالباً،
-        // فينجح الرفع دائماً وأسرع. الملفات الصغيرة أصلاً و PDF و الصيغ التي يعجز
-        // المتصفح عن رسمها (كبعض HEIC) تُترك كما هي.
-        async compressImageFile(file, maxDim = 1600, quality = 0.82) {
+        // يُعيد ترميز صورة الهوية في المتصفح إلى JPEG نظيف قبل الرفع — يعالج
+        // مشكلتين معاً:
+        //  1) الحجم: صور الماسح/الجوال عالية الدقة قد تصل 5–20 ميجابايت فتتجاوز
+        //     حد الرفع ويُرفَض الطلب صامتاً.
+        //  2) الصيغة: الماسح الضوئي يحفظ بامتداد .jpg لكن محتواه الفعلي ليس JPEG
+        //     قياسياً (CMYK أو ترميز غير معتاد)، فيرفضه فحص المحتوى في الخادم رغم
+        //     أن المتصفح يعرضه. إعادة الرسم على canvas ثم التصدير image/jpeg تُنتج
+        //     ملفاً قياسياً يقبله الخادم دائماً.
+        // لذلك نُعيد الترميز لكل صورة يستطيع المتصفح رسمها (لا نتخطّى الصغيرة).
+        // PDF و الصيغ التي يعجز المتصفح عن رسمها (كبعض HEIC) تُترك كما هي.
+        async compressImageFile(file, maxDim = 1600, quality = 0.85) {
             if (!file || !file.type || !file.type.startsWith('image/')) return file;
-            if (file.size <= 1.2 * 1024 * 1024) return file; // صغيرة أصلاً
             try {
                 const dataUrl = await new Promise((res, rej) => {
                     const r = new FileReader();
@@ -1989,19 +1993,24 @@ function checkInForm() {
                     im.src = dataUrl;
                 });
                 let w = img.width, h = img.height;
+                if (!w || !h) return file;
                 if (w > maxDim || h > maxDim) {
                     if (w >= h) { h = Math.round(h * maxDim / w); w = maxDim; }
                     else        { w = Math.round(w * maxDim / h); h = maxDim; }
                 }
                 const canvas = document.createElement('canvas');
                 canvas.width = w; canvas.height = h;
-                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                // خلفية بيضاء أسفل الصورة (لو كانت PNG شفافة لا يصير الخلف أسود)
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, w, h);
+                ctx.drawImage(img, 0, 0, w, h);
                 const blob = await new Promise((res) => canvas.toBlob(res, 'image/jpeg', quality));
-                if (!blob || blob.size >= file.size) return file; // لا فائدة
+                if (!blob) return file;
                 const name = (file.name || 'id').replace(/\.[^.]+$/, '') + '.jpg';
                 return new File([blob], name, { type: 'image/jpeg', lastModified: Date.now() });
             } catch (e) {
-                return file; // تعذّر الضغط (HEIC مثلاً) — نُبقي الأصل
+                return file; // تعذّر الرسم (HEIC/صيغة غير مدعومة) — نُبقي الأصل
             }
         },
 
