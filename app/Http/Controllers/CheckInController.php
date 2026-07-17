@@ -92,6 +92,20 @@ class CheckInController extends Controller
 
     public function store(Request $request)
     {
+        // تسجيل تشخيصي: نُثبت وصول الطلب فعلاً إلى المتحكّم (لو لم يظهر هذا السطر
+        // في السجل بعد محاولة الموظف، فالطلب لم يصل أصلاً — يُرفَض قبلها في طبقة
+        // أعلى: 419 رمز/جلسة، أو 413 حجم رفع أكبر من حد الخادم). نُسجّل حجم الطلب
+        // وعدد الملفات المرفوعة وأسماء الحقول الواصلة دون أي بيانات حسّاسة.
+        Log::info('CHECKIN_STORE_ENTER', [
+            'user_id'          => auth()->id(),
+            'content_length'   => $request->header('Content-Length'),
+            'files'            => array_keys($request->allFiles()),
+            'has_token'        => $request->filled('_token'),
+            'has_room'         => $request->filled('room_id'),
+            'has_id_number'    => $request->filled('id_number'),
+            'payment_status'   => $request->input('payment_status'),
+        ]);
+
         // صيغ الصور المقبولة — تشمل صيغ هواتف الجوال الحديثة (HEIC/WebP) حتى لا تُرفض
         $imgMimes = 'jpg,jpeg,png,webp,gif,bmp,heic,heif,pdf';
 
@@ -137,6 +151,10 @@ class CheckInController extends Controller
             'suite_booking_type'        => 'nullable|in:a_only,b_only,both',
         ]);
 
+        // وصلنا هنا = اجتاز الطلب التحقّق بنجاح (لو توقّف التنفيذ قبل هذا السطر
+        // فالسبب فشل تحقّق يظهر للمستخدم في صندوق الأخطاء).
+        Log::info('CHECKIN_STORE_VALIDATED', ['user_id' => auth()->id(), 'room_id' => $request->input('room_id')]);
+
         try {
             $data = $request->except(['_token']);
             $data['paid_amount'] = $request->input('paid_amount', 0);
@@ -165,6 +183,8 @@ class CheckInController extends Controller
             }
 
             $reservation = $this->checkInService->createCheckIn($data, auth()->user());
+
+            Log::info('CHECKIN_STORE_CREATED', ['user_id' => auth()->id(), 'reservation_id' => $reservation->id]);
 
             // نوجّه لصفحة تأكيد التسجيل (checkin.success) لا لصفحة تفاصيل الحجز
             // (reservations.show) عمداً: الأولى مقصورة على صلاحية checkin.create
