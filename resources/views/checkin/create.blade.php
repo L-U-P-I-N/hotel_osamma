@@ -1525,6 +1525,28 @@ function checkInForm() {
             // يستعيد المستخدم خطوته وبياناته كاملة بدل العودة لخطوة بيانات النزيل فارغةً
             this.saveToSession();
             this.submitting = true;
+
+            // نمنع الإرسال الفوري ونجلب رمز CSRF محدَّثاً أولاً ثم نُرسل — حتى لا
+            // يفشل الطلب بخطأ 419 إذا بقيت صفحة التسجيل مفتوحة مدةً طويلة وانتهت
+            // صلاحية الرمز/الجلسة (كان يُعيد نموذجاً فارغاً دون رسالة ودون حفظ
+            // الحجز، فيظن الموظف أن "لا شيء حدث"). عند تعذّر الجلب نُرسل بالرمز
+            // الحالي كحلٍّ احتياطي (لا نُعطّل الإرسال أبداً).
+            event.preventDefault();
+            const form = document.getElementById('checkInMainForm');
+            let submitted = false;
+            const submitNow = () => { if (!submitted) { submitted = true; form.submit(); } };
+            // ضمان الإرسال خلال 3 ثوانٍ كحد أقصى حتى لو تعطّلت الشبكة أثناء جلب الرمز
+            const guard = setTimeout(submitNow, 3000);
+            fetch(@json(route('csrf.token')), { headers: { 'Accept': 'application/json' }, cache: 'no-store' })
+                .then(r => r.ok ? r.json() : null)
+                .then(data => {
+                    if (data && data.token) {
+                        const tokenInput = form.querySelector('input[name="_token"]');
+                        if (tokenInput) tokenInput.value = data.token;
+                    }
+                })
+                .catch(() => {})
+                .finally(() => { clearTimeout(guard); submitNow(); });
         },
 
         // البحث عن نزيل عائد بالاسم لعرض اقتراحات تعبئة سريعة

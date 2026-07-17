@@ -41,6 +41,11 @@ Route::post('/reset-password', [PasswordResetController::class, 'resetPassword']
 // Authenticated routes
 Route::middleware(['auth'])->group(function () {
 
+    // رمز CSRF محدَّث — تطلبه النماذج الطويلة (كتسجيل الدخول) قبل الإرسال حتى
+    // لا يفشل الطلب بخطأ 419 إذا بقيت الصفحة مفتوحة مدةً طويلة وانتهت صلاحية
+    // الرمز/الجلسة، فيُحفَظ الحجز من أول محاولة بدل إعادة نموذج فارغ بلا رسالة.
+    Route::get('/csrf-token', fn() => response()->json(['token' => csrf_token()]))->name('csrf.token');
+
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])
         ->name('dashboard')
