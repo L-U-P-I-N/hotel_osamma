@@ -1512,7 +1512,32 @@ function checkInForm() {
             } catch(e) {}
         },
 
-        handleSubmit(event) {
+        // يضغط كل صور الهوية المتبقّية في حقول الرفع قبل الإرسال — شبكة أمان
+        // نهائية تضمن ألا تُرسَل صورة كبيرة (كصور الماسح الضوئي عالية الدقة) حتى
+        // لو لم يكتمل الضغط لحظة الاختيار.
+        async compressAllImageInputs(form) {
+            const inputs = form.querySelectorAll('input[type="file"]');
+            for (const input of inputs) {
+                if (!input.files || !input.files.length) continue;
+                const f = input.files[0];
+                if (!f.type || !f.type.startsWith('image/')) continue;
+                const c = await this.compressImageFile(f);
+                if (c !== f) { const dt = new DataTransfer(); dt.items.add(c); input.files = dt.files; }
+            }
+        },
+
+        // يُعيد اسم أول ملف يتجاوز الحد الآمن للرفع (بعد محاولة الضغط)، أو null.
+        findOversizedFile(form, maxBytes = 4.7 * 1024 * 1024) {
+            const inputs = form.querySelectorAll('input[type="file"]');
+            for (const input of inputs) {
+                if (input.files && input.files.length && input.files[0].size > maxBytes) {
+                    return input.files[0].name || 'ملف';
+                }
+            }
+            return null;
+        },
+
+        async handleSubmit(event) {
             // منع الإرسال المبكر (مثلاً عند ضغط Enter في خانة نصّية) قبل الوصول
             // للخطوة الأخيرة — كان يُرسِل الحجز ناقصاً/يعيد العملية. بدل ذلك ننتقل
             // للخطوة التالية فقط، ولا نُرسل فعلياً إلا من خطوة المراجعة (3).
@@ -1521,22 +1546,33 @@ function checkInForm() {
                 this.nextStep();
                 return;
             }
+            event.preventDefault();
             // نحفظ حالة المعالج لحظة الإرسال، حتى إذا رُفض الطلب (خطأ تحقق، انتهاء جلسة...)
             // يستعيد المستخدم خطوته وبياناته كاملة بدل العودة لخطوة بيانات النزيل فارغةً
             this.saveToSession();
             this.submitting = true;
-
-            // نمنع الإرسال الفوري ونجلب رمز CSRF محدَّثاً أولاً ثم نُرسل — حتى لا
-            // يفشل الطلب بخطأ 419 إذا بقيت صفحة التسجيل مفتوحة مدةً طويلة وانتهت
-            // صلاحية الرمز/الجلسة (كان يُعيد نموذجاً فارغاً دون رسالة ودون حفظ
-            // الحجز، فيظن الموظف أن "لا شيء حدث"). عند تعذّر الجلب نُرسل بالرمز
-            // الحالي كحلٍّ احتياطي (لا نُعطّل الإرسال أبداً).
-            event.preventDefault();
             const form = document.getElementById('checkInMainForm');
+
+            // 1) ضغط الصور الكبيرة قبل الإرسال (السبب الجذري: صورة الماسح الضوئي
+            //    عالية الدقة تتجاوز حد رفع الخادم فيُرفَض الطلب صامتاً بلا حفظ).
+            try { await this.compressAllImageInputs(form); } catch (e) {}
+
+            // تحقّق نهائي: إن بقيت صورة كبيرة (صيغة يعجز المتصفح عن ضغطها كـ TIFF
+            //    أو ملف PDF ممسوح كبير) ننبّه بوضوح بدل الإرسال الذي سيفشل صامتاً.
+            const oversized = this.findOversizedFile(form);
+            if (oversized) {
+                this.submitting = false;
+                this.stepError = 'حجم الملف "' + oversized + '" كبير جداً على الرفع. أعد المسح بدقة أقل (مثل 200 DPI) واحفظه بصيغة JPEG، أو استخدم صورة أصغر.';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                return;
+            }
+
             let submitted = false;
             const submitNow = () => { if (!submitted) { submitted = true; form.submit(); } };
             // ضمان الإرسال خلال 3 ثوانٍ كحد أقصى حتى لو تعطّلت الشبكة أثناء جلب الرمز
             const guard = setTimeout(submitNow, 3000);
+            // 2) جلب رمز CSRF محدَّث ثم الإرسال — حتى لا يفشل الطلب بخطأ 419 إذا بقيت
+            //    الصفحة مفتوحة مدةً طويلة. عند تعذّر الجلب نُرسل بالرمز الحالي احتياطاً.
             fetch(@json(route('csrf.token')), { headers: { 'Accept': 'application/json' }, cache: 'no-store' })
                 .then(r => r.ok ? r.json() : null)
                 .then(data => {
@@ -1933,9 +1969,53 @@ function checkInForm() {
             return (parseFloat(n) || 0).toLocaleString('ar-YE');
         },
 
-        handleIdImageChange(e) {
-            const file = e.target.files[0];
+        // يضغط صورة الهوية في المتصفح قبل الرفع: صور الجوال قد تصل 5–12 ميجابايت
+        // فتتجاوز حد الرفع في الخادم ويُرفَض الطلب صامتاً (بلا رسالة، دون حفظ
+        // الحجز). نُصغّر الأبعاد ونعيد ضغطها JPEG فتصبح أقل من ميجابايت غالباً،
+        // فينجح الرفع دائماً وأسرع. الملفات الصغيرة أصلاً و PDF و الصيغ التي يعجز
+        // المتصفح عن رسمها (كبعض HEIC) تُترك كما هي.
+        async compressImageFile(file, maxDim = 1600, quality = 0.82) {
+            if (!file || !file.type || !file.type.startsWith('image/')) return file;
+            if (file.size <= 1.2 * 1024 * 1024) return file; // صغيرة أصلاً
+            try {
+                const dataUrl = await new Promise((res, rej) => {
+                    const r = new FileReader();
+                    r.onload = () => res(r.result); r.onerror = rej;
+                    r.readAsDataURL(file);
+                });
+                const img = await new Promise((res, rej) => {
+                    const im = new Image();
+                    im.onload = () => res(im); im.onerror = rej;
+                    im.src = dataUrl;
+                });
+                let w = img.width, h = img.height;
+                if (w > maxDim || h > maxDim) {
+                    if (w >= h) { h = Math.round(h * maxDim / w); w = maxDim; }
+                    else        { w = Math.round(w * maxDim / h); h = maxDim; }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = w; canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                const blob = await new Promise((res) => canvas.toBlob(res, 'image/jpeg', quality));
+                if (!blob || blob.size >= file.size) return file; // لا فائدة
+                const name = (file.name || 'id').replace(/\.[^.]+$/, '') + '.jpg';
+                return new File([blob], name, { type: 'image/jpeg', lastModified: Date.now() });
+            } catch (e) {
+                return file; // تعذّر الضغط (HEIC مثلاً) — نُبقي الأصل
+            }
+        },
+
+        async handleIdImageChange(e) {
+            let file = e.target.files[0];
             if (!file) return;
+            if (file.type && file.type.startsWith('image/')) {
+                const compressed = await this.compressImageFile(file);
+                if (compressed !== file) {
+                    file = compressed;
+                    const input = document.querySelector('input[name="id_image"]');
+                    if (input) { const dt = new DataTransfer(); dt.items.add(file); input.files = dt.files; }
+                }
+            }
             this.idImageName = file.name;
             if (file.type.startsWith('image/')) {
                 const reader = new FileReader();
@@ -1954,9 +2034,16 @@ function checkInForm() {
             this.handleIdImageChange({ target: { files: [file] } });
         },
 
-        handleCompanionIdImage(e, idx) {
-            const file = e.target.files[0];
+        async handleCompanionIdImage(e, idx) {
+            let file = e.target.files[0];
             if (!file) return;
+            if (file.type && file.type.startsWith('image/')) {
+                const compressed = await this.compressImageFile(file);
+                if (compressed !== file) {
+                    file = compressed;
+                    const dt = new DataTransfer(); dt.items.add(file); e.target.files = dt.files;
+                }
+            }
             this.companions[idx].id_file_selected = true;
             if (file.type.startsWith('image/')) {
                 const reader = new FileReader();
