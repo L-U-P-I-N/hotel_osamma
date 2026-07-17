@@ -41,10 +41,12 @@
            class="flex items-center gap-2 px-5 py-2.5 bg-primary-800 text-white rounded-lg text-sm hover:bg-primary-700 transition">
             حجز جديد
         </a>
+        @can('checkin.view')
         <a href="{{ route('reservations.show', $reservation) }}"
            class="flex items-center gap-2 px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50 transition">
             عرض الحجز
         </a>
+        @endcan
     </div>
 </div>
 @endsection

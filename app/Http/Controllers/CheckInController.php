@@ -166,7 +166,14 @@ class CheckInController extends Controller
 
             $reservation = $this->checkInService->createCheckIn($data, auth()->user());
 
-            return redirect()->route('reservations.show', $reservation->id)
+            // نوجّه لصفحة تأكيد التسجيل (checkin.success) لا لصفحة تفاصيل الحجز
+            // (reservations.show) عمداً: الأولى مقصورة على صلاحية checkin.create
+            // نفسها التي أتمّ بها الموظف هذه العملية، والثانية تتطلّب checkin.view
+            // بشكل منفصل. موظف يملك الأولى دون الثانية كان يُحوَّل بصمت إلى صفحة
+            // التسجيل فارغة (رفض الصلاحية في reservations.show يُعيده لآخر GET قبل
+            // الإرسال، وهي صفحة إنشاء الحجز) فيظنّ أن التسجيل فشل رغم نجاحه فعلياً
+            // فيُعيد المحاولة وقد يُسجّل حجزاً مكرَّراً لنفس النزيل/الغرفة.
+            return redirect()->route('checkin.success', $reservation->id)
                 ->with('success', 'تم تسجيل الدخول بنجاح');
         } catch (BlacklistedException $e) {
             return back()->withErrors(['id_number' => $e->getMessage()])->withInput();
