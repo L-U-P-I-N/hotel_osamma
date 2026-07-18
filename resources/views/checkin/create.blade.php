@@ -1537,52 +1537,79 @@ function checkInForm() {
             return null;
         },
 
+        // الإرسال عبر AJAX بدل إعادة تحميل الصفحة: هذا هو جوهر إعادة الهيكلة.
+        // الصفحة لا تنتقل إطلاقاً إلا عند النجاح، فأي فشل (تحقّق، انتهاء جلسة،
+        // مشكلة صورة، انقطاع شبكة) يُظهر رسالة واضحة و«يُبقي كل ما أدخله الموظف في
+        // مكانه» — لا مزيد من «حُذفت البيانات وأعد الإدخال من جديد».
         async handleSubmit(event) {
-            // منع الإرسال المبكر (مثلاً عند ضغط Enter في خانة نصّية) قبل الوصول
-            // للخطوة الأخيرة — كان يُرسِل الحجز ناقصاً/يعيد العملية. بدل ذلك ننتقل
-            // للخطوة التالية فقط، ولا نُرسل فعلياً إلا من خطوة المراجعة (3).
+            event.preventDefault();
+            // قبل الخطوة الأخيرة: زر «التالي» فقط، لا إرسال (تفادي إرسال ناقص).
             if (this.currentStep !== 3) {
-                event.preventDefault();
                 this.nextStep();
                 return;
             }
-            event.preventDefault();
-            // نحفظ حالة المعالج لحظة الإرسال، حتى إذا رُفض الطلب (خطأ تحقق، انتهاء جلسة...)
-            // يستعيد المستخدم خطوته وبياناته كاملة بدل العودة لخطوة بيانات النزيل فارغةً
+            if (this.submitting) return; // منع الإرسال المزدوج
+            this.stepError = '';
             this.saveToSession();
             this.submitting = true;
             const form = document.getElementById('checkInMainForm');
 
-            // 1) ضغط الصور الكبيرة قبل الإرسال (السبب الجذري: صورة الماسح الضوئي
-            //    عالية الدقة تتجاوز حد رفع الخادم فيُرفَض الطلب صامتاً بلا حفظ).
-            try { await this.compressAllImageInputs(form); } catch (e) {}
+            try {
+                // 1) توحيد وضغط الصور إلى JPEG قياسي (يعالج صور الماسح غير القياسية
+                //    والحجم الكبير) قبل الإرسال.
+                try { await this.compressAllImageInputs(form); } catch (e) {}
 
-            // تحقّق نهائي: إن بقيت صورة كبيرة (صيغة يعجز المتصفح عن ضغطها كـ TIFF
-            //    أو ملف PDF ممسوح كبير) ننبّه بوضوح بدل الإرسال الذي سيفشل صامتاً.
-            const oversized = this.findOversizedFile(form);
-            if (oversized) {
+                const oversized = this.findOversizedFile(form);
+                if (oversized) {
+                    this.submitting = false;
+                    this.stepError = 'حجم الملف "' + oversized + '" كبير جداً على الرفع. أعد المسح بدقة أقل (مثل 200 DPI) بصيغة JPEG، أو استخدم صورة أصغر.';
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    return;
+                }
+
+                // 2) جلب رمز CSRF محدَّث (يتفادى فشل 419 عند بقاء الصفحة مفتوحة طويلاً).
+                let token = form.querySelector('input[name="_token"]')?.value || '';
+                try {
+                    const tr = await fetch(@json(route('csrf.token')), { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+                    if (tr.ok) { const d = await tr.json(); if (d && d.token) token = d.token; }
+                } catch (e) {}
+
+                // 3) الإرسال بـ fetch مع كل بيانات النموذج وملفاته.
+                const fd = new FormData(form);
+                if (token) fd.set('_token', token);
+                const res = await fetch(form.action, {
+                    method: 'POST',
+                    body: fd,
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': token },
+                });
+
+                if (res.ok) {
+                    // نجاح — ننتقل لصفحة التأكيد وننظّف المسودّة المحفوظة.
+                    const data = await res.json().catch(() => null);
+                    sessionStorage.removeItem(CHECKIN_SESSION_KEY);
+                    window.location.href = (data && data.redirect) ? data.redirect : @json(route('reservations.expiring'));
+                    return;
+                }
+
                 this.submitting = false;
-                this.stepError = 'حجم الملف "' + oversized + '" كبير جداً على الرفع. أعد المسح بدقة أقل (مثل 200 DPI) واحفظه بصيغة JPEG، أو استخدم صورة أصغر.';
+                if (res.status === 422) {
+                    // أخطاء تحقّق — نعرضها ونُبقي كل البيانات في مكانها.
+                    const data = await res.json().catch(() => ({}));
+                    const list = data.errors ? Object.values(data.errors).flat() : [data.message || 'تعذّر الحفظ'];
+                    this.stepError = list.join(' • ');
+                } else if (res.status === 419) {
+                    this.stepError = 'انتهت صلاحية الجلسة مؤقتاً. اضغط «تأكيد» مرة أخرى الآن — بياناتك محفوظة.';
+                } else {
+                    const data = await res.json().catch(() => null);
+                    this.stepError = (data && (data.message || data.error)) || ('تعذّر الحفظ (رمز ' + res.status + '). حاول مرة أخرى — بياناتك محفوظة.');
+                }
                 window.scrollTo({ top: 0, behavior: 'smooth' });
-                return;
+            } catch (e) {
+                // انقطاع شبكة أو خطأ غير متوقّع — البيانات تبقى في النموذج كاملةً.
+                this.submitting = false;
+                this.stepError = 'تعذّر الاتصال بالخادم. تأكد من الإنترنت ثم اضغط «تأكيد» مرة أخرى — بياناتك محفوظة.';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             }
-
-            let submitted = false;
-            const submitNow = () => { if (!submitted) { submitted = true; form.submit(); } };
-            // ضمان الإرسال خلال 3 ثوانٍ كحد أقصى حتى لو تعطّلت الشبكة أثناء جلب الرمز
-            const guard = setTimeout(submitNow, 3000);
-            // 2) جلب رمز CSRF محدَّث ثم الإرسال — حتى لا يفشل الطلب بخطأ 419 إذا بقيت
-            //    الصفحة مفتوحة مدةً طويلة. عند تعذّر الجلب نُرسل بالرمز الحالي احتياطاً.
-            fetch(@json(route('csrf.token')), { headers: { 'Accept': 'application/json' }, cache: 'no-store' })
-                .then(r => r.ok ? r.json() : null)
-                .then(data => {
-                    if (data && data.token) {
-                        const tokenInput = form.querySelector('input[name="_token"]');
-                        if (tokenInput) tokenInput.value = data.token;
-                    }
-                })
-                .catch(() => {})
-                .finally(() => { clearTimeout(guard); submitNow(); });
         },
 
         // البحث عن نزيل عائد بالاسم لعرض اقتراحات تعبئة سريعة

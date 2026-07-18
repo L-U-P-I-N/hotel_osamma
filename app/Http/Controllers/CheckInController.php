@@ -186,16 +186,19 @@ class CheckInController extends Controller
 
             Log::info('CHECKIN_STORE_CREATED', ['user_id' => auth()->id(), 'reservation_id' => $reservation->id]);
 
-            // نوجّه لصفحة تأكيد التسجيل (checkin.success) لا لصفحة تفاصيل الحجز
-            // (reservations.show) عمداً: الأولى مقصورة على صلاحية checkin.create
-            // نفسها التي أتمّ بها الموظف هذه العملية، والثانية تتطلّب checkin.view
-            // بشكل منفصل. موظف يملك الأولى دون الثانية كان يُحوَّل بصمت إلى صفحة
-            // التسجيل فارغة (رفض الصلاحية في reservations.show يُعيده لآخر GET قبل
-            // الإرسال، وهي صفحة إنشاء الحجز) فيظنّ أن التسجيل فشل رغم نجاحه فعلياً
-            // فيُعيد المحاولة وقد يُسجّل حجزاً مكرَّراً لنفس النزيل/الغرفة.
-            return redirect()->route('checkin.success', $reservation->id)
-                ->with('success', 'تم تسجيل الدخول بنجاح');
+            $successUrl = route('checkin.success', $reservation->id);
+
+            // الإرسال عبر AJAX (الوضع الأساسي الآن): نُعيد رابط النجاح كـ JSON
+            // فيوجّه المتصفح إليه دون إعادة تحميل الصفحة عند الفشل — فلا تُفقَد
+            // بيانات الموظف أبداً مهما حدث. الطلب التقليدي (احتياطي) يُوجَّه مباشرةً.
+            if ($request->expectsJson()) {
+                return response()->json(['success' => true, 'redirect' => $successUrl]);
+            }
+            return redirect($successUrl)->with('success', 'تم تسجيل الدخول بنجاح');
         } catch (BlacklistedException $e) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $e->getMessage(), 'errors' => ['id_number' => [$e->getMessage()]]], 422);
+            }
             return back()->withErrors(['id_number' => $e->getMessage()])->withInput();
         } catch (\Throwable $e) {
             // نلتقط Throwable (يشمل Error/TypeError) حتى لا تظهر صفحة 500 صمّاء،
@@ -205,9 +208,11 @@ class CheckInController extends Controller
                 'file'    => $e->getFile() . ':' . $e->getLine(),
                 'user_id' => auth()->id(),
             ]);
-            return back()->withErrors([
-                'error' => 'تعذّر إتمام تسجيل الدخول: ' . $e->getMessage(),
-            ])->withInput();
+            $msg = 'تعذّر إتمام تسجيل الدخول: ' . $e->getMessage();
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $msg], 500);
+            }
+            return back()->withErrors(['error' => $msg])->withInput();
         }
     }
 
