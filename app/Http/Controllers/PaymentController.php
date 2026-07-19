@@ -54,6 +54,50 @@ class PaymentController extends Controller
             ->with('success', 'تم تسجيل الدفعة بنجاح');
     }
 
+    /**
+     * حذف دفعة مستلمة وإزالتها من كل الحسابات المالية (رصيد الحجز، حالة الدفع،
+     * ومجاميع الوردية) حتى لا يحدث أي اختلال. ضوابط:
+     *  - لا يحذف الموظف إلا دفعةً استلمها هو بنفسه (received_by)؛ المدير يحذف أي
+     *    دفعة. فلا يمسّ موظفٌ دفعة زميلٍ آخر.
+     *  - لا يمكن حذف دفعة تخصّ وردية مقفلة (أرقامها مُصفّاة)، تفادياً للخبطة
+     *    حسابات وردية منتهية — تُفتح الوردية أولاً إن لزم.
+     */
+    public function destroy(Request $request, \App\Models\Payment $payment)
+    {
+        $user = auth()->user();
+
+        if (!$user->isAdmin() && $payment->received_by !== $user->id) {
+            return back()->withErrors(['error' => 'لا يمكنك حذف دفعة استلمها موظف آخر — فقط من استلم الدفعة أو المدير يحذفها']);
+        }
+
+        if ($payment->shift && $payment->shift->is_closed) {
+            return back()->withErrors(['error' => 'لا يمكن حذف دفعة تخصّ وردية مقفلة. افتح الوردية أولاً ثم احذفها']);
+        }
+
+        $reservation = $payment->reservation;
+        $amount      = (float) $payment->amount;
+        $shift       = $payment->shift;
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($payment, $reservation, $amount, $shift, $user) {
+            $old = $payment->toArray();
+            $payment->delete(); // حذف ناعم (Payment يستخدم SoftDeletes)
+
+            if ($reservation) {
+                $reservation->decrement('paid_amount', $amount);
+                $reservation->refresh()->updatePaymentStatus();
+            }
+
+            if ($shift) {
+                app(\App\Services\ShiftService::class)->computeTotals($shift);
+            }
+
+            \App\Services\AuditLogService::log('delete', $payment, $old, null, $user);
+        });
+
+        return redirect()->route('reservations.show', $reservation)
+            ->with('success', 'تم حذف الدفعة وإزالتها من الحسابات بنجاح');
+    }
+
     public function update(Request $request, \App\Models\Payment $payment)
     {
         $reservation = $payment->reservation;

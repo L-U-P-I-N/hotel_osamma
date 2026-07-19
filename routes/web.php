@@ -170,6 +170,9 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/payments/{payment}', [PaymentController::class, 'update'])
         ->name('payments.update')
         ->middleware('permission:payments.create');
+    Route::delete('/payments/{payment}', [PaymentController::class, 'destroy'])
+        ->name('payments.destroy')
+        ->middleware('permission:payments.create');
     Route::get('/payments/{payment}/slip', [PaymentController::class, 'slip'])
         ->name('payments.slip')
         ->middleware('permission:payments.create');
