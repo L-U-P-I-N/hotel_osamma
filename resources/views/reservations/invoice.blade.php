@@ -158,12 +158,12 @@ body {
 
 /* Header */
 .brand { float: right; width: 55%; display: flex; flex-direction: column; align-items: flex-start; }
-.brand-logo { height: 111px; width: auto; margin-bottom: 6px; }
-.brand .hotel-ar { font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--color-navy); line-height: var(--leading-tight); }
+.brand-logo { height: 72px; width: auto; margin-bottom: 4px; }
+.brand .hotel-ar { font-size: 16pt; font-weight: var(--font-bold); color: var(--color-navy); line-height: var(--leading-tight); }
 .brand .hotel-en { font-size: var(--text-xs); color: var(--color-gold); letter-spacing: var(--tracking-wide); margin-top: 2px; }
-.invmeta { float: left; width: 43%; direction: rtl; background: #f7f9fc; border: 1px solid var(--color-border); border-radius: 10px; padding: 14px 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
-.inv-title { font-size: 20pt; font-weight: var(--font-bold); color: var(--color-navy); line-height: 1; margin-bottom: 10px; }
-.inv-divider { border: none; border-top: 2px solid var(--color-gold); margin: 0 0 10px; }
+.invmeta { float: left; width: 43%; direction: rtl; background: #f7f9fc; border: 1px solid var(--color-border); border-radius: 10px; padding: 10px 13px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+.inv-title { font-size: 16pt; font-weight: var(--font-bold); color: var(--color-navy); line-height: 1; margin-bottom: 6px; }
+.inv-divider { border: none; border-top: 2px solid var(--color-gold); margin: 0 0 7px; }
 .inv-row { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; font-size: 9pt; }
 .inv-row-label { color: var(--color-text-secondary); }
 .inv-row-val { font-weight: var(--font-bold); color: var(--color-text-primary); }
@@ -172,16 +172,16 @@ body {
 .pill-paid { background: var(--color-success-bg); color: var(--color-success); }
 .pill-due  { background: var(--color-error-bg);   color: var(--color-error); }
 .clear { clear: both; }
-.rule  { clear: both; height: 0; border-top: 3px solid var(--color-navy); margin: 14px 0 0; }
-.rule2 { height: 0; border-top: 1px solid var(--color-gold); margin: 0 0 20px; }
+.rule  { clear: both; height: 0; border-top: 3px solid var(--color-navy); margin: 9px 0 0; }
+.rule2 { height: 0; border-top: 1px solid var(--color-gold); margin: 0 0 12px; }
 
 /* Info cards */
-.card { border: var(--border-thin) solid var(--color-border); background: var(--color-surface); border-radius: var(--radius-md); padding: var(--padding-card); box-shadow: var(--shadow-card); }
+.card { border: var(--border-thin) solid var(--color-border); background: var(--color-surface); border-radius: var(--radius-md); padding: 9px 12px; box-shadow: var(--shadow-card); }
 .card-r { float: right; width: 49%; }
 .card-l { float: left;  width: 49%; }
-.card-h { font-size: var(--text-md); font-weight: var(--font-bold); color: var(--color-navy); border-bottom: var(--border-base) solid var(--color-gold); padding-bottom: 6px; margin-bottom: 8px; }
+.card-h { font-size: var(--text-md); font-weight: var(--font-bold); color: var(--color-navy); border-bottom: var(--border-base) solid var(--color-gold); padding-bottom: 5px; margin-bottom: 6px; }
 .kv { width: 100%; border-collapse: collapse; font-size: var(--text-base); }
-.kv td { padding: 1px 0; line-height: var(--leading-relaxed); text-align: right; }
+.kv td { padding: 1px 0; line-height: var(--leading-snug); text-align: right; }
 .kv .k { color: var(--color-text-secondary); width: 34%; }
 .kv .v { color: var(--color-text-primary); font-weight: var(--font-bold); width: 66%; }
 
@@ -190,7 +190,7 @@ body {
   font-size: var(--text-md); font-weight: var(--font-bold); color: var(--color-text-primary);
   background: var(--color-surface-section);
   border-right: var(--border-accent) solid var(--color-gold);
-  padding: var(--padding-section-head); margin: 18px 0 10px;
+  padding: 6px 13px; margin: 12px 0 7px;
 }
 
 /* Tables */
@@ -205,20 +205,21 @@ table.items .c { text-align: center !important; white-space: nowrap; }
 .muted { color: var(--color-text-warm-muted); font-size: 8pt; }
 
 table.mini { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
-table.mini th { background: #efeadd; color: #4b4636; padding: 5px 9px; font-size: 8pt; font-weight: 700; text-align: right; }
-table.mini td { padding: 5px 9px; border-bottom: 1px solid #f0ece0; text-align: right; }
+table.mini th { background: #efeadd; color: #4b4636; padding: 4px 9px; font-size: 8pt; font-weight: 700; text-align: right; }
+table.mini td { padding: 3px 9px; border-bottom: 1px solid #f0ece0; text-align: right; }
+table.mini tr { page-break-inside: avoid; }
 
 /* Summary */
 .summary-card { flex: 1; border: 1px solid var(--color-border); border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); overflow: hidden; }
-.sum-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 16px; border-bottom: 1px solid var(--color-border-light); direction: rtl; }
+.sum-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 16px; border-bottom: 1px solid var(--color-border-light); direction: rtl; }
 .sum-label { font-size: 9pt; color: var(--color-text-secondary); }
 .sum-value { font-size: 9.5pt; font-weight: var(--font-bold); color: var(--color-text-primary); white-space: nowrap; }
 .sum-discount .sum-value { color: var(--color-error); }
 .sum-sep { border: none; border-top: 2px solid var(--color-gold); margin: 0; }
-.sum-total { background: var(--color-navy); padding: 13px 16px; display: flex; justify-content: space-between; align-items: center; direction: rtl; }
+.sum-total { background: var(--color-navy); padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; direction: rtl; }
 .sum-total .sum-label { color: rgba(255,255,255,0.75); font-size: 9.5pt; }
 .sum-total .sum-value { color: #fff; font-size: 14pt; font-weight: var(--font-bold); }
-.sum-paid { display: flex; justify-content: space-between; align-items: center; padding: 9px 16px; border-bottom: 1px solid var(--color-border-light); direction: rtl; }
+.sum-paid { display: flex; justify-content: space-between; align-items: center; padding: 6px 16px; border-bottom: 1px solid var(--color-border-light); direction: rtl; }
 .sum-paid .sum-label { font-size: 9pt; color: var(--color-text-secondary); }
 .sum-paid .sum-value { font-size: 9.5pt; font-weight: var(--font-bold); color: var(--color-success); }
 .sum-status-paid { background: var(--color-success-bg); padding: 9px 16px; text-align: center; color: var(--color-success); font-weight: var(--font-bold); font-size: 9pt; direction: rtl; }
@@ -228,7 +229,7 @@ table.mini td { padding: 5px 9px; border-bottom: 1px solid #f0ece0; text-align: 
 .notes { clear: both; border-right: var(--border-accent) solid var(--color-gold); background: var(--color-surface-warm); padding: 10px 15px; font-size: var(--text-md); color: var(--color-text-warning); margin: 20px 0 0; border-radius: var(--radius-sm); }
 
 /* Bottom section */
-.bottom-section { width: 100%; border-collapse: collapse; margin-top: 10px; direction: rtl; }
+.bottom-section { width: 100%; border-collapse: collapse; margin-top: 8px; direction: rtl; page-break-inside: avoid; }
 .bottom-section td { vertical-align: bottom; }
 .bottom-section .summary-cell { width: 66%; }
 .bottom-section .stamp-cell { width: 34%; padding-right: 20px; }
