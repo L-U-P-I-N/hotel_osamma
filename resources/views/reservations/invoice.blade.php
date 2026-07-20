@@ -325,72 +325,16 @@ table.mini td { padding: 5px 9px; border-bottom: 1px solid #f0ece0; text-align: 
       <tr><td class="v">{{ $reservation->check_in_date?->format('Y/m/d') }}{{ $reservation->check_in_time ? ' — '.$reservation->check_in_time : '' }}</td><td class="k">الدخول:</td></tr>
       <tr><td class="v">{{ $reservation->check_out_date?->format('Y/m/d') }}{{ $reservation->check_out_time ? ' — '.$reservation->check_out_time : '' }}</td><td class="k">الخروج:</td></tr>
       <tr><td class="v">{{ $nights }} {{ $nights == 1 ? 'ليلة' : 'ليالٍ' }}</td><td class="k">المدة:</td></tr>
+      {{-- سعر الليلة ضمن تفاصيل الإقامة (بدل جدول تفاصيل الرسوم المحذوف) --}}
+      @if($hasFirstNight)
+      <tr><td class="v">{{ number_format($firstNightPrice, 0) }} {{ $cur }}</td><td class="k">سعر الليلة الأولى:</td></tr>
+      <tr><td class="v">{{ number_format($otherNightPrice, 0) }} {{ $cur }}</td><td class="k">سعر بقية الليالي:</td></tr>
+      @else
+      <tr><td class="v">{{ number_format($pricePerNight, 0) }} {{ $cur }}</td><td class="k">سعر الليلة:</td></tr>
+      @endif
     </table>
   </div>
   <div class="clear"></div>
-
-  <!-- CHARGES -->
-  <div class="sec">تفاصيل الرسوم</div>
-  <table class="items">
-    <thead>
-      <tr>
-        <th class="c" style="width:20%;">الإجمالي</th>
-        <th class="c" style="width:18%;">سعر الوحدة</th>
-        <th class="c" style="width:14%;">الكمية</th>
-        <th style="width:48%;">البيان</th>
-      </tr>
-    </thead>
-    <tbody>
-      @if($showSegments)
-      @php $renewalNo = 0; $renewalCount = $roomSegments->where('type','renewal')->count(); @endphp
-      @foreach($roomSegments as $seg)
-      @php
-        if($seg->type === 'renewal') $renewalNo++;
-        $segStartTime = $loop->first ? $segCheckInTime : $segBoundaryTime;
-        $segEndTime   = $loop->last  ? $segCheckOutTime : $segBoundaryTime;
-      @endphp
-      <tr>
-        <td class="c">{{ number_format($seg->amount, 0) }} {{ $cur }}</td>
-        <td class="c">{{ number_format($seg->price_per_night, 0) }} {{ $cur }}</td>
-        <td class="c">{{ $seg->nights }} × ليلة</td>
-        <td>
-          @if($seg->type === 'renewal')تجديد @if($renewalCount > 1){{ $renewalNo }} @endif@else إقامة (الحجز الأولي) @endif
-          — غرفة {{ $reservation->display_room_number }}
-          <span class="muted" dir="ltr">({{ $seg->start_date->format('d/m') }} {{ $segStartTime }} → {{ $seg->end_date->format('d/m') }} {{ $segEndTime }})</span>
-        </td>
-      </tr>
-      @endforeach
-      @elseif($hasFirstNight)
-      <tr>
-        <td class="c">{{ number_format($firstNightPrice, 0) }} {{ $cur }}</td>
-        <td class="c">{{ number_format($firstNightPrice, 0) }} {{ $cur }}</td>
-        <td class="c">1 × ليلة</td>
-        <td>إقامة (الليلة الأولى) — غرفة {{ $reservation->display_room_number }}</td>
-      </tr>
-      <tr>
-        <td class="c">{{ number_format($otherNightPrice * ($nights - 1), 0) }} {{ $cur }}</td>
-        <td class="c">{{ number_format($otherNightPrice, 0) }} {{ $cur }}</td>
-        <td class="c">{{ $nights - 1 }} × ليلة</td>
-        <td>إقامة (باقي الليالي) — غرفة {{ $reservation->display_room_number }}</td>
-      </tr>
-      @else
-      <tr>
-        <td class="c">{{ number_format($roomTotal, 0) }} {{ $cur }}</td>
-        <td class="c">{{ number_format($pricePerNight, 0) }} {{ $cur }}</td>
-        <td class="c">{{ $nights }} × ليلة</td>
-        <td>إقامة — غرفة {{ $reservation->display_room_number }}</td>
-      </tr>
-      @endif
-      @foreach($reservation->extraCharges as $charge)
-      <tr>
-        <td class="c">{{ number_format($charge->amount, 0) }} {{ $cur }}</td>
-        <td class="c">{{ number_format($charge->amount, 0) }} {{ $cur }}</td>
-        <td class="c">1</td>
-        <td>{{ $charge->description ?: $charge->type }} <span class="muted">— رسوم إضافية</span></td>
-      </tr>
-      @endforeach
-    </tbody>
-  </table>
 
   <!-- PAYMENTS -->
   @if($reservation->payments->count() > 0)
@@ -417,11 +361,6 @@ table.mini td { padding: 5px 9px; border-bottom: 1px solid #f0ece0; text-align: 
       @endforeach
     </tbody>
   </table>
-  @endif
-
-  <!-- NOTES -->
-  @if($reservation->notes)
-  <div class="notes"><strong>ملاحظات:</strong> {{ $reservation->notes }}</div>
   @endif
 
   <!-- BOTTOM: SUMMARY + STAMP -->
