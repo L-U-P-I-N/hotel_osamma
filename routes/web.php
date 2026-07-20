@@ -378,6 +378,7 @@ Route::middleware(['auth'])->group(function () {
     });
     Route::middleware('permission:checkin.create')->group(function () {
         Route::post('/reservations/{reservation}/discount', [\App\Http\Controllers\ReservationController::class, 'applyDiscount'])->name('reservations.applyDiscount');
+        Route::delete('/reservations/{reservation}/discount', [\App\Http\Controllers\ReservationController::class, 'removeDiscount'])->name('reservations.removeDiscount');
     });
 
     // ===== Leaves: Report =====

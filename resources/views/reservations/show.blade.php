@@ -679,7 +679,20 @@
                 @endif
                 @if($reservation->discount_amount > 0)
                 <div class="flex justify-between items-center text-emerald-600">
-                    <span>خصم {{ $reservation->discount_reason ? '(' . $reservation->discount_reason . ')' : '' }}</span>
+                    <span class="flex items-center gap-1.5">
+                        خصم {{ $reservation->discount_reason ? '(' . $reservation->discount_reason . ')' : '' }}
+                        {{-- إلغاء الخصم (لخصم أُدخل بالخطأ) — يُرجِع الإجمالي لما قبل الخصم --}}
+                        @can('checkin.create')
+                        <form method="POST" action="{{ route('reservations.removeDiscount', $reservation) }}" class="inline"
+                              onsubmit="return confirm('إلغاء الخصم ({{ number_format($reservation->discount_amount, 0) }} {{ $reservation->currency_symbol }})؟ سيعود الإجمالي إلى ما قبل الخصم.')">
+                            @csrf @method('DELETE')
+                            <button type="submit" title="إلغاء الخصم"
+                                    class="inline-flex items-center text-gray-300 hover:text-red-600 transition">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </form>
+                        @endcan
+                    </span>
                     <span class="font-semibold">- {{ number_format($reservation->discount_amount, 0) }} {{ $reservation->currency_symbol }}</span>
                 </div>
                 @endif

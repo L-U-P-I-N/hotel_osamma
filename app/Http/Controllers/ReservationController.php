@@ -977,6 +977,41 @@ class ReservationController extends Controller
     }
 
     /**
+     * إلغاء الخصم المطبَّق على الحجز (خصم أُدخل بالخطأ) — يُعيد الإجمالي إلى قيمته
+     * قبل الخصم (إجمالي الغرفة + الرسوم الإضافية) ويمحو حقول الخصم، ثم يُعيد حساب
+     * حالة الدفع. لا يمسّ أي دفعة مسجَّلة.
+     */
+    public function removeDiscount(Reservation $reservation)
+    {
+        if ((float) $reservation->discount_amount <= 0 && !$reservation->discount_type) {
+            return back()->withErrors(['error' => 'لا يوجد خصم مطبَّق على هذا الحجز']);
+        }
+
+        $old = $reservation->only(['discount_type', 'discount_value', 'discount_amount', 'discount_reason', 'total_amount']);
+
+        // الإجمالي قبل الخصم = إجمالي الغرفة (gross) + الرسوم الإضافية، مقرَّباً لأقرب ريال.
+        $newTotal = round((float) $reservation->gross_total + $reservation->extra_charges_total, 0);
+
+        $reservation->update([
+            'discount_type'   => null,
+            'discount_value'  => 0,
+            'discount_amount' => 0,
+            'discount_reason' => null,
+            'total_amount'    => $newTotal,
+        ]);
+
+        $reservation->refresh()->updatePaymentStatus();
+
+        AuditLogService::log('update', $reservation, $old, [
+            'action'       => 'discount_removed',
+            'total_amount' => $newTotal,
+        ], auth()->user());
+
+        return redirect()->route('reservations.show', $reservation)
+            ->with('success', 'تم إلغاء الخصم وإرجاع الإجمالي إلى ما قبل الخصم');
+    }
+
+    /**
      * تسجيل أضرار لنزيل مقيم (دون انتظار تسجيل الخروج) — يُنشئ سجل فحص/أضرار مع
      * الصور، ويضيف قيمة التعويض كرسم إضافي إلى إجمالي الحجز (دَين على النزيل)
      * ويسجّلها مصروف صيانة، تماماً كما يحدث عند الخروج.
