@@ -3,7 +3,7 @@
 @section('page-title', 'الوردية')
 
 @section('content')
-<div x-data="{ closeModal: {{ $errors->has('actual_amount') ? 'true' : 'false' }}, editWithdrawal: null, reopenModal: null, selectedPayments: [], selectedWithdrawals: [], bulkModal: false, selectedOrphans: [] }">
+<div x-data="{ closeModal: {{ $errors->has('actual_amount') ? 'true' : 'false' }}, editWithdrawal: null, reopenModal: null, selectedPayments: [], selectedWithdrawals: [], bulkModal: false, selectedOrphans: [], selectedOrphanWithdrawals: [] }">
 
 @if(session('success'))
 <div class="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">{{ session('success') }}</div>
@@ -47,6 +47,17 @@
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
             إقفال الوردية
         </button>
+        @can('shifts.delete')
+        <form method="POST" action="{{ route('shifts.destroy', $activeShift) }}"
+              onsubmit="return confirm('حذف هذه الوردية نهائياً؟\n\nلن تُحذف المستلمات والسحبيات والمصروفات — ستُصبح غير مرتبطة بوردية ويمكنك ضمّها إلى وردية جديدة.\n\nلا يمكن التراجع عن هذا الإجراء.')">
+            @csrf @method('DELETE')
+            <button type="submit"
+                    class="flex items-center gap-2 px-4 py-2 border border-red-300 text-red-600 rounded-lg text-sm hover:bg-red-50 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                حذف الوردية
+            </button>
+        </form>
+        @endcan
     </div>
 </div>
 
@@ -401,6 +412,62 @@
 </div>
 @endif
 
+{{-- سحبيات/مصروفات غير مرتبطة بوردية (تنشأ غالباً من حذف وردية سابقة) --}}
+@if($orphanWithdrawals->count() > 0)
+<div class="bg-white rounded-xl shadow-sm border border-amber-200 mt-5">
+    <div class="px-5 py-4 border-b border-amber-100 bg-amber-50 rounded-t-xl flex items-center justify-between gap-3 flex-wrap">
+        <div>
+            <h3 class="font-semibold text-amber-800">سحبيات غير مرتبطة بوردية ({{ $orphanWithdrawals->count() }})</h3>
+            <p class="text-xs text-amber-600 mt-0.5">سحبيات ومصروفات لم تُربط بأي وردية — حدّدها واضمّها إلى ورديتك المفتوحة لتظهر عند الإقفال.</p>
+        </div>
+        <div x-show="selectedOrphanWithdrawals.length > 0" x-cloak class="flex items-center gap-2">
+            <span class="text-xs text-amber-700 font-medium">محدَّد: <span x-text="selectedOrphanWithdrawals.length"></span></span>
+            <form method="POST" action="{{ route('shifts.attachOrphanWithdrawals') }}" @submit="return confirm('ضمّ السحبيات المحددة إلى ورديتك المفتوحة؟')">
+                @csrf @method('PATCH')
+                <template x-for="wid in selectedOrphanWithdrawals" :key="wid">
+                    <input type="hidden" name="withdrawal_ids[]" :value="wid">
+                </template>
+                <button type="submit" class="text-xs px-3 py-1.5 rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition whitespace-nowrap">
+                    ضمّ المحدد إلى ورديتي
+                </button>
+            </form>
+        </div>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50"><tr>
+                <th class="px-4 py-2 text-center w-10">
+                    <input type="checkbox" title="تحديد الكل"
+                           @change="selectedOrphanWithdrawals = $event.target.checked ? {{ $orphanWithdrawals->pluck('id')->toJson() }} : []"
+                           :checked="selectedOrphanWithdrawals.length === {{ $orphanWithdrawals->count() }}"
+                           class="rounded border-gray-300 text-amber-600 focus:ring-amber-500">
+                </th>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">تاريخ ووقت السحب</th>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المبلغ</th>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">النوع</th>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المستلم</th>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">ملاحظات</th>
+            </tr></thead>
+            <tbody class="divide-y divide-gray-50">
+                @foreach($orphanWithdrawals as $ow)
+                <tr :class="selectedOrphanWithdrawals.includes({{ $ow->id }}) ? 'bg-amber-50' : ''">
+                    <td class="px-4 py-2 text-center">
+                        <input type="checkbox" value="{{ $ow->id }}" x-model.number="selectedOrphanWithdrawals"
+                               class="rounded border-gray-300 text-amber-600 focus:ring-amber-500">
+                    </td>
+                    <td class="px-4 py-2 text-gray-500 text-xs whitespace-nowrap">{{ $ow->withdrawal_date?->format('d/m/Y H:i') ?? '—' }}</td>
+                    <td class="px-4 py-2 font-semibold text-red-600 whitespace-nowrap">{{ number_format($ow->amount, 0) }} {{ $ow->currency }}</td>
+                    <td class="px-4 py-2 text-gray-500 text-xs">{{ $ow->type_label }}</td>
+                    <td class="px-4 py-2 text-gray-500 text-xs">{{ $ow->withdrawn_by_name }}</td>
+                    <td class="px-4 py-2 text-gray-500 text-xs max-w-[180px] truncate" title="{{ $ow->notes }}">{{ $ow->notes ?: '—' }}</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+</div>
+@endif
+
 @else
 {{-- ===== لا توجد وردية ===== --}}
 <div class="max-w-md mx-auto">
@@ -605,6 +672,20 @@
                                 </form>
                                 @endif
                             @endif
+                            @can('shifts.delete')
+                            @if(!$s->salary_deducted_at)
+                            {{-- حذف وردية مقفلة أُدخلت بخطأ — تُفكّ ارتباطاتها المالية ولا تُحذف --}}
+                            <form method="POST" action="{{ route('shifts.destroy', $s) }}"
+                                  onsubmit="return confirm('حذف وردية {{ $s->shift_date->format('d/m/Y') }} نهائياً؟\n\nلن تُحذف المستلمات والسحبيات والمصروفات — ستُصبح غير مرتبطة بوردية ويمكنك ضمّها إلى وردية جديدة.\n\nلا يمكن التراجع عن هذا الإجراء.')">
+                                @csrf @method('DELETE')
+                                <button type="submit"
+                                        class="flex items-center gap-1 px-2 py-1 border border-red-300 text-red-600 rounded text-xs hover:bg-red-50 transition">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    حذف
+                                </button>
+                            </form>
+                            @endif
+                            @endcan
                         </div>
                     </td>
                 </tr>

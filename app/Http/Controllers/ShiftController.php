@@ -54,15 +54,23 @@ class ShiftController extends Controller
         // نعرض كل المستلمات غير المرتبطة بوردية (لا نقصرها على مستلم بعينه) حتى
         // لا تختفي بسبب اختلاف المستخدم المُستلِم (حساب مشترك/تسجيل بواسطة زميل).
         $orphanPayments = collect();
+        $orphanWithdrawals = collect();
         if ($activeShift) {
             $orphanPayments = \App\Models\Payment::with(['reservation.guest', 'receivedBy'])
                 ->whereNull('shift_id')
                 ->orderByDesc('payment_date')
                 ->limit(100)
                 ->get();
+
+            // سحبيات/مصروفات غير مرتبطة بأي وردية (قد تنشأ من حذف وردية سابقة)
+            // تُعرض ليتمكن الموظف من ضمّها إلى وردية مفتوحة.
+            $orphanWithdrawals = CashWithdrawal::whereNull('shift_id')
+                ->orderByDesc('withdrawal_date')
+                ->limit(100)
+                ->get();
         }
 
-        return view('shifts.index', compact('activeShift', 'recentShifts', 'allActive', 'allUsersStatus', 'reassignTargets', 'orphanPayments', 'reopenableShifts'));
+        return view('shifts.index', compact('activeShift', 'recentShifts', 'allActive', 'allUsersStatus', 'reassignTargets', 'orphanPayments', 'orphanWithdrawals', 'reopenableShifts'));
     }
 
     public function attachOrphans(Request $request)
@@ -93,6 +101,50 @@ class ShiftController extends Controller
             }
             $this->service->computeTotals($shift);
             return back()->with('success', "تم ضمّ {$count} مستلمة إلى ورديتك المفتوحة بنجاح");
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
+        }
+    }
+
+    public function attachOrphanWithdrawals(Request $request)
+    {
+        $request->validate([
+            'withdrawal_ids'   => 'required|array|min:1',
+            'withdrawal_ids.*' => 'integer|exists:cash_withdrawals,id',
+        ], [
+            'withdrawal_ids.required' => 'يجب تحديد سحب واحد على الأقل',
+            'withdrawal_ids.min'      => 'يجب تحديد سحب واحد على الأقل',
+        ]);
+
+        $shift = $this->service->getActiveShift(auth()->user());
+        if (!$shift) {
+            return back()->withErrors(['error' => 'لا توجد وردية مفتوحة لك لضمّ السحبيات إليها']);
+        }
+
+        try {
+            $count = $this->service->attachOrphanWithdrawals($shift, $request->withdrawal_ids, auth()->user());
+            return back()->with('success', "تم ضمّ {$count} سحب إلى ورديتك المفتوحة بنجاح");
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * حذف وردية (لتصحيح وردية أُنشئت أو أُقفلت بأخطاء إدخال). تُفكّ ارتباطات
+     * السجلات المالية بها دون حذفها، فتُصبح غير مرتبطة بوردية ويمكن ضمّها لوردية
+     * جديدة. الموظف يحذف ورديته فقط؛ المدير يحذف أي وردية.
+     */
+    public function destroy(Shift $shift)
+    {
+        $user = auth()->user();
+        if (!$user->isAdmin() && $shift->user_id !== $user->id) {
+            return back()->withErrors(['error' => 'لا يمكنك حذف وردية موظف آخر']);
+        }
+
+        try {
+            $this->service->deleteShift($shift, $user);
+            return redirect()->route('shifts.index')
+                ->with('success', 'تم حذف الوردية. أصبحت مستلماتها وسحبياتها ومصروفاتها غير مرتبطة بوردية — يمكنك ضمّها إلى وردية جديدة من نفس الشاشة.');
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()]);
         }

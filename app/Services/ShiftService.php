@@ -7,9 +7,11 @@ use App\Models\Expense;
 use App\Models\Payment;
 use App\Models\Refund;
 use App\Models\Salary;
+use App\Models\ReservationSegment;
 use App\Models\Shift;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 
 class ShiftService
 {
@@ -87,6 +89,61 @@ class ShiftService
         ]);
 
         AuditLogService::log('update', $shift, ['is_closed' => false], ['is_closed' => true], auth()->user());
+    }
+
+    /**
+     * حذف وردية (لتصحيح وردية أُنشئت/أُقفلت بأخطاء إدخال). لا تُحذف السجلات
+     * المالية معها إطلاقاً — بل يُفكّ ربطها بالوردية (shift_id = null) فتُصبح
+     * مستلمات/سحبيات/مصروفات "غير مرتبطة بوردية"، تُضَمّ لاحقاً إلى وردية جديدة
+     * من شاشة الورديات. بذلك لا تضيع أي إيرادات أو مصروفات عند حذف الوردية.
+     */
+    public function deleteShift(Shift $shift, User $actor): void
+    {
+        // لا يمكن حذف وردية خُصم عجزها من راتب الموظف (سيبقى الخصم دون مرجع).
+        if ($shift->salary_deducted_at !== null) {
+            throw new \RuntimeException('لا يمكن حذف هذه الوردية لأن عجزها خُصم من راتب الموظف مسبقاً.');
+        }
+
+        DB::transaction(function () use ($shift, $actor) {
+            $old = $shift->toArray();
+
+            // فكّ ربط جميع السجلات المالية بالوردية (تُحفظ بياناتها كاملة)
+            Payment::where('shift_id', $shift->id)->update(['shift_id' => null]);
+            Refund::where('shift_id', $shift->id)->update(['shift_id' => null]);
+            Expense::where('shift_id', $shift->id)->update(['shift_id' => null]);
+            CashWithdrawal::where('shift_id', $shift->id)->update(['shift_id' => null]);
+            ReservationSegment::where('shift_id', $shift->id)->update(['shift_id' => null]);
+
+            AuditLogService::log('delete', $shift, $old, null, $actor);
+
+            $shift->delete();
+        });
+    }
+
+    /**
+     * ضمّ سحبيات (ومصروفاتها المرتبطة) غير مرتبطة بأي وردية إلى وردية الموظف
+     * المفتوحة — نظير attachOrphans للمستلمات. يُستخدم لإعادة ربط سحبيات وردية
+     * حُذفت إلى الوردية الجديدة.
+     */
+    public function attachOrphanWithdrawals(Shift $shift, array $withdrawalIds, User $actor): int
+    {
+        $withdrawals = CashWithdrawal::whereIn('id', $withdrawalIds)
+            ->whereNull('shift_id')
+            ->get();
+
+        $count = 0;
+        foreach ($withdrawals as $w) {
+            $old = ['shift_id' => null];
+            $w->update(['shift_id' => $shift->id]);
+            if ($w->expense_id) {
+                Expense::where('id', $w->expense_id)->update(['shift_id' => $shift->id]);
+            }
+            AuditLogService::log('update', $w, $old, ['shift_id' => $shift->id], $actor);
+            $count++;
+        }
+
+        $this->computeTotals($shift);
+        return $count;
     }
 
     /**

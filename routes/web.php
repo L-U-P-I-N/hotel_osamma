@@ -200,6 +200,10 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/shifts/{shift}/reopen', [ShiftController::class, 'reopen'])->name('shifts.reopen')->middleware('permission:shifts.reopen');
     Route::post('/shifts/close-past', [ShiftController::class, 'closePastShift'])->name('shifts.closePast')->middleware('permission:payments.create');
     Route::patch('/shifts/attach-orphans', [ShiftController::class, 'attachOrphans'])->name('shifts.attachOrphans')->middleware('permission:payments.create');
+    // ضمّ سحبيات/مصروفات غير مرتبطة بوردية إلى الوردية المفتوحة
+    Route::patch('/shifts/attach-orphan-withdrawals', [ShiftController::class, 'attachOrphanWithdrawals'])->name('shifts.attachOrphanWithdrawals')->middleware('permission:withdrawal.create');
+    // حذف وردية (لتصحيح أخطاء الإدخال) — تُفكّ ارتباطاتها المالية دون حذفها
+    Route::delete('/shifts/{shift}', [ShiftController::class, 'destroy'])->name('shifts.destroy')->middleware('permission:shifts.delete');
     // نقل مستلمة (غير مرتبطة أو مرتبطة بوردية خطأ) إلى وردية محدَّدة بعينها
     Route::patch('/shifts/payments/{payment}/reassign', [ShiftController::class, 'reassignPayment'])->name('shifts.reassignPayment')->middleware('permission:payments.create');
     // نقل سحب (مصروف/صرف عملة) إلى وردية محدَّدة بعينها

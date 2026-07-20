@@ -21,6 +21,7 @@ class PermissionService
         'withdrawal.create',
         'withdrawal.view',
         'shifts.view',
+        'shifts.delete',
         'settlement.view', // backward compat alias
     ];
 
@@ -57,6 +58,7 @@ class PermissionService
         // Shifts & Settlement
         'shifts.view'           => ['label' => 'عرض الوردية',                    'default' => true,  'group' => '⏰ الورديات'],
         'shifts.reopen'         => ['label' => 'فتح إقفال الوردية (إعادة فتح)', 'default' => false, 'group' => '⏰ الورديات'],
+        'shifts.delete'         => ['label' => 'حذف الوردية (لتصحيح أخطاء الإدخال)', 'default' => true,  'group' => '⏰ الورديات'],
         'settlement.manage'     => ['label' => 'إدارة التسوية النقدية',          'default' => false, 'group' => '⏰ الورديات'],
         'settlement.lock'       => ['label' => 'إقفال التسوية',                  'default' => false, 'group' => '⏰ الورديات'],
 
