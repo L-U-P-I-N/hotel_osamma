@@ -317,33 +317,49 @@
 </table>
 @endif
 
-{{-- النزلاء المسجّلين للدخول --}}
-@php $checkedInGuests = $checkedInGuests ?? collect(); @endphp
+{{-- النزلاء المسجّلين للدخول (يشمل المؤجَّل/غير المدفوع مع مديونيته) --}}
+@php
+    $checkedInGuests = $checkedInGuests ?? collect();
+    $payStatusLabels = ['unpaid' => 'غير مدفوع', 'partial' => 'جزئي', 'paid' => 'مدفوع', 'deferred' => 'مؤجل'];
+    $totalDebt = $checkedInGuests->sum(fn($r) => max(0, (float) $r->balance));
+@endphp
 @if($checkedInGuests->isNotEmpty())
 <h2>النزلاء المسجّلين للدخول</h2>
 <table class="data" dir="rtl">
     {{-- أعمدة معكوسة لتُقرأ من اليمين لليسار --}}
     <thead>
         <tr>
-            <th style="width:14%;">وقت الدخول</th>
-            <th style="width:16%;">تاريخ الخروج</th>
-            <th style="width:16%;">تاريخ الدخول</th>
-            <th style="width:16%;">الغرفة</th>
-            <th style="width:33%;">النزيل</th>
+            <th style="width:9%;">الدخول</th>
+            <th style="width:13%;">المتبقّي (مديونية)</th>
+            <th style="width:12%;">حالة الدفع</th>
+            <th style="width:13%;">تاريخ الدخول</th>
+            <th style="width:11%;">الغرفة</th>
+            <th style="width:37%;">النزيل</th>
             <th style="width:5%;">#</th>
         </tr>
     </thead>
     <tbody>
         @foreach($checkedInGuests as $i => $res)
+        @php $bal = max(0, (float) $res->balance); @endphp
         <tr>
             <td class="ltr">{{ $res->check_in_time ?? '—' }}</td>
-            <td>{{ $res->check_out_date?->format('d/m/Y') ?? '—' }}</td>
+            <td class="ltr" style="font-weight:bold;color:{{ $bal > 0 ? '#dc2626' : '#16a34a' }};">
+                {{ $bal > 0 ? number_format($bal, 0) : '—' }}
+            </td>
+            <td class="center">{{ $payStatusLabels[$res->payment_status] ?? $res->payment_status }}</td>
             <td>{{ $res->check_in_date?->format('d/m/Y') ?? '—' }}</td>
             <td class="center">{{ $res->display_room_number }}</td>
             <td>{{ $res->guest?->full_name ?? '—' }}</td>
             <td class="center">{{ $i + 1 }}</td>
         </tr>
         @endforeach
+        @if($totalDebt > 0)
+        <tr class="total-row">
+            <td></td>
+            <td class="ltr neg">{{ number_format($totalDebt, 0) }}</td>
+            <td colspan="5" style="text-align:right;">إجمالي مديونية نزلاء هذه الوردية</td>
+        </tr>
+        @endif
     </tbody>
 </table>
 @endif

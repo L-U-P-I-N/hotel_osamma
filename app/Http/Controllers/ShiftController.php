@@ -373,15 +373,18 @@ class ShiftController extends Controller
             'refunds' => fn($q) => $q->with(['reservation' => fn($q2) => $q2->withTrashed(), 'reservation.guest', 'reservation.room']),
         ]);
 
-        // النزلاء الذين تم تسجيل دخولهم خلال هذه الوردية
-        // (عبر الحجوزات التي لها فترات مرتبطة بالوردية)
-        $checkedInGuests = \App\Models\Reservation::distinct()
-            ->select('reservations.*')
-            ->join('reservation_segments', 'reservations.id', '=', 'reservation_segments.reservation_id')
-            ->where('reservation_segments.shift_id', $shift->id)
-            ->where('reservation_segments.type', 'initial')
-            ->with(['guest', 'room'])
-            ->orderBy('reservations.created_at')
+        // كل النزلاء الذين سجّلهم موظف هذه الوردية خلال فترتها — بصرف النظر عن
+        // الدفع: يظهر حتى النزيل المؤجَّل/غير المدفوع مع مديونيته. نعتمد على من
+        // أنشأ الحجز (created_by) ووقت الإنشاء ضمن نافذة الوردية (البداية → الإقفال
+        // أو الآن إن كانت مفتوحة)، لا على وجود فترة مسعّرة مرتبطة (فقد لا توجد
+        // للنزيل المؤجَّل)، حتى لا يسقط أيٌّ منهم من التقرير.
+        $shiftStart = $shift->started_at;
+        $shiftEnd   = $shift->closed_at ?? $shift->ended_at ?? now();
+        $checkedInGuests = \App\Models\Reservation::with(['guest', 'room'])
+            ->where('created_by', $shift->user_id)
+            ->when($shiftStart, fn($q) => $q->where('created_at', '>=', $shiftStart))
+            ->where('created_at', '<=', $shiftEnd)
+            ->orderBy('created_at')
             ->get();
 
         $pdf = pdf_load_view('shifts.report_pdf', compact('shift', 'checkedInGuests'));
