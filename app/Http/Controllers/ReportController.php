@@ -38,6 +38,7 @@ class ReportController extends Controller
         'paid_amount'    => 'المدفوع',
         'total_amount'   => 'الإجمالي',
         'balance'        => 'المتبقي',
+        'created_by'     => 'تم بواسطة',
         'notes'          => 'ملاحظات',
     ];
 
@@ -531,7 +532,7 @@ class ReportController extends Controller
             $status = 'all';
         }
 
-        $reservationsQuery = Reservation::with(['guest', 'room', 'payments'])
+        $reservationsQuery = Reservation::with(['guest', 'room', 'payments', 'createdBy'])
             ->whereDate('check_in_date', '>=', $from)
             ->whereDate('check_in_date', '<=', $to)
             ->whereNotIn('status', ['cancelled']);

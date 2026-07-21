@@ -18,7 +18,7 @@ class ReservationsReportExport extends StringValueBinder implements
 
     public function collection()
     {
-        $query = Reservation::with(['guest', 'room', 'payments'])
+        $query = Reservation::with(['guest', 'room', 'payments', 'createdBy'])
             ->whereDate('check_in_date', '>=', $this->from)
             ->whereDate('check_in_date', '<=', $this->to)
             ->whereNotIn('status', ['cancelled']);
@@ -34,7 +34,7 @@ class ReservationsReportExport extends StringValueBinder implements
             '#', 'رقم الغرفة', 'اسم النزيل', 'الجنسية', 'المهنة',
             'جهة القدوم', 'تاريخ الدخول', 'وقت الدخول', 'الغرض',
             'نوع الهوية', 'رقم الهوية', 'صادر من', 'تاريخ الإصدار',
-            'رقم الجوال', 'حالة الدفع', 'المدفوع', 'الإجمالي', 'ملاحظات',
+            'رقم الجوال', 'حالة الدفع', 'المدفوع', 'الإجمالي', 'تم بواسطة', 'ملاحظات',
         ];
     }
 
@@ -64,6 +64,7 @@ class ReservationsReportExport extends StringValueBinder implements
             $psLabels[$r->payment_status] ?? $r->payment_status ?? '',
             number_format($r->paid_amount, 0),
             number_format($r->total_amount, 0),
+            $r->createdBy?->name ?? '',
             $notes,
         ];
     }
