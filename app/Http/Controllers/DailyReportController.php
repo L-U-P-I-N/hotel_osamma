@@ -11,7 +11,7 @@ class DailyReportController extends Controller
 {
     private function getReservations(string $date)
     {
-        return Reservation::with(['guest', 'room.roomType', 'companions', 'payments'])
+        return Reservation::with(['guest', 'room.roomType', 'companions', 'payments', 'createdBy'])
             ->whereDate('check_in_date', '<=', $date)
             ->whereDate('check_out_date', '>=', $date)
             ->where('status', 'checked_in')
@@ -31,7 +31,20 @@ class DailyReportController extends Controller
         $date = $request->input('date', today()->toDateString());
         $reservations = $this->getReservations($date);
 
-        $pdf = pdf_load_view('reports.daily_pdf', compact('reservations', 'date'));
+        // نُصدّر بنفس قالب تقرير الحجوزات (reservations_pdf) تماماً — الفرق الوحيد
+        // أن الفترة يومٌ واحد (from == to) بدل فلتر شهر، والبيانات نزلاء ذلك اليوم
+        // المقيمون. نُمرّر نفس المتغيّرات التي يتوقّعها القالب مع كل الأعمدة.
+        $from = $to = $date;
+        $total      = $reservations->count();
+        $checkedIn  = $reservations->count(); // كلهم مقيمون في اليومية
+        $checkedOut = 0;
+        $printedCount = $reservations->count();
+        $status = 'checked_in';
+        $selectedColumns = array_keys(\App\Http\Controllers\ReportController::RESERVATIONS_PDF_COLUMNS);
+
+        $pdf = pdf_load_view('reports.reservations_pdf', compact(
+            'reservations', 'from', 'to', 'total', 'checkedIn', 'checkedOut', 'printedCount', 'selectedColumns', 'status'
+        ));
         // A3 عرضي — الطابعة المستخدمة تطبع A3 فعلياً، فاستخدام A4 كان يترك جزءاً كبيراً من الورقة فارغاً
         $pdf->setPaper('a3', 'landscape');
 

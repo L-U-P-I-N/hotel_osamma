@@ -193,11 +193,16 @@
         default       => 'كل الحجوزات (المقيمون والمغادرون)',
     };
 @endphp
+@php $isSingleDay = \Carbon\Carbon::parse($from)->isSameDay(\Carbon\Carbon::parse($to)); @endphp
 <div class="header">
     @include('partials.pdf-logo')
-    <h1>تقرير الحجوزات</h1>
+    <h1>{{ $isSingleDay ? 'قائمة اليومية' : 'تقرير الحجوزات' }}</h1>
     <div class="sub">
+        @if($isSingleDay)
+        التاريخ: {{ \Carbon\Carbon::parse($from)->format('d/m/Y') }}
+        @else
         الفترة: {{ \Carbon\Carbon::parse($from)->format('d/m/Y') }} — {{ \Carbon\Carbon::parse($to)->format('d/m/Y') }}
+        @endif
         — الفلتر: <strong>{{ $statusFilterLabel }}</strong>
     </div>
 </div>
