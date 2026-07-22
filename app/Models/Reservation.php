@@ -12,7 +12,7 @@ class Reservation extends Model
 
     protected $fillable = [
         'guest_id','room_id','linked_room_id','suite_booking_type','created_by',
-        'check_in_date','check_in_time','check_out_date','check_out_time','actual_check_out','origin','purpose','notes',
+        'check_in_date','check_in_time','check_out_date','check_out_time','actual_check_out','checked_out_by','origin','purpose','notes',
         'status','payment_status','total_amount','first_night_price','renewal_price_per_night','auto_renew','recompute_dismissed','paid_amount','currency',
         'admin_approval_id','government_exported','government_exported_at',
         'discount_type','discount_value','discount_amount','discount_reason',
@@ -56,6 +56,11 @@ class Reservation extends Model
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function checkedOutBy()
+    {
+        return $this->belongsTo(User::class, 'checked_out_by');
     }
 
     public function adminApproval()

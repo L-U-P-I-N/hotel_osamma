@@ -112,6 +112,7 @@ class CheckOutService
             $updates = [
                 'status'           => 'checked_out',
                 'actual_check_out' => now(),
+                'checked_out_by'   => $user->id,
                 'auto_renew'       => false,
             ];
 

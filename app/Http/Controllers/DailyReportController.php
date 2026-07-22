@@ -29,17 +29,31 @@ class DailyReportController extends Controller
     public function exportPdf(Request $request)
     {
         $date = $request->input('date', today()->toDateString());
-        $reservations = $this->getReservations($date);
 
-        // نُصدّر بنفس قالب تقرير الحجوزات (reservations_pdf) تماماً — الفرق الوحيد
-        // أن الفترة يومٌ واحد (from == to) بدل فلتر شهر، والبيانات نزلاء ذلك اليوم
-        // المقيمون. نُمرّر نفس المتغيّرات التي يتوقّعها القالب مع كل الأعمدة.
+        // للتصدير: نزلاء ذلك اليوم المقيمون + من غادر في نفس اليوم — حتى يظهر عمود
+        // "مغادرة بواسطة" مع بيانات فعلية (من نفّذ خروج كل مغادر). نُصدّر بنفس قالب
+        // تقرير الحجوزات تماماً، والفرق الوحيد أن الفترة يوم واحد.
+        $reservations = Reservation::with(['guest', 'room.roomType', 'companions', 'payments', 'createdBy', 'checkedOutBy'])
+            ->where(function ($q) use ($date) {
+                $q->where(function ($q2) use ($date) {
+                    $q2->where('status', 'checked_in')
+                       ->whereDate('check_in_date', '<=', $date)
+                       ->whereDate('check_out_date', '>=', $date);
+                })->orWhere(function ($q2) use ($date) {
+                    $q2->where('status', 'checked_out')
+                       ->whereDate('actual_check_out', $date);
+                });
+            })
+            ->orderBy('room_id')
+            ->get();
+
         $from = $to = $date;
+        $checkedIn  = $reservations->where('status', 'checked_in')->count();
+        $checkedOut = $reservations->where('status', 'checked_out')->count();
         $total      = $reservations->count();
-        $checkedIn  = $reservations->count(); // كلهم مقيمون في اليومية
-        $checkedOut = 0;
         $printedCount = $reservations->count();
-        $status = 'checked_in';
+        // "all" حتى يظهر عمود حالة الإقامة (مقيم/غادر) ويُميَّز المغادرون
+        $status = 'all';
         $selectedColumns = array_keys(\App\Http\Controllers\ReportController::RESERVATIONS_PDF_COLUMNS);
 
         $pdf = pdf_load_view('reports.reservations_pdf', compact(

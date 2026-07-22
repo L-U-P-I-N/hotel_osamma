@@ -152,6 +152,8 @@
             'render' => fn($r, $g) => number_format(max(0, (float)$r->total_amount - (float)$r->paid_amount), 0)],
         'created_by'     => ['label' => 'تم بواسطة',       'class' => '',
             'render' => fn($r, $g) => e($r->createdBy?->name ?? '—')],
+        'checked_out_by' => ['label' => 'مغادرة بواسطة',   'class' => '',
+            'render' => fn($r, $g) => e($r->checkedOutBy?->name ?? '—')],
         'notes'          => ['label' => 'ملاحظات',         'class' => '',
             'render' => function ($r, $g) use ($strip) {
                 // نستبعد أسطر التجديد (اليدوي والتلقائي) من الملاحظات — يريد المستخدم

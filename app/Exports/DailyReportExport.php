@@ -18,10 +18,18 @@ class DailyReportExport extends StringValueBinder implements
 
     public function collection()
     {
-        return Reservation::with(['guest', 'room', 'companions', 'payments'])
-            ->whereDate('check_in_date', '<=', $this->date)
-            ->whereDate('check_out_date', '>=', $this->date)
-            ->where('status', 'checked_in')
+        // المقيمون في ذلك اليوم + من غادر فيه (لإظهار مغادرة بواسطة من)
+        return Reservation::with(['guest', 'room', 'companions', 'payments', 'checkedOutBy'])
+            ->where(function ($q) {
+                $q->where(function ($q2) {
+                    $q2->where('status', 'checked_in')
+                       ->whereDate('check_in_date', '<=', $this->date)
+                       ->whereDate('check_out_date', '>=', $this->date);
+                })->orWhere(function ($q2) {
+                    $q2->where('status', 'checked_out')
+                       ->whereDate('actual_check_out', $this->date);
+                });
+            })
             ->orderBy('room_id')
             ->get();
     }
@@ -32,7 +40,7 @@ class DailyReportExport extends StringValueBinder implements
             'رقم الغرفة', 'اسم النزيل', 'الجنسية', 'المهنة',
             'جهة القدوم', 'تاريخ الدخول', 'وقت الدخول', 'الغرض',
             'نوع الهوية', 'رقم الهوية', 'صادر من', 'تاريخ الإصدار',
-            'المرافقون', 'حالة الدفع', 'المدفوع', 'الإجمالي', 'الجوال', 'ملاحظات',
+            'المرافقون', 'حالة الدفع', 'المدفوع', 'الإجمالي', 'الجوال', 'مغادرة بواسطة', 'ملاحظات',
         ];
     }
 
@@ -61,6 +69,7 @@ class DailyReportExport extends StringValueBinder implements
             number_format($res->paid_amount, 0),
             number_format($res->total_amount, 0),
             (string) ($res->guest?->phone ?? ''),
+            $res->checkedOutBy?->name ?? '',
             collect(array_filter([$res->notes, $payNote]))->implode(' | '),
         ];
     }

@@ -39,6 +39,7 @@ class ReportController extends Controller
         'total_amount'   => 'الإجمالي',
         'balance'        => 'المتبقي',
         'created_by'     => 'تم بواسطة',
+        'checked_out_by' => 'مغادرة بواسطة',
         'notes'          => 'ملاحظات',
     ];
 
@@ -532,7 +533,7 @@ class ReportController extends Controller
             $status = 'all';
         }
 
-        $reservationsQuery = Reservation::with(['guest', 'room', 'payments', 'createdBy'])
+        $reservationsQuery = Reservation::with(['guest', 'room', 'payments', 'createdBy', 'checkedOutBy'])
             ->whereDate('check_in_date', '>=', $from)
             ->whereDate('check_in_date', '<=', $to)
             ->whereNotIn('status', ['cancelled']);
@@ -564,6 +565,17 @@ class ReportController extends Controller
         // يمكن تمييز من غادر ممن لم يغادر — لا يُستبعد حتى لو لم يختره الأدمن
         if ($status === 'all' && !in_array('stay_status', $selectedColumns, true)) {
             $selectedColumns[] = 'stay_status';
+        }
+
+        // عمود "مغادرة بواسطة" يظهر فقط في تقرير المغادرين (status = checked_out):
+        // نُلزم إظهاره هناك، ونُخفيه في أي فلتر آخر ولو اختاره الأدمن — فلا معنى له
+        // لنزيل لم يغادر بعد.
+        if ($status === 'checked_out') {
+            if (!in_array('checked_out_by', $selectedColumns, true)) {
+                $selectedColumns[] = 'checked_out_by';
+            }
+        } else {
+            $selectedColumns = array_values(array_filter($selectedColumns, fn($c) => $c !== 'checked_out_by'));
         }
 
         $pdf = $this->pdfOptions(pdf_load_view('reports.reservations_pdf', compact('reservations', 'from', 'to', 'total', 'checkedIn', 'checkedOut', 'printedCount', 'selectedColumns', 'status')));
