@@ -726,18 +726,14 @@ class ReportController extends Controller
 
     public function roomsPdf(Request $request)
     {
-        $from = $request->input('from', now()->subDays(30)->toDateString());
-        $to   = $request->input('to', now()->toDateString());
-        $rooms = Room::with('roomType')
-            ->whereIn('status', ['available', 'occupied', 'under_inspection'])
-            ->withCount(['reservations as total_reservations' => fn($q) => $q->whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to)->whereNotIn('status', ['cancelled'])])
-            ->withSum(['reservations as total_revenue' => fn($q) => $q->whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to)->whereNotIn('status', ['cancelled'])], 'total_amount')
-            ->orderByRaw('CAST(room_number AS UNSIGNED) ASC')
+        // تقرير حالة الغرف فقط: رقم الغرفة وحالتها الحالية — دون إيرادات أو عدد
+        // حجوزات، فلا حاجة لفلتر فترة أو withCount/withSum.
+        $rooms = Room::orderByRaw('CAST(room_number AS UNSIGNED) ASC')
             ->orderBy('room_number')
             ->get();
-        $pdf = $this->pdfOptions(pdf_load_view('reports.rooms_pdf', compact('rooms', 'from', 'to')));
-        $pdf->setPaper('a3', 'landscape');
-        return $pdf->download('rooms-' . $from . '-' . $to . '.pdf');
+        $pdf = $this->pdfOptions(pdf_load_view('reports.rooms_pdf', compact('rooms')));
+        $pdf->setPaper('a4', 'portrait');
+        return $pdf->download('rooms-status-' . now()->format('Y-m-d') . '.pdf');
     }
 
     public function roomsExcel(Request $request)

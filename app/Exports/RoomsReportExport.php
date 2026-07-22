@@ -15,27 +15,16 @@ class RoomsReportExport implements FromCollection, WithHeadings, WithMapping, Wi
 
     public function collection()
     {
-        // الغرف المتاحة/المشغولة/تحت الفحص فقط، مرتّبة تصاعدياً حسب رقم الغرفة
-        return Room::with('roomType')
-            ->whereIn('status', ['available', 'occupied', 'under_inspection'])
-            ->withCount(['reservations as total_reservations' => fn($q) =>
-                $q->whereDate('check_in_date', '>=', $this->from)
-                  ->whereDate('check_in_date', '<=', $this->to)
-                  ->whereNotIn('status', ['cancelled'])
-            ])
-            ->withSum(['reservations as total_revenue' => fn($q) =>
-                $q->whereDate('check_in_date', '>=', $this->from)
-                  ->whereDate('check_in_date', '<=', $this->to)
-                  ->whereNotIn('status', ['cancelled'])
-            ], 'total_amount')
-            ->orderByRaw('CAST(room_number AS UNSIGNED) ASC')
+        // كل الغرف مرتّبة تصاعدياً حسب رقمها — رقم الغرفة وحالتها فقط (دون إيرادات
+        // أو عدد حجوزات).
+        return Room::orderByRaw('CAST(room_number AS UNSIGNED) ASC')
             ->orderBy('room_number')
             ->get();
     }
 
     public function headings(): array
     {
-        return ['رقم الغرفة', 'نوع الغرفة', 'الحالة', 'عدد الحجوزات', 'الإيرادات (ر.ي)'];
+        return ['رقم الغرفة', 'الحالة'];
     }
 
     public function map($room): array
@@ -44,10 +33,7 @@ class RoomsReportExport implements FromCollection, WithHeadings, WithMapping, Wi
 
         return [
             $room->room_number,
-            $room->roomType?->name ?? '',
             $statusLabels[$room->status] ?? $room->status,
-            $room->total_reservations ?? 0,
-            number_format($room->total_revenue ?? 0, 0),
         ];
     }
 

@@ -36,40 +36,28 @@
 
 <div class="header">
     @include('partials.pdf-logo')
-    <h1>تقرير أداء الغرف</h1>
-    <div class="sub">الفترة: {{ \Carbon\Carbon::parse($from)->format('d/m/Y') }} — {{ \Carbon\Carbon::parse($to)->format('d/m/Y') }}</div>
+    <h1>تقرير حالة الغرف</h1>
+    <div class="sub">بتاريخ: {{ now()->format('d/m/Y') }}</div>
 </div>
 
-{{-- dompdf يتجاهل dir="rtl" في ترتيب الأعمدة — نكتبها هنا بترتيب معكوس، كما في تقرير الحجوزات --}}
+{{-- رقم الغرفة وحالتها فقط (دون إيرادات أو عدد حجوزات). العمود الأيمن يُكتب
+     أخيراً لأن dompdf يتجاهل dir="rtl" في ترتيب الأعمدة. --}}
 <table class="data" dir="rtl">
     <thead>
         <tr>
-            <th>رقم الغرفة</th>
-            <th>النوع</th>
             <th>الحالة</th>
-            <th>عدد الحجوزات</th>
-            <th>الإيرادات (ر.ي)</th>
+            <th>رقم الغرفة</th>
         </tr>
     </thead>
     <tbody>
         @forelse($rooms as $room)
         <tr>
-            <td style="font-weight:bold;">{{ $room->room_number }}</td>
-            <td>{{ $room->sub_type_label }}</td>
             <td>{{ $statusLabels[$room->status] ?? $room->status }}</td>
-            <td class="ltr" style="text-align:center;">{{ $room->total_reservations ?? 0 }}</td>
-            <td class="ltr">{{ number_format($room->total_revenue ?? 0, 0) }}</td>
+            <td style="font-weight:bold;">{{ $room->room_number }}</td>
         </tr>
         @empty
-        <tr><td colspan="5" style="text-align:center;padding:12px;color:#999;">لا توجد بيانات</td></tr>
+        <tr><td colspan="2" style="text-align:center;padding:12px;color:#999;">لا توجد غرف</td></tr>
         @endforelse
-        @if($rooms->isNotEmpty())
-        <tr class="total-row">
-            <td colspan="3">الإجمالي</td>
-            <td class="ltr" style="text-align:center;">{{ $rooms->sum('total_reservations') }}</td>
-            <td class="ltr">{{ number_format($rooms->sum('total_revenue'), 0) }}</td>
-        </tr>
-        @endif
     </tbody>
 </table>
 
