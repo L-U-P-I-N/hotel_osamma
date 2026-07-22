@@ -208,6 +208,12 @@
                         <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
                         تغيير الغرفة
                     </button>
+                    @if($swappableReservations->isNotEmpty())
+                    <button onclick="document.getElementById('swapRoomModal').classList.remove('hidden')" class="w-full flex items-center gap-2.5 px-4 py-2 text-gray-700 hover:bg-gray-50 transition">
+                        <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/></svg>
+                        تبديل الغرفة مع نزيل آخر
+                    </button>
+                    @endif
                     @endif
                     @endcan
                     @can('payments.create')
@@ -2083,6 +2089,63 @@
         </form>
     </div>
 </div>
+
+{{-- Swap Room Modal — تبديل الغرفة مع نزيل نشط آخر (تصحيح إدخال متبادَل) --}}
+@if($swappableReservations->isNotEmpty())
+<div id="swapRoomModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+     onclick="if(event.target===this) this.classList.add('hidden')">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+        <div class="px-6 py-5 rounded-t-2xl flex items-center justify-between" style="background:linear-gradient(135deg,#4338ca,#6366f1);">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/></svg>
+                </div>
+                <h3 class="font-bold text-white text-lg">تبديل الغرفة مع نزيل آخر</h3>
+            </div>
+            <button type="button" onclick="document.getElementById('swapRoomModal').classList.add('hidden')"
+                    class="w-8 h-8 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <form method="POST" action="{{ route('reservations.swapRoom', $reservation) }}" class="p-6 space-y-4"
+              onsubmit="return confirm('تبديل الغرفتين بين النزيلين؟ سيبقى لكل نزيل سعره ودفعاته، وتتبادل الغرفتان فقط.')">
+            @csrf
+            <div class="flex items-start gap-2 rounded-xl bg-indigo-50 border border-indigo-200 p-3 text-xs text-indigo-800">
+                <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>يتبادل هذا النزيل غرفته مع النزيل الذي تختاره — تبقى أسعار كلٍّ ودفعاته وتواريخه معه، وتتبادل الغرفتان فقط. مفيد لتصحيح إدخال نزيلين في غرفتَي بعضهما بالخطأ.</span>
+            </div>
+
+            <div class="rounded-xl bg-gray-50 border border-gray-100 p-3 text-sm">
+                <span class="text-gray-400 text-xs block mb-0.5 font-medium">هذا النزيل</span>
+                <strong class="text-gray-800">{{ $reservation->guest?->full_name ?? '—' }}</strong>
+                <span class="text-gray-400">— غرفة {{ $reservation->display_room_number }}</span>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">النزيل الآخر (للتبديل معه) <span class="text-red-500">*</span></label>
+                <select name="target_reservation_id" required
+                        class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <option value="">— اختر النزيل —</option>
+                    @foreach($swappableReservations as $sw)
+                    <option value="{{ $sw->id }}">{{ $sw->guest?->full_name ?? 'نزيل' }} — غرفة {{ $sw->display_room_number }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="flex gap-2 pt-1">
+                <button type="submit" class="flex-1 px-4 py-3 rounded-xl text-white text-sm font-bold transition"
+                        style="background:#4f46e5;">
+                    تأكيد التبديل
+                </button>
+                <button type="button" onclick="document.getElementById('swapRoomModal').classList.add('hidden')"
+                        class="px-5 py-3 border border-gray-300 text-gray-600 rounded-xl text-sm hover:bg-gray-50 transition">
+                    إلغاء
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
 
 @endcan
 @endif

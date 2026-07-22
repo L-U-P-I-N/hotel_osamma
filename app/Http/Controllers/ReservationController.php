@@ -81,7 +81,17 @@ class ReservationController extends Controller
             : null;
         $renewMaxCheckout = $renewNextArrival?->copy()->subDays(Reservation::TURNOVER_BUFFER_DAYS);
 
-        return view('reservations.show', compact('reservation', 'availableRooms', 'transferOptions', 'renewMaxCheckout', 'renewNextArrival'));
+        // حجوزات نشطة أخرى يمكن تبديل الغرفة معها (تصحيح خطأ إدخال نزيلين في غرفتَي
+        // بعضهما) — نزيل مقيم في غرفة مختلفة عن هذا الحجز.
+        $swappableReservations = $reservation->status === 'checked_in'
+            ? Reservation::with(['guest', 'room'])
+                ->where('status', 'checked_in')
+                ->where('id', '!=', $reservation->id)
+                ->orderBy('room_id')
+                ->get()
+            : collect();
+
+        return view('reservations.show', compact('reservation', 'availableRooms', 'transferOptions', 'renewMaxCheckout', 'renewNextArrival', 'swappableReservations'));
     }
 
     /**
@@ -717,6 +727,66 @@ class ReservationController extends Controller
             ->with('success', "تم نقل النزيل من {$oldLabel} إلى {$newLabel}" .
                 ($newTotal != (float) $old['total_amount'] ? ' — الإجمالي الجديد: ' . number_format($newTotal, 0) . ' ر.ي' : '') .
                 ' — الغرفة القديمة في وضع الفحص');
+    }
+
+    /**
+     * تبديل الغرفتين بين نزيلين نشطين (تصحيح إدخال نزيلين في غرفتَي بعضهما بالخطأ).
+     * يتبادل الحجزان تعيين الغرفة فقط (room_id + linked_room_id + suite_booking_type)
+     * — تبقى أسعار كلٍّ ودفعاته وتواريخه معه (فبيانات المال تخصّ النزيل لا الغرفة)،
+     * وتبقى الغرفتان مشغولتين (تبادل مكان لا إخلاء). لا يغيّر أي إجمالي.
+     */
+    public function swapRoom(Request $request, Reservation $reservation)
+    {
+        $validated = $request->validate([
+            'target_reservation_id' => 'required|integer|exists:reservations,id',
+        ], [
+            'target_reservation_id.required' => 'يرجى اختيار النزيل الآخر للتبديل معه',
+        ]);
+
+        if ($reservation->status !== 'checked_in') {
+            return back()->withErrors(['error' => 'التبديل متاح فقط للحجوزات النشطة (مسجل دخول)']);
+        }
+
+        $other = Reservation::with(['guest', 'room'])->find($validated['target_reservation_id']);
+        if (!$other || $other->id === $reservation->id) {
+            return back()->withErrors(['error' => 'اختيار النزيل الآخر غير صالح']);
+        }
+        if ($other->status !== 'checked_in') {
+            return back()->withErrors(['error' => 'النزيل الآخر يجب أن يكون مقيماً (مسجل دخول)']);
+        }
+        if ($other->room_id === $reservation->room_id) {
+            return back()->withErrors(['error' => 'النزيلان في نفس الغرفة — لا حاجة للتبديل']);
+        }
+
+        $aLabel = $reservation->guest?->full_name . ' (غرفة ' . $reservation->display_room_number . ')';
+        $bLabel = $other->guest?->full_name . ' (غرفة ' . $other->display_room_number . ')';
+
+        DB::transaction(function () use ($reservation, $other, $aLabel, $bLabel) {
+            $oldA = $reservation->only(['room_id', 'linked_room_id', 'suite_booking_type']);
+            $oldB = $other->only(['room_id', 'linked_room_id', 'suite_booking_type']);
+
+            $swapNote = "[تبديل غرفة: {$aLabel} ↔ {$bLabel}]";
+
+            // تبادل تعيين الغرفة بين الحجزين (الأسعار/الدفعات/التواريخ تبقى مع كلٍّ)
+            $reservation->update([
+                'room_id'            => $oldB['room_id'],
+                'linked_room_id'     => $oldB['linked_room_id'],
+                'suite_booking_type' => $oldB['suite_booking_type'],
+                'notes'              => $reservation->notes ? $reservation->notes . "\n" . $swapNote : $swapNote,
+            ]);
+            $other->update([
+                'room_id'            => $oldA['room_id'],
+                'linked_room_id'     => $oldA['linked_room_id'],
+                'suite_booking_type' => $oldA['suite_booking_type'],
+                'notes'              => $other->notes ? $other->notes . "\n" . $swapNote : $swapNote,
+            ]);
+
+            AuditLogService::log('update', $reservation, $oldA, array_merge($reservation->only(['room_id', 'linked_room_id', 'suite_booking_type']), ['action' => 'room_swap']), auth()->user());
+            AuditLogService::log('update', $other, $oldB, array_merge($other->only(['room_id', 'linked_room_id', 'suite_booking_type']), ['action' => 'room_swap']), auth()->user());
+        });
+
+        return redirect()->route('reservations.show', $reservation)
+            ->with('success', "تم تبديل الغرفتين بنجاح: {$aLabel} ↔ {$bLabel}");
     }
 
     public function cancel(Request $request, Reservation $reservation)

@@ -142,6 +142,8 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/reservations/{reservation}/stay-dates', [ReservationController::class, 'updateStayDates'])->name('reservations.updateStayDates')->middleware('permission:payments.create');
         Route::patch('/reservations/{reservation}/checkin-date', [ReservationController::class, 'updateCheckInDate'])->name('reservations.updateCheckInDate');
         Route::post('/reservations/{reservation}/transfer-room', [ReservationController::class, 'transferRoom'])->name('reservations.transferRoom');
+        // تبديل الغرفتين بين نزيلين نشطين (تصحيح إدخال متبادَل بالخطأ)
+        Route::post('/reservations/{reservation}/swap-room', [ReservationController::class, 'swapRoom'])->name('reservations.swapRoom');
     });
 
     // Check-out
