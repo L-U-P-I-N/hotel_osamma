@@ -227,8 +227,9 @@ class Reservation extends Model
     }
 
     /**
-     * إجمالي الرسوم الإضافية على الحجز (أضرار + مشتريات/خدمات النزيل). يُستعلَم
-     * مباشرةً حتى تكون القيمة محدَّثة داخل معاملات التعديل.
+     * إجمالي كل الرسوم الإضافية على الحجز (أضرار + مشتريات). يُستعلَم مباشرةً حتى
+     * تكون القيمة محدَّثة داخل معاملات التعديل. (للعرض فقط — لا يُستخدم في احتساب
+     * الإجمالي، فالمشتريات لا تدخل صندوق الفندق.)
      */
     public function getExtraChargesTotalAttribute(): float
     {
@@ -236,14 +237,41 @@ class Reservation extends Model
     }
 
     /**
-     * إجمالي الغرفة قبل الخصم (بدون الرسوم الإضافية) = الإجمالي − الرسوم الإضافية
-     * + الخصم المحفوظ. يُستخدم لإعادة احتساب الخصم وسعر الليلة عند أي تعديل يعيد
-     * حساب الإجمالي (تعديل التاريخ/السعر، التجديد، النقل) حتى لا يضيع الخصم ولا
-     * تُحتسب الرسوم الإضافية ضمن سعر الليلة.
+     * الرسوم المحتسبة ضمن إجمالي الحجز (صندوق الفندق): الأضرار والرسوم القديمة
+     * (in_hotel_total = true). المشتريات الجديدة مستبعَدة لأنها دَين بقالة منفصل.
+     */
+    public function getHotelChargesTotalAttribute(): float
+    {
+        return round((float) $this->extraCharges()->where('in_hotel_total', true)->sum('amount'), 2);
+    }
+
+    /**
+     * دَين المشتريات (بقالة/خدمات) على النزيل — غير مُحصَّل بعد. منفصل تماماً عن
+     * صندوق الفندق وتقاريره؛ يُحصَّل عند الخروج ويُسلَّم للبقالة.
+     */
+    public function getPurchasesDebtAttribute(): float
+    {
+        return round((float) $this->extraCharges()
+            ->where('in_hotel_total', false)
+            ->whereNull('settled_at')
+            ->sum('amount'), 2);
+    }
+
+    /** إجمالي المشتريات (محصَّلة وغير محصَّلة) — للعرض. */
+    public function getPurchasesTotalAttribute(): float
+    {
+        return round((float) $this->extraCharges()->where('in_hotel_total', false)->sum('amount'), 2);
+    }
+
+    /**
+     * إجمالي الغرفة قبل الخصم (بدون رسوم الفندق) = الإجمالي − رسوم الفندق + الخصم
+     * المحفوظ. يُستخدم لإعادة احتساب الخصم وسعر الليلة عند أي تعديل يعيد حساب
+     * الإجمالي (تعديل التاريخ/السعر، التجديد، النقل) حتى لا يضيع الخصم ولا تُحتسب
+     * الرسوم ضمن سعر الليلة. المشتريات مستبعَدة أصلاً من الإجمالي.
      */
     public function getGrossTotalAttribute(): float
     {
-        return round((float) $this->total_amount - $this->extra_charges_total + (float) $this->discount_amount, 2);
+        return round((float) $this->total_amount - $this->hotel_charges_total + (float) $this->discount_amount, 2);
     }
 
     /**
@@ -405,7 +433,7 @@ class Reservation extends Model
         // (مقرَّباً لأقرب ريال لتفادي تراكم كسور القسمة)
         $newGross       = $this->gross_total + $extraAmount;
         $discountAmount = $this->discountAmountFor($newGross);
-        $newTotal       = round(max(0, round($newGross - $discountAmount, 2)) + $this->extra_charges_total, 0);
+        $newTotal       = round(max(0, round($newGross - $discountAmount, 2)) + $this->hotel_charges_total, 0);
         $note = "[تجديد تلقائي +{$added} " . ($added === 1 ? 'ليلة' : 'ليالٍ')
               . ' بسعر ' . number_format($pricePerNight, 0) . ' ر.ي/ليلة — حتى '
               . $newCheckOut->format('Y/m/d') . ']';

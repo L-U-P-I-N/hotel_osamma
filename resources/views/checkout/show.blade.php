@@ -48,12 +48,11 @@
         </div>
     </div>
 
-    {{-- تفصيل الحساب: إجمالي الغرفة قبل الخصم، الخصم، الرسوم/الأضرار، ثم الإجمالي --}}
+    {{-- تفصيل الحساب: إجمالي الغرفة قبل الخصم، الخصم، الرسوم/الأضرار، ثم الإجمالي (إقامة الفندق) --}}
     @php
-        $grossTotal = $reservation->gross_total;
-        $extraChargesTotal = $reservation->extra_charges_total;
-        $damageCharges = $reservation->extraCharges->where('type', 'damage');
-        $otherCharges = $reservation->extraCharges->where('type', '!=', 'damage');
+        $grossTotal    = $reservation->gross_total;
+        $hotelCharges  = $reservation->hotel_charges_total;
+        $purchasesDebt = $reservation->purchases_debt;
     @endphp
     <div class="mt-4 bg-gray-50 rounded-xl border border-gray-200 p-4 space-y-2 text-sm">
         <div class="flex items-center justify-between text-gray-600">
@@ -66,23 +65,31 @@
             <span class="font-semibold">- {{ number_format($reservation->discount_amount, 2) }} {{ $reservation->currency_symbol }}</span>
         </div>
         @endif
-        @if($otherCharges->sum('amount') > 0)
+        @if($hotelCharges > 0)
         <div class="flex items-center justify-between text-red-600">
-            <span>رسوم إضافية</span>
-            <span class="font-semibold">+ {{ number_format($otherCharges->sum('amount'), 2) }} {{ $reservation->currency_symbol }}</span>
-        </div>
-        @endif
-        @if($damageCharges->sum('amount') > 0)
-        <div class="flex items-center justify-between text-red-600">
-            <span>تعويض أضرار مسجّلة سابقاً</span>
-            <span class="font-semibold">+ {{ number_format($damageCharges->sum('amount'), 2) }} {{ $reservation->currency_symbol }}</span>
+            <span>رسوم/أضرار مُحتسبة</span>
+            <span class="font-semibold">+ {{ number_format($hotelCharges, 2) }} {{ $reservation->currency_symbol }}</span>
         </div>
         @endif
         <div class="border-t border-gray-200 pt-2 flex items-center justify-between">
-            <span class="font-bold text-gray-800">الإجمالي المستحق</span>
+            <span class="font-bold text-gray-800">إجمالي الإقامة المستحق</span>
             <span class="font-black text-gray-900">{{ number_format($reservation->total_amount, 2) }} {{ $reservation->currency_symbol }}</span>
         </div>
     </div>
+
+    {{-- دَين المشتريات (بقالة) — منفصل عن صندوق الفندق، يُحصَّل ويُسلَّم للبقالة --}}
+    @if($purchasesDebt > 0)
+    <div class="mt-4 bg-amber-50 rounded-xl border border-amber-200 p-4 text-sm">
+        <div class="flex items-center justify-between">
+            <span class="font-bold text-amber-800 flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                دَين مشتريات (بقالة) غير محصَّل
+            </span>
+            <span class="font-black text-amber-900">{{ number_format($purchasesDebt, 2) }} {{ $reservation->currency_symbol }}</span>
+        </div>
+        <p class="text-xs text-amber-700 mt-1.5">يُحصَّل من النزيل ويُسلَّم للبقالة — لا يدخل صندوق الفندق ولا تقاريره. يجب تحصيله قبل إتمام الخروج.</p>
+    </div>
+    @endif
 </div>
 
 <form method="POST" action="{{ route('checkout.process', $reservation) }}" enctype="multipart/form-data" class="space-y-5">
@@ -199,8 +206,28 @@
 
     <!-- Submit -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        {{-- تحصيل دَين المشتريات (بقالة) — منفصل عن صندوق الفندق، إلزامي قبل الخروج --}}
+        @if($reservation->purchases_debt > 0)
+        <input type="hidden" name="collect_purchases" :value="collectPurchases ? 1 : 0">
+        <div class="mb-4">
+            <label class="flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition"
+                   :class="collectPurchases ? 'bg-amber-50 border-amber-300' : 'bg-gray-50 border-gray-200 hover:border-gray-300'">
+                <input type="checkbox" x-model="collectPurchases" class="mt-0.5 w-4 h-4 accent-amber-600">
+                <span class="text-sm">
+                    <span class="font-semibold text-gray-800">تم تحصيل دَين المشتريات (بقالة) وتسليمه للبقالة — {{ number_format($reservation->purchases_debt, 0) }} {{ $reservation->currency_symbol }}</span>
+                    <span class="block text-xs text-gray-500 mt-0.5">لا يدخل صندوق الفندق ولا تقاريره. يجب تأكيد تحصيله قبل الخروج (أو اختَر «غادر دون سداد» لتركه كدَين).</span>
+                </span>
+            </label>
+        </div>
+        <div x-show="purchasesDebt > 0 && !collectPurchases && !leftUnpaid"
+             class="bg-red-50 border border-red-200 rounded-xl p-4 mb-4 flex items-center gap-3 text-sm text-red-800">
+            <svg class="w-5 h-5 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+            لا يمكن تسجيل الخروج — يوجد دَين مشتريات (بقالة) غير محصَّل يجب تحصيله أولاً، أو اختَر «غادر دون سداد».
+        </div>
+        @endif
+
         {{-- خيار: النزيل غادر دون سداد (هروب) — يُسجَّل الخروج مع بقاء الدين --}}
-        <div x-show="totalRequired > 0" class="mb-4">
+        <div x-show="totalRequired > 0 || purchasesDebt > 0" class="mb-4">
             <label class="flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition"
                    :class="leftUnpaid ? 'bg-orange-50 border-orange-300' : 'bg-gray-50 border-gray-200 hover:border-gray-300'">
                 <input type="checkbox" name="left_unpaid" value="1" x-model="leftUnpaid" class="mt-0.5 w-4 h-4 accent-orange-600">
@@ -232,7 +259,7 @@
         </div>
         <div class="flex gap-3">
             <button type="submit"
-                    :disabled="totalRequired > 0 && !leftUnpaid && (remainingPayment <= 0 || remainingPayment != totalRequired)"
+                    :disabled="blocked"
                     class="flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition disabled:opacity-40 disabled:cursor-not-allowed">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
                 إتمام تسجيل الخروج
@@ -254,9 +281,19 @@ function checkoutForm() {
         remainingPayment: 0,
         leftUnpaid: false,
         balance: {{ $reservation->balance }},
+        purchasesDebt: {{ $reservation->purchases_debt }},
+        collectPurchases: false,
         get totalRequired() {
             const comp = this.hasDamage ? (parseFloat(this.compensationAmount) || 0) : 0;
             return this.balance + comp;
+        },
+        // يُمنع الخروج ما لم تُسوَّ الإقامة (أو تُترك كدَين) ويُحصَّل دَين المشتريات
+        // (أو يُترك كدَين عند خيار «غادر دون سداد»).
+        get blocked() {
+            const stayBlocked = this.totalRequired > 0 && !this.leftUnpaid
+                && (this.remainingPayment <= 0 || this.remainingPayment != this.totalRequired);
+            const purchasesBlocked = this.purchasesDebt > 0 && !this.collectPurchases && !this.leftUnpaid;
+            return stayBlocked || purchasesBlocked;
         },
     }
 }

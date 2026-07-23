@@ -70,7 +70,7 @@
             : $recomputeFirstPrice;
         $recomputeGross   = round($recomputeFirstPrice + max(0, $recomputeNights - 1) * $recomputeRenewalPrice, 2);
         $recomputeDiscount = $reservation->discountAmountFor($recomputeGross);
-        $recomputeNewTotal = round(max(0, round($recomputeGross - $recomputeDiscount, 2)) + $reservation->extra_charges_total, 0);
+        $recomputeNewTotal = round(max(0, round($recomputeGross - $recomputeDiscount, 2)) + $reservation->hotel_charges_total, 0);
         $recomputeDelta   = round($recomputeNewTotal - (float) $reservation->total_amount, 2);
         $recomputeNeeded  = !$showSegments
             || abs($recomputeDelta) > 1.0
@@ -702,40 +702,59 @@
                     <span class="font-semibold">- {{ number_format($reservation->discount_amount, 0) }} {{ $reservation->currency_symbol }}</span>
                 </div>
                 @endif
-                @if($reservation->extraCharges->count() > 0)
+                @if($reservation->hotel_charges_total > 0)
                 <div class="flex justify-between items-center text-red-600">
-                    <span>رسوم إضافية</span>
-                    <span class="font-semibold">+ {{ number_format($reservation->extraCharges->sum('amount'), 0) }} {{ $reservation->currency_symbol }}</span>
+                    <span>رسوم/أضرار مُحتسبة</span>
+                    <span class="font-semibold">+ {{ number_format($reservation->hotel_charges_total, 0) }} {{ $reservation->currency_symbol }}</span>
                 </div>
                 @endif
                 <div class="border-t border-gray-100 pt-2 flex justify-between items-center">
-                    <span class="font-bold text-gray-800">الإجمالي المطلوب</span>
+                    <span class="font-bold text-gray-800">الإجمالي المطلوب (إقامة)</span>
                     <span class="font-black text-gray-900 text-lg">{{ number_format($reservation->total_amount, 0) }} <span class="text-xs font-normal text-gray-400">{{ $reservation->currency_symbol }}</span></span>
                 </div>
             </div>
         </div>
 
-        {{-- Extra Charges --}}
-        @if($reservation->extraCharges->count() > 0)
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-5 py-3 border-b border-gray-50 flex items-center gap-3">
-                <div class="w-8 h-8 rounded-lg bg-red-500 flex items-center justify-center shadow-sm">
-                    <svg class="text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:18px;height:18px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        {{-- مشتريات النزيل (بقالة/خدمات) — دَين منفصل عن صندوق الفندق --}}
+        @php
+            $purchaseCharges = $reservation->extraCharges->where('in_hotel_total', false)->sortByDesc('charge_date');
+            $purchasesDebt   = $reservation->purchases_debt;
+        @endphp
+        @if($purchaseCharges->count() > 0)
+        <div class="bg-white rounded-2xl shadow-sm border border-amber-200 overflow-hidden">
+            <div class="px-5 py-3 border-b border-amber-100 bg-amber-50/60 flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center shadow-sm">
+                    <svg class="text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:18px;height:18px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                 </div>
-                <h3 class="font-bold text-gray-800 text-sm">الرسوم الإضافية</h3>
+                <h3 class="font-bold text-gray-800 text-sm">مشتريات النزيل (بقالة / خدمات)</h3>
+                @if($purchasesDebt > 0)
+                <span class="mr-auto px-2 py-0.5 bg-amber-100 text-amber-800 text-xs font-bold rounded-full">دَين: {{ number_format($purchasesDebt, 0) }} {{ $reservation->currency_symbol }}</span>
+                @else
+                <span class="mr-auto px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-full">مُحصَّل بالكامل</span>
+                @endif
+            </div>
+            <div class="px-5 py-2.5 bg-amber-50/40 text-xs text-amber-700 flex items-start gap-1.5">
+                <svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>دَين مشتريات يُحصَّل من النزيل عند الخروج ويُسلَّم للبقالة — لا يدخل صندوق الفندق ولا يظهر في تقاريره.</span>
             </div>
             <div class="divide-y divide-gray-50">
-                @foreach($reservation->extraCharges as $charge)
-                @php $chargeLabel = ['damage' => 'أضرار', 'compensation' => 'تعويض'][$charge->type] ?? $charge->type; @endphp
+                @foreach($purchaseCharges as $charge)
                 <div class="px-5 py-2.5 flex items-center justify-between text-sm">
                     <div class="min-w-0 flex-1">
-                        <p class="font-medium text-gray-700">{{ $chargeLabel }}</p>
+                        <p class="font-medium text-gray-700 flex items-center gap-2">
+                            {{ $charge->type }}
+                            @if($charge->settled_at)
+                            <span class="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded">محصَّل</span>
+                            @else
+                            <span class="px-1.5 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-bold rounded">غير محصَّل</span>
+                            @endif
+                        </p>
                         <p class="text-xs text-gray-400">{{ $charge->charge_date->format('d/m/Y') }}@if($charge->description) — {{ $charge->description }}@endif</p>
                     </div>
                     <div class="flex items-center gap-2 ml-3">
-                        <span class="font-bold text-red-600 whitespace-nowrap">{{ number_format($charge->amount, 0) }} {{ $reservation->currency_symbol }}</span>
+                        <span class="font-bold text-amber-700 whitespace-nowrap">{{ number_format($charge->amount, 0) }} {{ $reservation->currency_symbol }}</span>
                         @can('payments.create')
-                        @if($reservation->status !== 'cancelled' && !$charge->room_inspection_id)
+                        @if($reservation->status !== 'cancelled' && !$charge->settled_at)
                         <button type="button"
                                 data-charge-id="{{ $charge->id }}"
                                 data-charge-type="{{ $charge->type }}"
@@ -746,7 +765,7 @@
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                         </button>
                         <form method="POST" action="{{ route('reservations.deleteCharge', $charge) }}"
-                              onsubmit="return confirm('هل تريد حذف هذا الرسم؟ سيُخصم المبلغ ({{ number_format($charge->amount, 0) }} ر.ي) من حساب النزيل.')"
+                              onsubmit="return confirm('هل تريد حذف رسم المشتريات هذا ({{ number_format($charge->amount, 0) }} ر.ي)؟')"
                               class="inline">
                             @csrf
                             @method('DELETE')
@@ -760,6 +779,21 @@
                 </div>
                 @endforeach
             </div>
+            @can('payments.create')
+            @if($purchasesDebt > 0 && $reservation->status !== 'cancelled')
+            <div class="px-5 py-3 border-t border-amber-100 bg-amber-50/40 flex items-center justify-between gap-3 flex-wrap">
+                <span class="text-sm font-semibold text-amber-800">إجمالي الدَّين غير المحصَّل: {{ number_format($purchasesDebt, 0) }} {{ $reservation->currency_symbol }}</span>
+                <form method="POST" action="{{ route('reservations.settlePurchases', $reservation) }}"
+                      onsubmit="return confirm('تأكيد تحصيل دَين المشتريات ({{ number_format($purchasesDebt, 0) }} ر.ي) وتسليمه للبقالة؟')">
+                    @csrf @method('PATCH')
+                    <button type="submit" class="flex items-center gap-1.5 px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-semibold hover:bg-amber-700 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        تحصيل الدَّين (تسليم للبقالة)
+                    </button>
+                </form>
+            </div>
+            @endif
+            @endcan
         </div>
         @endif
 
@@ -1273,9 +1307,9 @@
         </div>
         <form method="POST" action="{{ route('reservations.addCharge', $reservation) }}" class="p-6 space-y-4">
             @csrf
-            <div class="flex items-start gap-2 rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-xs text-emerald-800">
+            <div class="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
                 <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                <span>يُضاف المبلغ إلى حساب النزيل (دَين عليه) ويُحصَّل مع إجمالي الليالي عند المغادرة.</span>
+                <span>يُسجَّل كدَين مشتريات (بقالة) منفصل على النزيل يُحصَّل عند الخروج ويُسلَّم للبقالة — لا يدخل صندوق الفندق ولا يظهر في تقاريره.</span>
             </div>
 
             <div>

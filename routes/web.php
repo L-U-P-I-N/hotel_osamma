@@ -130,6 +130,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/reservations/{reservation}/charge', [ReservationController::class, 'addCharge'])->name('reservations.addCharge')->middleware('permission:payments.create');
         Route::put('/reservations/charge/{charge}', [ReservationController::class, 'updateCharge'])->name('reservations.updateCharge')->middleware('permission:payments.create');
         Route::delete('/reservations/charge/{charge}', [ReservationController::class, 'deleteCharge'])->name('reservations.deleteCharge')->middleware('permission:payments.create');
+        // تحصيل دَين المشتريات (بقالة) وتسليمه للبقالة — توثيق فقط بلا قيد محاسبي
+        Route::patch('/reservations/{reservation}/settle-purchases', [ReservationController::class, 'settleCharges'])->name('reservations.settlePurchases')->middleware('permission:payments.create');
         // إضافة / تعديل / حذف فترة تجديد أو الحجز الأولي (تصحيح سعر أو عدد تجديدات خاطئ)
         Route::post('/reservations/{reservation}/segment', [ReservationController::class, 'addSegment'])->name('reservations.addSegment')->middleware('permission:payments.create');
         Route::put('/reservations/segment/{segment}', [ReservationController::class, 'updateSegment'])->name('reservations.updateSegment')->middleware('permission:payments.create');

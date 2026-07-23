@@ -362,7 +362,7 @@ class ReservationController extends Controller
             // ثم نطبّق الخصم ونُعيد الرسوم الإضافية حتى لا يضيع الخصم ولا تُفقد مصروفات النزيل
             $grossTotal = round($firstNightPrice + max(0, $billableNights - 1) * $renewalPrice, 2);
             $discountAmount = $reservation->discountAmountFor($grossTotal);
-            $newTotal = round(max(0, round($grossTotal - $discountAmount, 2)) + $reservation->extra_charges_total, 0);
+            $newTotal = round(max(0, round($grossTotal - $discountAmount, 2)) + $reservation->hotel_charges_total, 0);
 
             $reservation->update([
                 'check_in_date'  => $validated['check_in_date'],
@@ -469,7 +469,7 @@ class ReservationController extends Controller
         $newGross       = $reservation->gross_total + $extraAmount;
         $discountAmount = $reservation->discountAmountFor($newGross);
         // نقرّب الإجمالي لأقرب ريال (عملة صحيحة عملياً) لتفادي تراكم كسور القسمة
-        $newTotal       = round(max(0, round($newGross - $discountAmount, 2)) + $reservation->extra_charges_total, 0);
+        $newTotal       = round(max(0, round($newGross - $discountAmount, 2)) + $reservation->hotel_charges_total, 0);
 
         $old = $reservation->only(['check_out_date', 'total_amount', 'renewal_price_per_night']);
 
@@ -667,7 +667,7 @@ class ReservationController extends Controller
         // إجمالي الغرفة قبل الخصم ثم الخصم ثم إعادة الرسوم الإضافية (تفادي فقدها)
         $grossTotal     = round($stayedNights * $oldPricePerNight + $remainingNights * $newPricePerNight, 2);
         $discountAmount = $reservation->discountAmountFor($grossTotal);
-        $newTotal       = round(max(0, round($grossTotal - $discountAmount, 2)) + $reservation->extra_charges_total, 0);
+        $newTotal       = round(max(0, round($grossTotal - $discountAmount, 2)) + $reservation->hotel_charges_total, 0);
 
         $oldRoom       = $reservation->room;
         $oldLinkedRoom = $reservation->linkedRoom;
@@ -1023,7 +1023,7 @@ class ReservationController extends Controller
         }
 
         // الصافي بعد الخصم (للغرفة) + الرسوم الإضافية = الإجمالي الجديد (مقرَّب لأقرب ريال)
-        $newTotal = round(max(0, round($baseTotal - $discountAmount, 2)) + $reservation->extra_charges_total, 0);
+        $newTotal = round(max(0, round($baseTotal - $discountAmount, 2)) + $reservation->hotel_charges_total, 0);
 
         $reservation->update([
             'discount_type'   => $validated['discount_type'],
@@ -1060,7 +1060,7 @@ class ReservationController extends Controller
         $old = $reservation->only(['discount_type', 'discount_value', 'discount_amount', 'discount_reason', 'total_amount']);
 
         // الإجمالي قبل الخصم = إجمالي الغرفة (gross) + الرسوم الإضافية، مقرَّباً لأقرب ريال.
-        $newTotal = round((float) $reservation->gross_total + $reservation->extra_charges_total, 0);
+        $newTotal = round((float) $reservation->gross_total + $reservation->hotel_charges_total, 0);
 
         $reservation->update([
             'discount_type'   => null,
@@ -1334,6 +1334,9 @@ class ReservationController extends Controller
         $amount = (float) $validated['amount'];
 
         DB::transaction(function () use ($reservation, $validated, $amount) {
+            // رسم مشتريات (بقالة/خدمات) — دَين على النزيل منفصل عن صندوق الفندق،
+            // لا يُضاف إلى إجمالي الحجز ولا يظهر في تقارير الفندق. يُحصَّل عند
+            // الخروج ويُسلَّم للبقالة.
             \App\Models\ExtraCharge::create([
                 'reservation_id' => $reservation->id,
                 'added_by'       => auth()->id(),
@@ -1341,20 +1344,19 @@ class ReservationController extends Controller
                 'description'    => $validated['description'] ?? null,
                 'amount'         => $amount,
                 'charge_date'    => now(),
+                'in_hotel_total' => false,
+                'settled_at'     => null,
             ]);
 
-            $reservation->increment('total_amount', $amount);
-            $reservation->refresh()->updatePaymentStatus();
-
             AuditLogService::log('update', $reservation, null, [
-                'action'      => 'charge_added',
+                'action'      => 'purchase_charge_added',
                 'charge_type' => $validated['charge_type'],
                 'amount'      => $amount,
             ], auth()->user());
         });
 
         return redirect()->route('reservations.show', $reservation)
-            ->with('success', 'تمت إضافة ' . number_format($amount, 0) . ' ر.ي إلى حساب النزيل');
+            ->with('success', 'تمت إضافة ' . number_format($amount, 0) . ' ر.ي كدَين مشتريات (بقالة) على النزيل — يُحصَّل عند الخروج');
     }
 
     /**
@@ -1381,15 +1383,18 @@ class ReservationController extends Controller
         $newAmount = (float) $validated['amount'];
         $oldAmount = (float) $charge->amount;
         $delta     = round($newAmount - $oldAmount, 2);
+        // رسوم المشتريات (in_hotel_total = false) خارج إجمالي الحجز؛ لا نمسّ الإجمالي
+        // عند تعديلها. الرسوم القديمة المحتسَبة في الإجمالي تُعدَّل بالفارق كالسابق.
+        $affectsTotal = (bool) $charge->in_hotel_total;
 
-        DB::transaction(function () use ($reservation, $charge, $validated, $newAmount, $oldAmount, $delta) {
+        DB::transaction(function () use ($reservation, $charge, $validated, $newAmount, $oldAmount, $delta, $affectsTotal) {
             $charge->update([
                 'type'        => $validated['charge_type'],
                 'description' => $validated['description'] ?? null,
                 'amount'      => $newAmount,
             ]);
 
-            if ($delta !== 0.0) {
+            if ($delta !== 0.0 && $affectsTotal) {
                 $reservation->total_amount = max(0, round((float) $reservation->total_amount + $delta, 2));
                 $reservation->save();
             }
@@ -1418,11 +1423,14 @@ class ReservationController extends Controller
         }
 
         $amount = (float) $charge->amount;
+        // رسوم المشتريات خارج الإجمالي؛ حذفها لا يمسّه. الرسوم القديمة المحتسَبة
+        // في الإجمالي تُخصَم منه عند الحذف كالسابق.
+        $affectsTotal = (bool) $charge->in_hotel_total;
 
-        DB::transaction(function () use ($reservation, $charge, $amount) {
+        DB::transaction(function () use ($reservation, $charge, $amount, $affectsTotal) {
             $charge->delete();
 
-            if ($amount > 0) {
+            if ($amount > 0 && $affectsTotal) {
                 $reservation->total_amount = max(0, round((float) $reservation->total_amount - $amount, 2));
                 $reservation->save();
                 $reservation->refresh()->updatePaymentStatus();
@@ -1435,7 +1443,38 @@ class ReservationController extends Controller
         });
 
         return redirect()->route('reservations.show', $reservation)
-            ->with('success', 'تم حذف الرسم' . ($amount > 0 ? ' وخصم ' . number_format($amount, 0) . ' ر.ي من حساب النزيل' : ''));
+            ->with('success', 'تم حذف الرسم' . ($amount > 0 && $affectsTotal ? ' وخصم ' . number_format($amount, 0) . ' ر.ي من حساب النزيل' : ''));
+    }
+
+    /**
+     * تحصيل دَين المشتريات (بقالة/خدمات) وتسليمه للبقالة — يوثّق التحصيل فقط
+     * (settled_at) دون أي قيد محاسبي: لا مستلمة ولا وردية ولا تقرير فندق.
+     */
+    public function settleCharges(Reservation $reservation)
+    {
+        $outstanding = $reservation->extraCharges()
+            ->where('in_hotel_total', false)
+            ->whereNull('settled_at')
+            ->get();
+
+        if ($outstanding->isEmpty()) {
+            return back()->withErrors(['error' => 'لا يوجد دَين مشتريات غير محصّل على هذا الحجز']);
+        }
+
+        $total = round((float) $outstanding->sum('amount'), 2);
+
+        DB::transaction(function () use ($outstanding, $reservation, $total) {
+            \App\Models\ExtraCharge::whereIn('id', $outstanding->pluck('id'))
+                ->update(['settled_at' => now(), 'settled_by' => auth()->id()]);
+
+            AuditLogService::log('update', $reservation, null, [
+                'action' => 'purchases_settled',
+                'amount' => $total,
+            ], auth()->user());
+        });
+
+        return redirect()->route('reservations.show', $reservation)
+            ->with('success', 'تم تحصيل دَين المشتريات (' . number_format($total, 0) . ' ر.ي) وتسليمه للبقالة');
     }
 
     /**
@@ -1651,7 +1690,7 @@ class ReservationController extends Controller
 
         $newGross       = round($firstNightPrice + max(0, $billableNights - 1) * $renewalPrice, 2);
         $discountAmount = $reservation->discountAmountFor($newGross);
-        $newTotal       = round(max(0, round($newGross - $discountAmount, 2)) + $reservation->extra_charges_total, 0);
+        $newTotal       = round(max(0, round($newGross - $discountAmount, 2)) + $reservation->hotel_charges_total, 0);
 
         $old = $reservation->only(['total_amount', 'discount_amount']);
 
@@ -1759,7 +1798,7 @@ class ReservationController extends Controller
 
         $newGross       = round($firstNightPrice + max(0, $newBillableNights - 1) * $renewalPrice, 2);
         $discountAmount = $reservation->discountAmountFor($newGross);
-        $newTotal       = round(max(0, round($newGross - $discountAmount, 2)) + $reservation->extra_charges_total, 0);
+        $newTotal       = round(max(0, round($newGross - $discountAmount, 2)) + $reservation->hotel_charges_total, 0);
 
         $old = $reservation->only(['check_in_date', 'check_in_time', 'check_out_date', 'check_out_time', 'total_amount']);
 

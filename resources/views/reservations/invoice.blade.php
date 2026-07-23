@@ -262,7 +262,9 @@ table.mini tr { page-break-inside: avoid; }
     $segBoundaryTime = sprintf('%02d:00', \App\Models\Reservation::AUTO_RENEW_BOUNDARY_HOUR);
     $segCheckInTime  = $reservation->check_in_time  ? \Illuminate\Support\Str::substr($reservation->check_in_time, 0, 5)  : $segBoundaryTime;
     $segCheckOutTime = $reservation->check_out_time ? \Illuminate\Support\Str::substr($reservation->check_out_time, 0, 5) : $segBoundaryTime;
-    $extraTotal    = $reservation->extraCharges->sum('amount');
+    // فاتورة الفندق: الرسوم المحتسَبة ضمن الإجمالي فقط (أضرار/رسوم). دَين المشتريات
+    // (بقالة) منفصل ولا يُدرَج في فاتورة الفندق.
+    $extraTotal    = $reservation->hotel_charges_total;
     $subtotal      = $roomTotal + $extraTotal;
     $discount      = (float)($reservation->discount_amount ?? 0);
     $total         = (float)$reservation->total_amount;

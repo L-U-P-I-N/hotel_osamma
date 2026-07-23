@@ -16,6 +16,25 @@ class CheckOutService
     public function processCheckOut(Reservation $reservation, array $data, User $user): Reservation
     {
         return DB::transaction(function () use ($reservation, $data, $user) {
+            // 0. دَين المشتريات (بقالة) منفصل عن صندوق الفندق — يجب تحصيله قبل
+            // الخروج (أو تركه كدَين عند «غادر دون سداد»). تحصيله توثيقي فقط:
+            // يُعلَّم settled_at دون إنشاء مستلمة أو ربط بوردية أو تقرير فندق.
+            $purchasesDebt    = round((float) $reservation->extraCharges()
+                ->where('in_hotel_total', false)->whereNull('settled_at')->sum('amount'), 2);
+            $collectPurchases = !empty($data['collect_purchases']);
+            $leftUnpaid       = !empty($data['left_unpaid']);
+
+            if ($purchasesDebt > 0 && !$collectPurchases && !$leftUnpaid) {
+                throw new \RuntimeException('يوجد دَين مشتريات (بقالة) غير محصَّل — حصِّله قبل الخروج أو أشِر إلى «غادر دون سداد».');
+            }
+
+            if ($purchasesDebt > 0 && $collectPurchases) {
+                ExtraCharge::where('reservation_id', $reservation->id)
+                    ->where('in_hotel_total', false)
+                    ->whereNull('settled_at')
+                    ->update(['settled_at' => now(), 'settled_by' => $user->id]);
+            }
+
             // a. Create RoomInspection
             $inspection = RoomInspection::create([
                 'reservation_id' => $reservation->id,
