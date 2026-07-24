@@ -951,7 +951,26 @@ class ReportController extends Controller
     public function amAli(Request $request)
     {
         $date = $request->input('date', now()->toDateString());
+        return view('reports.am-ali', $this->amAliData($date));
+    }
 
+    /**
+     * تصدير تقرير عم علي إلى PDF لليوم المحدَّد.
+     */
+    public function amAliPdf(Request $request)
+    {
+        $date = $request->input('date', now()->toDateString());
+        $pdf  = $this->pdfOptions(pdf_load_view('reports.am_ali_pdf', $this->amAliData($date)));
+        $pdf->setPaper('a4', 'portrait');
+        return $pdf->download('am-ali-' . $date . '.pdf');
+    }
+
+    /**
+     * بناء بيانات تقرير عم علي (مشترك بين العرض والتصدير): الغرف المستأجَرة حالياً،
+     * ودفعات اليوم المحدَّد وإجمالي ما استلمه كل موظف.
+     */
+    private function amAliData(string $date): array
+    {
         // (أ) الغرف المستأجَرة حالياً
         $reservations = Reservation::with(['guest', 'room', 'segments'])
             ->where('status', 'checked_in')
@@ -981,7 +1000,7 @@ class ReportController extends Controller
             $dayTotals[$cur]         = ($dayTotals[$cur] ?? 0) + (float) $p->amount;
         }
 
-        return view('reports.am-ali', compact('reservations', 'totals', 'date', 'dayPayments', 'byEmployee', 'dayTotals'));
+        return compact('reservations', 'totals', 'date', 'dayPayments', 'byEmployee', 'dayTotals');
     }
 
     public function salariesPdf(Request $request)

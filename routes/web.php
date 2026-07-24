@@ -233,6 +233,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/reports/guests/pdf', [ReportController::class, 'guestsPdf'])->name('reports.guests.pdf');
         Route::get('/reports/guests/excel', [ReportController::class, 'guestsExcel'])->name('reports.guests.excel');
         Route::get('/reports/am-ali', [ReportController::class, 'amAli'])->name('reports.amAli');
+        Route::get('/reports/am-ali/pdf', [ReportController::class, 'amAliPdf'])->name('reports.amAli.pdf');
         Route::get('/reports/debts', [ReportController::class, 'debts'])->name('reports.debts');
         Route::get('/reports/debts/pdf', [ReportController::class, 'debtsPdf'])->name('reports.debts.pdf');
         Route::get('/reports/debts/excel', [ReportController::class, 'debtsExcel'])->name('reports.debts.excel');
