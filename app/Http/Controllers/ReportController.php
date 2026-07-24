@@ -942,12 +942,18 @@ class ReportController extends Controller
     }
 
     /**
-     * تقرير عم علي — الغرف المستأجَرة حالياً (نزلاء مسجّل دخولهم) مع الإجمالي
-     * والمدفوع والمتبقي ومن استلم الدفعات من النزيل (الموظف). قالب بسيط بخط واضح.
+     * تقرير عم علي — قسمان:
+     * (أ) الغرف المستأجَرة حالياً: الإجمالي والمدفوع والمتبقي، وسعر الإقامة قبل
+     *     آخر تجديد (للغرف/الأجنحة المجدَّدة).
+     * (ب) دفعات يوم محدَّد: كل دفعة استلمها موظف في ذلك اليوم (المبلغ + الموظف)،
+     *     مع إجمالي ما استلمه كل موظف وإجمالي اليوم. قالب بسيط بخط واضح.
      */
     public function amAli(Request $request)
     {
-        $reservations = Reservation::with(['guest', 'room', 'payments' => fn($q) => $q->with('receivedBy')->orderBy('payment_date')])
+        $date = $request->input('date', now()->toDateString());
+
+        // (أ) الغرف المستأجَرة حالياً
+        $reservations = Reservation::with(['guest', 'room', 'segments'])
             ->where('status', 'checked_in')
             ->get()
             ->sortBy(fn($r) => $r->room?->room_number ?? '', SORT_NATURAL)
@@ -959,7 +965,23 @@ class ReportController extends Controller
             'remaining' => $reservations->sum(fn($r) => (float) $r->total_amount - (float) $r->paid_amount),
         ];
 
-        return view('reports.am-ali', compact('reservations', 'totals'));
+        // (ب) دفعات اليوم المحدَّد التي استلمها الموظفون
+        $dayPayments = Payment::with(['receivedBy', 'reservation.guest', 'reservation.room'])
+            ->whereDate('payment_date', $date)
+            ->orderBy('payment_date')
+            ->get();
+
+        // إجمالي ما استلمه كل موظف في اليوم (لكل عملة) + إجمالي اليوم لكل عملة
+        $byEmployee = [];
+        $dayTotals  = [];
+        foreach ($dayPayments as $p) {
+            $name = $p->receivedBy?->name ?? 'غير معروف';
+            $cur  = $p->currency ?: 'YER';
+            $byEmployee[$name][$cur] = ($byEmployee[$name][$cur] ?? 0) + (float) $p->amount;
+            $dayTotals[$cur]         = ($dayTotals[$cur] ?? 0) + (float) $p->amount;
+        }
+
+        return view('reports.am-ali', compact('reservations', 'totals', 'date', 'dayPayments', 'byEmployee', 'dayTotals'));
     }
 
     public function salariesPdf(Request $request)
