@@ -941,6 +941,27 @@ class ReportController extends Controller
         ));
     }
 
+    /**
+     * تقرير عم علي — الغرف المستأجَرة حالياً (نزلاء مسجّل دخولهم) مع الإجمالي
+     * والمدفوع والمتبقي ومن استلم الدفعات من النزيل (الموظف). قالب بسيط بخط واضح.
+     */
+    public function amAli(Request $request)
+    {
+        $reservations = Reservation::with(['guest', 'room', 'payments' => fn($q) => $q->with('receivedBy')->orderBy('payment_date')])
+            ->where('status', 'checked_in')
+            ->get()
+            ->sortBy(fn($r) => $r->room?->room_number ?? '', SORT_NATURAL)
+            ->values();
+
+        $totals = [
+            'total'     => $reservations->sum(fn($r) => (float) $r->total_amount),
+            'paid'      => $reservations->sum(fn($r) => (float) $r->paid_amount),
+            'remaining' => $reservations->sum(fn($r) => (float) $r->total_amount - (float) $r->paid_amount),
+        ];
+
+        return view('reports.am-ali', compact('reservations', 'totals'));
+    }
+
     public function salariesPdf(Request $request)
     {
         $year = (int) $request->input('year', now()->year);
