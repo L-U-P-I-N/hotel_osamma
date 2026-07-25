@@ -5,16 +5,27 @@ use App\Helpers\StorageHelper;
 use App\Models\Reservation;
 use App\Services\CashSettlementService;
 use App\Services\PaymentService;
+use App\Services\ShiftService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class PaymentController extends Controller
 {
-    public function __construct(private PaymentService $paymentService) {}
+    public function __construct(private PaymentService $paymentService, private ShiftService $shiftService) {}
 
     public function store(Request $request)
     {
         $reservation = Reservation::findOrFail($request->reservation_id);
+
+        // يجب أن تكون للموظف وردية مفتوحة قبل استلام أي دفعة، وإلا تُستلَم
+        // نقداً دون أن تظهر ضمن أي وردية فتضيع من التسوية اليومية.
+        if (!$this->shiftService->getActiveShift(auth()->user())) {
+            $msg = 'لا يمكن استلام دفعة دون وردية مفتوحة — افتح وردية أولاً من صفحة الورديات';
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $msg], 422);
+            }
+            return back()->withErrors(['error' => $msg]);
+        }
 
         $request->validate([
             'reservation_id' => 'required|exists:reservations,id',

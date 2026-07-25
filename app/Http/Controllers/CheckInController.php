@@ -11,6 +11,7 @@ use App\Models\Reservation;
 use App\Helpers\StorageHelper;
 use App\Services\CheckInService;
 use App\Services\GovernmentExportService;
+use App\Services\ShiftService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -19,7 +20,8 @@ class CheckInController extends Controller
 {
     public function __construct(
         private CheckInService $checkInService,
-        private GovernmentExportService $exportService
+        private GovernmentExportService $exportService,
+        private ShiftService $shiftService
     ) {}
 
     public function create(Request $request)
@@ -69,6 +71,7 @@ class CheckInController extends Controller
 
         $admins = User::role('admin')->where('is_active', true)->get();
         $nationalities = $this->getNationalities();
+        $hasActiveShift = (bool) $this->shiftService->getActiveShift(auth()->user());
 
         // حجوزات مستقبلية (لم تبدأ بعد) لكل غرفة معروضة — تُستخدم لتنبيه الموظف
         // عند اختيار غرفة محجوزة مسبقاً لنزيل آخر سيصل قريباً
@@ -87,11 +90,21 @@ class CheckInController extends Controller
         );
         $floors = $displayRooms->pluck('floor')->unique()->sort()->values();
 
-        return view('checkin.create', compact('availableRooms', 'displayRooms', 'floors', 'linkedAvailability', 'admins', 'nationalities', 'mode', 'upcomingByRoom'));
+        return view('checkin.create', compact('availableRooms', 'displayRooms', 'floors', 'linkedAvailability', 'admins', 'nationalities', 'mode', 'upcomingByRoom', 'hasActiveShift'));
     }
 
     public function store(Request $request)
     {
+        // يجب أن تكون للموظف وردية مفتوحة قبل تسجيل دخول نزيل، وإلا تُستلَم دفعة
+        // الوصول (إن وُجدت) دون أن تظهر ضمن أي وردية فتضيع من التسوية اليومية.
+        if (!$this->shiftService->getActiveShift(auth()->user())) {
+            $msg = 'لا يمكن تسجيل دخول نزيل دون وردية مفتوحة — افتح وردية أولاً من صفحة الورديات';
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $msg], 422);
+            }
+            return back()->withErrors(['error' => $msg])->withInput();
+        }
+
         // تسجيل تشخيصي: نُثبت وصول الطلب فعلاً إلى المتحكّم (لو لم يظهر هذا السطر
         // في السجل بعد محاولة الموظف، فالطلب لم يصل أصلاً — يُرفَض قبلها في طبقة
         // أعلى: 419 رمز/جلسة، أو 413 حجم رفع أكبر من حد الخادم). نُسجّل حجم الطلب

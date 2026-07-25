@@ -349,6 +349,20 @@ html.dark [style*="background:var(--gold-l)"] {
     </div>
 </div>
 
+{{-- لا وردية مفتوحة — يُمنع تسجيل الدخول (يظهر أيضاً كخطأ من الخادم إن حاول تجاوز الحظر) --}}
+@unless($hasActiveShift)
+<div class="mb-6 bg-red-50 border-2 border-red-300 rounded-xl p-4 flex items-start gap-3">
+    <svg class="w-6 h-6 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+    <div class="text-sm text-red-800">
+        <p class="font-bold">لا يمكن تسجيل الدخول دون وردية مفتوحة</p>
+        <p class="mt-1">افتح وردية أولاً من صفحة الورديات ثم عد لإتمام تسجيل الدخول.</p>
+        <a href="{{ route('shifts.index') }}" class="inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-semibold hover:bg-red-700 transition">
+            الذهاب لصفحة الورديات
+        </a>
+    </div>
+</div>
+@endunless
+
 {{-- Backend Validation Errors --}}
 @if($errors->any())
 <div id="backendErrorBox" class="mb-6 bg-red-50 border-2 border-red-300 rounded-xl p-4 scroll-mt-24">
@@ -1262,7 +1276,7 @@ html.dark [style*="background:var(--gold-l)"] {
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
         </button>
 
-        <button type="submit" x-show="currentStep === 3" :disabled="submitting" class="btn-submit">
+        <button type="submit" x-show="currentStep === 3" :disabled="submitting || {{ $hasActiveShift ? 'false' : 'true' }}" class="btn-submit">
             <template x-if="!submitting">
                 <div class="flex items-center justify-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>

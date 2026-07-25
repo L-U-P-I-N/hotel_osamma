@@ -925,6 +925,12 @@ class ReservationController extends Controller
             return back()->withErrors(['error' => 'لا يمكن تسجيل دخول حجز بحالة "' . $reservation->status_label . '"']);
         }
 
+        // يجب أن تكون للموظف وردية مفتوحة قبل تسجيل الدخول، وإلا لا يظهر النزيل
+        // ضمن أي وردية في التسوية اليومية.
+        if (!app(ShiftService::class)->getActiveShift(auth()->user())) {
+            return back()->withErrors(['error' => 'لا يمكن تسجيل دخول نزيل دون وردية مفتوحة — افتح وردية أولاً من صفحة الورديات']);
+        }
+
         $old = $reservation->only(['status']);
 
         $reservation->update(['status' => 'checked_in']);
