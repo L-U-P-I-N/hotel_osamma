@@ -901,7 +901,7 @@ class ReportController extends Controller
         $reservations = $query->orderByDesc('check_in_date')->get();
 
         $pdf = $this->pdfOptions(pdf_load_view('reports.government_pdf', compact('reservations', 'from', 'to')));
-        $pdf->setPaper('a3', 'landscape');
+        $pdf->setPaper('a4', 'portrait');
         return $pdf->download('government-report-' . $from . '-' . $to . '.pdf');
     }
 

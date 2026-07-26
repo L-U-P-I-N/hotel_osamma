@@ -78,6 +78,37 @@ class Reservation extends Model
         return $this->hasMany(Companion::class);
     }
 
+    /**
+     * ملاحظة السجل الحكومي: وصف مختصر لحالة الإقامة (لوحده/متزوج/عائلة/عدد
+     * المرافقين) مشتقّ من عدد المرافقين وصلاتهم، مع إضافة "غادر" إن كان النزيل
+     * قد سجّل خروجه بالفعل — يماثل عمود "ملاحظة" في سجل النزلاء الورقي.
+     */
+    public function getGovernmentNoteAttribute(): string
+    {
+        $count = $this->companions->count();
+
+        if ($count === 0) {
+            $note = 'لوحده';
+        } else {
+            $familyRelations = ['wife', 'son', 'daughter', 'father', 'mother'];
+            $hasFamily = $this->companions->contains(fn($c) => in_array($c->relationship, $familyRelations, true));
+
+            if ($count === 1 && $this->companions->first()->relationship === 'wife') {
+                $note = 'متزوج';
+            } elseif ($hasFamily) {
+                $note = 'عائلة';
+            } else {
+                $note = $count === 1 ? 'مرافق' : $count . ' مرافقين';
+            }
+        }
+
+        if ($this->status === 'checked_out') {
+            $note .= "\nغادر";
+        }
+
+        return $note;
+    }
+
     public function payments()
     {
         return $this->hasMany(Payment::class);

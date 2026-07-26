@@ -60,6 +60,7 @@
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">صادر من</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">تاريخ الإصدار</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">بيانات المرافقين</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">ملاحظة</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">حالة الإقامة</th>
                     </tr>
                 </thead>
@@ -91,6 +92,7 @@
                             @endforeach
                             @endif
                         </td>
+                        <td class="px-4 py-3 text-gray-600 text-xs whitespace-pre-line">{{ $res->government_note }}</td>
                         <td class="px-4 py-3 whitespace-nowrap">
                             <span class="px-2 py-1 rounded-full text-xs font-semibold {{ $departed ? 'bg-gray-100 text-gray-600' : 'bg-green-100 text-green-700' }}">
                                 {{ $departed ? 'غادروا' : 'لم يغادروا' }}

@@ -2,6 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
+@php $hotel = \App\Models\Hotel::first(); @endphp
 <style>
     @font-face {
         font-family: 'NotoNaskhArabic';
@@ -14,41 +15,44 @@
         src: url("{{ storage_path('fonts') }}/NotoNaskhArabic-Bold.ttf") format('truetype');
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'NotoNaskhArabic', sans-serif; font-size: 10px; direction: rtl; color: #1a1a1a; background: #fff; padding: 8mm 7mm; }
+    body { font-family: 'NotoNaskhArabic', sans-serif; font-size: 9.5px; direction: rtl; color: #1a1a1a; background: #fff; margin: 40mm 6mm 12mm 6mm; }
 
-    .header { text-align: center; border-bottom: 2px solid #0F4C75; padding-bottom: 10px; margin-bottom: 14px; }
-    .header h1 { font-size: 16px; color: #0F4C75; font-weight: bold; }
-    .header .sub { font-size: 9px; color: #555; margin-top: 4px; }
+    /* رأس وتذييل ثابتان يتكرران في كل صفحة (تقنية dompdf القياسية) */
+    .pdf-header { position: fixed; top: -38mm; left: 0; right: 0; text-align: center; }
+    .pdf-header .date { text-align: right; font-weight: bold; font-size: 11px; margin-bottom: 4px; }
+    .pdf-header h1 { font-size: 15px; font-weight: bold; margin-bottom: 8px; }
+    .pdf-header .info { text-align: right; font-size: 10px; line-height: 1.5; }
+    .pdf-header .info b { display: inline-block; width: 60px; }
 
-    /* لا table-layout:fixed ولا عرض ثابت — عرض كل عمود يتحدد من محتواه الفعلي */
+    .pdf-footer { position: fixed; bottom: -10mm; left: 0; right: 0; font-size: 8px; color: #444; border-top: 1px solid #999; padding-top: 3px; text-align: right; }
+
     table.main { width: 100%; border-collapse: collapse; table-layout: auto; direction: rtl; }
     table.main thead { display: table-header-group; }
     table.main tbody { display: table-row-group; }
-    table.main thead tr { background: #0F4C75; color: #fff; }
-    table.main thead th { padding: 6px 7px; font-weight: bold; border: 1px solid #0a3a5e; text-align: center; }
-    table.main tbody tr:nth-child(even) { background: #f4f8fc; }
+    table.main thead tr { background: #e5e7eb; }
+    table.main thead th { padding: 5px 4px; font-weight: bold; border: 1px solid #333; text-align: center; }
     table.main tbody tr { page-break-inside: avoid; }
     table.main tbody td {
-        padding: 5px 7px; border: 1px solid #e0e0e0; text-align: right;
+        padding: 4px; border: 1px solid #333; text-align: right;
         word-wrap: break-word; word-break: break-word; vertical-align: top;
     }
-    table.main tbody td.c   { text-align: center; }
-    table.main tbody td.ltr { text-align: left; direction: ltr; }
-
-    .badge { display: inline-block; padding: 1px 8px; border-radius: 8px; font-size: 8.5px; font-weight: bold; }
-    .badge-in  { background: #dcfce7; color: #15803d; }
-    .badge-out { background: #f3f4f6; color: #4b5563; }
-
-    .footer { margin-top: 10px; border-top: 1px solid #eee; padding-top: 5px; font-size: 8px; color: #aaa; text-align: right; }
+    table.main tbody td.c { text-align: center; }
+    .plus { text-align: center; color: #888; }
 </style>
 </head>
 <body>
 
-<div class="header">
-    @include('partials.pdf-logo')
-    <h1>تقرير الجهات الحكومية — سجل النزلاء</h1>
-    <div class="sub">الفترة: {{ \Carbon\Carbon::parse($from)->format('d/m/Y') }} — {{ \Carbon\Carbon::parse($to)->format('d/m/Y') }} — عدد الحجوزات: {{ $reservations->count() }}</div>
+<div class="pdf-header">
+    <div class="date">{{ now()->format('Y/n/j') }}</div>
+    <h1>حجوزات الفندق</h1>
+    <div class="info">
+        <div><b>الاسم:</b> {{ $hotel?->name ?? '—' }}</div>
+        <div><b>العنوان:</b> {{ $hotel?->address ?? '—' }}</div>
+        <div><b>التلفون:</b> {{ $hotel?->phone ?? '—' }}</div>
+    </div>
 </div>
+
+<div class="pdf-footer">{{ $hotel?->name ?? '' }} -: رقم الهاتف: {{ $hotel?->phone ?? '' }}</div>
 
 @if($reservations->isEmpty())
 <p style="text-align:center;color:#999;padding:20px;">لا توجد حجوزات في هذه الفترة</p>
@@ -56,51 +60,48 @@
 {{--
     dompdf لا يعكس ترتيب أعمدة الجدول بحسب dir="rtl" — فقط اتجاه النص داخل كل خلية.
     نكتب الأعمدة هنا بترتيب معكوس (الأخير منطقياً أولاً في HTML) حتى يظهر
-    العمود الأول منطقياً (الغرفة) في أقصى اليمين كما يُقرأ عربياً.
+    العمود الأول منطقياً (رقم الغرفة) في أقصى اليمين كما يُقرأ عربياً.
 --}}
 <table class="main" dir="rtl">
     <thead>
         <tr>
-            <th>حالة الإقامة</th>
-            <th>بيانات المرافقين</th>
-            <th>تاريخ الإصدار</th>
+            <th>أسماء المرافقين</th>
+            <th>ملاحظة</th>
+            <th>تاريخ الاصدار</th>
             <th>صادر من</th>
             <th>رقم الهوية</th>
             <th>نوع الهوية</th>
-            <th>الغرض</th>
-            <th>الوقت</th>
-            <th>تاريخ الدخول</th>
+            <th>الغرض من القدوم</th>
+            <th>تاريخ القدوم</th>
             <th>جهة القدوم</th>
             <th>المهنة</th>
             <th>الجنسية</th>
-            <th>اسم النزيل</th>
-            <th>الغرفة</th>
+            <th>اسم النزيل ثلاثيا</th>
+            <th>رقم الغرفة</th>
         </tr>
     </thead>
     <tbody>
         @foreach($reservations as $res)
-        @php
-            $inTime   = $res->check_in_time ?: $res->check_in_date?->format('H:i');
-            $departed = $res->status === 'checked_out';
-        @endphp
         <tr>
-            <td class="c"><span class="badge {{ $departed ? 'badge-out' : 'badge-in' }}">{{ $departed ? 'غادروا' : 'لم يغادروا' }}</span></td>
             <td>
-                @if($res->companions->isEmpty())
+                @forelse($res->companions as $c)
+                    {{ $c->full_name }}
+                    @if(!$loop->last)<div class="plus">+</div>@endif
+                @empty
                     —
-                @else
-                    @foreach($res->companions as $c)
-                        {{ $c->full_name }} ({{ $c->getRelationshipLabel() }}){{ !$loop->last ? ' — ' : '' }}
-                    @endforeach
-                @endif
+                @endforelse
             </td>
-            <td class="ltr c">{{ $res->guest?->id_issue_date?->format('d/m/Y') ?? '—' }}</td>
+            <td>
+                @foreach(explode("\n", $res->government_note) as $line)
+                    <div>{{ $line }}</div>
+                @endforeach
+            </td>
+            <td class="c">{{ $res->guest?->id_issue_date?->format('Y/n/j') ?? '—' }}</td>
             <td>{{ $res->guest?->id_issuer ?? '—' }}</td>
-            <td class="ltr">{{ $res->guest?->id_number ?? '—' }}</td>
+            <td>{{ $res->guest?->id_number ?? '—' }}</td>
             <td>{{ $res->guest?->getIdTypeLabel() ?? '—' }}</td>
             <td>{{ $res->purpose ?? '—' }}</td>
-            <td class="ltr c">{{ $inTime ?? '—' }}</td>
-            <td class="ltr c">{{ $res->check_in_date?->format('d/m/Y') ?? '—' }}</td>
+            <td class="c">{{ $res->check_in_date?->format('n/j') ?? '—' }}</td>
             <td>{{ $res->origin ?? '—' }}</td>
             <td>{{ $res->guest?->occupation ?? '—' }}</td>
             <td>{{ $res->guest?->nationality ?? '—' }}</td>
@@ -119,15 +120,13 @@
         for ($p = 1; $p <= $total; $p++) {
             $pdf->page_text(
                 $pdf->get_width() - 55,
-                $pdf->get_height() - 12,
+                $pdf->get_height() - 10,
                 "صفحة {$p} / {$total}",
-                $font, 6.5, [0.6, 0.6, 0.6]
+                $font, 6.5, [0.4, 0.4, 0.4]
             );
         }
     }
 </script>
-
-<div class="footer">طُبع في: {{ now()->format('d/m/Y H:i') }} — عدد الحجوزات المطبوعة: {{ $reservations->count() }}</div>
 
 </body>
 </html>
