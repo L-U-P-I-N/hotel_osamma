@@ -2,6 +2,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\AuditLog;
+use App\Models\CashWithdrawal;
+use App\Models\Shift;
 use App\Models\User;
 use App\Services\AuditLogService;
 use App\Services\PermissionService;
@@ -152,6 +154,70 @@ class UserController extends Controller
             ->with('success', 'تم تجديد رمز الاسترداد بنجاح')
             ->with('new_backup_code', $plainCode)
             ->with('new_backup_code_user', $user->name);
+    }
+
+    /**
+     * كشف حساب الموظف/المستخدم: كل ورديّاته ومستلماته وسحبياته خلال فترة
+     * محدَّدة (افتراضياً آخر 90 يوماً)، مع إجمالي ما استلم وما سحب وأي عجز.
+     */
+    public function statement(User $user, Request $request)
+    {
+        $from = $request->input('from', now()->subDays(90)->toDateString());
+        $to   = $request->input('to', now()->toDateString());
+
+        [$shifts, $payments, $withdrawals, $totals] = $this->buildStatementData($user, $from, $to);
+
+        return view('users.statement', compact('user', 'shifts', 'payments', 'withdrawals', 'totals', 'from', 'to'));
+    }
+
+    public function statementPdf(User $user, Request $request)
+    {
+        $from = $request->input('from', now()->subDays(90)->toDateString());
+        $to   = $request->input('to', now()->toDateString());
+
+        [$shifts, $payments, $withdrawals, $totals] = $this->buildStatementData($user, $from, $to);
+
+        $pdf = pdf_load_view('users.statement_pdf', compact('user', 'shifts', 'payments', 'withdrawals', 'totals', 'from', 'to'));
+        $pdf->setPaper('a4', 'portrait');
+
+        $dompdf = $pdf->getDomPDF();
+        $opts   = $dompdf->getOptions();
+        $opts->setFontDir(storage_path('fonts'));
+        $opts->setFontCache(storage_path('fonts'));
+        $dompdf->setOptions($opts);
+
+        return $pdf->stream('statement-user-' . $user->id . '.pdf');
+    }
+
+    private function buildStatementData(User $user, string $from, string $to): array
+    {
+        $shifts = Shift::where('user_id', $user->id)
+            ->whereDate('shift_date', '>=', $from)
+            ->whereDate('shift_date', '<=', $to)
+            ->orderByDesc('shift_date')
+            ->get();
+
+        $payments = $user->payments()
+            ->with(['reservation.guest', 'reservation.room'])
+            ->whereDate('payment_date', '>=', $from)
+            ->whereDate('payment_date', '<=', $to)
+            ->orderByDesc('payment_date')
+            ->get();
+
+        $withdrawals = CashWithdrawal::whereHas('shift', fn($q) => $q->where('user_id', $user->id))
+            ->whereDate('withdrawal_date', '>=', $from)
+            ->whereDate('withdrawal_date', '<=', $to)
+            ->orderByDesc('withdrawal_date')
+            ->get();
+
+        $totals = [
+            'shifts_count'    => $shifts->count(),
+            'received'        => $payments->sum('amount'),
+            'withdrawals'     => $withdrawals->sum('amount'),
+            'total_shortfall' => $shifts->sum(fn($s) => $s->shortfall !== null && $s->shortfall < 0 ? abs((float) $s->shortfall) : 0),
+        ];
+
+        return [$shifts, $payments, $withdrawals, $totals];
     }
 
     public function auditLog(Request $request)

@@ -10,8 +10,13 @@
     <form method="GET" class="flex flex-wrap gap-3 items-end">
         <div class="flex flex-col gap-1 flex-1 min-w-48">
             <label class="text-xs font-medium text-gray-500">بحث</label>
-            <input type="text" name="search" value="{{ request('search') }}"
-                   placeholder="اسم النزيل أو رقم الغرفة..."
+            {{-- بحث تلقائي أثناء الكتابة: يُرسَل النموذج بعد توقّف الموظف عن الكتابة
+                 نصف ثانية، دون الحاجة لضغط زر البحث أو Enter. --}}
+            <input type="text" name="search" value="{{ request('search') }}" x-model="search"
+                   x-on:input.debounce.500ms="$el.form.requestSubmit()"
+                   autofocus
+                   x-init="$el.focus(); $el.setSelectionRange($el.value.length, $el.value.length)"
+                   placeholder="اسم النزيل أو رقم الغرفة أو رقم الحجز..."
                    class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white">
         </div>
         <div class="flex flex-col gap-1">

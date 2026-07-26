@@ -22,10 +22,19 @@ class ReservationController extends Controller
         $query = Reservation::with(['guest', 'room.roomType', 'createdBy']);
 
         if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->whereHas('guest', fn($g) => $g->where('full_name', 'like', "%{$search}%"))
-                  ->orWhereHas('room', fn($r) => $r->where('room_number', 'like', "%{$search}%"));
+            $search = trim($request->search);
+            // بحث مرن: نقسّم النص إلى كلمات ونشترط وجود كل كلمة في اسم النزيل
+            // (بأي ترتيب) — فتجد النتيجة سواء كتب "أحمد القحطاني" أو "القحطاني أحمد".
+            $words = preg_split('/\s+/', $search, -1, PREG_SPLIT_NO_EMPTY);
+
+            $query->where(function ($q) use ($search, $words) {
+                $q->whereHas('guest', function ($g) use ($words) {
+                    foreach ($words as $word) {
+                        $g->where('full_name', 'like', "%{$word}%");
+                    }
+                })
+                ->orWhereHas('room', fn($r) => $r->where('room_number', 'like', "%{$search}%"))
+                ->when(ctype_digit($search), fn($qq) => $qq->orWhere('id', (int) $search));
             });
         }
 

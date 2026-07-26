@@ -265,6 +265,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/users/{user}/permissions', [UserController::class, 'permissions'])->name('users.permissions');
         Route::post('/users/{user}/permissions', [UserController::class, 'togglePermission'])->name('users.togglePermission');
         Route::post('/users/{user}/regenerate-backup-code', [UserController::class, 'regenerateBackupCode'])->name('users.regenerateBackupCode');
+        Route::get('/users/{user}/statement', [UserController::class, 'statement'])->name('users.statement');
+        Route::get('/users/{user}/statement/pdf', [UserController::class, 'statementPdf'])->name('users.statement.pdf');
     });
     Route::get('/audit-log', [UserController::class, 'auditLog'])
         ->name('audit.log')
