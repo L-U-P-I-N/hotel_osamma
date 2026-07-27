@@ -151,8 +151,10 @@ class GroupPaymentController extends Controller
      */
     private function outstandingQuery()
     {
+        // كل الحجوزات التي عليها رصيد متبقٍّ — وليس المقيمين حالياً فقط، فالنزيل
+        // المغادر (checked_out) قد يبقى عليه دَين يُراد تحصيله بدفعة موحّدة أيضاً.
         return Reservation::with(['guest', 'room'])
-            ->where('status', 'checked_in')
+            ->whereIn('status', ['checked_in', 'checked_out'])
             ->whereColumn('paid_amount', '<', 'total_amount')
             ->orderBy('check_in_date');
     }
