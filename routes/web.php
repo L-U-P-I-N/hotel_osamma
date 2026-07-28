@@ -120,6 +120,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/reservations-expiring', [ReservationController::class, 'expiring'])->name('reservations.expiring');
         Route::get('/reservations/{reservation}', [ReservationController::class, 'show'])->name('reservations.show');
         Route::get('/reservations/{reservation}/companions', [ReservationController::class, 'companions'])->name('reservations.companions');
+        // إضافة/تعديل/حذف مرافق مستقلاً — دون الحاجة لتعديل الحجز كاملاً
+        Route::post('/reservations/{reservation}/companions', [ReservationController::class, 'storeCompanion'])->name('reservations.companions.store')->middleware('permission:companions.manage');
+        Route::put('/companions/{companion}', [ReservationController::class, 'updateCompanion'])->name('reservations.companions.update')->middleware('permission:companions.manage');
+        Route::delete('/companions/{companion}', [ReservationController::class, 'destroyCompanion'])->name('reservations.companions.destroy')->middleware('permission:companions.manage');
         Route::get('/reservations/{reservation}/edit', [ReservationController::class, 'edit'])->name('reservations.edit');
         Route::put('/reservations/{reservation}', [ReservationController::class, 'update'])->name('reservations.update');
         Route::patch('/reservations/{reservation}/cancel', [ReservationController::class, 'cancel'])->name('reservations.cancel');

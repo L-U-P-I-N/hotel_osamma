@@ -115,6 +115,114 @@ class ReservationController extends Controller
     }
 
     /**
+     * إضافة مرافق مباشرةً من صفحة المرافقين — بديل مستقل عن تعديل الحجز كاملاً
+     * لمجرّد إضافة مرافق.
+     */
+    public function storeCompanion(Request $request, Reservation $reservation)
+    {
+        $imgMimes = 'jpg,jpeg,png,webp,gif,bmp,heic,heif,pdf';
+
+        $validated = $request->validate([
+            'full_name'      => 'required|string|max:255',
+            'nationality'    => 'nullable|string|max:100',
+            'relationship'   => 'nullable|in:wife,son,daughter,brother,sister,father,mother,other',
+            'id_type'        => 'nullable|in:passport,national_id,residence',
+            'id_number'      => 'nullable|string|max:50',
+            'id_issuer'      => 'nullable|string|max:100',
+            'id_issue_date'  => 'nullable|date',
+            'id_image'       => "nullable|file|mimes:{$imgMimes}|max:5120",
+            'marriage_doc'   => "nullable|file|mimes:{$imgMimes}|max:5120",
+        ], [
+            'full_name.required' => 'اسم المرافق مطلوب',
+        ]);
+
+        $data = [
+            'full_name'     => $validated['full_name'],
+            'nationality'   => $this->nullIfEmpty($validated['nationality'] ?? null),
+            'id_type'       => $this->nullIfEmpty($validated['id_type'] ?? null) ?: 'national_id',
+            'id_number'     => $this->nullIfEmpty($validated['id_number'] ?? null),
+            'id_issuer'     => $this->nullIfEmpty($validated['id_issuer'] ?? null),
+            'id_issue_date' => $this->nullIfEmpty($validated['id_issue_date'] ?? null),
+            'relationship'  => $this->nullIfEmpty($validated['relationship'] ?? null) ?: 'other',
+        ];
+
+        if ($request->hasFile('id_image')) {
+            $data['id_image_path'] = StorageHelper::store($request->file('id_image'), 'id_images/companions');
+        }
+        if ($validated['relationship'] === 'wife' && $request->hasFile('marriage_doc')) {
+            $data['marriage_doc_path'] = StorageHelper::store($request->file('marriage_doc'), 'marriage_docs');
+        }
+
+        $companion = $reservation->companions()->create($data);
+
+        AuditLogService::log('create', $companion, null, $companion->toArray(), auth()->user());
+
+        return redirect()->route('reservations.companions', $reservation)->with('success', 'تمت إضافة المرافق بنجاح');
+    }
+
+    /**
+     * تعديل بيانات مرافق موجود — مستقل عن تعديل الحجز.
+     */
+    public function updateCompanion(Request $request, Companion $companion)
+    {
+        $imgMimes = 'jpg,jpeg,png,webp,gif,bmp,heic,heif,pdf';
+
+        $validated = $request->validate([
+            'full_name'      => 'required|string|max:255',
+            'nationality'    => 'nullable|string|max:100',
+            'relationship'   => 'nullable|in:wife,son,daughter,brother,sister,father,mother,other',
+            'id_type'        => 'nullable|in:passport,national_id,residence',
+            'id_number'      => 'nullable|string|max:50',
+            'id_issuer'      => 'nullable|string|max:100',
+            'id_issue_date'  => 'nullable|date',
+            'id_image'       => "nullable|file|mimes:{$imgMimes}|max:5120",
+            'marriage_doc'   => "nullable|file|mimes:{$imgMimes}|max:5120",
+        ], [
+            'full_name.required' => 'اسم المرافق مطلوب',
+        ]);
+
+        $old = $companion->toArray();
+
+        $data = [
+            'full_name'     => $validated['full_name'],
+            'nationality'   => $this->nullIfEmpty($validated['nationality'] ?? null),
+            'id_type'       => $this->nullIfEmpty($validated['id_type'] ?? null) ?: 'national_id',
+            'id_number'     => $this->nullIfEmpty($validated['id_number'] ?? null),
+            'id_issuer'     => $this->nullIfEmpty($validated['id_issuer'] ?? null),
+            'id_issue_date' => $this->nullIfEmpty($validated['id_issue_date'] ?? null),
+            'relationship'  => $this->nullIfEmpty($validated['relationship'] ?? null) ?: 'other',
+        ];
+
+        if ($request->hasFile('id_image')) {
+            $data['id_image_path'] = StorageHelper::store($request->file('id_image'), 'id_images/companions');
+        }
+        if ($validated['relationship'] === 'wife' && $request->hasFile('marriage_doc')) {
+            $data['marriage_doc_path'] = StorageHelper::store($request->file('marriage_doc'), 'marriage_docs');
+        }
+
+        $companion->update($data);
+
+        AuditLogService::log('update', $companion, $old, $companion->fresh()->toArray(), auth()->user());
+
+        return redirect()->route('reservations.companions', $companion->reservation_id)->with('success', 'تم تعديل بيانات المرافق بنجاح');
+    }
+
+    /**
+     * حذف مرافق — مستقل عن تعديل الحجز.
+     */
+    public function destroyCompanion(Companion $companion)
+    {
+        $reservationId = $companion->reservation_id;
+        $old = $companion->toArray();
+
+        $companion->delete();
+
+        AuditLogService::log('delete', $companion, $old, null, auth()->user());
+
+        return redirect()->route('reservations.companions', $reservationId)->with('success', 'تم حذف المرافق بنجاح');
+    }
+
+    /**
      * خيارات النقل: كل غرفة/قسم متاح منفرداً، بالإضافة إلى خيار "جناح كامل A+B"
      * عندما يكون القسمان متاحين — مع سعر الليلة لكل خيار لإعادة احتساب الإجمالي.
      */
