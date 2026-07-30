@@ -7,10 +7,33 @@
 
 {{-- Filter & Export --}}
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-5">
-    <div class="flex flex-wrap items-end gap-3 justify-between mb-3">
+    {{-- تصفية سريعة: يوم / أسبوع / شهر / سنة --}}
+    <div class="flex flex-wrap gap-2 mb-4">
+        @php
+            $presets = [
+                'today' => 'اليوم',
+                'week'  => 'هذا الأسبوع',
+                'month' => 'هذا الشهر',
+                'year'  => 'هذه السنة',
+            ];
+        @endphp
+        @foreach($presets as $key => $label)
+        <a href="{{ route('reports.profitLoss', ['preset' => $key]) }}"
+           class="px-4 py-2 rounded-lg text-sm font-semibold transition
+                  {{ ($preset ?? '') === $key ? 'bg-blue-600 text-white' : 'border border-gray-200 text-gray-600 hover:bg-gray-50' }}">
+            {{ $label }}
+        </a>
+        @endforeach
+        <a href="{{ route('reports.profitLoss', ['from' => now()->subMonth()->startOfMonth()->toDateString(), 'to' => now()->subMonth()->endOfMonth()->toDateString()]) }}"
+           class="px-4 py-2 rounded-lg text-sm font-semibold transition border border-gray-200 text-gray-600 hover:bg-gray-50">
+            الشهر الماضي
+        </a>
+    </div>
+
+    <div class="flex flex-wrap items-end gap-3 justify-between">
         <form method="GET" class="flex flex-wrap items-end gap-3">
             <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">من تاريخ</label>
+                <label class="block text-xs font-medium text-gray-600 mb-1">من تاريخ (تصفية مخصَّصة)</label>
                 <input type="date" name="from" value="{{ $from }}"
                        class="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400">
             </div>
@@ -33,17 +56,25 @@
             </a>
         </div>
     </div>
-
-    {{-- Quick presets --}}
-    <div class="flex flex-wrap gap-2">
-        <a href="{{ route('reports.profitLoss', ['from' => now()->startOfMonth()->toDateString(), 'to' => now()->toDateString()]) }}"
-           class="px-3 py-1.5 border border-gray-200 text-gray-600 rounded-lg text-xs hover:bg-gray-50">📅 هذا الشهر</a>
-        <a href="{{ route('reports.profitLoss', ['from' => now()->subMonth()->startOfMonth()->toDateString(), 'to' => now()->subMonth()->endOfMonth()->toDateString()]) }}"
-           class="px-3 py-1.5 border border-gray-200 text-gray-600 rounded-lg text-xs hover:bg-gray-50">📅 الشهر الماضي</a>
-        <a href="{{ route('reports.profitLoss', ['from' => now()->startOfYear()->toDateString(), 'to' => now()->toDateString()]) }}"
-           class="px-3 py-1.5 border border-gray-200 text-gray-600 rounded-lg text-xs hover:bg-gray-50">📅 هذه السنة</a>
-    </div>
 </div>
+
+{{-- شفافية: إجمالي الإيرادات قبل الاسترجاعات، والاسترجاعات، وأي مدفوعات بعملة أجنبية --}}
+@if($totalRefunds > 0 || $foreignRevenue->isNotEmpty())
+<div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5 text-sm space-y-1.5">
+    <p class="text-gray-500">إجمالي المُستلَم (قبل الاسترجاعات): <span class="font-semibold text-gray-700">{{ number_format($totalRevenueGross, 0) }} ر.ي</span></p>
+    @if($totalRefunds > 0)
+    <p class="text-red-700">الاسترجاعات (مخصومة من الإيراد أدناه): <span class="font-bold">- {{ number_format($totalRefunds, 0) }} ر.ي</span></p>
+    @endif
+    @if($foreignRevenue->isNotEmpty())
+    <p class="text-amber-800">
+        مدفوعات بعملة أجنبية (غير محتسبة في الأرقام أدناه — لا سعر صرف موحَّد):
+        @foreach($foreignRevenue as $fr)
+        <span class="font-semibold">{{ number_format($fr->total, 0) }} {{ $fr->currency }}</span> ({{ $fr->count }} دفعة)@if(!$loop->last)، @endif
+        @endforeach
+    </p>
+    @endif
+</div>
+@endif
 
 {{-- P&L Summary with KPIs --}}
 @php

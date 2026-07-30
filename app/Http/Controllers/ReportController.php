@@ -91,13 +91,33 @@ class ReportController extends Controller
 
     public function profitLoss(Request $request)
     {
-        $from = $request->input('from', now()->startOfMonth()->toDateString());
-        $to   = $request->input('to', now()->toDateString());
+        // فلتر سريع: اليوم / هذا الأسبوع / هذا الشهر / هذه السنة — يبني from/to
+        // تلقائياً؛ يبقى اختيار تاريخ مخصّص متاحاً (preset فارغ أو غير معروف).
+        $preset = $request->input('preset');
+        [$from, $to] = $this->resolvePeriodPreset($preset, $request->input('from'), $request->input('to'));
 
-        $totalRevenue = Payment::whereDate('payment_date', '>=', $from)
+        $totalRevenueGross = Payment::whereDate('payment_date', '>=', $from)
             ->whereDate('payment_date', '<=', $to)
             ->where('currency', 'YER')
             ->sum('amount');
+
+        // الاسترجاعات (استرجاع مباشر أو ناتج عن إلغاء حجز) تُخصم من الإيراد — فهي
+        // مبلغ خرج فعلياً من صندوق الفندق، ولا يجوز تجاهله عند احتساب الربح الحقيقي.
+        $totalRefunds = Refund::whereDate('refunded_at', '>=', $from)
+            ->whereDate('refunded_at', '<=', $to)
+            ->where('currency', 'YER')
+            ->sum('amount');
+
+        $totalRevenue = $totalRevenueGross - $totalRefunds;
+
+        // مدفوعات بعملات أجنبية (ر.س/دولار) — تُعرض للشفافية فقط، لا تُحوَّل
+        // ولا تُجمَع مع إجمالي الريال اليمني (لا يوجد سعر صرف موحَّد موثوق).
+        $foreignRevenue = Payment::whereDate('payment_date', '>=', $from)
+            ->whereDate('payment_date', '<=', $to)
+            ->whereIn('currency', ['SAR', 'USD'])
+            ->select('currency', DB::raw('SUM(amount) as total'), DB::raw('COUNT(*) as count'))
+            ->groupBy('currency')
+            ->get();
 
         $totalExpenses = \App\Models\Expense::whereDate('expense_date', '>=', $from)
             ->whereDate('expense_date', '<=', $to)
@@ -148,9 +168,30 @@ class ReportController extends Controller
             });
 
         return view('reports.profit-loss', compact(
-            'from', 'to', 'totalRevenue', 'totalExpenses', 'netProfit',
+            'from', 'to', 'preset', 'totalRevenue', 'totalRevenueGross', 'totalRefunds',
+            'foreignRevenue', 'totalExpenses', 'netProfit',
             'revenueByMethod', 'expensesByCategory', 'monthlyTrend'
         ));
+    }
+
+    /**
+     * يحوّل اسم فلتر سريع (today/week/month/year) إلى تاريخَي بداية/نهاية —
+     * يُستخدم في تقرير الأرباح والخسائر ونسب الأداء المالي معاً حتى يتوفّر
+     * نفس المعنى الدقيق لـ"هذا الأسبوع"/"هذه السنة" في كل الصفحات. عند preset
+     * فارغ أو غير معروف، يُستخدم from/to المُرسَلان (أو الشهر الحالي افتراضياً).
+     */
+    private function resolvePeriodPreset(?string $preset, ?string $from, ?string $to): array
+    {
+        return match ($preset) {
+            'today' => [now()->toDateString(), now()->toDateString()],
+            'week'  => [now()->startOfWeek()->toDateString(), now()->toDateString()],
+            'month' => [now()->startOfMonth()->toDateString(), now()->toDateString()],
+            'year'  => [now()->startOfYear()->toDateString(), now()->toDateString()],
+            default => [
+                $from ?: now()->startOfMonth()->toDateString(),
+                $to ?: now()->toDateString(),
+            ],
+        };
     }
 
     public function occupancyPdf(Request $request)
@@ -450,6 +491,8 @@ class ReportController extends Controller
 
         } elseif ($tab === 'ratios') {
             $ratioFrom = match ($period) {
+                'today'   => now()->toDateString(),
+                'week'    => now()->startOfWeek()->toDateString(),
                 'quarter' => now()->startOfQuarter()->toDateString(),
                 'year'    => now()->startOfYear()->toDateString(),
                 'all'     => Reservation::orderBy('check_in_date')->first()?->check_in_date->toDateString() ?? now()->subYear()->toDateString(),
@@ -457,7 +500,11 @@ class ReportController extends Controller
             };
             $ratioTo  = now()->toDateString();
             $days     = \Carbon\Carbon::parse($ratioFrom)->diffInDays($ratioTo) + 1;
-            $rev      = Payment::whereDate('payment_date', '>=', $ratioFrom)->whereDate('payment_date', '<=', $ratioTo)->where('currency', 'YER')->sum('amount');
+            $revGross = Payment::whereDate('payment_date', '>=', $ratioFrom)->whereDate('payment_date', '<=', $ratioTo)->where('currency', 'YER')->sum('amount');
+            // الاسترجاعات تُخصم من الإيراد — نفس منطق تقرير الأرباح والخسائر، فلا
+            // يظهر هامش ربح مضخَّم بسبب مبالغ خرجت فعلياً من الصندوق كاسترجاع.
+            $ratioRefunds = Refund::whereDate('refunded_at', '>=', $ratioFrom)->whereDate('refunded_at', '<=', $ratioTo)->where('currency', 'YER')->sum('amount');
+            $rev      = $revGross - $ratioRefunds;
             $exp      = \App\Models\Expense::whereDate('expense_date', '>=', $ratioFrom)->whereDate('expense_date', '<=', $ratioTo)->where('currency', 'YER')->sum('amount');
             $profit   = $rev - $exp;
             $profitMargin = $rev > 0 ? round(($profit / $rev) * 100, 1) : 0;

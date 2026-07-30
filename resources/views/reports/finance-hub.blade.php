@@ -661,6 +661,8 @@ $pmColors = ['cash'=>'#10b981','bank_transfer'=>'#3b82f6','pos'=>'#a855f7','chec
         <div>
             <label class="block text-xs font-medium text-gray-600 mb-1">الفترة</label>
             <select name="period" class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400">
+                <option value="today" {{ $period == 'today' ? 'selected' : '' }}>اليوم</option>
+                <option value="week" {{ $period == 'week' ? 'selected' : '' }}>هذا الأسبوع</option>
                 <option value="month" {{ $period == 'month' ? 'selected' : '' }}>الشهر الحالي</option>
                 <option value="quarter" {{ $period == 'quarter' ? 'selected' : '' }}>الربع الحالي</option>
                 <option value="year" {{ $period == 'year' ? 'selected' : '' }}>السنة الحالية</option>
