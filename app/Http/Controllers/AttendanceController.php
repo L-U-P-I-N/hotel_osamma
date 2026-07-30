@@ -26,6 +26,32 @@ class AttendanceController extends Controller
         return view('attendance.index', compact('employees', 'month', 'year', 'daysInMonth', 'records'));
     }
 
+    public function pdf(Request $request)
+    {
+        $month = (int) $request->input('month', now()->month);
+        $year  = (int) $request->input('year', now()->year);
+
+        $employees = Employee::where('is_active', true)->orderBy('name')->get();
+        $daysInMonth = Carbon::createFromDate($year, $month, 1)->daysInMonth;
+
+        $records = Attendance::whereYear('date', $year)
+            ->whereMonth('date', $month)
+            ->whereIn('employee_id', $employees->pluck('id'))
+            ->get()
+            ->keyBy(fn($a) => $a->employee_id . '_' . $a->date->day);
+
+        $pdf = pdf_load_view('attendance.pdf', compact('employees', 'month', 'year', 'daysInMonth', 'records'));
+        $pdf->setPaper('a3', 'landscape');
+
+        $dompdf = $pdf->getDomPDF();
+        $options = $dompdf->getOptions();
+        $options->setFontDir(storage_path('fonts'));
+        $options->setFontCache(storage_path('fonts'));
+        $dompdf->setOptions($options);
+
+        return $pdf->download('attendance-' . \App\Models\Salary::monthName($month) . '-' . $year . '.pdf');
+    }
+
     public function daily(Request $request)
     {
         $date = $request->input('date', today()->toDateString());

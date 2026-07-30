@@ -64,6 +64,7 @@
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 w-32">وقت الدخول</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 w-32">وقت الخروج</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">ملاحظة</th>
+                        <th class="px-4 py-3"></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50">
@@ -94,6 +95,18 @@
                             <input type="text" name="attendance[{{ $emp->id }}][notes]"
                                    value="{{ $rec?->notes ?? '' }}" maxlength="255"
                                    class="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400">
+                        </td>
+                        <td class="px-4 py-3">
+                            @if($rec)
+                            <form method="POST" action="{{ route('attendance.destroy', $emp->id) }}"
+                                  onsubmit="return confirm('حذف سجل حضور {{ addslashes($emp->name) }} ليوم {{ \Carbon\Carbon::parse($date)->format('d/m/Y') }}؟')">
+                                @csrf @method('DELETE')
+                                <input type="hidden" name="date" value="{{ $date }}">
+                                <button type="submit" class="p-1.5 rounded-lg text-red-600 hover:bg-red-50 transition" title="حذف السجل">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                </button>
+                            </form>
+                            @endif
                         </td>
                     </tr>
                     @endforeach

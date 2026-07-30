@@ -98,4 +98,48 @@ class LeaveController extends Controller
 
         return view('leaves.report', compact('summary', 'year', 'years', 'leaveTypes', 'annualEntitlement'));
     }
+
+    public function reportPdf(Request $request)
+    {
+        $year      = (int) $request->input('year', now()->year);
+        $employees = Employee::where('is_active', true)->orderBy('name')->get();
+
+        $leaveTypes = ['annual', 'sick', 'emergency', 'unpaid'];
+        $annualEntitlement = 30;
+
+        $summary = [];
+        foreach ($employees as $emp) {
+            $byType = [];
+            $totalTaken = 0;
+            foreach ($leaveTypes as $type) {
+                $days = Leave::where('employee_id', $emp->id)
+                    ->where('type', $type)
+                    ->whereYear('from_date', $year)
+                    ->sum('days');
+                $byType[$type] = (int) $days;
+                $totalTaken += (int) $days;
+            }
+
+            $annualRemaining = max(0, $annualEntitlement - $byType['annual']);
+
+            $summary[] = [
+                'employee'         => $emp,
+                'by_type'          => $byType,
+                'total_taken'      => $totalTaken,
+                'annual_taken'     => $byType['annual'],
+                'annual_remaining' => $annualRemaining,
+            ];
+        }
+
+        $pdf = pdf_load_view('leaves.report_pdf', compact('summary', 'year', 'leaveTypes', 'annualEntitlement'));
+        $pdf->setPaper('a4', 'landscape');
+
+        $dompdf = $pdf->getDomPDF();
+        $options = $dompdf->getOptions();
+        $options->setFontDir(storage_path('fonts'));
+        $options->setFontCache(storage_path('fonts'));
+        $dompdf->setOptions($options);
+
+        return $pdf->download('leaves-report-' . $year . '.pdf');
+    }
 }

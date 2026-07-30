@@ -322,9 +322,13 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware('permission:attendance.view')->group(function () {
         Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
         Route::get('/attendance/daily', [AttendanceController::class, 'daily'])->name('attendance.daily');
+        Route::get('/attendance/pdf', [AttendanceController::class, 'pdf'])->name('attendance.pdf');
     });
     Route::middleware('permission:attendance.create')->group(function () {
         Route::post('/attendance/daily', [AttendanceController::class, 'saveDaily'])->name('attendance.saveDaily');
+        // حذف سجل حضور موظف ليوم معيّن (لتصحيح إدخال بالخطأ) — الدالة كانت موجودة
+        // دون مسار مسجَّل فلم تكن قابلة للاستخدام إطلاقاً
+        Route::delete('/attendance/{employeeId}', [AttendanceController::class, 'destroy'])->name('attendance.destroy');
     });
 
     // Leaves
@@ -400,5 +404,6 @@ Route::middleware(['auth'])->group(function () {
     // ===== Leaves: Report =====
     Route::middleware('permission:hr.view')->group(function () {
         Route::get('/leaves/report', [LeaveController::class, 'report'])->name('leaves.report');
+        Route::get('/leaves/report/pdf', [LeaveController::class, 'reportPdf'])->name('leaves.report.pdf');
     });
 });

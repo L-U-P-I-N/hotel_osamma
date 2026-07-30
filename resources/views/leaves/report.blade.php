@@ -3,7 +3,7 @@
 @section('page-title', 'تقرير الإجازات والغياب')
 
 @section('content')
-<div class="mb-5 flex gap-3">
+<div class="mb-5 flex gap-3 items-center justify-between flex-wrap">
     <form class="flex gap-2 items-center">
         <label class="text-sm text-gray-600">السنة:</label>
         <select name="year" onchange="this.form.submit()" class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm">
@@ -12,6 +12,11 @@
             @endforeach
         </select>
     </form>
+    <a href="{{ route('leaves.report.pdf', ['year' => $year]) }}" target="_blank"
+       class="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+        تصدير PDF
+    </a>
 </div>
 
 <div class="bg-white rounded-xl shadow-sm border border-gray-100">
