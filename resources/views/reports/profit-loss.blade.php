@@ -267,13 +267,28 @@
 
 @push('scripts')
 @php
+    // لون ثابت لكل عنصر (لا يتغيّر بترتيب البيانات) — من الباليت الفئوي المُتحقَّق
+    // منه (تباين واضح بين كل لونين متجاورين، آمن لعمى الألوان). "اللون يتبع
+    // الكيان لا رتبته": بدل تلوين حسب موضع العنصر في القائمة (يتغيّر مع كل فترة
+    // زمنية إذ يُعاد ترتيب الفئات حسب المبلغ)، كل طريقة دفع/فئة مصروف لها لون
+    // ثابت دائماً — راجع مهارة dataviz (references/palette.md).
+    $categoricalPalette = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948'];
+    $methodColorMap = ['cash' => $categoricalPalette[0], 'bank_transfer' => $categoricalPalette[1], 'pos' => $categoricalPalette[2]];
+    $categoryColorMap = [
+        'maintenance' => $categoricalPalette[0], 'salary'  => $categoricalPalette[1],
+        'electricity' => $categoricalPalette[2], 'food'    => $categoricalPalette[3],
+        'cleaning'    => $categoricalPalette[4], 'other'   => $categoricalPalette[5],
+    ];
+
     $revenueLabels = $revenueByMethod->map(fn($r) => match($r->method) {
         'cash' => 'نقداً',
         'bank_transfer' => 'تحويل بنكي',
         'pos' => 'POS',
         default => $r->method,
     });
+    $revenueColors = $revenueByMethod->map(fn($r) => $methodColorMap[$r->method] ?? '#898781');
     $expenseLabels = $expensesByCategory->map(fn($r) => \App\Models\Expense::categoryLabel($r->category));
+    $expenseColors = $expensesByCategory->map(fn($r) => $categoryColorMap[$r->category] ?? '#898781');
 @endphp
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <script>
@@ -287,7 +302,7 @@
                 labels: @json($revenueLabels),
                 datasets: [{
                     data: @json($revenueByMethod->pluck('total')),
-                    backgroundColor: ['#10b981', '#3b82f6', '#f59e0b'],
+                    backgroundColor: @json($revenueColors),
                     borderColor: '#fff',
                     borderWidth: 2,
                 }]
@@ -310,7 +325,7 @@
                 labels: @json($expenseLabels),
                 datasets: [{
                     data: @json($expensesByCategory->pluck('total')),
-                    backgroundColor: ['#ef4444', '#f97316', '#f59e0b', '#ec4899', '#8b5cf6', '#6366f1'],
+                    backgroundColor: @json($expenseColors),
                     borderColor: '#fff',
                     borderWidth: 2,
                 }]

@@ -888,6 +888,15 @@ new Chart(document.getElementById('revDailyChart'), {
 
 {{-- Expenses Tab Scripts --}}
 @if($tab === 'expenses')
+@php
+    // لون ثابت لكل فئة (لا يتغيّر بترتيب النتائج حسب المبلغ) — راجع مهارة dataviz
+    $categoryColorMap = [
+        'maintenance' => '#2a78d6', 'salary'  => '#eb6834',
+        'electricity' => '#1baf7a', 'food'    => '#eda100',
+        'cleaning'    => '#e87ba4', 'other'   => '#008300',
+    ];
+    $expCatColors = $expensesByCategory->map(fn($r) => $categoryColorMap[$r->category] ?? '#898781');
+@endphp
 <script>
 (function() {
     const pieCtx = document.getElementById('expDistributionChart');
@@ -898,7 +907,7 @@ new Chart(document.getElementById('revDailyChart'), {
                 labels: @json($expensesByCategory->map(fn($r) => \App\Models\Expense::categoryLabel($r->category))),
                 datasets: [{
                     data: @json($expensesByCategory->pluck('total')),
-                    backgroundColor: ['#ef4444','#f97316','#f59e0b','#ec4899','#8b5cf6','#6366f1'],
+                    backgroundColor: @json($expCatColors),
                     borderColor: '#fff', borderWidth: 2,
                 }]
             },
@@ -914,7 +923,7 @@ new Chart(document.getElementById('revDailyChart'), {
                 datasets: [{
                     label: 'المبلغ (ر.ي)',
                     data: @json($expensesByCategory->pluck('total')),
-                    backgroundColor: ['#ef4444','#f97316','#f59e0b','#ec4899','#8b5cf6','#6366f1'],
+                    backgroundColor: @json($expCatColors),
                     borderRadius: 6,
                 }]
             },
@@ -942,8 +951,9 @@ function expExportToExcel() {
 <script>
 (function() {
     @php
-    $pmColorMap = ['cash'=>'#10b981','bank_transfer'=>'#3b82f6','pos'=>'#a855f7','check'=>'#f59e0b','credit_card'=>'#ef4444'];
-    $pmBgColors = $byMethod->keys()->map(fn($m) => $pmColorMap[$m] ?? '#808080')->values();
+    // نفس الباليت الفئوي المُتحقَّق منه المستخدَم في بقية تبويبات المركز المالي
+    $pmColorMap = ['cash'=>'#2a78d6','bank_transfer'=>'#eb6834','pos'=>'#1baf7a','check'=>'#eda100','credit_card'=>'#e34948'];
+    $pmBgColors = $byMethod->keys()->map(fn($m) => $pmColorMap[$m] ?? '#898781')->values();
     @endphp
 
     const pmCtx1 = document.getElementById('pmMethodChart')?.getContext('2d');
