@@ -43,19 +43,12 @@ class SalaryController extends Controller
         $data['bonuses']    = $data['bonuses'] ?? 0;
         $data['deductions'] = $data['deductions'] ?? 0;
 
-        // خصم مسحوبات الموظف (المصروفات المصروفة له) من راتب هذا الشهر تلقائياً
-        if ($request->boolean('include_withdrawals')) {
-            $employee = Employee::findOrFail($data['employee_id']);
-            $withdrawalsTotal = $employee->withdrawalsTotalForMonth((int) $data['month'], (int) $data['year']);
-            if ($withdrawalsTotal > 0) {
-                $data['deductions'] += $withdrawalsTotal;
-                $withdrawalNote = 'خصم مسحوبات ' . Salary::monthName((int) $data['month']) . ' ' . $data['year']
-                    . ': ' . number_format($withdrawalsTotal, 0) . ' ر.ي';
-                $data['notes'] = trim(($data['notes'] ?? '') . "\n" . $withdrawalNote);
-            }
-        }
+        $employee = Employee::findOrFail($data['employee_id']);
+        [$data['withdrawals_deduction'], $data['attendance_deduction'], $data['notes']] =
+            $this->computeAutoDeductions($request, $employee, (int) $data['month'], (int) $data['year'], $data['notes'] ?? null);
 
-        $data['net_salary'] = $data['base_salary'] + $data['bonuses'] - $data['deductions'];
+        $data['net_salary'] = $data['base_salary'] + $data['bonuses']
+            - $data['deductions'] - $data['withdrawals_deduction'] - $data['attendance_deduction'];
         $data['created_by'] = auth()->id();
 
         // Check if salary already exists for this month/year/employee
@@ -72,6 +65,48 @@ class SalaryController extends Controller
 
         return redirect()->route('salaries.index', ['month' => $data['month'], 'year' => $data['year']])
             ->with('success', 'تم إنشاء قسيمة الراتب بنجاح');
+    }
+
+    /**
+     * يحتسب خصمَي المسحوبات والغياب/الإجازة بدون راتب (كلٌّ اختياري عبر
+     * checkbox منفصلة). عند تفعيل خانة ما، تُعاد احتساب قيمتها بالكامل من
+     * الصفر بناءً على بيانات الشهر الحالية (استبدال لا إضافة) — فتبقى آمنة
+     * حتى لو فُعِّلت أكثر من مرة (عند تعديل القسيمة) دون ازدواج. عند عدم
+     * تفعيلها، تبقى القيمة كما هي في $keepWithdrawals/$keepAttendance (القيمة
+     * المحفوظة سابقاً عند التعديل، أو 0 عند الإنشاء الأول).
+     */
+    private function computeAutoDeductions(
+        Request $request,
+        Employee $employee,
+        int $month,
+        int $year,
+        ?string $notes,
+        float $keepWithdrawals = 0.0,
+        float $keepAttendance = 0.0
+    ): array {
+        $withdrawalsDeduction = $keepWithdrawals;
+        $attendanceDeduction  = $keepAttendance;
+        $notes = $notes ?? '';
+
+        if ($request->boolean('include_withdrawals')) {
+            $withdrawalsDeduction = $employee->withdrawalsTotalForMonth($month, $year);
+            if ($withdrawalsDeduction > 0) {
+                $notes = trim($notes . "\n" . 'خصم مسحوبات ' . Salary::monthName($month) . ' ' . $year
+                    . ': ' . number_format($withdrawalsDeduction, 0) . ' ر.ي');
+            }
+        }
+
+        if ($request->boolean('include_attendance_deduction')) {
+            $att = $employee->attendanceDeductionForMonth($month, $year);
+            $attendanceDeduction = $att['amount'];
+            if ($attendanceDeduction > 0) {
+                $notes = trim($notes . "\n" . 'خصم غياب/إجازة بدون راتب ' . Salary::monthName($month) . ' ' . $year
+                    . ': ' . $att['total_days'] . ' يوم (غياب ' . $att['absent_days'] . ' + إجازة بدون راتب ' . $att['unpaid_leave_days'] . ') × '
+                    . number_format($att['daily_rate'], 0) . ' ر.ي = ' . number_format($attendanceDeduction, 0) . ' ر.ي');
+            }
+        }
+
+        return [$withdrawalsDeduction, $attendanceDeduction, $notes ?: null];
     }
 
     public function markPaid(Request $request, Salary $salary)
@@ -104,7 +139,15 @@ class SalaryController extends Controller
 
         $data['bonuses']    = $data['bonuses'] ?? 0;
         $data['deductions'] = $data['deductions'] ?? 0;
-        $data['net_salary'] = $data['base_salary'] + $data['bonuses'] - $data['deductions'];
+
+        [$data['withdrawals_deduction'], $data['attendance_deduction'], $data['notes']] =
+            $this->computeAutoDeductions(
+                $request, $salary->employee, $salary->month, $salary->year, $data['notes'] ?? null,
+                (float) $salary->withdrawals_deduction, (float) $salary->attendance_deduction
+            );
+
+        $data['net_salary'] = $data['base_salary'] + $data['bonuses']
+            - $data['deductions'] - $data['withdrawals_deduction'] - $data['attendance_deduction'];
 
         $salary->update($data);
 

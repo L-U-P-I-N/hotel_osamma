@@ -71,8 +71,18 @@
                    {{ old('include_withdrawals', '1') ? 'checked' : '' }}>
             <span class="text-xs text-amber-800">
                 <strong>خصم مسحوبات الموظف تلقائياً:</strong>
-                تُضاف كل المبالغ المصروفة لهذا الموظف خلال الشهر المحدد (من شاشة المصروفات) إلى الخصومات،
-                ويُحتسب صافي الراتب بعدها. راجع «كشف المسحوبات» من صفحة الموظفين للتفاصيل.
+                تُضاف كل المبالغ المصروفة لهذا الموظف خلال الشهر المحدد (من شاشة المصروفات، وسحبيات
+                الوردية المربوطة به صراحةً) إلى الخصومات، ويُحتسب صافي الراتب بعدها.
+            </span>
+        </label>
+
+        <label class="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-lg p-3 cursor-pointer">
+            <input type="checkbox" name="include_attendance_deduction" value="1" class="mt-0.5"
+                   {{ old('include_attendance_deduction', '1') ? 'checked' : '' }}>
+            <span class="text-xs text-red-800">
+                <strong>خصم أيام الغياب والإجازة بدون راتب تلقائياً:</strong>
+                يُحتسب عدد أيام الغياب (من كشف الحضور) وأيام الإجازة بدون راتب (من سجلّ الإجازات)
+                خلال الشهر المحدد، وتُخصم قيمتها من الراتب (الراتب الأساسي ÷ عدد أيام الشهر × عدد الأيام).
             </span>
         </label>
 

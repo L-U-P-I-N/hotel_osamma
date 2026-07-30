@@ -326,6 +326,10 @@ class ShiftService
         }
 
         $type = $data['withdrawal_type'] ?? 'expense';
+        // ربط السحب بموظف صريح (اختياري) — يميّزه عن سحب باسم نصي حر (مورّد،
+        // صاحب الفندق...) فيدخل تلقائياً ضمن خصم راتب ذلك الموظف عند تفعيله.
+        // لا معنى لربطه بموظف في حالة "صرف عملة" (ليس سلفة شخصية).
+        $employeeId = $type === 'expense' ? ($data['employee_id'] ?? null) : null;
 
         // إنشاء سجل مصروف تلقائياً لكل سحب من نوع "مصروف"
         $expenseId = null;
@@ -339,6 +343,7 @@ class ShiftService
                 'expense_date'   => now()->toDateString(),
                 'paid_by'        => auth()->id(),
                 'shift_id'       => $shift->id,
+                'employee_id'    => $employeeId,
                 'payment_method' => 'cash',
             ]);
             $expenseId = $expense->id;
@@ -348,6 +353,7 @@ class ShiftService
             'shift_id'             => $shift->id,
             'cash_settlement_id'   => null,
             'expense_id'           => $expenseId,
+            'employee_id'          => $employeeId,
             'amount'               => $data['amount'],
             'currency'             => $data['currency'] ?? 'YER',
             'withdrawal_date'      => $data['withdrawal_date'] ?? now(),

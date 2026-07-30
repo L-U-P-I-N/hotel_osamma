@@ -205,6 +205,7 @@ class ShiftController extends Controller
             'withdrawal_type'      => 'nullable|in:expense,currency_exchange',
             'exchange_to_currency' => 'required_if:withdrawal_type,currency_exchange|nullable|in:YER,SAR,USD|different:currency',
             'exchange_to_amount'   => 'required_if:withdrawal_type,currency_exchange|nullable|numeric|min:0.01',
+            'employee_id'          => 'nullable|exists:employees,id',
         ], [
             'amount.required'                  => 'المبلغ مطلوب',
             'amount.numeric'                   => 'يجب أن يكون المبلغ رقماً',

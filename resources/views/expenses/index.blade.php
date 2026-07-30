@@ -65,6 +65,17 @@
                     <input type="text" name="notes"
                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                 </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">ربط بموظف <span class="text-gray-400 font-normal">(اختياري — سلفة شخصية تُخصم من راتبه)</span></label>
+                    <select name="employee_id"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                        <option value="">— بلا ربط (سحب عادي) —</option>
+                        @foreach($employees as $employee)
+                        <option value="{{ $employee->id }}">{{ $employee->name }}</option>
+                        @endforeach
+                    </select>
+                    <p class="text-xs text-amber-600 mt-1">اختر الموظف فقط إذا كان هذا المبلغ سلفة شخصية له — لا اسم المستلم العام.</p>
+                </div>
                 <button type="submit" class="w-full py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-semibold transition">
                     تسجيل السحب
                 </button>

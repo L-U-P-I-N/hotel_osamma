@@ -179,8 +179,20 @@
         </tr>
         <tr>
             <td class="ltr" style="color:#dc2626;">-{{ number_format($salary->deductions, 0) }}</td>
-            <td style="color:#dc2626;">الخصومات</td>
+            <td style="color:#dc2626;">خصومات أخرى</td>
         </tr>
+        @if($salary->withdrawals_deduction > 0)
+        <tr>
+            <td class="ltr" style="color:#dc2626;">-{{ number_format($salary->withdrawals_deduction, 0) }}</td>
+            <td style="color:#dc2626;">خصم مسحوبات الموظف</td>
+        </tr>
+        @endif
+        @if($salary->attendance_deduction > 0)
+        <tr>
+            <td class="ltr" style="color:#dc2626;">-{{ number_format($salary->attendance_deduction, 0) }}</td>
+            <td style="color:#dc2626;">خصم الغياب/الإجازة بدون راتب</td>
+        </tr>
+        @endif
         <tr class="total-row">
             <td class="ltr">{{ number_format($salary->net_salary, 0) }}</td>
             <td>صافي الراتب</td>

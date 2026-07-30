@@ -46,7 +46,7 @@
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الموظف</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الراتب الأساسي</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المكافآت</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الخصومات</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">إجمالي الخصومات</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الصافي</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الحالة</th>
                     @can('hr.edit')
@@ -60,7 +60,10 @@
                     <td class="px-4 py-3 font-semibold text-gray-800">{{ $salary->employee->name }}</td>
                     <td class="px-4 py-3 text-gray-600">{{ number_format($salary->base_salary, 2) }}</td>
                     <td class="px-4 py-3 text-green-700">{{ number_format($salary->bonuses, 2) }}</td>
-                    <td class="px-4 py-3 text-red-600">{{ number_format($salary->deductions, 2) }}</td>
+                    <td class="px-4 py-3 text-red-600"
+                        title="خصومات يدوية: {{ number_format($salary->deductions, 0) }} — مسحوبات: {{ number_format($salary->withdrawals_deduction, 0) }} — غياب/إجازة: {{ number_format($salary->attendance_deduction, 0) }}">
+                        {{ number_format($salary->total_deductions, 2) }}
+                    </td>
                     <td class="px-4 py-3 font-bold" style="color:#0F4C75;">{{ number_format($salary->net_salary, 2) }}</td>
                     <td class="px-4 py-3">
                         @if($salary->status === 'paid')
@@ -116,7 +119,7 @@
                     <td class="px-4 py-3 font-bold text-gray-700">الإجمالي</td>
                     <td class="px-4 py-3 font-bold text-gray-700">{{ number_format($salaries->sum('base_salary'), 2) }}</td>
                     <td class="px-4 py-3 font-bold text-green-700">{{ number_format($salaries->sum('bonuses'), 2) }}</td>
-                    <td class="px-4 py-3 font-bold text-red-600">{{ number_format($salaries->sum('deductions'), 2) }}</td>
+                    <td class="px-4 py-3 font-bold text-red-600">{{ number_format($salaries->sum('total_deductions'), 2) }}</td>
                     <td class="px-4 py-3 font-bold" style="color:#0F4C75;">{{ number_format($salaries->sum('net_salary'), 2) }}</td>
                     <td colspan="2"></td>
                 </tr>

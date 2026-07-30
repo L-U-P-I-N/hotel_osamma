@@ -95,8 +95,9 @@ class ExpenseController extends Controller
         $availableShifts = $shiftsQuery->get();
 
         $activeShift = Shift::where('is_closed', false)->where('user_id', auth()->id())->latest()->first();
+        $employees   = \App\Models\Employee::where('is_active', true)->orderBy('name')->get();
 
-        return view('expenses.index', compact('expenses', 'categories', 'availableShifts', 'stats', 'byCategory', 'byMethod', 'activeShift'));
+        return view('expenses.index', compact('expenses', 'categories', 'availableShifts', 'stats', 'byCategory', 'byMethod', 'activeShift', 'employees'));
     }
 
     public function create()
