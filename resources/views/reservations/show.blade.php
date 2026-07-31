@@ -146,6 +146,19 @@
 
         {{-- Actions (compact) --}}
         <div class="flex items-center gap-1.5 flex-wrap justify-end">
+            @can('checkin.create')
+            @if($reservation->status === 'confirmed')
+            <form method="POST" action="{{ route('reservations.checkin', $reservation) }}" onsubmit="return confirm('تسجيل الدخول للحجز #{{ $reservation->id }}؟')">
+                @csrf @method('PATCH')
+                <button type="submit"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold rounded-lg transition shadow-sm">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H5a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
+                    تسجيل الدخول
+                </button>
+            </form>
+            @endif
+            @endcan
+
             @can('checkout.process')
             @if($reservation->status === 'checked_in')
             <a href="{{ route('checkout.show', $reservation) }}"
