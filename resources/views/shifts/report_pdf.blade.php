@@ -124,7 +124,9 @@
     $payLabels  = ['unpaid' => 'غير مدفوع', 'partial' => 'جزئي', 'paid' => 'مدفوع', 'deferred' => 'مؤجل'];
     $methodLabels = ['cash' => 'نقداً', 'bank_transfer' => 'تحويل بنكي', 'pos' => 'شبكة (POS)'];
 
-    $payments = $shift->payments ?? collect();
+    // دفعات متعددة لنفس الحجز ونفس المستلم والعملة وطريقة الدفع (مثل دفعة جزئية
+    // ثم باقي المبلغ لاحقاً في نفس الوردية) تُجمّع في صف واحد بمجموع المبلغ.
+    $payments = $shift->groupedPayments() ?? collect();
     $recvByCur = [];
     foreach (['YER','SAR','USD'] as $c) {
         $total = $payments->where('currency', $c)->sum(fn($p) => (float)$p->amount);

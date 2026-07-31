@@ -78,7 +78,7 @@
     <div class="space-y-4">
     @foreach($shifts as $shift)
     @php
-        $payments    = $shift->payments->sortBy(fn($p) => $p->reservation?->display_room_number ?? '');
+        $payments    = $shift->groupedPayments()->sortBy(fn($p) => $p->reservation?->display_room_number ?? '');
         $withdrawals = $shift->withdrawals->sortBy('withdrawal_date');
         $expenses    = $withdrawals->where('withdrawal_type', '!=', 'currency_exchange');
         $exchanges   = $withdrawals->where('withdrawal_type', 'currency_exchange');

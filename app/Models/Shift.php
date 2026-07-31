@@ -47,4 +47,30 @@ class Shift extends Model
     {
         return $this->total_received_usd - $this->total_withdrawals_usd - $this->total_refunds_usd;
     }
+
+    /**
+     * دفعات الوردية مجمّعة: عدة دفعات لنفس الحجز، نفس المستلم، نفس العملة
+     * وطريقة الدفع (مثلاً دفعة جزئية ثم باقي المبلغ لاحقاً في نفس الوردية)
+     * تُعرض كصف واحد بمجموع المبلغ بدل صف منفصل لكل دفعة.
+     */
+    public function groupedPayments()
+    {
+        return $this->payments
+            ->groupBy(fn ($p) => implode('|', [$p->reservation_id, $p->received_by, $p->currency, $p->method, $p->type]))
+            ->map(function ($group) {
+                $first = $group->first();
+                return (object) [
+                    'reservation'       => $first->reservation,
+                    'received_by'       => $first->received_by,
+                    'currency'          => $first->currency,
+                    'method'            => $first->method,
+                    'type'              => $first->type,
+                    'amount'            => $group->sum(fn ($p) => (float) $p->amount),
+                    'count'             => $group->count(),
+                    'created_at'        => $group->max('created_at'),
+                    'bank_transfer_ref' => $group->pluck('bank_transfer_ref')->filter()->unique()->implode('، '),
+                ];
+            })
+            ->values();
+    }
 }
