@@ -147,6 +147,7 @@
                                     <div class="min-w-0">
                                         <span class="text-gray-700 text-xs font-medium block truncate">{{ $p->reservation?->guest?->full_name ?? '—' }}</span>
                                         @if($p->type === 'compensation')<span class="inline-block mt-0.5 px-1.5 py-0.5 bg-red-100 text-red-700 rounded text-xs">تعويض</span>@endif
+                                        @if($p->notes)<span class="text-gray-400 text-xs block truncate mt-0.5" title="{{ $p->notes }}">{{ $p->notes }}</span>@endif
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-2 flex-shrink-0">

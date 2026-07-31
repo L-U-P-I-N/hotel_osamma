@@ -179,12 +179,13 @@
     {{-- أعمدة معكوسة لتُقرأ من اليمين لليسار (dompdf يرتّبها بترتيب المصدر) --}}
     <thead>
         <tr>
-            <th style="width:9%;">الوقت</th>
-            <th style="width:8%;">العملة</th>
-            <th style="width:12%;">المبلغ</th>
-            <th style="width:19%;">طريقة الدفع</th>
-            <th style="width:27%;">النزيل</th>
-            <th style="width:14%;">الغرفة</th>
+            <th style="width:8%;">الوقت</th>
+            <th style="width:7%;">العملة</th>
+            <th style="width:11%;">المبلغ</th>
+            <th style="width:16%;">طريقة الدفع</th>
+            <th style="width:19%;">النزيل</th>
+            <th style="width:9%;">الغرفة</th>
+            <th style="width:25%;">ملاحظات</th>
             <th style="width:5%;">#</th>
         </tr>
     </thead>
@@ -202,6 +203,7 @@
             </td>
             <td>{{ $p->reservation?->guest?->full_name }}</td>
             <td class="center">{{ $p->reservation?->display_room_number ?? '—' }}</td>
+            <td class="wrap" style="font-size:8px;color:#555;">{{ $p->notes ?: '—' }}</td>
             <td class="center">{{ $i + 1 }}</td>
         </tr>
         @endforeach
@@ -212,7 +214,7 @@
             <td></td>
             <td class="center">{{ $curLabels[$c] }}</td>
             <td class="ltr pos">{{ number_format($cTotal, 0) }}</td>
-            <td colspan="4" style="text-align:right;">المجموع ({{ $curLabels[$c] }})</td>
+            <td colspan="5" style="text-align:right;">المجموع ({{ $curLabels[$c] }})</td>
         </tr>
         @endif
         @endforeach

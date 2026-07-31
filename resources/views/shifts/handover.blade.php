@@ -118,9 +118,10 @@
 </div>
 
 {{-- Payments --}}
+@php $groupedPayments = $shift->groupedPayments(); @endphp
 <div class="section">
-    <div class="section-title">المستلمات ({{ $shift->payments->count() }} دفعة)</div>
-    @if($shift->payments->isNotEmpty())
+    <div class="section-title">المستلمات ({{ $groupedPayments->count() }} دفعة)</div>
+    @if($groupedPayments->isNotEmpty())
     <table class="payments-list">
         <thead>
             <tr>
@@ -128,16 +129,18 @@
                 <th>النزيل</th>
                 <th>الغرفة</th>
                 <th>طريقة الدفع</th>
+                <th>ملاحظات</th>
                 <th>المبلغ (ر.ي)</th>
             </tr>
         </thead>
         <tbody>
-            @foreach($shift->payments as $pmt)
+            @foreach($groupedPayments as $pmt)
             <tr>
-                <td>{{ $pmt->payment_date?->format('H:i') ?? '—' }}</td>
+                <td>{{ $pmt->created_at?->format('H:i') ?? '—' }}</td>
                 <td>{{ $pmt->reservation->guest->full_name ?? '—' }}</td>
                 <td>{{ $pmt->reservation->display_room_number ?? '—' }}</td>
                 <td>{{ match($pmt->method) {'cash'=>'نقداً','bank_transfer'=>'تحويل','pos'=>'POS',default=>$pmt->method} }}</td>
+                <td style="font-size:10px;color:#6b7280;">{{ $pmt->notes ?: '—' }}</td>
                 <td style="font-weight:bold;">{{ number_format($pmt->amount, 0) }}</td>
             </tr>
             @endforeach

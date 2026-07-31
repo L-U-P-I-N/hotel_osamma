@@ -69,6 +69,7 @@ class Shift extends Model
                     'count'             => $group->count(),
                     'created_at'        => $group->max('created_at'),
                     'bank_transfer_ref' => $group->pluck('bank_transfer_ref')->filter()->unique()->implode('، '),
+                    'notes'             => $group->pluck('notes')->filter()->unique()->implode(' | '),
                 ];
             })
             ->values();
