@@ -33,6 +33,68 @@
     </div>
 
     <div class="bg-white rounded-xl border border-gray-100 overflow-hidden">
+        <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2">
+            <h3 class="font-semibold text-gray-700 text-sm">تقرير اليوم ({{ now()->format('Y/m/d') }})</h3>
+            <a href="{{ route('reports.government.pdf', ['mode' => 'today']) }}"
+               class="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                تصدير PDF - تقرير اليوم
+            </a>
+        </div>
+
+        @foreach([['title' => 'النزلاء المتواجدون اليوم', 'rows' => $presentToday], ['title' => 'النزلاء الذين غادروا اليوم', 'rows' => $departedToday]] as $todaySection)
+        <div class="px-5 py-3 border-b border-gray-100">
+            <h4 class="text-sm font-semibold text-gray-600 mb-2">
+                {{ $todaySection['title'] }}
+                <span class="text-gray-400 font-normal mr-2 text-xs">({{ $todaySection['rows']->count() }})</span>
+            </h4>
+            @if($todaySection['rows']->isEmpty())
+            <div class="py-6 text-center text-gray-400 text-sm">لا يوجد</div>
+            @else
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50 border-b border-gray-100">
+                        <tr>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">الغرفة</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">اسم النزيل</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">الجنسية</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">المهنة</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">جهة القدوم</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">تاريخ الدخول</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">بيانات المرافقين</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">ملاحظة</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                        @foreach($todaySection['rows'] as $res)
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 font-semibold text-gray-800 whitespace-nowrap">{{ $res->display_room_number }}</td>
+                            <td class="px-4 py-3 font-medium text-gray-800 whitespace-nowrap">{{ $res->guest?->full_name ?? '—' }}</td>
+                            <td class="px-4 py-3 text-gray-600 whitespace-nowrap">{{ $res->guest?->nationality ?? '—' }}</td>
+                            <td class="px-4 py-3 text-gray-600 whitespace-nowrap">{{ $res->guest?->occupation ?? '—' }}</td>
+                            <td class="px-4 py-3 text-gray-600 whitespace-nowrap">{{ $res->origin ?? '—' }}</td>
+                            <td class="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{{ $res->check_in_date?->format('d/m/Y') ?? '—' }}</td>
+                            <td class="px-4 py-3 text-gray-600 text-xs">
+                                @if($res->companions->isEmpty())
+                                <span class="text-gray-300">—</span>
+                                @else
+                                @foreach($res->companions as $c)
+                                <div class="whitespace-nowrap">{{ $c->full_name }} ({{ $c->getRelationshipLabel() }})</div>
+                                @endforeach
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 text-gray-600 text-xs whitespace-pre-line">{{ $res->government_note }}</td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            @endif
+        </div>
+        @endforeach
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-100 overflow-hidden">
         <div class="px-5 py-3 border-b border-gray-100">
             <h3 class="font-semibold text-gray-700 text-sm">
                 سجل النزلاء (الجهات الحكومية)

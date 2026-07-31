@@ -932,22 +932,57 @@ class ReportController extends Controller
         return [$query, $from, $to, $search];
     }
 
+    /**
+     * النزلاء المتواجدون اليوم (لم يغادروا بعد) والنزلاء الذين غادروا اليوم فعلياً
+     * (بحسب actual_check_out، بغضّ النظر عن تاريخ دخولهم) — لتقرير الجهات الحكومية.
+     */
+    private function governmentTodayData(): array
+    {
+        $presentToday = Reservation::with(['guest', 'room', 'companions'])
+            ->where('status', 'checked_in')
+            ->orderBy('room_id')
+            ->get();
+
+        $departedToday = Reservation::with(['guest', 'room', 'companions'])
+            ->where('status', 'checked_out')
+            ->whereDate('actual_check_out', today())
+            ->orderBy('actual_check_out')
+            ->get();
+
+        return [$presentToday, $departedToday];
+    }
+
     public function government(Request $request)
     {
         [$query, $from, $to, $search] = $this->governmentQuery($request);
 
         $reservations = $query->orderByDesc('check_in_date')->paginate(30)->withQueryString();
+        [$presentToday, $departedToday] = $this->governmentTodayData();
 
-        return view('reports.government', compact('reservations', 'from', 'to', 'search'));
+        return view('reports.government', compact('reservations', 'from', 'to', 'search', 'presentToday', 'departedToday'));
     }
 
     public function governmentPdf(Request $request)
     {
+        $mode = $request->input('mode', 'range');
+
+        if ($mode === 'today') {
+            [$presentToday, $departedToday] = $this->governmentTodayData();
+
+            $pdf = $this->pdfOptions(pdf_load_view('reports.government_pdf', [
+                'mode'          => 'today',
+                'presentToday'  => $presentToday,
+                'departedToday' => $departedToday,
+            ]));
+            $pdf->setPaper('a4', 'portrait');
+            return $pdf->download('government-report-today-' . now()->toDateString() . '.pdf');
+        }
+
         [$query, $from, $to, $search] = $this->governmentQuery($request);
 
         $reservations = $query->orderByDesc('check_in_date')->get();
 
-        $pdf = $this->pdfOptions(pdf_load_view('reports.government_pdf', compact('reservations', 'from', 'to')));
+        $pdf = $this->pdfOptions(pdf_load_view('reports.government_pdf', compact('reservations', 'from', 'to') + ['mode' => 'range']));
         $pdf->setPaper('a4', 'portrait');
         return $pdf->download('government-report-' . $from . '-' . $to . '.pdf');
     }

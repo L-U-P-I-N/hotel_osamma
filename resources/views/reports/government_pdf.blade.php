@@ -38,6 +38,8 @@
     }
     table.main tbody td.c { text-align: center; }
     .plus { text-align: center; color: #888; }
+    h2.section-title { font-size: 12px; margin: 10px 0 5px; text-align: center; }
+    table.main + h2.section-title { margin-top: 16px; }
 </style>
 </head>
 <body>
@@ -54,64 +56,83 @@
 
 <div class="pdf-footer">{{ $hotel?->name ?? '' }} -: رقم الهاتف: {{ $hotel?->phone ?? '' }}</div>
 
-@if($reservations->isEmpty())
-<p style="text-align:center;color:#999;padding:20px;">لا توجد حجوزات في هذه الفترة</p>
-@else
-{{--
-    dompdf لا يعكس ترتيب أعمدة الجدول بحسب dir="rtl" — فقط اتجاه النص داخل كل خلية.
-    نكتب الأعمدة هنا بترتيب معكوس (الأخير منطقياً أولاً في HTML) حتى يظهر
-    العمود الأول منطقياً (رقم الغرفة) في أقصى اليمين كما يُقرأ عربياً.
---}}
-<table class="main" dir="rtl">
-    <thead>
-        <tr>
-            <th>أسماء المرافقين</th>
-            <th>ملاحظة</th>
-            <th>تاريخ الاصدار</th>
-            <th>صادر من</th>
-            <th>رقم الهوية</th>
-            <th>نوع الهوية</th>
-            <th>الغرض من القدوم</th>
-            <th>تاريخ القدوم</th>
-            <th>جهة القدوم</th>
-            <th>المهنة</th>
-            <th>الجنسية</th>
-            <th>اسم النزيل ثلاثيا</th>
-            <th>رقم الغرفة</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach($reservations as $res)
-        <tr>
-            <td>
-                @forelse($res->companions as $c)
-                    {{ $c->full_name }}
-                    @if(!$loop->last)<div class="plus">+</div>@endif
-                @empty
-                    —
-                @endforelse
-            </td>
-            <td>
-                @foreach(explode("\n", $res->government_note) as $line)
-                    <div>{{ $line }}</div>
-                @endforeach
-            </td>
-            <td class="c">{{ $res->guest?->id_issue_date?->format('Y/n/j') ?? '—' }}</td>
-            <td>{{ $res->guest?->id_issuer ?? '—' }}</td>
-            <td>{{ $res->guest?->id_number ?? '—' }}</td>
-            <td>{{ $res->guest?->getIdTypeLabel() ?? '—' }}</td>
-            <td>{{ $res->purpose ?? '—' }}</td>
-            <td class="c">{{ $res->check_in_date?->format('n/j') ?? '—' }}</td>
-            <td>{{ $res->origin ?? '—' }}</td>
-            <td>{{ $res->guest?->occupation ?? '—' }}</td>
-            <td>{{ $res->guest?->nationality ?? '—' }}</td>
-            <td style="font-weight:bold;">{{ $res->guest?->full_name ?? '—' }}</td>
-            <td class="c" style="font-weight:bold;">{{ $res->display_room_number }}</td>
-        </tr>
-        @endforeach
-    </tbody>
-</table>
-@endif
+@php
+    // في وضع "اليوم" جدولان منفصلان (متواجدون/غادروا)، وفي الوضع الافتراضي جدول
+    // واحد بحسب فترة التاريخ المختارة — بنفس شكل الأعمدة والقالب الورقي.
+    $sections = ($mode ?? 'range') === 'today'
+        ? [
+            ['title' => 'النزلاء المتواجدون اليوم (' . $presentToday->count() . ')', 'rows' => $presentToday],
+            ['title' => 'النزلاء الذين غادروا اليوم (' . $departedToday->count() . ')', 'rows' => $departedToday],
+        ]
+        : [
+            ['title' => null, 'rows' => $reservations],
+        ];
+@endphp
+
+@foreach($sections as $section)
+    @if($section['title'])
+        <h2 class="section-title">{{ $section['title'] }}</h2>
+    @endif
+
+    @if($section['rows']->isEmpty())
+    <p style="text-align:center;color:#999;padding:20px;">لا توجد بيانات في هذا القسم</p>
+    @else
+    {{--
+        dompdf لا يعكس ترتيب أعمدة الجدول بحسب dir="rtl" — فقط اتجاه النص داخل كل خلية.
+        نكتب الأعمدة هنا بترتيب معكوس (الأخير منطقياً أولاً في HTML) حتى يظهر
+        العمود الأول منطقياً (رقم الغرفة) في أقصى اليمين كما يُقرأ عربياً.
+    --}}
+    <table class="main" dir="rtl">
+        <thead>
+            <tr>
+                <th>أسماء المرافقين</th>
+                <th>ملاحظة</th>
+                <th>تاريخ الاصدار</th>
+                <th>صادر من</th>
+                <th>رقم الهوية</th>
+                <th>نوع الهوية</th>
+                <th>الغرض من القدوم</th>
+                <th>تاريخ القدوم</th>
+                <th>جهة القدوم</th>
+                <th>المهنة</th>
+                <th>الجنسية</th>
+                <th>اسم النزيل ثلاثيا</th>
+                <th>رقم الغرفة</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($section['rows'] as $res)
+            <tr>
+                <td>
+                    @forelse($res->companions as $c)
+                        {{ $c->full_name }}
+                        @if(!$loop->last)<div class="plus">+</div>@endif
+                    @empty
+                        —
+                    @endforelse
+                </td>
+                <td>
+                    @foreach(explode("\n", $res->government_note) as $line)
+                        <div>{{ $line }}</div>
+                    @endforeach
+                </td>
+                <td class="c">{{ $res->guest?->id_issue_date?->format('Y/n/j') ?? '—' }}</td>
+                <td>{{ $res->guest?->id_issuer ?? '—' }}</td>
+                <td>{{ $res->guest?->id_number ?? '—' }}</td>
+                <td>{{ $res->guest?->getIdTypeLabel() ?? '—' }}</td>
+                <td>{{ $res->purpose ?? '—' }}</td>
+                <td class="c">{{ $res->check_in_date?->format('n/j') ?? '—' }}</td>
+                <td>{{ $res->origin ?? '—' }}</td>
+                <td>{{ $res->guest?->occupation ?? '—' }}</td>
+                <td>{{ $res->guest?->nationality ?? '—' }}</td>
+                <td style="font-weight:bold;">{{ $res->guest?->full_name ?? '—' }}</td>
+                <td class="c" style="font-weight:bold;">{{ $res->display_room_number }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+    @endif
+@endforeach
 
 <script type="text/php">
     if (isset($pdf)) {
