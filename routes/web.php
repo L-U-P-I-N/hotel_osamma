@@ -271,6 +271,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/users/{user}/regenerate-backup-code', [UserController::class, 'regenerateBackupCode'])->name('users.regenerateBackupCode');
         Route::get('/users/{user}/statement', [UserController::class, 'statement'])->name('users.statement');
         Route::get('/users/{user}/statement/pdf', [UserController::class, 'statementPdf'])->name('users.statement.pdf');
+        Route::get('/system/backup/download', [\App\Http\Controllers\SystemBackupController::class, 'download'])->name('system.backup.download');
     });
     Route::get('/audit-log', [UserController::class, 'auditLog'])
         ->name('audit.log')

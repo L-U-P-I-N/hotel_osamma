@@ -2,9 +2,9 @@
 
 namespace App\Console\Commands;
 
+use App\Services\BackupService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -23,7 +23,7 @@ class BackupToCloud extends Command
 
     protected $description = 'نسخ احتياطي لقاعدة البيانات (وملفات المرفقات اختيارياً) ورفعه إلى تخزين سحابي';
 
-    public function handle(): int
+    public function handle(BackupService $backup): int
     {
         $disk = $this->option('disk') ?: config('hotel_backup.disk');
         if (!$disk) {
@@ -37,10 +37,10 @@ class BackupToCloud extends Command
         @mkdir($workDir, 0755, true);
 
         try {
-            $dbFile = $this->dumpDatabase($workDir, $timestamp);
+            $dbFile = $backup->dumpDatabase($workDir, $timestamp);
 
             $zipPath = $workDir . '/hotel-backup-' . $timestamp . '.zip';
-            $this->buildZip($zipPath, $dbFile, $includeFiles);
+            $backup->buildZip($zipPath, $dbFile, $includeFiles);
 
             $remotePath = trim(config('hotel_backup.path', 'backups'), '/') . '/' . basename($zipPath);
             $stream = fopen($zipPath, 'r');
@@ -63,81 +63,7 @@ class BackupToCloud extends Command
             Log::error('فشل النسخ الاحتياطي', ['message' => $e->getMessage(), 'file' => $e->getFile() . ':' . $e->getLine()]);
             return self::FAILURE;
         } finally {
-            $this->cleanupDir($workDir);
-        }
-    }
-
-    private function dumpDatabase(string $workDir, string $timestamp): string
-    {
-        $connection = config('database.default');
-
-        if ($connection === 'sqlite') {
-            $source = config('database.connections.sqlite.database');
-            if (!$source || !file_exists($source)) {
-                throw new \RuntimeException('ملف قاعدة بيانات sqlite غير موجود: ' . $source);
-            }
-            $dest = $workDir . '/database-' . $timestamp . '.sqlite';
-            copy($source, $dest);
-            return $dest;
-        }
-
-        // mysql / mariadb: mysqldump عبر Process (يجب توفّر mysqldump على الخادم)
-        $cfg  = config("database.connections.{$connection}");
-        $dest = $workDir . '/database-' . $timestamp . '.sql';
-
-        $command = [
-            'mysqldump',
-            '-h', $cfg['host'] ?? '127.0.0.1',
-            '-P', (string) ($cfg['port'] ?? 3306),
-            '-u', $cfg['username'] ?? 'root',
-            '--single-transaction',
-            '--no-tablespaces',
-            $cfg['database'],
-        ];
-
-        $env = [];
-        if (!empty($cfg['password'])) {
-            $env['MYSQL_PWD'] = $cfg['password'];
-        }
-
-        $result = Process::env($env)->run($command);
-        if (!$result->successful()) {
-            throw new \RuntimeException('فشل mysqldump: ' . $result->errorOutput());
-        }
-
-        file_put_contents($dest, $result->output());
-        return $dest;
-    }
-
-    private function buildZip(string $zipPath, string $dbFile, bool $includeFiles): void
-    {
-        $zip = new \ZipArchive();
-        if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
-            throw new \RuntimeException('تعذّر إنشاء ملف الأرشيف المضغوط');
-        }
-
-        $zip->addFile($dbFile, basename($dbFile));
-
-        if ($includeFiles) {
-            $filesRoot = storage_path('app/private');
-            if (is_dir($filesRoot)) {
-                $this->addDirToZip($zip, $filesRoot, 'files');
-            }
-        }
-
-        $zip->close();
-    }
-
-    private function addDirToZip(\ZipArchive $zip, string $dir, string $prefix): void
-    {
-        $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS)
-        );
-        foreach ($iterator as $file) {
-            if ($file->isFile()) {
-                $localName = $prefix . '/' . substr($file->getPathname(), strlen($dir) + 1);
-                $zip->addFile($file->getPathname(), $localName);
-            }
+            $backup->cleanupDir($workDir);
         }
     }
 
@@ -164,15 +90,5 @@ class BackupToCloud extends Command
             Storage::disk($disk)->delete($old);
         }
         Log::info('حذف نسخ احتياطية قديمة', ['count' => $toDelete->count()]);
-    }
-
-    private function cleanupDir(string $dir): void
-    {
-        if (!is_dir($dir)) {
-            return;
-        }
-        foreach (glob($dir . '/*') as $f) {
-            @unlink($f);
-        }
     }
 }

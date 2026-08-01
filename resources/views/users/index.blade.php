@@ -72,6 +72,16 @@
             </div>
         </div>
         <div class="flex items-center gap-2">
+            @if(auth()->user()->isAdmin())
+            <a href="{{ route('system.backup.download') }}"
+               onclick="return confirm('سيُنزَّل ملف مضغوط يحتوي على قاعدة البيانات كاملة وصور هويات النزلاء (بيانات حساسة). تأكد أنك على جهاز موثوق قبل المتابعة. قد يستغرق التجهيز بضع دقائق حسب حجم البيانات — هل تريد المتابعة؟')"
+               class="flex items-center gap-2 px-4 py-2.5 border border-amber-200 bg-amber-50 text-amber-800 rounded-xl text-sm hover:bg-amber-100 transition font-medium">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/>
+                </svg>
+                تنزيل نسخة كاملة من النظام
+            </a>
+            @endif
             <a href="{{ route('audit.log') }}"
                class="flex items-center gap-2 px-4 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm hover:bg-gray-50 transition font-medium">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
