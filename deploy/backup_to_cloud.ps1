@@ -10,8 +10,16 @@ $ErrorActionPreference = "Stop"
 
 # ---- Configuration ---------------------------------------------------------
 $ProjectDir = "C:\laragon\www\hotel_osamma"
-$PhpExe     = "C:\laragon\bin\php\php-8.3.30-Win32-vs16-x64\php.exe"
 $KeepLast   = 20   # how many recent backups to retain in the cloud folder
+
+# PHP's version folder name varies by Laragon release, so find it dynamically
+# instead of hardcoding a version number.
+$PhpExe = Get-ChildItem "C:\laragon\bin\php\php-*\php.exe" -ErrorAction SilentlyContinue |
+    Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
+if (-not $PhpExe) {
+    Write-Error "Could not find php.exe under C:\laragon\bin\php\ — is Laragon installed?"
+    exit 1
+}
 
 # Auto-detect a cloud-synced folder: prefer OneDrive, then Google Drive, else
 # fall back to a local folder (backups still happen, just won't reach the cloud
