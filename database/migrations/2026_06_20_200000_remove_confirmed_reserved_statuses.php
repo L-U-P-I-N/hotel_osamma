@@ -2,12 +2,13 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        Schema::disableForeignKeyConstraints();
 
         // Clear all transactional data (keep rooms, floors, users, employees)
         DB::table('audit_logs')->truncate();
@@ -27,17 +28,22 @@ return new class extends Migration
         // Reset all rooms to available
         DB::table('rooms')->update(['status' => 'available']);
 
-        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        Schema::enableForeignKeyConstraints();
 
-        // Now safely alter enums
-        DB::statement("ALTER TABLE reservations MODIFY COLUMN status ENUM('checked_in','checked_out') NOT NULL DEFAULT 'checked_in'");
-        DB::statement("ALTER TABLE rooms MODIFY COLUMN status ENUM('available','occupied','under_inspection','maintenance') NOT NULL DEFAULT 'available'");
+        // SQLite has no native ENUM/MODIFY COLUMN — column already stores these
+        // values as plain strings, so no DDL change is needed on that driver.
+        if (Schema::getConnection()->getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE reservations MODIFY COLUMN status ENUM('checked_in','checked_out') NOT NULL DEFAULT 'checked_in'");
+            DB::statement("ALTER TABLE rooms MODIFY COLUMN status ENUM('available','occupied','under_inspection','maintenance') NOT NULL DEFAULT 'available'");
+        }
     }
 
     public function down(): void
     {
-        // Restore old enums
-        DB::statement("ALTER TABLE reservations MODIFY COLUMN status ENUM('confirmed','checked_in','checked_out','cancelled') NOT NULL DEFAULT 'confirmed'");
-        DB::statement("ALTER TABLE rooms MODIFY COLUMN status ENUM('available','reserved','occupied','under_inspection','maintenance') NOT NULL DEFAULT 'available'");
+        if (Schema::getConnection()->getDriverName() === 'mysql') {
+            // Restore old enums
+            DB::statement("ALTER TABLE reservations MODIFY COLUMN status ENUM('confirmed','checked_in','checked_out','cancelled') NOT NULL DEFAULT 'confirmed'");
+            DB::statement("ALTER TABLE rooms MODIFY COLUMN status ENUM('available','reserved','occupied','under_inspection','maintenance') NOT NULL DEFAULT 'available'");
+        }
     }
 };

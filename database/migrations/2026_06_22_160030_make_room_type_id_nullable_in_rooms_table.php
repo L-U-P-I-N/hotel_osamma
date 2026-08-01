@@ -3,11 +3,19 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
 
 return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::getConnection()->getDriverName() === 'sqlite') {
+            Schema::table('rooms', function (Blueprint $table) {
+                $table->foreignId('room_type_id')->nullable()->change();
+            });
+            return;
+        }
+
         // Raw SQL is more reliable than ->change() for FK + nullable modifications
         DB::statement('ALTER TABLE rooms MODIFY COLUMN room_type_id BIGINT UNSIGNED NULL');
 
@@ -26,6 +34,13 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (Schema::getConnection()->getDriverName() === 'sqlite') {
+            Schema::table('rooms', function (Blueprint $table) {
+                $table->foreignId('room_type_id')->nullable(false)->change();
+            });
+            return;
+        }
+
         // Restore NOT NULL — only safe if no nulls exist
         try {
             DB::statement('ALTER TABLE rooms DROP FOREIGN KEY rooms_room_type_id_foreign');
