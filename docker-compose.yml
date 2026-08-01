@@ -1,0 +1,16 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      # غيّر "8080" اليسرى لو كان المنفذ مستخدَم على جهازك، مثلاً "80:8080"
+      - "8080:8080"
+    env_file:
+      - .env
+    volumes:
+      # كل البيانات الدائمة (قاعدة sqlite + صور الهويات + السجلات) داخل
+      # storage/ فقط — تبقى محفوظة حتى لو أُعيد بناء الصورة أو حُذفت الحاوية.
+      - hotel_storage:/var/www/html/storage
+
+volumes:
+  hotel_storage:

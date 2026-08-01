@@ -56,7 +56,8 @@ RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html/storage \
     && chmod -R 755 /var/www/html/bootstrap/cache \
     && mkdir -p storage/app/private/{id_images/guests,id_images/companions,marriage_docs,bank_receipts,inspection_images,government_exports} \
-    && chown -R www-data:www-data storage/app/private
+    && chown -R www-data:www-data storage/app/private \
+    && chmod +x docker/entrypoint.sh
 
 # Nginx config
 RUN echo 'server { \
@@ -85,8 +86,13 @@ RUN echo '[supervisord]' > /etc/supervisord.conf && \
     echo '[program:nginx]' >> /etc/supervisord.conf && \
     echo 'command=nginx -g "daemon off;"' >> /etc/supervisord.conf && \
     echo 'autostart=true' >> /etc/supervisord.conf && \
+    echo 'autorestart=true' >> /etc/supervisord.conf && \
+    echo '[program:scheduler]' >> /etc/supervisord.conf && \
+    echo 'command=php /var/www/html/artisan schedule:work' >> /etc/supervisord.conf && \
+    echo 'directory=/var/www/html' >> /etc/supervisord.conf && \
+    echo 'autostart=true' >> /etc/supervisord.conf && \
     echo 'autorestart=true' >> /etc/supervisord.conf
 
 EXPOSE 8080
 
-CMD ["sh", "-c", "php artisan migrate --force && php artisan storage:link --force 2>/dev/null; supervisord -c /etc/supervisord.conf"]
+CMD ["sh", "/var/www/html/docker/entrypoint.sh"]
