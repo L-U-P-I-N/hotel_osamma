@@ -322,4 +322,25 @@ echo "\n--- Import report ---\n";
 foreach ($report as $t => $status) {
     echo "$t: $status\n";
 }
+
+// Freshness check: surface the most recent activity timestamps so whoever
+// runs the cutover can visually confirm this backup is not stale before
+// declaring the switch to the local system complete.
+echo "\n--- Data freshness check ---\n";
+$freshnessQueries = [
+    'reservations' => "SELECT MAX(created_at) FROM reservations",
+    'payments'     => "SELECT MAX(created_at) FROM payments",
+    'audit_logs'   => "SELECT MAX(created_at) FROM audit_logs",
+];
+foreach ($freshnessQueries as $label => $query) {
+    try {
+        $latest = $pdo->query($query)->fetchColumn();
+        echo "Latest $label: " . ($latest ?: 'no rows') . "\n";
+    } catch (Throwable $e) {
+        // table may not exist in this schema version - not fatal
+    }
+}
+echo "If these dates look older than expected, this backup is NOT the\n";
+echo "current one - re-download it from the online system before going live.\n";
+
 echo "\nDONE.\n";
