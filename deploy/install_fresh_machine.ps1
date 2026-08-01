@@ -169,25 +169,39 @@ OK "Database is ready"
 
 # Optional: import a backup zip if the operator dropped one on the Desktop
 # or in Downloads (must contain a database-*.sql file, same format produced
-# by the old system's export). Safe to skip entirely - a fresh empty
-# database is used otherwise.
+# by the online system's "download full system backup" button). Safe to
+# skip entirely - a fresh empty database is used otherwise.
 Step "Looking for an existing data backup to import (optional)"
 $backupZip = Get-ChildItem -Path "$env:USERPROFILE\Desktop", "$env:USERPROFILE\Downloads" `
     -Filter "*.zip" -ErrorAction SilentlyContinue |
-    Where-Object { $_.Name -match "backup" } | Select-Object -First 1
+    Where-Object { $_.Name -match "backup" } |
+    Sort-Object LastWriteTime -Descending | Select-Object -First 1
 if ($backupZip) {
-    OK "Found $($backupZip.Name) - importing"
-    $extractDir = "$env:TEMP\hotel_backup_import"
-    Remove-Item $extractDir -Recurse -Force -ErrorAction SilentlyContinue
-    Expand-Archive -Path $backupZip.FullName -DestinationPath $extractDir -Force
-    $sqlFile = Get-ChildItem $extractDir -Filter "*.sql" -Recurse | Select-Object -First 1
-    if ($sqlFile) {
-        & $PhpExe "$ProjectDir\deploy\import_mysql_dump.php" $sqlFile.FullName "$ProjectDir\database\database.sqlite" 2>&1 | Out-Null
-        OK "Old data imported"
-    }
-    $filesDir = Get-ChildItem $extractDir -Filter "files" -Directory -Recurse | Select-Object -First 1
-    if ($filesDir) {
-        Copy-Item "$($filesDir.FullName)\*" "$ProjectDir\storage\app\private\" -Recurse -Force -ErrorAction SilentlyContinue
+    $ageMinutes = [math]::Round(((Get-Date) - $backupZip.LastWriteTime).TotalMinutes)
+    Write-Host ""
+    Write-Host "    Found backup file: $($backupZip.Name)" -ForegroundColor Yellow
+    Write-Host "    Downloaded: $($backupZip.LastWriteTime)  ($ageMinutes minutes ago)" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "    If this is NOT a backup you just downloaded moments ago from the" -ForegroundColor Yellow
+    Write-Host "    online system's 'download full system backup' button, STOP - importing" -ForegroundColor Yellow
+    Write-Host "    an old backup will overwrite the database with outdated data." -ForegroundColor Yellow
+    Write-Host ""
+    $confirm = Read-Host "    Import this backup now? (y/n)"
+    if ($confirm -match '^(y|yes)$') {
+        $extractDir = "$env:TEMP\hotel_backup_import"
+        Remove-Item $extractDir -Recurse -Force -ErrorAction SilentlyContinue
+        Expand-Archive -Path $backupZip.FullName -DestinationPath $extractDir -Force
+        $sqlFile = Get-ChildItem $extractDir -Filter "*.sql" -Recurse | Select-Object -First 1
+        if ($sqlFile) {
+            & $PhpExe "$ProjectDir\deploy\import_mysql_dump.php" $sqlFile.FullName "$ProjectDir\database\database.sqlite"
+            OK "Old data imported - check the 'Data freshness check' dates printed above"
+        }
+        $filesDir = Get-ChildItem $extractDir -Filter "files" -Directory -Recurse | Select-Object -First 1
+        if ($filesDir) {
+            Copy-Item "$($filesDir.FullName)\*" "$ProjectDir\storage\app\private\" -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    } else {
+        OK "Skipped importing - continuing with an empty database"
     }
 } else {
     OK "No backup zip found on Desktop/Downloads - starting with an empty database"
