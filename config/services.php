@@ -39,4 +39,12 @@ return [
         'api_key' => env('CALLMEBOT_API_KEY'),
     ],
 
+    'backup_api' => [
+        // Secret bearer token for the unattended system-backup download
+        // endpoint used by the local installer to pull data automatically
+        // from the hosted system. Set only in the Laravel Cloud app's env
+        // vars - never commit a real value for this to the repository.
+        'token' => env('BACKUP_API_TOKEN'),
+    ],
+
 ];

@@ -53,6 +53,7 @@ function Fail($msg) {
 
 $RepoUrl    = "https://github.com/L-U-P-I-N/hotel_osamma.git"
 $ProjectDir = "C:\laragon\www\hotel_osamma"
+$CloudUrl   = "https://hotel-osamma-main-hgtjr5.laravel.cloud"
 
 # ---- 1. Prerequisites via winget --------------------------------------------
 Step "Checking Windows Package Manager (winget)"
@@ -101,6 +102,18 @@ if (-not $PhpDir -or -not $ApacheDir) {
 $PhpExe = Join-Path $PhpDir.FullName "php.exe"
 OK "PHP found: $($PhpDir.Name)"
 OK "Apache found: $($ApacheDir.Name)"
+
+# The zip extension ships disabled by default and is needed for the
+# system-backup import/export feature (ZipArchive).
+$phpIni = Join-Path $PhpDir.FullName "php.ini"
+if (Test-Path $phpIni) {
+    $iniContent = Get-Content $phpIni -Raw
+    if ($iniContent -match '(?m)^;\s*extension\s*=\s*zip\s*$') {
+        $iniContent = $iniContent -replace '(?m)^;\s*extension\s*=\s*zip\s*$', 'extension=zip'
+        Set-Content -Path $phpIni -Value $iniContent
+        OK "Enabled the PHP zip extension"
+    }
+}
 
 $gitExe = "C:\Program Files\Git\bin\git.exe"
 if (-not (Test-Path $gitExe)) {
@@ -175,15 +188,41 @@ OK "Database is ready"
 
 & $PhpExe artisan storage:link
 
-# Optional: import a backup zip if the operator dropped one on the Desktop
-# or in Downloads (must contain a database-*.sql file, same format produced
-# by the online system's "download full system backup" button). Safe to
-# skip entirely - a fresh empty database is used otherwise.
-Step "Looking for an existing data backup to import (optional)"
-$backupZip = Get-ChildItem -Path "$env:USERPROFILE\Desktop", "$env:USERPROFILE\Downloads" `
-    -Filter "*.zip" -ErrorAction SilentlyContinue |
-    Where-Object { $_.Name -match "backup" } |
-    Sort-Object LastWriteTime -Descending | Select-Object -First 1
+# Data source priority:
+#  1. Automatic pull from the online system, if a secret token file was
+#     placed locally (never committed to git - see deploy/README.md).
+#  2. A backup zip manually dropped on the Desktop/Downloads.
+#  3. Neither found - start with an empty database.
+Step "Looking for data to import (optional)"
+$backupZip = $null
+$tokenFile = "$ProjectDir\deploy\cloud_backup_token.txt"
+
+if (Test-Path $tokenFile) {
+    $token = (Get-Content $tokenFile -Raw).Trim()
+    if ($token) {
+        Write-Host "    Found a cloud backup token - pulling the latest data automatically..." -ForegroundColor Yellow
+        $autoZipPath = "$env:TEMP\hotel_backup_auto_$(Get-Date -Format 'yyyyMMdd_HHmmss').zip"
+        try {
+            Invoke-WebRequest -Uri "$CloudUrl/api/system-backup" `
+                -Headers @{ Authorization = "Bearer $token" } `
+                -OutFile $autoZipPath -TimeoutSec 120 -UseBasicParsing
+            if ((Get-Item $autoZipPath).Length -gt 0) {
+                $backupZip = Get-Item $autoZipPath
+                OK "Pulled a fresh backup automatically from the online system"
+            }
+        } catch {
+            Write-Host "    Automatic pull failed ($_) - falling back to a manual backup file if present." -ForegroundColor Yellow
+        }
+    }
+}
+
+if (-not $backupZip) {
+    $backupZip = Get-ChildItem -Path "$env:USERPROFILE\Desktop", "$env:USERPROFILE\Downloads" `
+        -Filter "*.zip" -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -match "backup" } |
+        Sort-Object LastWriteTime -Descending | Select-Object -First 1
+}
+
 if ($backupZip) {
     $ageMinutes = [math]::Round(((Get-Date) - $backupZip.LastWriteTime).TotalMinutes)
     Write-Host ""
