@@ -3,26 +3,52 @@
 هذه السكربتات تجعل النظام يعمل بشكل كامل بدون إنترنت على جهاز الفندق، وترفع
 نسخة احتياطية تلقائياً إلى OneDrive/Google Drive كلما توفر الإنترنت.
 
-## التثبيت على جهاز فارغ تماماً (الطريقة الموصى بها)
+## التثبيت على جهاز فارغ تماماً (الطريقة الأسهل — ملف واحد فقط)
 
-إذا كان جهاز الفندق جديداً تماماً (بدون PHP، Git، Node.js، أو أي شيء)، استخدم
-`install_fresh_machine.ps1` — سكربت واحد يقوم بكل شيء تلقائياً من الصفر:
-تثبيت Git وNode.js وLaragon (PHP+Apache) عبر winget، تحميل المشروع، تثبيت كل
-المكتبات، إعداد قاعدة البيانات، تسجيل الموقع كخدمة Windows دائمة، وإعداد
-الاختصار والنسخ الاحتياطي التلقائي — بأمر واحد فقط.
+`install_hotel_system.exe` هو نفس السكربت أعلاه بعد تحويله لملف تنفيذي عادي.
+لا يحتاج العميل يعرف أي شيء عن PowerShell أو الأوامر — فقط:
 
-**طريقة التشغيل:**
-1. افتح PowerShell **كمسؤول (Run as Administrator)**
-2. نزّل المشروع أولاً بأي طريقة (حتى لو نسخة zip من GitHub)، أو نفّذ:
-   ```powershell
-   git clone --branch main https://github.com/L-U-P-I-N/hotel_osamma.git C:\laragon\www\hotel_osamma
+1. حمّل الملف من هذا الرابط مباشرة على جهاز الفندق:
    ```
-   (إذا git غير مثبّت بعد، حمّل ملف zip من GitHub يدوياً وفكّه في نفس المسار)
+   https://raw.githubusercontent.com/L-U-P-I-N/hotel_osamma/main/deploy/install_hotel_system.exe
+   ```
+2. **دبل كليك** على الملف المُحمَّل
+3. لو ظهرت رسالة زرقاء من ويندوز "Windows protected your PC" (لأن الملف غير
+   موقَّع رقمياً بشهادة مدفوعة) — اضغط **"More info"** ثم **"Run anyway"**
+4. لو ظهرت نافذة "هل تريد السماح لهذا التطبيق..." (UAC) — اضغط **"Yes"**
+5. انتظر حتى تظهر رسالة خضراء "Installation complete!" — هذا كل شيء
+
+الملف يقوم بكل شيء من الصفر تلقائياً: تثبيت Git وNode.js وLaragon (PHP+Apache)،
+تحميل المشروع كاملاً من GitHub، تثبيت كل المكتبات، إعداد قاعدة البيانات،
+تسجيل الموقع كخدمة Windows دائمة، وإعداد اختصار سطح المكتب والنسخ الاحتياطي
+التلقائي.
+
+**كل خطوة تُسجَّل في `hotel_install_log.txt` على سطح المكتب** — لو توقف عند
+أي نقطة، أرسل هذا الملف لتشخيص المشكلة بالضبط. السكربت آمن لإعادة التشغيل.
+
+### الطريقة البديلة (لمن يفضّل PowerShell)
+
+نفس الأداة بالضبط لكن كسكربت `.ps1` بدل `.exe` — `install_fresh_machine.ps1`
+في هذا المجلد:
+1. افتح PowerShell **كمسؤول (Run as Administrator)**
+2. نزّل المشروع أولاً (git clone أو zip من GitHub) إلى `C:\laragon\www\hotel_osamma`
 3. نفّذ:
    ```powershell
    powershell -ExecutionPolicy Bypass -File C:\laragon\www\hotel_osamma\deploy\install_fresh_machine.ps1
    ```
 4. انتظر حتى تظهر رسالة خضراء "Installation complete!"
+
+### تحديث ملف الـ exe بعد أي تعديل على install_fresh_machine.ps1
+
+```powershell
+Install-Module -Name ps2exe -Scope CurrentUser -Force -AllowClobber
+Import-Module ps2exe
+Invoke-ps2exe `
+    -inputFile "install_fresh_machine.ps1" `
+    -outputFile "install_hotel_system.exe" `
+    -title "Hotel Osamma - Installer" `
+    -requireAdmin
+```
 
 **مهم جداً:**
 - السكربت **آمن لإعادة التشغيل** — لو توقف أو فشل في أي خطوة، شغّله من جديد
