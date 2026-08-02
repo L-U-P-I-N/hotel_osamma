@@ -51,6 +51,26 @@ function Fail($msg) {
     exit 1
 }
 
+# Native tools that print colored text / progress bars (git, composer, npm,
+# artisan) use ANSI escape codes and cursor movement that can silently kill
+# the whole elevated PowerShell host when it's running under Start-Transcript
+# - hit this repeatedly during real testing (Apache's -k install, then
+# composer). Redirecting straight to a file with *> (bypassing the
+# transcripted console entirely) and echoing it back via Write-Host avoids
+# the crash while still showing the user everything that happened.
+function RunNative {
+    param(
+        [Parameter(Mandatory)][string]$Exe,
+        [Parameter(Mandatory)][string[]]$CmdArgs
+    )
+    $logFile = "$env:TEMP\hotel_cmd_$([guid]::NewGuid().ToString('N')).log"
+    & $Exe @CmdArgs *> $logFile
+    $exitCode = $LASTEXITCODE
+    Get-Content $logFile -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_ }
+    Remove-Item $logFile -Force -ErrorAction SilentlyContinue
+    return $exitCode
+}
+
 $RepoUrl    = "https://github.com/L-U-P-I-N/hotel_osamma.git"
 $ProjectDir = "C:\laragon\www\hotel_osamma"
 $CloudUrl   = "https://hotel-osamma-main-hgtjr5.laravel.cloud"
@@ -127,12 +147,12 @@ if (-not $npmExe) { Fail "npm not found even after installing Node.js." }
 Step "Downloading the hotel system (main branch)"
 if (Test-Path "$ProjectDir\.git") {
     OK "Project already present, pulling latest main"
-    & $gitExe -C $ProjectDir fetch origin main
-    & $gitExe -C $ProjectDir checkout main
-    & $gitExe -C $ProjectDir reset --hard origin/main
+    RunNative -Exe $gitExe -CmdArgs @("-C", $ProjectDir, "fetch", "origin", "main") | Out-Null
+    RunNative -Exe $gitExe -CmdArgs @("-C", $ProjectDir, "checkout", "main") | Out-Null
+    RunNative -Exe $gitExe -CmdArgs @("-C", $ProjectDir, "reset", "--hard", "origin/main") | Out-Null
 } else {
     New-Item -ItemType Directory -Path "C:\laragon\www" -Force -ErrorAction SilentlyContinue | Out-Null
-    & $gitExe clone --branch main $RepoUrl $ProjectDir
+    RunNative -Exe $gitExe -CmdArgs @("clone", "--branch", "main", $RepoUrl, $ProjectDir) | Out-Null
 }
 if (-not (Test-Path "$ProjectDir\artisan")) { Fail "The project folder does not contain a Laravel app (artisan file missing) after git clone/pull." }
 OK "Project code is up to date"
@@ -144,14 +164,14 @@ Step "Installing PHP packages (composer)"
 if (-not (Test-Path "$ProjectDir\composer.phar")) {
     Invoke-WebRequest -Uri "https://getcomposer.org/composer.phar" -OutFile "$ProjectDir\composer.phar" -UseBasicParsing
 }
-& $PhpExe "$ProjectDir\composer.phar" install --no-dev --optimize-autoloader
+RunNative -Exe $PhpExe -CmdArgs @("$ProjectDir\composer.phar", "install", "--no-dev", "--optimize-autoloader") | Out-Null
 if (-not (Test-Path "$ProjectDir\vendor\autoload.php")) { Fail "composer install did not produce vendor/autoload.php." }
 OK "PHP packages installed"
 
 # ---- 4. Frontend assets -------------------------------------------------------
 Step "Installing and building the web assets (npm)"
-& $npmExe install
-& $npmExe run build
+RunNative -Exe $npmExe -CmdArgs @("install") | Out-Null
+RunNative -Exe $npmExe -CmdArgs @("run", "build") | Out-Null
 if (-not (Test-Path "$ProjectDir\public\build\manifest.json")) { Fail "npm run build did not produce public/build/manifest.json." }
 OK "Web assets built"
 
@@ -173,7 +193,7 @@ if (-not (Select-String -Path "$ProjectDir\.env" -Pattern "^DB_DATABASE=" -Quiet
 
 $hasKey = (Select-String -Path "$ProjectDir\.env" -Pattern "^APP_KEY=base64:").Count -gt 0
 if (-not $hasKey) {
-    & $PhpExe artisan key:generate --force
+    RunNative -Exe $PhpExe -CmdArgs @("artisan", "key:generate", "--force") | Out-Null
 }
 OK ".env ready"
 
@@ -182,11 +202,11 @@ Step "Setting up the database"
 if (-not (Test-Path "$ProjectDir\database\database.sqlite")) {
     New-Item -ItemType File -Path "$ProjectDir\database\database.sqlite" -Force | Out-Null
 }
-& $PhpExe artisan migrate --force
-if ($LASTEXITCODE -ne 0) { Fail "A migration failed - see the output above." }
+$migrateExit = RunNative -Exe $PhpExe -CmdArgs @("artisan", "migrate", "--force")
+if ($migrateExit -ne 0) { Fail "A migration failed - see the output above." }
 OK "Database is ready"
 
-& $PhpExe artisan storage:link
+RunNative -Exe $PhpExe -CmdArgs @("artisan", "storage:link") | Out-Null
 
 # Data source priority:
 #  1. Automatic pull from the online system, if a secret token file was
@@ -240,7 +260,7 @@ if ($backupZip) {
         Expand-Archive -Path $backupZip.FullName -DestinationPath $extractDir -Force
         $sqlFile = Get-ChildItem $extractDir -Filter "*.sql" -Recurse | Select-Object -First 1
         if ($sqlFile) {
-            & $PhpExe "$ProjectDir\deploy\import_mysql_dump.php" $sqlFile.FullName "$ProjectDir\database\database.sqlite"
+            RunNative -Exe $PhpExe -CmdArgs @("$ProjectDir\deploy\import_mysql_dump.php", $sqlFile.FullName, "$ProjectDir\database\database.sqlite") | Out-Null
             OK "Old data imported - check the 'Data freshness check' dates printed above"
         }
         $filesDir = Get-ChildItem $extractDir -Filter "files" -Directory -Recurse | Select-Object -First 1
@@ -376,12 +396,12 @@ OK "$serviceName service is running and set to start automatically"
 
 # ---- 9. Production caches + shortcut + backups ------------------------------------
 Step "Optimizing and finishing touches"
-& $PhpExe artisan config:cache
-& $PhpExe artisan route:cache
-& $PhpExe artisan view:cache
+RunNative -Exe $PhpExe -CmdArgs @("artisan", "config:cache") | Out-Null
+RunNative -Exe $PhpExe -CmdArgs @("artisan", "route:cache") | Out-Null
+RunNative -Exe $PhpExe -CmdArgs @("artisan", "view:cache") | Out-Null
 
-& powershell -ExecutionPolicy Bypass -File "$ProjectDir\deploy\create_desktop_shortcut.ps1"
-& powershell -ExecutionPolicy Bypass -File "$ProjectDir\deploy\install_scheduled_backup.ps1"
+RunNative -Exe "powershell" -CmdArgs @("-ExecutionPolicy", "Bypass", "-File", "$ProjectDir\deploy\create_desktop_shortcut.ps1") | Out-Null
+RunNative -Exe "powershell" -CmdArgs @("-ExecutionPolicy", "Bypass", "-File", "$ProjectDir\deploy\install_scheduled_backup.ps1") | Out-Null
 OK "Desktop shortcut and automatic cloud backup are set up"
 
 # ---- 10. Final check ----------------------------------------------------------------
