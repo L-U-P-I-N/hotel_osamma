@@ -22,7 +22,15 @@ if (-not $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Adm
     exit
 }
 
-$ErrorActionPreference = "Stop"
+# NOT "Stop": under Windows PowerShell 5.1, a native .exe that merely exits
+# with a non-zero code - even for a harmless/informational reason, like
+# some of Apache's own "-k install/uninstall" completion states - gets
+# turned into a script-terminating exception when ErrorActionPreference is
+# Stop, regardless of whether its output is redirected. Every step below
+# instead checks its own real success condition explicitly ($LASTEXITCODE,
+# Test-Path, Get-Service, etc.) and calls Fail with a clear message, so
+# nothing here relies on PowerShell's automatic error escalation.
+$ErrorActionPreference = "Continue"
 $LogFile = "$env:USERPROFILE\Desktop\hotel_install_log.txt"
 Start-Transcript -Path $LogFile -Append | Out-Null
 
