@@ -1,4 +1,4 @@
-# Registers a Windows Scheduled Task that runs backup_to_cloud.ps1 every hour,
+﻿# Registers a Windows Scheduled Task that runs backup_to_cloud.ps1 every hour,
 # for the currently logged-in user. Does NOT require Administrator rights -
 # per-user scheduled tasks are allowed under the invoking user's own account.
 #

@@ -1,4 +1,4 @@
-# =============================================================================
+﻿# =============================================================================
 # Hotel Osamma - one-shot installer for a brand new Windows PC
 # =============================================================================
 # Run this on a completely empty machine (no PHP, no Git, no Node.js, nothing).
@@ -327,7 +327,7 @@ try {
 Write-Host ""
 Write-Host "=================================================================" -ForegroundColor Green
 Write-Host "  Installation complete!" -ForegroundColor Green
-Write-Host "  Double-click the 'نظام الفندق' icon on the Desktop to open it." -ForegroundColor Green
+Write-Host "  Double-click the hotel system icon on the Desktop to open it." -ForegroundColor Green
 Write-Host "=================================================================" -ForegroundColor Green
 
 Stop-Transcript | Out-Null

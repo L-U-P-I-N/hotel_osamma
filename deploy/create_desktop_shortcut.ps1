@@ -1,4 +1,4 @@
-# Creates a desktop shortcut labeled "نظام الفندق" that opens the hotel
+﻿# Creates a desktop shortcut labeled "نظام الفندق" that opens the hotel
 # system in the default browser. No technical knowledge needed by the user:
 # the web server already runs 24/7 as a Windows Service, so this shortcut
 # is the ONLY thing the hotel staff ever needs to click.

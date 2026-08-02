@@ -1,4 +1,4 @@
-# Creates a timestamped backup of the hotel system (database + attached files)
+﻿# Creates a timestamped backup of the hotel system (database + attached files)
 # and drops it into a OneDrive/Google Drive folder so it uploads to the cloud
 # automatically whenever the hotel's internet connection is available.
 #
@@ -17,7 +17,7 @@ $KeepLast   = 20   # how many recent backups to retain in the cloud folder
 $PhpExe = Get-ChildItem "C:\laragon\bin\php\php-*\php.exe" -ErrorAction SilentlyContinue |
     Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
 if (-not $PhpExe) {
-    Write-Error "Could not find php.exe under C:\laragon\bin\php\ — is Laragon installed?"
+    Write-Error "Could not find php.exe under C:\laragon\bin\php\ - is Laragon installed?"
     exit 1
 }
 
