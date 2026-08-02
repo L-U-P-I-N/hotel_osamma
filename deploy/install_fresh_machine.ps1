@@ -289,21 +289,34 @@ Get-Service -Name "Apache*" -ErrorAction SilentlyContinue |
         Set-Service -Name $_.Name -StartupType Manual -ErrorAction SilentlyContinue
     }
 
+# httpd.exe -k install/uninstall talk to the Service Control Manager in a
+# way that does not play well with Start-Transcript's console redirection
+# (it can silently kill the whole PowerShell host). Redirecting all of its
+# output straight to a file - instead of the console/pipeline - avoids that
+# entirely, and the log is still readable afterwards for troubleshooting.
+$svcLog = "$env:TEMP\hotel_apache_service.log"
+
 if (Get-Service -Name $serviceName -ErrorAction SilentlyContinue) {
     Stop-Service -Name $serviceName -Force -ErrorAction SilentlyContinue
-    & $apacheExe -k uninstall -n $serviceName
+    & $apacheExe -k uninstall -n $serviceName *> $svcLog
 }
 Stop-Process -Name httpd -Force -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 1
-& $apacheExe -k install -n $serviceName -d $ApacheDir.FullName
+& $apacheExe -k install -n $serviceName -d $ApacheDir.FullName *>> $svcLog
+Get-Content $svcLog -ErrorAction SilentlyContinue | Write-Host
+
+if (-not (Get-Service -Name $serviceName -ErrorAction SilentlyContinue)) {
+    Fail "The $serviceName Windows Service was not created - see $svcLog"
+}
+
 Set-Service -Name $serviceName -StartupType Automatic
 Start-Service -Name $serviceName
-sc.exe failure $serviceName reset= 86400 actions= restart/5000/restart/10000/restart/30000
-sc.exe failureflag $serviceName 1
+sc.exe failure $serviceName reset= 86400 actions= restart/5000/restart/10000/restart/30000 | Out-Null
+sc.exe failureflag $serviceName 1 | Out-Null
 
 Start-Sleep -Seconds 2
 $svc = Get-Service -Name $serviceName
-if ($svc.Status -ne "Running") { Fail "The $serviceName service did not start." }
+if ($svc.Status -ne "Running") { Fail "The $serviceName service did not start - see $svcLog" }
 OK "$serviceName service is running and set to start automatically"
 
 # ---- 9. Production caches + shortcut + backups ------------------------------------
