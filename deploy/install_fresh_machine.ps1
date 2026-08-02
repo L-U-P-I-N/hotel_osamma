@@ -56,19 +56,19 @@ OK "winget is available"
 
 Step "Installing Git (skipped if already installed)"
 try {
-    winget install --id Git.Git -e --source winget --accept-source-agreements --accept-package-agreements --silent 2>&1 | Out-Null
+    winget install --id Git.Git -e --source winget --accept-source-agreements --accept-package-agreements --silent
     OK "Git ready"
 } catch { Fail "Could not install Git: $_" }
 
 Step "Installing Node.js LTS (skipped if already installed)"
 try {
-    winget install --id OpenJS.NodeJS.LTS -e --source winget --accept-source-agreements --accept-package-agreements --silent 2>&1 | Out-Null
+    winget install --id OpenJS.NodeJS.LTS -e --source winget --accept-source-agreements --accept-package-agreements --silent
     OK "Node.js ready"
 } catch { Fail "Could not install Node.js: $_" }
 
 Step "Installing Laragon - PHP + Apache (skipped if already installed)"
 try {
-    winget install --id LeNgocKhoa.Laragon -e --source winget --accept-source-agreements --accept-package-agreements --silent 2>&1 | Out-Null
+    winget install --id LeNgocKhoa.Laragon -e --source winget --accept-source-agreements --accept-package-agreements --silent
     OK "Laragon ready"
 } catch { Fail "Could not install Laragon: $_" }
 
@@ -106,14 +106,14 @@ if (-not $npmExe) { Fail "npm not found even after installing Node.js." }
 Step "Downloading the hotel system (main branch)"
 if (Test-Path "$ProjectDir\.git") {
     OK "Project already present, pulling latest main"
-    & $gitExe -C $ProjectDir fetch origin main 2>&1 | Out-Null
-    & $gitExe -C $ProjectDir checkout main 2>&1 | Out-Null
-    & $gitExe -C $ProjectDir reset --hard origin/main 2>&1 | Out-Null
+    & $gitExe -C $ProjectDir fetch origin main
+    & $gitExe -C $ProjectDir checkout main
+    & $gitExe -C $ProjectDir reset --hard origin/main
 } else {
     New-Item -ItemType Directory -Path "C:\laragon\www" -Force -ErrorAction SilentlyContinue | Out-Null
-    & $gitExe clone --branch main $RepoUrl $ProjectDir 2>&1 | Out-Null
-    if (-not (Test-Path "$ProjectDir\artisan")) { Fail "git clone did not produce a Laravel project." }
+    & $gitExe clone --branch main $RepoUrl $ProjectDir
 }
+if (-not (Test-Path "$ProjectDir\artisan")) { Fail "The project folder does not contain a Laravel app (artisan file missing) after git clone/pull." }
 OK "Project code is up to date"
 
 Set-Location $ProjectDir
@@ -123,14 +123,14 @@ Step "Installing PHP packages (composer)"
 if (-not (Test-Path "$ProjectDir\composer.phar")) {
     Invoke-WebRequest -Uri "https://getcomposer.org/composer.phar" -OutFile "$ProjectDir\composer.phar" -UseBasicParsing
 }
-& $PhpExe "$ProjectDir\composer.phar" install --no-dev --optimize-autoloader 2>&1 | Tee-Object -Variable composerOut | Out-Null
-if (-not (Test-Path "$ProjectDir\vendor\autoload.php")) { Fail "composer install did not produce vendor/autoload.php.`n$composerOut" }
+& $PhpExe "$ProjectDir\composer.phar" install --no-dev --optimize-autoloader
+if (-not (Test-Path "$ProjectDir\vendor\autoload.php")) { Fail "composer install did not produce vendor/autoload.php." }
 OK "PHP packages installed"
 
 # ---- 4. Frontend assets -------------------------------------------------------
 Step "Installing and building the web assets (npm)"
-& $npmExe install 2>&1 | Out-Null
-& $npmExe run build 2>&1 | Out-Null
+& $npmExe install
+& $npmExe run build
 if (-not (Test-Path "$ProjectDir\public\build\manifest.json")) { Fail "npm run build did not produce public/build/manifest.json." }
 OK "Web assets built"
 
@@ -152,7 +152,7 @@ if (-not (Select-String -Path "$ProjectDir\.env" -Pattern "^DB_DATABASE=" -Quiet
 
 $hasKey = (Select-String -Path "$ProjectDir\.env" -Pattern "^APP_KEY=base64:").Count -gt 0
 if (-not $hasKey) {
-    & $PhpExe artisan key:generate --force 2>&1 | Out-Null
+    & $PhpExe artisan key:generate --force
 }
 OK ".env ready"
 
@@ -161,11 +161,11 @@ Step "Setting up the database"
 if (-not (Test-Path "$ProjectDir\database\database.sqlite")) {
     New-Item -ItemType File -Path "$ProjectDir\database\database.sqlite" -Force | Out-Null
 }
-& $PhpExe artisan migrate --force 2>&1 | Tee-Object -Variable migrateOut | Out-Null
-if ($migrateOut -match "FAIL") { Fail "A migration failed.`n$migrateOut" }
+& $PhpExe artisan migrate --force
+if ($LASTEXITCODE -ne 0) { Fail "A migration failed - see the output above." }
 OK "Database is ready"
 
-& $PhpExe artisan storage:link 2>&1 | Out-Null
+& $PhpExe artisan storage:link
 
 # Optional: import a backup zip if the operator dropped one on the Desktop
 # or in Downloads (must contain a database-*.sql file, same format produced
@@ -226,10 +226,16 @@ $conf = Get-Content $httpdConf -Raw
 if ($conf -notmatch '(?m)^LoadModule rewrite_module') {
     $conf = $conf -replace '(?m)^#\s*LoadModule rewrite_module modules/mod_rewrite\.so', 'LoadModule rewrite_module modules/mod_rewrite.so'
 }
-if ($conf -notmatch [regex]::Escape($laragonPhpConf)) {
-    $conf = $conf -replace '(Include conf/extra/httpd-vhosts\.conf)', "Include `"$laragonPhpConf`"`n`$1"
-    if ($conf -notmatch [regex]::Escape($laragonPhpConf)) {
-        $conf += "`nInclude `"$laragonPhpConf`"`nInclude conf/extra/httpd-vhosts.conf`n"
+# Match on the filename alone (not the full path with a specific slash
+# direction) so a previously-added Include - however it was written - is
+# recognised and never duplicated. A duplicate Include of this same file
+# makes Apache load the PHP module twice and blocks the service from
+# starting.
+if ($conf -notmatch '(?i)Include\s+"[^"]*mod_php\.conf"') {
+    $includeLine = "Include `"$($laragonPhpConf -replace '\\','/')`""
+    $conf = $conf -replace '(Include conf/extra/httpd-vhosts\.conf)', "$includeLine`n`$1"
+    if ($conf -notmatch '(?i)Include\s+"[^"]*mod_php\.conf"') {
+        $conf += "`n$includeLine`nInclude conf/extra/httpd-vhosts.conf`n"
     }
 }
 $conf = $conf -replace 'DocumentRoot "\$\{SRVROOT\}/htdocs"', 'DocumentRoot "C:/laragon/www"'
@@ -285,15 +291,15 @@ Get-Service -Name "Apache*" -ErrorAction SilentlyContinue |
 
 if (Get-Service -Name $serviceName -ErrorAction SilentlyContinue) {
     Stop-Service -Name $serviceName -Force -ErrorAction SilentlyContinue
-    & $apacheExe -k uninstall -n $serviceName 2>&1 | Out-Null
+    & $apacheExe -k uninstall -n $serviceName
 }
 Stop-Process -Name httpd -Force -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 1
-& $apacheExe -k install -n $serviceName -d $ApacheDir.FullName 2>&1 | Out-Null
+& $apacheExe -k install -n $serviceName -d $ApacheDir.FullName
 Set-Service -Name $serviceName -StartupType Automatic
 Start-Service -Name $serviceName
-sc.exe failure $serviceName reset= 86400 actions= restart/5000/restart/10000/restart/30000 2>&1 | Out-Null
-sc.exe failureflag $serviceName 1 2>&1 | Out-Null
+sc.exe failure $serviceName reset= 86400 actions= restart/5000/restart/10000/restart/30000
+sc.exe failureflag $serviceName 1
 
 Start-Sleep -Seconds 2
 $svc = Get-Service -Name $serviceName
@@ -302,12 +308,12 @@ OK "$serviceName service is running and set to start automatically"
 
 # ---- 9. Production caches + shortcut + backups ------------------------------------
 Step "Optimizing and finishing touches"
-& $PhpExe artisan config:cache 2>&1 | Out-Null
-& $PhpExe artisan route:cache 2>&1 | Out-Null
-& $PhpExe artisan view:cache 2>&1 | Out-Null
+& $PhpExe artisan config:cache
+& $PhpExe artisan route:cache
+& $PhpExe artisan view:cache
 
-& powershell -ExecutionPolicy Bypass -File "$ProjectDir\deploy\create_desktop_shortcut.ps1" 2>&1 | Out-Null
-& powershell -ExecutionPolicy Bypass -File "$ProjectDir\deploy\install_scheduled_backup.ps1" 2>&1 | Out-Null
+& powershell -ExecutionPolicy Bypass -File "$ProjectDir\deploy\create_desktop_shortcut.ps1"
+& powershell -ExecutionPolicy Bypass -File "$ProjectDir\deploy\install_scheduled_backup.ps1"
 OK "Desktop shortcut and automatic cloud backup are set up"
 
 # ---- 10. Final check ----------------------------------------------------------------
