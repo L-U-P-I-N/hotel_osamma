@@ -305,7 +305,15 @@ Start-Sleep -Seconds 1
 & $apacheExe -k install -n $serviceName -d $ApacheDir.FullName *>> $svcLog
 Get-Content $svcLog -ErrorAction SilentlyContinue | Write-Host
 
-if (-not (Get-Service -Name $serviceName -ErrorAction SilentlyContinue)) {
+# Windows Service Control Manager can take a moment to make a just-installed
+# service visible to Get-Service, so retry briefly instead of failing on the
+# very first check.
+$serviceFound = $false
+for ($i = 0; $i -lt 10; $i++) {
+    if (Get-Service -Name $serviceName -ErrorAction SilentlyContinue) { $serviceFound = $true; break }
+    Start-Sleep -Seconds 1
+}
+if (-not $serviceFound) {
     Fail "The $serviceName Windows Service was not created - see $svcLog"
 }
 
