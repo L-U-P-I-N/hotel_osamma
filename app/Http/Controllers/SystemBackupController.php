@@ -47,4 +47,47 @@ class SystemBackupController extends Controller
         return response()->download($zipPath, 'hotel-backup-' . $timestamp . '.zip')
             ->deleteFileAfterSend(true);
     }
+
+    /**
+     * نفس تنزيل النسخة الكاملة أعلاه، لكن بدون جلسة تسجيل دخول — مخصّص
+     * للاستدعاء الآلي من سكربت التثبيت على جهاز الفندق (لسحب أحدث نسخة
+     * وقت التحويل مباشرة بدل الضغط اليدوي على الزر). محمي برمز سري يُقارَن
+     * بمتغير بيئة BACKUP_API_TOKEN على الاستضافة فقط — لا تُخزَّن أي قيمة
+     * حقيقية لهذا الرمز داخل المستودع (عام على GitHub).
+     */
+    public function apiDownload(Request $request, BackupService $backup)
+    {
+        $configuredToken = config('services.backup_api.token');
+
+        // Fail closed: if no token is configured on this deployment, refuse
+        // every request rather than silently allowing/matching empty values.
+        if (!$configuredToken || !hash_equals($configuredToken, (string) $request->bearerToken())) {
+            abort(403, 'رمز الوصول غير صحيح أو غير مُفعَّل.');
+        }
+
+        $includeFiles = $request->boolean('files', true);
+        $timestamp    = now()->format('Y-m-d_H-i-s');
+        $workDir      = storage_path('app/backup-tmp');
+        @mkdir($workDir, 0755, true);
+
+        set_time_limit(600);
+
+        try {
+            $dbFile  = $backup->dumpDatabase($workDir, $timestamp);
+            $zipPath = $workDir . '/hotel-backup-' . $timestamp . '.zip';
+            $backup->buildZip($zipPath, $dbFile, $includeFiles);
+            @unlink($dbFile);
+        } catch (\Throwable $e) {
+            $backup->cleanupDir($workDir);
+            throw $e;
+        }
+
+        Log::info('تنزيل نسخة كاملة من النظام عبر API آلي', [
+            'include_files' => $includeFiles,
+            'ip' => $request->ip(),
+        ]);
+
+        return response()->download($zipPath, 'hotel-backup-' . $timestamp . '.zip')
+            ->deleteFileAfterSend(true);
+    }
 }

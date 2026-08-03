@@ -22,3 +22,11 @@ yarn-error.log
 /.vscode
 /.zed
 .claude/
+
+# Secret bearer token for the automatic cutover backup pull - lives only on
+# the hotel PC, never in this public repository.
+deploy/cloud_backup_token.txt
+
+# Electron desktop-app build artifacts
+desktop-app/node_modules
+desktop-app/dist

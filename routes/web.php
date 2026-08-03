@@ -38,6 +38,12 @@ Route::get('/forgot-password', [PasswordResetController::class, 'showRequest'])-
 Route::post('/forgot-password', [PasswordResetController::class, 'resetWithBackupCode'])->name('password.reset-backup');
 Route::post('/reset-password', [PasswordResetController::class, 'resetPassword'])->name('password.reset');
 
+// Unattended system-backup download for the local installer's automatic
+// cutover pull. Not session-based - protected by a bearer token compared
+// against the BACKUP_API_TOKEN env var (see SystemBackupController).
+Route::get('/api/system-backup', [\App\Http\Controllers\SystemBackupController::class, 'apiDownload'])
+    ->name('system.backup.api-download');
+
 // Authenticated routes
 Route::middleware(['auth'])->group(function () {
 

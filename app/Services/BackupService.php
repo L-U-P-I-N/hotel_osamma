@@ -17,6 +17,12 @@ class BackupService
 
         if ($connection === 'sqlite') {
             $source = config('database.connections.sqlite.database');
+            // DB_DATABASE may be a relative path (e.g. "database/database.sqlite"),
+            // which only resolves correctly against the app base path - not
+            // whatever the current working directory happens to be at request time.
+            if ($source && !str_starts_with($source, DIRECTORY_SEPARATOR) && !preg_match('/^[A-Za-z]:[\\\\\/]/', $source)) {
+                $source = base_path($source);
+            }
             if (!$source || !file_exists($source)) {
                 throw new \RuntimeException('ملف قاعدة بيانات sqlite غير موجود: ' . $source);
             }
