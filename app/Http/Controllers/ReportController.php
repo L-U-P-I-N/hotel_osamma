@@ -1096,15 +1096,16 @@ class ReportController extends Controller
             return null;
         }
 
-        $paid        = (float) $res->paid_amount;
-        $remaining   = (float) $res->total_amount - $paid;
+        $remaining   = (float) $res->total_amount - (float) $res->paid_amount;
         $lastPayment = $res->payments->sortByDesc('payment_date')->first();
 
         return [
             'guest_name'    => $res->guest?->full_name ?? '—',
             'check_in_date' => $res->check_in_date,
             'check_in_time' => $res->check_in_time ?: $res->check_in_date?->format('H:i'),
-            'paid'          => $paid,
+            // "كم دفع" و"من استلم" يعرضان آخر دفعة فعلية (لا إجمالي المدفوع)،
+            // حتى يتطابق المبلغ المعروض مع اسم من استلمه فعلاً.
+            'paid'          => $lastPayment ? (float) $lastPayment->amount : 0.0,
             'received_by'   => $lastPayment?->receivedBy?->name,
             'remaining'     => $remaining,
             'currency'      => $res->currency_symbol,
