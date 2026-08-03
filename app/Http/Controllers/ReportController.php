@@ -1024,11 +1024,10 @@ class ReportController extends Controller
     }
 
     /**
-     * تقرير عم علي — قسمان:
-     * (أ) الغرف المستأجَرة حالياً: الإجمالي والمدفوع والمتبقي، وسعر الإقامة قبل
-     *     آخر تجديد (للغرف/الأجنحة المجدَّدة).
-     * (ب) دفعات يوم محدَّد: كل دفعة استلمها موظف في ذلك اليوم (المبلغ + الموظف)،
-     *     مع إجمالي ما استلمه كل موظف وإجمالي اليوم. قالب بسيط بخط واضح.
+     * تقرير عم علي — جدول واحد بـ8 أعمدة لكل غرفة: رقم الغرفة، حالة الغرفة،
+     * نزيل اليوم (مع وقت الدخول)، كم دفع نزيل اليوم، من استلم دفعته، مديونيته،
+     * ثم نفس الشيء لنزيل الأمس (نزيل الأمس، سدد عند من، مديونيته) — مقارنة
+     * سريعة بين يومين لكل غرفة على ورقة واحدة عرضية.
      */
     public function amAli(Request $request)
     {
@@ -1037,52 +1036,79 @@ class ReportController extends Controller
     }
 
     /**
-     * تصدير تقرير عم علي إلى PDF لليوم المحدَّد.
+     * تصدير تقرير عم علي إلى PDF لليوم المحدَّد (عرضي/landscape).
      */
     public function amAliPdf(Request $request)
     {
         $date = $request->input('date', now()->toDateString());
         $pdf  = $this->pdfOptions(pdf_load_view('reports.am_ali_pdf', $this->amAliData($date)));
-        $pdf->setPaper('a4', 'portrait');
+        $pdf->setPaper('a4', 'landscape');
         return $pdf->download('am-ali-' . $date . '.pdf');
     }
 
     /**
-     * بناء بيانات تقرير عم علي (مشترك بين العرض والتصدير): الغرف المستأجَرة حالياً،
-     * ودفعات اليوم المحدَّد وإجمالي ما استلمه كل موظف.
+     * بناء بيانات تقرير عم علي (مشترك بين العرض والتصدير): صف واحد لكل غرفة
+     * يقارن نزيل اليوم بنزيل الأمس (إن وُجدا).
      */
     private function amAliData(string $date): array
     {
-        // (أ) الغرف المستأجَرة حالياً
-        $reservations = Reservation::with(['guest', 'room', 'segments'])
-            ->where('status', 'checked_in')
-            ->get()
-            ->sortBy(fn($r) => $r->room?->room_number ?? '', SORT_NATURAL)
-            ->values();
+        $yesterday = \Carbon\Carbon::parse($date)->subDay()->toDateString();
 
-        $totals = [
-            'total'     => $reservations->sum(fn($r) => (float) $r->total_amount),
-            'paid'      => $reservations->sum(fn($r) => (float) $r->paid_amount),
-            'remaining' => $reservations->sum(fn($r) => (float) $r->total_amount - (float) $r->paid_amount),
-        ];
+        $rooms = Room::orderBy('room_number')->get()->sortBy(fn($r) => $r->room_number, SORT_NATURAL)->values();
 
-        // (ب) دفعات اليوم المحدَّد التي استلمها الموظفون
-        $dayPayments = Payment::with(['receivedBy', 'reservation.guest', 'reservation.room'])
-            ->whereDate('payment_date', $date)
-            ->orderBy('payment_date')
-            ->get();
+        $rows = $rooms->map(function ($room) use ($date, $yesterday) {
+            $today = $this->amAliRoomOccupant($room->id, $date);
+            $yday  = $this->amAliRoomOccupant($room->id, $yesterday);
 
-        // إجمالي ما استلمه كل موظف في اليوم (لكل عملة) + إجمالي اليوم لكل عملة
-        $byEmployee = [];
-        $dayTotals  = [];
-        foreach ($dayPayments as $p) {
-            $name = $p->receivedBy?->name ?? 'غير معروف';
-            $cur  = $p->currency ?: 'YER';
-            $byEmployee[$name][$cur] = ($byEmployee[$name][$cur] ?? 0) + (float) $p->amount;
-            $dayTotals[$cur]         = ($dayTotals[$cur] ?? 0) + (float) $p->amount;
+            return [
+                'room'   => $room,
+                'status' => $today ? 'مشغولة' : 'فارغة',
+                'today'  => $today,
+                'yday'   => $yday,
+            ];
+        });
+
+        return compact('rows', 'date', 'yesterday');
+    }
+
+    /**
+     * بيانات نزيل غرفة معيّنة في تاريخ محدَّد (إن وُجد): اسمه، وقت دخوله،
+     * المبلغ المدفوع لغرفته، آخر موظف استلم دفعة منه، ومديونيته المتبقية.
+     */
+    private function amAliRoomOccupant(int $roomId, string $date): ?array
+    {
+        $res = Reservation::with(['guest', 'payments.receivedBy'])
+            ->where('room_id', $roomId)
+            ->where(function ($q) use ($date) {
+                $q->where(function ($q2) use ($date) {
+                    $q2->where('status', 'checked_in')
+                       ->whereDate('check_in_date', '<=', $date)
+                       ->whereDate('check_out_date', '>=', $date);
+                })->orWhere(function ($q2) use ($date) {
+                    $q2->where('status', 'checked_out')
+                       ->whereDate('check_in_date', '<=', $date)
+                       ->whereDate('actual_check_out', '>=', $date);
+                });
+            })
+            ->first();
+
+        if (!$res) {
+            return null;
         }
 
-        return compact('reservations', 'totals', 'date', 'dayPayments', 'byEmployee', 'dayTotals');
+        $paid        = (float) $res->paid_amount;
+        $remaining   = (float) $res->total_amount - $paid;
+        $lastPayment = $res->payments->sortByDesc('payment_date')->first();
+
+        return [
+            'guest_name'    => $res->guest?->full_name ?? '—',
+            'check_in_date' => $res->check_in_date,
+            'check_in_time' => $res->check_in_time ?: $res->check_in_date?->format('H:i'),
+            'paid'          => $paid,
+            'received_by'   => $lastPayment?->receivedBy?->name,
+            'remaining'     => $remaining,
+            'currency'      => $res->currency_symbol,
+        ];
     }
 
     public function salariesPdf(Request $request)
