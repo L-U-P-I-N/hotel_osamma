@@ -48,14 +48,16 @@
 <table class="data" dir="rtl">
     <thead>
         <tr>
-            <th style="width:12%;">مديونية الأمس</th>
-            <th style="width:20%;">نزيل الأمس / سدد عند من</th>
-            <th style="width:12%;">مديونية اليوم</th>
-            <th style="width:12%;">من استلم</th>
-            <th style="width:12%;">كم دفع</th>
-            <th style="width:20%;">نزيل اليوم / وقت الدخول</th>
+            <th style="width:10%;">مديونية الأمس</th>
+            <th style="width:10%;">سدد عند من</th>
+            <th style="width:13%;">من أمس كان فيها</th>
+            <th style="width:10%;">مديونية اليوم</th>
+            <th style="width:10%;">من استلم</th>
+            <th style="width:10%;">كم دفع</th>
+            <th style="width:11%;">متى دخل</th>
+            <th style="width:13%;">من فيها اليوم</th>
             <th style="width:8%;">حالة الغرفة</th>
-            <th style="width:6%;">الغرفة</th>
+            <th style="width:5%;">الغرفة</th>
         </tr>
     </thead>
     <tbody>
@@ -64,12 +66,8 @@
             <td class="c" style="font-weight:bold;color:{{ ($row['yday']['remaining'] ?? 0) > 0 ? '#dc2626' : '#888' }};">
                 {{ $row['yday'] ? number_format($row['yday']['remaining'], 0) . ' ' . $row['yday']['currency'] : '—' }}
             </td>
-            <td>
-                @if($row['yday'])
-                    {{ $row['yday']['guest_name'] }}
-                    <div class="sub-note">سدد عند: {{ $row['yday']['received_by'] ?? '—' }}</div>
-                @else — @endif
-            </td>
+            <td class="c">{{ $row['yday']['received_by'] ?? '—' }}</td>
+            <td>{{ $row['yday']['guest_name'] ?? '—' }}</td>
             <td class="c" style="font-weight:bold;color:{{ ($row['today']['remaining'] ?? 0) > 0 ? '#dc2626' : '#888' }};">
                 {{ $row['today'] ? number_format($row['today']['remaining'], 0) . ' ' . $row['today']['currency'] : '—' }}
             </td>
@@ -77,12 +75,12 @@
             <td class="c" style="font-weight:bold;color:#16a34a;">
                 {{ $row['today'] ? number_format($row['today']['paid'], 0) . ' ' . $row['today']['currency'] : '—' }}
             </td>
-            <td>
+            <td class="c">
                 @if($row['today'])
-                    {{ $row['today']['guest_name'] }}
-                    <div class="sub-note">{{ $row['today']['check_in_date']?->format('d/m/Y') }} — {{ $row['today']['check_in_time'] ?? '—' }}</div>
+                    {{ $row['today']['check_in_date']?->format('d/m/Y') }}<br>{{ $row['today']['check_in_time'] ?? '—' }}
                 @else — @endif
             </td>
+            <td>{{ $row['today']['guest_name'] ?? '—' }}</td>
             <td class="c">{{ $row['status'] }}</td>
             <td class="c" style="font-weight:bold;">{{ $row['room']->room_number }}</td>
         </tr>

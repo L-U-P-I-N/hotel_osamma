@@ -42,11 +42,13 @@
                 <tr class="bg-gray-800 text-white text-sm">
                     <th class="border border-gray-300 px-3 py-3 font-bold">الغرفة</th>
                     <th class="border border-gray-300 px-3 py-3 font-bold">حالة الغرفة</th>
-                    <th class="border border-gray-300 px-3 py-3 font-bold">نزيل اليوم / وقت الدخول</th>
+                    <th class="border border-gray-300 px-3 py-3 font-bold">من فيها اليوم</th>
+                    <th class="border border-gray-300 px-3 py-3 font-bold">متى دخل</th>
                     <th class="border border-gray-300 px-3 py-3 font-bold">كم دفع</th>
                     <th class="border border-gray-300 px-3 py-3 font-bold">من استلم</th>
                     <th class="border border-gray-300 px-3 py-3 font-bold">مديونية اليوم</th>
-                    <th class="border border-gray-300 px-3 py-3 font-bold">نزيل الأمس / سدد عند من</th>
+                    <th class="border border-gray-300 px-3 py-3 font-bold">من أمس كان فيها</th>
+                    <th class="border border-gray-300 px-3 py-3 font-bold">سدد عند من</th>
                     <th class="border border-gray-300 px-3 py-3 font-bold">مديونية الأمس</th>
                 </tr>
             </thead>
@@ -60,29 +62,25 @@
                         </span>
                     </td>
                     @if($row['today'])
-                    <td class="border border-gray-300 px-3 py-3">
-                        <div class="font-bold">{{ $row['today']['guest_name'] }}</div>
-                        <div class="text-xs text-gray-500">{{ $row['today']['check_in_date']?->format('d/m/Y') }} — {{ $row['today']['check_in_time'] ?? '—' }}</div>
-                    </td>
+                    <td class="border border-gray-300 px-3 py-3 font-bold">{{ $row['today']['guest_name'] }}</td>
+                    <td class="border border-gray-300 px-3 py-3 text-xs text-gray-500 whitespace-nowrap">{{ $row['today']['check_in_date']?->format('d/m/Y') }} — {{ $row['today']['check_in_time'] ?? '—' }}</td>
                     <td class="border border-gray-300 px-3 py-3 font-bold text-green-700">{{ number_format($row['today']['paid'], 0) }} {{ $row['today']['currency'] }}</td>
                     <td class="border border-gray-300 px-3 py-3 font-semibold">{{ $row['today']['received_by'] ?? '—' }}</td>
                     <td class="border border-gray-300 px-3 py-3 font-black {{ $row['today']['remaining'] > 0 ? 'text-red-700' : 'text-gray-400' }}">{{ number_format($row['today']['remaining'], 0) }} {{ $row['today']['currency'] }}</td>
                     @else
-                    <td class="border border-gray-300 px-3 py-3 text-gray-300 text-center" colspan="4">—</td>
+                    <td class="border border-gray-300 px-3 py-3 text-gray-300 text-center" colspan="5">—</td>
                     @endif
                     @if($row['yday'])
-                    <td class="border border-gray-300 px-3 py-3">
-                        <div class="font-bold">{{ $row['yday']['guest_name'] }}</div>
-                        <div class="text-xs text-gray-500">سدد عند: {{ $row['yday']['received_by'] ?? '—' }}</div>
-                    </td>
+                    <td class="border border-gray-300 px-3 py-3 font-bold">{{ $row['yday']['guest_name'] }}</td>
+                    <td class="border border-gray-300 px-3 py-3 font-semibold">{{ $row['yday']['received_by'] ?? '—' }}</td>
                     <td class="border border-gray-300 px-3 py-3 font-black {{ $row['yday']['remaining'] > 0 ? 'text-red-700' : 'text-gray-400' }}">{{ number_format($row['yday']['remaining'], 0) }} {{ $row['yday']['currency'] }}</td>
                     @else
-                    <td class="border border-gray-300 px-3 py-3 text-gray-300 text-center" colspan="2">—</td>
+                    <td class="border border-gray-300 px-3 py-3 text-gray-300 text-center" colspan="3">—</td>
                     @endif
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="8" class="border border-gray-300 px-4 py-10 text-center text-gray-400 text-lg">لا توجد غرف</td>
+                    <td colspan="10" class="border border-gray-300 px-4 py-10 text-center text-gray-400 text-lg">لا توجد غرف</td>
                 </tr>
                 @endforelse
             </tbody>
