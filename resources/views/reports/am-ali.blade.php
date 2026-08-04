@@ -44,12 +44,13 @@
                     <th class="border border-gray-300 px-3 py-3 font-bold">حالة الغرفة</th>
                     <th class="border border-gray-300 px-3 py-3 font-bold">من فيها اليوم</th>
                     <th class="border border-gray-300 px-3 py-3 font-bold">متى دخل</th>
-                    <th class="border border-gray-300 px-3 py-3 font-bold">كم دفع</th>
+                    <th class="border border-gray-300 px-3 py-3 font-bold">مبلغ آخر دفعة</th>
                     <th class="border border-gray-300 px-3 py-3 font-bold">من استلم</th>
                     <th class="border border-gray-300 px-3 py-3 font-bold">مديونية اليوم</th>
                     <th class="border border-gray-300 px-3 py-3 font-bold">من أمس كان فيها</th>
                     <th class="border border-gray-300 px-3 py-3 font-bold">سدد عند من</th>
                     <th class="border border-gray-300 px-3 py-3 font-bold">مديونية الأمس</th>
+                    <th class="border border-gray-300 px-3 py-3 font-bold">مبلغ آخر دفعة أمس</th>
                 </tr>
             </thead>
             <tbody class="text-sm text-gray-900">
@@ -74,13 +75,14 @@
                     <td class="border border-gray-300 px-3 py-3 font-bold">{{ $row['yday']['guest_name'] }}</td>
                     <td class="border border-gray-300 px-3 py-3 font-semibold">{{ $row['yday']['received_by'] ?? '—' }}</td>
                     <td class="border border-gray-300 px-3 py-3 font-black {{ $row['yday']['remaining'] > 0 ? 'text-red-700' : 'text-gray-400' }}">{{ number_format($row['yday']['remaining'], 0) }} {{ $row['yday']['currency'] }}</td>
+                    <td class="border border-gray-300 px-3 py-3 font-bold text-green-700">{{ number_format($row['yday']['paid'], 0) }} {{ $row['yday']['currency'] }}</td>
                     @else
-                    <td class="border border-gray-300 px-3 py-3 text-gray-300 text-center" colspan="3">—</td>
+                    <td class="border border-gray-300 px-3 py-3 text-gray-300 text-center" colspan="4">—</td>
                     @endif
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="10" class="border border-gray-300 px-4 py-10 text-center text-gray-400 text-lg">لا توجد غرف</td>
+                    <td colspan="11" class="border border-gray-300 px-4 py-10 text-center text-gray-400 text-lg">لا توجد غرف</td>
                 </tr>
                 @endforelse
             </tbody>

@@ -48,21 +48,25 @@
 <table class="data" dir="rtl">
     <thead>
         <tr>
-            <th style="width:10%;">مديونية الأمس</th>
-            <th style="width:10%;">سدد عند من</th>
-            <th style="width:13%;">من أمس كان فيها</th>
-            <th style="width:10%;">مديونية اليوم</th>
-            <th style="width:10%;">من استلم</th>
-            <th style="width:10%;">كم دفع</th>
-            <th style="width:11%;">متى دخل</th>
-            <th style="width:13%;">من فيها اليوم</th>
-            <th style="width:8%;">حالة الغرفة</th>
+            <th style="width:9%;">مبلغ آخر دفعة أمس</th>
+            <th style="width:9%;">مديونية الأمس</th>
+            <th style="width:9%;">سدد عند من</th>
+            <th style="width:12%;">من أمس كان فيها</th>
+            <th style="width:9%;">مديونية اليوم</th>
+            <th style="width:9%;">من استلم</th>
+            <th style="width:9%;">مبلغ آخر دفعة</th>
+            <th style="width:10%;">متى دخل</th>
+            <th style="width:12%;">من فيها اليوم</th>
+            <th style="width:7%;">حالة الغرفة</th>
             <th style="width:5%;">الغرفة</th>
         </tr>
     </thead>
     <tbody>
         @foreach($rows as $row)
         <tr>
+            <td class="c" style="font-weight:bold;color:#16a34a;">
+                {{ $row['yday'] ? number_format($row['yday']['paid'], 0) . ' ' . $row['yday']['currency'] : '—' }}
+            </td>
             <td class="c" style="font-weight:bold;color:{{ ($row['yday']['remaining'] ?? 0) > 0 ? '#dc2626' : '#888' }};">
                 {{ $row['yday'] ? number_format($row['yday']['remaining'], 0) . ' ' . $row['yday']['currency'] : '—' }}
             </td>
