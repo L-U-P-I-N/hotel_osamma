@@ -57,8 +57,17 @@
                 @forelse($rows as $i => $row)
                 <tr class="{{ $i % 2 === 0 ? 'bg-white' : 'bg-gray-50' }}">
                     <td class="border border-gray-300 px-3 py-3 font-black text-primary-800">{{ $row['room']->room_number }}</td>
+                    @php
+                        $statusClasses = match($row['status_color']) {
+                            'green'  => 'bg-green-100 text-green-700',
+                            'blue'   => 'bg-blue-100 text-blue-700',
+                            'red'    => 'bg-red-100 text-red-700',
+                            'yellow' => 'bg-yellow-100 text-yellow-700',
+                            default  => 'bg-gray-100 text-gray-500',
+                        };
+                    @endphp
                     <td class="border border-gray-300 px-3 py-3">
-                        <span class="px-2 py-1 rounded-full text-xs font-semibold {{ $row['status'] === 'مشغولة' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500' }}">
+                        <span class="px-2 py-1 rounded-full text-xs font-semibold {{ $statusClasses }}">
                             {{ $row['status'] }}
                         </span>
                     </td>

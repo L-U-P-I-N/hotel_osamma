@@ -1061,10 +1061,14 @@ class ReportController extends Controller
             $yday  = $this->amAliRoomOccupant($room->id, $yesterday);
 
             return [
-                'room'   => $room,
-                'status' => $today ? 'مشغولة' : 'فارغة',
-                'today'  => $today,
-                'yday'   => $yday,
+                'room'         => $room,
+                // حالة الغرفة الفعلية الحالية (مشغولة/متاحة/تحت الفحص/صيانة) من
+                // Room::status نفسه، وليس مجرد استنتاج من وجود نزيل اليوم —
+                // فغرفة فيها نزيل اليوم قد تكون مثلاً تحت الفحص بعد مغادرته.
+                'status'       => $room->status_label,
+                'status_color' => $room->status_color,
+                'today'        => $today,
+                'yday'         => $yday,
             ];
         });
 
