@@ -74,7 +74,12 @@
                     @if($row['today'])
                     <td class="border border-gray-300 px-3 py-3 font-bold">{{ $row['today']['guest_name'] }}</td>
                     <td class="border border-gray-300 px-3 py-3 text-xs text-gray-500 whitespace-nowrap">{{ $row['today']['check_in_date']?->format('d/m/Y') }} — {{ $row['today']['check_in_time'] ?? '—' }}</td>
-                    <td class="border border-gray-300 px-3 py-3 font-bold text-green-700">{{ number_format($row['today']['paid'], 0) }} {{ $row['today']['currency'] }}</td>
+                    <td class="border border-gray-300 px-3 py-3 font-bold text-green-700">
+                        {{ number_format($row['today']['paid'], 0) }} {{ $row['today']['currency'] }}
+                        @if($row['today']['paid_date'])
+                        <div class="text-xs font-normal text-gray-500">{{ $row['today']['paid_date']->format('d/m/Y H:i') }}</div>
+                        @endif
+                    </td>
                     <td class="border border-gray-300 px-3 py-3 font-semibold">{{ $row['today']['received_by'] ?? '—' }}</td>
                     <td class="border border-gray-300 px-3 py-3 font-black {{ $row['today']['remaining'] > 0 ? 'text-red-700' : 'text-gray-400' }}">{{ number_format($row['today']['remaining'], 0) }} {{ $row['today']['currency'] }}</td>
                     @else
@@ -84,7 +89,12 @@
                     <td class="border border-gray-300 px-3 py-3 font-bold">{{ $row['yday']['guest_name'] }}</td>
                     <td class="border border-gray-300 px-3 py-3 font-semibold">{{ $row['yday']['received_by'] ?? '—' }}</td>
                     <td class="border border-gray-300 px-3 py-3 font-black {{ $row['yday']['remaining'] > 0 ? 'text-red-700' : 'text-gray-400' }}">{{ number_format($row['yday']['remaining'], 0) }} {{ $row['yday']['currency'] }}</td>
-                    <td class="border border-gray-300 px-3 py-3 font-bold text-green-700">{{ number_format($row['yday']['paid'], 0) }} {{ $row['yday']['currency'] }}</td>
+                    <td class="border border-gray-300 px-3 py-3 font-bold text-green-700">
+                        {{ number_format($row['yday']['paid'], 0) }} {{ $row['yday']['currency'] }}
+                        @if($row['yday']['paid_date'])
+                        <div class="text-xs font-normal text-gray-500">{{ $row['yday']['paid_date']->format('d/m/Y H:i') }}</div>
+                        @endif
+                    </td>
                     @else
                     <td class="border border-gray-300 px-3 py-3 text-gray-300 text-center" colspan="4">—</td>
                     @endif

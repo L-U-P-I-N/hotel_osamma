@@ -65,7 +65,10 @@
         @foreach($rows as $row)
         <tr>
             <td class="c" style="font-weight:bold;color:#16a34a;">
-                {{ $row['yday'] ? number_format($row['yday']['paid'], 0) . ' ' . $row['yday']['currency'] : '—' }}
+                @if($row['yday'])
+                    {{ number_format($row['yday']['paid'], 0) . ' ' . $row['yday']['currency'] }}
+                    @if($row['yday']['paid_date'])<div class="sub-note">{{ $row['yday']['paid_date']->format('d/m/Y H:i') }}</div>@endif
+                @else — @endif
             </td>
             <td class="c" style="font-weight:bold;color:{{ ($row['yday']['remaining'] ?? 0) > 0 ? '#dc2626' : '#888' }};">
                 {{ $row['yday'] ? number_format($row['yday']['remaining'], 0) . ' ' . $row['yday']['currency'] : '—' }}
@@ -77,7 +80,10 @@
             </td>
             <td class="c">{{ $row['today']['received_by'] ?? '—' }}</td>
             <td class="c" style="font-weight:bold;color:#16a34a;">
-                {{ $row['today'] ? number_format($row['today']['paid'], 0) . ' ' . $row['today']['currency'] : '—' }}
+                @if($row['today'])
+                    {{ number_format($row['today']['paid'], 0) . ' ' . $row['today']['currency'] }}
+                    @if($row['today']['paid_date'])<div class="sub-note">{{ $row['today']['paid_date']->format('d/m/Y H:i') }}</div>@endif
+                @else — @endif
             </td>
             <td class="c">
                 @if($row['today'])

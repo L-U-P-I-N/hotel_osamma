@@ -1110,6 +1110,7 @@ class ReportController extends Controller
             // "كم دفع" و"من استلم" يعرضان آخر دفعة فعلية (لا إجمالي المدفوع)،
             // حتى يتطابق المبلغ المعروض مع اسم من استلمه فعلاً.
             'paid'          => $lastPayment ? (float) $lastPayment->amount : 0.0,
+            'paid_date'     => $lastPayment?->payment_date,
             'received_by'   => $lastPayment?->receivedBy?->name,
             'remaining'     => $remaining,
             'currency'      => $res->currency_symbol,
