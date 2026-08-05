@@ -1100,8 +1100,16 @@ class ReportController extends Controller
             return null;
         }
 
-        $remaining   = (float) $res->total_amount - (float) $res->paid_amount;
-        $lastPayment = $res->payments->sortByDesc('payment_date')->first();
+        $remaining = (float) $res->total_amount - (float) $res->paid_amount;
+
+        // إذا كان نفس الحجز مستمراً من الأمس إلى اليوم، فـ"آخر دفعة كما كانت في
+        // ذلك التاريخ" ليست بالضرورة آخر دفعة على الحجز إجمالاً (قد تكون دفعة
+        // لاحقة اليوم) — نقتصر على الدفعات التي تمّت في ذلك التاريخ أو قبله.
+        $cutoff      = \Carbon\Carbon::parse($date)->endOfDay();
+        $lastPayment = $res->payments
+            ->filter(fn ($p) => $p->payment_date && $p->payment_date->lte($cutoff))
+            ->sortByDesc('payment_date')
+            ->first();
 
         return [
             'guest_name'    => $res->guest?->full_name ?? '—',
