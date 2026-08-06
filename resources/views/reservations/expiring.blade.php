@@ -22,13 +22,8 @@
         <p class="text-sm text-gray-500">
             @php $st = $status ?? 'all'; @endphp
             {{ $st === 'checked_out' ? 'إجمالي المغادرين' : ($st === 'all' ? 'إجمالي النزلاء' : 'إجمالي المسجلين') }}:
-            <strong>{{ $reservations->count() }}</strong>
+            <strong>{{ $total }}</strong>
             @if($st !== 'checked_out')
-            @php
-                $active       = $reservations->where('status', 'checked_in');
-                $overdueCount = $active->filter(fn($r) => $r->check_out_date->startOfDay()->lt(now()->startOfDay()))->count();
-                $todayCount   = $active->filter(fn($r) => $r->check_out_date->isToday())->count();
-            @endphp
             @if($overdueCount > 0)
             — <span class="text-red-600 font-semibold">{{ $overdueCount }} متأخر</span>
             @endif
@@ -38,10 +33,18 @@
             @endif
         </p>
     </div>
-    <a href="{{ route('dashboard') }}" class="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-        لوحة التحكم
-    </a>
+    <div class="flex items-center gap-2">
+        @can('checkin.create')
+        <a href="{{ route('checkin.create') }}" class="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm font-medium transition shadow-sm hover:shadow-md" style="background:#0F4C75;">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H5a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
+            تسجيل دخول نزيل
+        </a>
+        @endcan
+        <a href="{{ route('dashboard') }}" class="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+            لوحة التحكم
+        </a>
+    </div>
 </div>
 
 <!-- Filters -->
@@ -56,8 +59,7 @@
                     <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                 </span>
                 <input type="text" name="search" value="{{ request('search') }}"
-                       placeholder="اسم النزيل أو رقم الغرفة..."
-                       oninput="clearTimeout(window._ft); window._ft = setTimeout(() => document.getElementById('filters').submit(), 600)"
+                       placeholder="اسم النزيل أو رقم الغرفة... (اضغط Enter للبحث)"
                        class="w-full border border-gray-200 rounded-lg pr-9 pl-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white">
             </div>
         </div>
@@ -89,6 +91,8 @@
                 <option value="checked_out" {{ ($status ?? '') === 'checked_out' ? 'selected' : '' }}>المغادرون</option>
             </select>
         </div>
+
+        <button type="submit" class="px-4 py-2 text-white rounded-lg text-sm font-medium self-end" style="background:#0F4C75;">بحث</button>
 
         @if(request()->hasAny(['search','check_in_date','check_out_date']) || (request('status') && request('status') !== 'all'))
         <a href="{{ route('reservations.expiring') }}"
@@ -269,6 +273,9 @@
                 @endforelse
             </tbody>
         </table>
+    </div>
+    <div class="px-5 py-3 border-t border-gray-100">
+        {{ $reservations->links() }}
     </div>
 </div>
 

@@ -1095,12 +1095,22 @@ class ReservationController extends Controller
             $query->whereDate('check_out_date', $checkOut);
         }
 
+        // "متأخر"/"خروجهم اليوم" تُحسب على كامل النتائج المطابقة للفلترة، لا على
+        // صفحة واحدة فقط بعد التقسيم — حتى لا يختفي تنبيه متأخر موجود في صفحة
+        // تالية. عدّاد مستقل قبل استهلاك $query بالترقيم.
+        $overdueCount = (clone $query)->where('status', 'checked_in')->whereDate('check_out_date', '<', today())->count();
+        $todayCount   = (clone $query)->where('status', 'checked_in')->whereDate('check_out_date', today())->count();
+        $total        = (clone $query)->count();
+
         // من لم يغادروا أولاً (الأقرب لموعد الخروج أعلى القائمة)، ثم من غادروا في النهاية
+        // مُرقَّمة (بدل تحميل كل السجلات دفعة واحدة) — القائمة تكبر باستمرار مع تراكم
+        // النزلاء المغادرين تاريخياً وكانت تُبطئ الصفحة أكثر كل فترة.
         $reservations = $query->orderByRaw("CASE WHEN status = 'checked_in' THEN 0 ELSE 1 END")
             ->orderBy('check_out_date', 'asc')
-            ->get();
+            ->paginate(30)
+            ->withQueryString();
 
-        return view('reservations.expiring', compact('reservations', 'status'));
+        return view('reservations.expiring', compact('reservations', 'status', 'overdueCount', 'todayCount', 'total'));
     }
 
     public function invoice(Reservation $reservation)
