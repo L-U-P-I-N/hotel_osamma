@@ -974,7 +974,7 @@ class ReportController extends Controller
                 'presentToday'  => $presentToday,
                 'departedToday' => $departedToday,
             ]));
-            $pdf->setPaper('a4', 'portrait');
+            $pdf->setPaper('a4', 'landscape');
             return $pdf->download('government-report-today-' . now()->toDateString() . '.pdf');
         }
 
@@ -983,7 +983,7 @@ class ReportController extends Controller
         $reservations = $query->orderByDesc('check_in_date')->get();
 
         $pdf = $this->pdfOptions(pdf_load_view('reports.government_pdf', compact('reservations', 'from', 'to') + ['mode' => 'range']));
-        $pdf->setPaper('a4', 'portrait');
+        $pdf->setPaper('a4', 'landscape');
         return $pdf->download('government-report-' . $from . '-' . $to . '.pdf');
     }
 

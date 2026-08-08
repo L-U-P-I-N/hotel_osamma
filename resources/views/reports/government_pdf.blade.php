@@ -26,7 +26,14 @@
 
     .pdf-footer { position: fixed; bottom: -10mm; left: 0; right: 0; font-size: 8px; color: #444; border-top: 1px solid #999; padding-top: 3px; text-align: right; }
 
-    table.main { width: 100%; border-collapse: collapse; table-layout: auto; direction: rtl; }
+    /*
+        table-layout: fixed + عروض أعمدة ثابتة بدل auto: يمنع انضغاط الأعمدة إلى
+        عرض ضيق جداً بشكل غير متوقَّع. ولا نستخدم word-break: break-word — في
+        dompdf مع نص عربي RTL، تقسيم الكلمة حرفياً منتصفها يُنتج أحياناً أول
+        حرف منفصلاً على سطر ظاهرياً "تحت" باقي الكلمة (خلل bidi معروف في
+        dompdf)، فنكتفي بالتفاف عادي عند الفراغات فقط.
+    */
+    table.main { width: 100%; border-collapse: collapse; table-layout: fixed; direction: rtl; }
     table.main thead { display: table-header-group; }
     table.main tbody { display: table-row-group; }
     table.main thead tr { background: #e5e7eb; }
@@ -34,7 +41,7 @@
     table.main tbody tr { page-break-inside: avoid; }
     table.main tbody td {
         padding: 4px; border: 1px solid #333; text-align: right;
-        word-wrap: break-word; word-break: break-word; vertical-align: top;
+        overflow-wrap: normal; word-break: normal; vertical-align: top;
     }
     table.main tbody td.c { text-align: center; }
     .plus { text-align: center; color: #888; }
@@ -85,19 +92,19 @@
     <table class="main" dir="rtl">
         <thead>
             <tr>
-                <th>أسماء المرافقين</th>
-                <th>ملاحظة</th>
-                <th>تاريخ الاصدار</th>
-                <th>صادر من</th>
-                <th>رقم الهوية</th>
-                <th>نوع الهوية</th>
-                <th>الغرض من القدوم</th>
-                <th>تاريخ القدوم</th>
-                <th>جهة القدوم</th>
-                <th>المهنة</th>
-                <th>الجنسية</th>
-                <th>اسم النزيل ثلاثيا</th>
-                <th>رقم الغرفة</th>
+                <th style="width:11%;">أسماء المرافقين</th>
+                <th style="width:9%;">ملاحظة</th>
+                <th style="width:6%;">تاريخ الاصدار</th>
+                <th style="width:7%;">صادر من</th>
+                <th style="width:8%;">رقم الهوية</th>
+                <th style="width:6%;">نوع الهوية</th>
+                <th style="width:7%;">الغرض من القدوم</th>
+                <th style="width:6%;">تاريخ القدوم</th>
+                <th style="width:8%;">جهة القدوم</th>
+                <th style="width:7%;">المهنة</th>
+                <th style="width:7%;">الجنسية</th>
+                <th style="width:12%;">اسم النزيل ثلاثيا</th>
+                <th style="width:6%;">رقم الغرفة</th>
             </tr>
         </thead>
         <tbody>
