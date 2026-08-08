@@ -167,7 +167,7 @@
                 خروج
             </a>
             @endif
-            @if($reservation->status === 'checked_out')
+            @if($reservation->status === 'checked_out' && $reservation->actual_check_out && $reservation->actual_check_out->addHours(3)->isFuture())
             <form method="POST" action="{{ route('checkout.undo', $reservation) }}" onsubmit="return confirm('تراجع عن تسجيل خروج هذا النزيل؟ سيعود الحجز لحالة \'مسجل دخول\' وتعود الغرفة \'مشغولة\'.\nملاحظة: أي دفعة أو أضرار سُجّلت وقت الخروج تبقى كما هي ولازم تراجعها يدوياً إن لزم.')">
                 @csrf @method('PATCH')
                 <button type="submit"

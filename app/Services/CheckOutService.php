@@ -175,6 +175,12 @@ class CheckOutService
             throw new \RuntimeException('لا يمكن التراجع — الحجز ليس في حالة "مسجل خروج".');
         }
 
+        // نافذة التراجع محدودة بـ3 ساعات من لحظة الخروج الفعلي — بعدها يُعتبر
+        // الخروج نهائياً (تفادياً لتعديل حجوزات قديمة أُقفلت فعلياً محاسبياً).
+        if (!$reservation->actual_check_out || $reservation->actual_check_out->addHours(3)->isPast()) {
+            throw new \RuntimeException('انتهت مهلة التراجع عن الخروج (3 ساعات من وقت الخروج الفعلي).');
+        }
+
         return DB::transaction(function () use ($reservation, $user) {
             $reservation->update([
                 'status'           => 'checked_in',
