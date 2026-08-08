@@ -163,6 +163,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/checkout/{reservation}', [CheckOutController::class, 'show'])->name('checkout.show');
         Route::post('/checkout/{reservation}', [CheckOutController::class, 'process'])->name('checkout.process');
         Route::get('/checkout/{reservation}/done', [CheckOutController::class, 'done'])->name('checkout.done');
+        // تراجع عن تسجيل خروج تمّ بالغلط لنزيل ما زال موجوداً فعلياً
+        Route::patch('/checkout/{reservation}/undo', [CheckOutController::class, 'undo'])->name('checkout.undo');
         // تسجيل أضرار لنزيل مقيم (دون انتظار الخروج)
         Route::post('/reservations/{reservation}/damage', [ReservationController::class, 'addDamage'])->name('reservations.addDamage');
         // تعديل / حذف ضرر مسجّل

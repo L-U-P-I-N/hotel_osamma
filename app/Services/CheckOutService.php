@@ -163,4 +163,33 @@ class CheckOutService
             return $reservation->fresh();
         });
     }
+
+    /**
+     * تراجع عن تسجيل خروج تمّ بالغلط لنزيل ما زال موجوداً فعلياً — يعيد الحجز
+     * لحالة "مسجل دخول" ويعيد الغرفة "مشغولة". لا يمسّ أي سجلات مالية أنشئت
+     * وقت الخروج (دفعة متبقية، أضرار...)؛ هذه يراجعها الموظف يدوياً إن وُجدت.
+     */
+    public function undoCheckOut(Reservation $reservation, User $user): Reservation
+    {
+        if ($reservation->status !== 'checked_out') {
+            throw new \RuntimeException('لا يمكن التراجع — الحجز ليس في حالة "مسجل خروج".');
+        }
+
+        return DB::transaction(function () use ($reservation, $user) {
+            $reservation->update([
+                'status'           => 'checked_in',
+                'actual_check_out' => null,
+                'checked_out_by'   => null,
+            ]);
+
+            $reservation->room->update(['status' => 'occupied']);
+            if ($reservation->linked_room_id) {
+                \App\Models\Room::where('id', $reservation->linked_room_id)->update(['status' => 'occupied']);
+            }
+
+            AuditLogService::log('update', $reservation, ['status' => 'checked_out'], ['status' => 'checked_in'], $user);
+
+            return $reservation->fresh();
+        });
+    }
 }

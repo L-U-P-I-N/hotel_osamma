@@ -21,6 +21,16 @@ class CheckOutController extends Controller
         return view('checkout.done', compact('reservation'));
     }
 
+    public function undo(Reservation $reservation)
+    {
+        try {
+            $this->checkOutService->undoCheckOut($reservation, auth()->user());
+            return back()->with('success', 'تم التراجع عن تسجيل الخروج — الحجز مسجَّل دخول الآن.');
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
+        }
+    }
+
     public function process(Request $request, Reservation $reservation)
     {
         $request->validate([

@@ -167,6 +167,16 @@
                 خروج
             </a>
             @endif
+            @if($reservation->status === 'checked_out')
+            <form method="POST" action="{{ route('checkout.undo', $reservation) }}" onsubmit="return confirm('تراجع عن تسجيل خروج هذا النزيل؟ سيعود الحجز لحالة \'مسجل دخول\' وتعود الغرفة \'مشغولة\'.\nملاحظة: أي دفعة أو أضرار سُجّلت وقت الخروج تبقى كما هي ولازم تراجعها يدوياً إن لزم.')">
+                @csrf @method('PATCH')
+                <button type="submit"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition shadow-sm">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3"/></svg>
+                    تراجع عن الخروج
+                </button>
+            </form>
+            @endif
             @endcan
 
             @can('payments.create')
