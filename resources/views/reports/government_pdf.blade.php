@@ -15,10 +15,11 @@
         src: url("{{ storage_path('fonts') }}/NotoNaskhArabic-Bold.ttf") format('truetype');
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'NotoNaskhArabic', sans-serif; font-size: 9.5px; direction: rtl; color: #1a1a1a; background: #fff; margin: 40mm 6mm 12mm 6mm; }
+    body { font-family: 'NotoNaskhArabic', sans-serif; font-size: 9.5px; direction: rtl; color: #1a1a1a; background: #fff; margin: 52mm 6mm 12mm 6mm; }
 
-    /* رأس وتذييل ثابتان يتكرران في كل صفحة (تقنية dompdf القياسية) */
-    .pdf-header { position: fixed; top: -38mm; left: 0; right: 0; text-align: center; }
+    /* رأس وتذييل ثابتان يتكرران في كل صفحة (تقنية dompdf القياسية) — المساحة
+       المحجوزة زادت لتتّسع لشعار الفندق فوق التاريخ واسم الفندق. */
+    .pdf-header { position: fixed; top: -50mm; left: 0; right: 0; text-align: center; }
     .pdf-header .date { text-align: right; font-weight: bold; font-size: 11px; margin-bottom: 4px; }
     .pdf-header h1 { font-size: 15px; font-weight: bold; margin-bottom: 8px; }
     .pdf-header .info { text-align: right; font-size: 10px; line-height: 1.5; }
@@ -52,6 +53,7 @@
 <body>
 
 <div class="pdf-header">
+    @include('partials.pdf-logo')
     <div class="date">{{ now()->format('Y/n/j') }}</div>
     <h1>حجوزات الفندق</h1>
     <div class="info">
