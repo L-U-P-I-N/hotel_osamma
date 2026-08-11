@@ -79,16 +79,28 @@ class AttendanceController extends Controller
             'attendance.*.notes'     => 'nullable|string|max:255',
         ]);
 
+        // upsert بدل updateOrCreate: الأخير يقرأ ثم يكتب على دفعتين منفصلتين،
+        // فإذا وصل طلبان لنفس الموظف/التاريخ بفارق لحظات (نقرتان على أحد زرَّي
+        // "حفظ" في نفس الصفحة، أو بطء الشبكة) يحاول كلاهما الإدراج فيتصادمان مع
+        // القيد الفريد (employee_id, date) ويُرمى استثناء غير مُعالَج (500).
+        // upsert عملية ذرّية واحدة (INSERT ... ON DUPLICATE KEY UPDATE) لا تصطدم.
+        $now = now();
+        $rows = [];
         foreach ($request->input('attendance', []) as $employeeId => $data) {
-            Attendance::updateOrCreate(
-                ['employee_id' => $employeeId, 'date' => $date],
-                [
-                    'status'    => $data['status'],
-                    'check_in'  => $data['check_in'] ?? null,
-                    'check_out' => $data['check_out'] ?? null,
-                    'notes'     => $data['notes'] ?? null,
-                ]
-            );
+            $rows[] = [
+                'employee_id' => $employeeId,
+                'date'        => $date,
+                'status'      => $data['status'],
+                'check_in'    => $data['check_in'] ?? null,
+                'check_out'   => $data['check_out'] ?? null,
+                'notes'       => $data['notes'] ?? null,
+                'created_at'  => $now,
+                'updated_at'  => $now,
+            ];
+        }
+
+        if (!empty($rows)) {
+            Attendance::upsert($rows, ['employee_id', 'date'], ['status', 'check_in', 'check_out', 'notes', 'updated_at']);
         }
 
         return back()->with('success', 'تم حفظ سجل الحضور بنجاح');

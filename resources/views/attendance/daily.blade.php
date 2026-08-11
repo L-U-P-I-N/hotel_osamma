@@ -36,7 +36,8 @@
 </div>
 
 {{-- Attendance Form --}}
-<form method="POST" action="{{ route('attendance.saveDaily') }}">
+<form method="POST" action="{{ route('attendance.saveDaily') }}"
+      onsubmit="this.querySelectorAll('button[type=submit]').forEach(b => b.disabled = true)">
     @csrf
     <input type="hidden" name="date" value="{{ $date }}">
 
