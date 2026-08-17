@@ -290,6 +290,16 @@ PHPIniDir "$($PhpDir.FullName)"
 
 $httpdConf = Join-Path $ApacheDir.FullName "conf\httpd.conf"
 $conf = Get-Content $httpdConf -Raw
+
+# Apache installed silently via winget (not through Laragon's own GUI, which
+# normally rewrites this on first run) can ship an httpd.conf whose
+# ServerRoot/SRVROOT still points at the wrong path, so httpd.exe refuses to
+# start ("ServerRoot must be a valid directory"). Force it to the actual
+# install directory.
+$correctRoot = ($ApacheDir.FullName -replace '\\', '/')
+$conf = $conf -replace '(?m)^\s*Define\s+SRVROOT\s+".*"', "Define SRVROOT `"$correctRoot`""
+$conf = $conf -replace '(?m)^\s*ServerRoot\s+"(?!\$\{SRVROOT\}).*"', "ServerRoot `"$correctRoot`""
+
 if ($conf -notmatch '(?m)^LoadModule rewrite_module') {
     $conf = $conf -replace '(?m)^#\s*LoadModule rewrite_module modules/mod_rewrite\.so', 'LoadModule rewrite_module modules/mod_rewrite.so'
 }
@@ -298,10 +308,21 @@ if ($conf -notmatch '(?m)^LoadModule rewrite_module') {
 # recognised and never duplicated. A duplicate Include of this same file
 # makes Apache load the PHP module twice and blocks the service from
 # starting.
-if ($conf -notmatch '(?i)Include\s+"[^"]*mod_php\.conf"') {
+#
+# IMPORTANT: the match must be anchored so a line is only "active" when it
+# has no leading '#'. Laragon's default httpd.conf template already ships
+# a commented-out "#Include ... mod_php.conf" line; the old un-anchored
+# regex matched that commented line too and concluded PHP was already
+# wired up, so it never got enabled - Apache then served raw .php source
+# as plain text instead of executing it. Uncomment an existing commented
+# line first, and only add a brand-new Include if none exists at all.
+if ($conf -match '(?m)^\s*#\s*Include\s+"[^"]*mod_php\.conf"') {
+    $conf = $conf -replace '(?m)^\s*#\s*(Include\s+"[^"]*mod_php\.conf")', '$1'
+}
+if ($conf -notmatch '(?m)^\s*Include\s+"[^"]*mod_php\.conf"') {
     $includeLine = "Include `"$($laragonPhpConf -replace '\\','/')`""
     $conf = $conf -replace '(Include conf/extra/httpd-vhosts\.conf)', "$includeLine`n`$1"
-    if ($conf -notmatch '(?i)Include\s+"[^"]*mod_php\.conf"') {
+    if ($conf -notmatch '(?m)^\s*Include\s+"[^"]*mod_php\.conf"') {
         $conf += "`n$includeLine`nInclude conf/extra/httpd-vhosts.conf`n"
     }
 }
