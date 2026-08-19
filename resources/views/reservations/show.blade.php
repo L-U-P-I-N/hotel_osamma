@@ -250,6 +250,14 @@
                         إضافة رسوم/مشتريات
                     </button>
                     @endif
+                    {{-- استرجاع مبلغ زائد للنزيل (دفع أكثر من المطلوب) — متاح بأي حالة
+                         للحجز (قبل أو بعد الخروج)، لا يقتصر على إلغاء الحجز فقط --}}
+                    @if($reservation->paid_amount > 0)
+                    <a href="{{ route('refunds.create', $reservation) }}" class="w-full flex items-center gap-2.5 px-4 py-2 text-gray-700 hover:bg-gray-50 transition">
+                        <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l3 3 5-5"/></svg>
+                        استرجاع مبلغ للنزيل
+                    </a>
+                    @endif
                     @endcan
                     @can('checkout.process')
                     @if($reservation->status === 'checked_in')
@@ -1047,6 +1055,31 @@
         @endif
     </div>
 </div>
+
+@if($reservation->refunds->count() > 0)
+{{-- سجل المستردات — مبالغ أُرجعت للنزيل (مثلاً عند دفعه أكثر من المطلوب) --}}
+<div class="bg-white rounded-2xl shadow-sm border border-gray-100 mt-4">
+    <div class="px-5 py-3 border-b border-gray-50 flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shadow-sm">
+            <svg class="text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:18px;height:18px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l3 3 5-5"/></svg>
+        </div>
+        <h3 class="font-bold text-gray-800 text-sm">سجل المستردات (مبالغ أُرجعت للنزيل)</h3>
+        <span class="mr-auto px-2 py-0.5 bg-blue-50 text-blue-700 text-xs font-bold rounded-full">{{ $reservation->refunds->count() }}</span>
+    </div>
+    <div class="p-3 space-y-2">
+        @foreach($reservation->refunds as $r)
+        <div class="bg-gray-50 rounded-xl p-3 space-y-1">
+            <div class="flex items-center justify-between">
+                <span class="font-bold text-blue-700">{{ number_format($r->amount, 0) }} <span class="text-xs font-normal text-gray-400">{{ $r->currency }}</span></span>
+                <span class="text-xs text-gray-400">{{ $r->refunded_at?->format('d/m/Y H:i') }}</span>
+            </div>
+            <div class="text-xs text-gray-600">{{ $r->reason }}</div>
+            <div class="text-xs text-gray-500">استرجعه: <span class="font-medium text-gray-700">{{ $r->processedBy?->name ?? '—' }}</span></div>
+        </div>
+        @endforeach
+    </div>
+</div>
+@endif
 </div>
 
 
