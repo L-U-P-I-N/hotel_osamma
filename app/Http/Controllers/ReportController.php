@@ -1068,8 +1068,9 @@ class ReportController extends Controller
     }
 
     /**
-     * بيانات نزيل غرفة معيّنة في تاريخ محدَّد (إن وُجد): اسمه، وقت دخوله،
-     * المبلغ المدفوع لغرفته، آخر موظف استلم دفعة منه، ومديونيته المتبقية.
+     * بيانات نزيل غرفة معيّنة في تاريخ محدَّد (إن وُجد): اسمه، وقت دخوله، كل
+     * دفعاته في ذلك اليوم بالذات (قد تكون أكثر من دفعة لموظفين مختلفين)،
+     * ومديونيته المتبقية.
      */
     private function amAliRoomOccupant(int $roomId, string $date): ?array
     {
@@ -1094,26 +1095,29 @@ class ReportController extends Controller
 
         $remaining = (float) $res->total_amount - (float) $res->paid_amount;
 
-        // إذا كان نفس الحجز مستمراً من الأمس إلى اليوم، فـ"آخر دفعة كما كانت في
-        // ذلك التاريخ" ليست بالضرورة آخر دفعة على الحجز إجمالاً (قد تكون دفعة
-        // لاحقة اليوم) — نقتصر على الدفعات التي تمّت في ذلك التاريخ أو قبله.
-        $cutoff      = \Carbon\Carbon::parse($date)->endOfDay();
-        $lastPayment = $res->payments
-            ->filter(fn ($p) => $p->payment_date && $p->payment_date->lte($cutoff))
-            ->sortByDesc('payment_date')
-            ->first();
+        // كل دفعات ذلك اليوم بالذات (لا آخر دفعة على الحجز إجمالاً) — إذا دفع
+        // النزيل جزءاً لموظف ثم أكمل الباقي لموظف آخر بنفس اليوم، لازم تظهر
+        // كلتا الدفعتين هنا (كل واحدة بمبلغها ومستلِمها ووقتها)، وإلا تختفي
+        // دفعة الموظف الأول من التقرير ويبدو وكأن موظفاً واحداً فقط استلم.
+        $todaysPayments = $res->payments
+            ->filter(fn ($p) => $p->payment_date && $p->payment_date->isSameDay(\Carbon\Carbon::parse($date)))
+            ->sortBy('payment_date')
+            ->values()
+            ->map(fn ($p) => [
+                'amount'      => (float) $p->amount,
+                'received_by' => $p->receivedBy?->name,
+                'time'        => $p->payment_date,
+            ]);
 
         return [
-            'guest_name'    => $res->guest?->full_name ?? '—',
-            'check_in_date' => $res->check_in_date,
-            'check_in_time' => $res->check_in_time ?: $res->check_in_date?->format('H:i'),
-            // "كم دفع" و"من استلم" يعرضان آخر دفعة فعلية (لا إجمالي المدفوع)،
-            // حتى يتطابق المبلغ المعروض مع اسم من استلمه فعلاً.
-            'paid'          => $lastPayment ? (float) $lastPayment->amount : 0.0,
-            'paid_date'     => $lastPayment?->payment_date,
-            'received_by'   => $lastPayment?->receivedBy?->name,
-            'remaining'     => $remaining,
-            'currency'      => $res->currency_symbol,
+            'guest_name'      => $res->guest?->full_name ?? '—',
+            'check_in_date'   => $res->check_in_date,
+            'check_in_time'   => $res->check_in_time ?: $res->check_in_date?->format('H:i'),
+            // دفعات ذلك اليوم فقط (قائمة) — قد تكون فارغة إن لم يدفع النزيل شيئاً
+            // في ذلك اليوم بالذات (حتى لو كان مقيماً وعليه مديونية من قبل).
+            'todays_payments' => $todaysPayments,
+            'remaining'       => $remaining,
+            'currency'        => $res->currency_symbol,
         ];
     }
 

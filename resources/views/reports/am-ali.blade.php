@@ -43,7 +43,7 @@
                     <th class="border border-gray-300 px-3 py-3 font-bold">حالة الغرفة</th>
                     <th class="border border-gray-300 px-3 py-3 font-bold">من حاجزها اليوم</th>
                     <th class="border border-gray-300 px-3 py-3 font-bold">متى دخل</th>
-                    <th class="border border-gray-300 px-3 py-3 font-bold">مبلغ آخر دفعة</th>
+                    <th class="border border-gray-300 px-3 py-3 font-bold">دفعات اليوم</th>
                     <th class="border border-gray-300 px-3 py-3 font-bold">من استلمها وتاريخها</th>
                     <th class="border border-gray-300 px-3 py-3 font-bold">مديونيته</th>
                 </tr>
@@ -70,13 +70,23 @@
                     <td class="border border-gray-300 px-3 py-3 font-bold">{{ $row['today']['guest_name'] }}</td>
                     <td class="border border-gray-300 px-3 py-3 text-xs text-gray-500 whitespace-nowrap">{{ $row['today']['check_in_date']?->format('d/m/Y') }} — {{ $row['today']['check_in_time'] ?? '—' }}</td>
                     <td class="border border-gray-300 px-3 py-3 font-bold text-green-700">
-                        {{ number_format($row['today']['paid'], 0) }} {{ $row['today']['currency'] }}
+                        @forelse($row['today']['todays_payments'] as $tp)
+                        <div class="{{ !$loop->first ? 'mt-1.5 pt-1.5 border-t border-gray-100' : '' }}">
+                            {{ number_format($tp['amount'], 0) }} {{ $row['today']['currency'] }}
+                        </div>
+                        @empty
+                        <span class="text-gray-300 font-normal">—</span>
+                        @endforelse
                     </td>
                     <td class="border border-gray-300 px-3 py-3">
-                        <div class="font-semibold">{{ $row['today']['received_by'] ?? '—' }}</div>
-                        @if($row['today']['paid_date'])
-                        <div class="text-xs font-normal text-gray-500">{{ $row['today']['paid_date']->format('d/m/Y H:i') }}</div>
-                        @endif
+                        @forelse($row['today']['todays_payments'] as $tp)
+                        <div class="{{ !$loop->first ? 'mt-1.5 pt-1.5 border-t border-gray-100' : '' }}">
+                            <div class="font-semibold">{{ $tp['received_by'] ?? '—' }}</div>
+                            <div class="text-xs font-normal text-gray-500">{{ $tp['time']?->format('d/m/Y H:i') }}</div>
+                        </div>
+                        @empty
+                        <span class="text-gray-300">—</span>
+                        @endforelse
                     </td>
                     <td class="border border-gray-300 px-3 py-3 font-black {{ $row['today']['remaining'] > 0 ? 'text-red-700' : 'text-gray-400' }}">{{ number_format($row['today']['remaining'], 0) }} {{ $row['today']['currency'] }}</td>
                     @else

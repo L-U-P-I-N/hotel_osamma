@@ -47,7 +47,7 @@
         <tr>
             <th style="width:13%;">مديونيته</th>
             <th style="width:18%;">من استلمها وتاريخها</th>
-            <th style="width:13%;">مبلغ آخر دفعة</th>
+            <th style="width:13%;">دفعات اليوم</th>
             <th style="width:13%;">متى دخل</th>
             <th style="width:18%;">من حاجزها اليوم</th>
             <th style="width:10%;">حالة الغرفة</th>
@@ -62,12 +62,24 @@
             </td>
             <td class="c">
                 @if($row['today'])
-                    {{ $row['today']['received_by'] ?? '—' }}
-                    @if($row['today']['paid_date'])<div class="sub-note">{{ $row['today']['paid_date']->format('d/m/Y H:i') }}</div>@endif
+                    @forelse($row['today']['todays_payments'] as $tp)
+                        @if(!$loop->first)<hr style="border:none;border-top:1px solid #ddd;margin:3px 0;">@endif
+                        {{ $tp['received_by'] ?? '—' }}
+                        <div class="sub-note">{{ $tp['time']?->format('d/m/Y H:i') }}</div>
+                    @empty
+                        —
+                    @endforelse
                 @else — @endif
             </td>
             <td class="c" style="font-weight:bold;color:#16a34a;">
-                {{ $row['today'] ? number_format($row['today']['paid'], 0) . ' ' . $row['today']['currency'] : '—' }}
+                @if($row['today'])
+                    @forelse($row['today']['todays_payments'] as $tp)
+                        @if(!$loop->first)<hr style="border:none;border-top:1px solid #ddd;margin:3px 0;">@endif
+                        {{ number_format($tp['amount'], 0) }} {{ $row['today']['currency'] }}
+                    @empty
+                        —
+                    @endforelse
+                @else — @endif
             </td>
             <td class="c">
                 @if($row['today'])
