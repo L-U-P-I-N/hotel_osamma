@@ -9,7 +9,7 @@
     <div class="flex items-center justify-between flex-wrap gap-3 no-print">
         <div>
             <h2 class="text-2xl font-black text-gray-800">تقرير عم علي</h2>
-            <p class="text-gray-500 text-sm mt-1">مقارنة كل غرفة بين نزيل اليوم ونزيل الأمس — الدفعات ومن استلمها والمديونية</p>
+            <p class="text-gray-500 text-sm mt-1">كل الغرف اليوم: حالتها، من حاجزها، آخر دفعة ومن استلمها، والمديونية</p>
         </div>
         <div class="flex items-center gap-2">
             <form method="GET" action="{{ route('reports.amAli') }}" class="flex items-center gap-2">
@@ -33,7 +33,6 @@
 
     <div class="no-print text-sm text-gray-500">
         اليوم: <b class="text-gray-700">{{ \Carbon\Carbon::parse($date)->format('Y/m/d') }}</b>
-        — الأمس: <b class="text-gray-700">{{ \Carbon\Carbon::parse($yesterday)->format('Y/m/d') }}</b>
     </div>
 
     <div id="amAliReport" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
@@ -42,15 +41,11 @@
                 <tr class="bg-gray-800 text-white text-sm">
                     <th class="border border-gray-300 px-3 py-3 font-bold">الغرفة</th>
                     <th class="border border-gray-300 px-3 py-3 font-bold">حالة الغرفة</th>
-                    <th class="border border-gray-300 px-3 py-3 font-bold">من فيها اليوم</th>
+                    <th class="border border-gray-300 px-3 py-3 font-bold">من حاجزها اليوم</th>
                     <th class="border border-gray-300 px-3 py-3 font-bold">متى دخل</th>
                     <th class="border border-gray-300 px-3 py-3 font-bold">مبلغ آخر دفعة</th>
-                    <th class="border border-gray-300 px-3 py-3 font-bold">من استلم</th>
-                    <th class="border border-gray-300 px-3 py-3 font-bold">مديونية اليوم</th>
-                    <th class="border border-gray-300 px-3 py-3 font-bold">من أمس كان فيها</th>
-                    <th class="border border-gray-300 px-3 py-3 font-bold">سدد عند من</th>
-                    <th class="border border-gray-300 px-3 py-3 font-bold">مديونية الأمس</th>
-                    <th class="border border-gray-300 px-3 py-3 font-bold">مبلغ آخر دفعة أمس</th>
+                    <th class="border border-gray-300 px-3 py-3 font-bold">من استلمها وتاريخها</th>
+                    <th class="border border-gray-300 px-3 py-3 font-bold">مديونيته</th>
                 </tr>
             </thead>
             <tbody class="text-sm text-gray-900">
@@ -76,32 +71,21 @@
                     <td class="border border-gray-300 px-3 py-3 text-xs text-gray-500 whitespace-nowrap">{{ $row['today']['check_in_date']?->format('d/m/Y') }} — {{ $row['today']['check_in_time'] ?? '—' }}</td>
                     <td class="border border-gray-300 px-3 py-3 font-bold text-green-700">
                         {{ number_format($row['today']['paid'], 0) }} {{ $row['today']['currency'] }}
+                    </td>
+                    <td class="border border-gray-300 px-3 py-3">
+                        <div class="font-semibold">{{ $row['today']['received_by'] ?? '—' }}</div>
                         @if($row['today']['paid_date'])
                         <div class="text-xs font-normal text-gray-500">{{ $row['today']['paid_date']->format('d/m/Y H:i') }}</div>
                         @endif
                     </td>
-                    <td class="border border-gray-300 px-3 py-3 font-semibold">{{ $row['today']['received_by'] ?? '—' }}</td>
                     <td class="border border-gray-300 px-3 py-3 font-black {{ $row['today']['remaining'] > 0 ? 'text-red-700' : 'text-gray-400' }}">{{ number_format($row['today']['remaining'], 0) }} {{ $row['today']['currency'] }}</td>
                     @else
                     <td class="border border-gray-300 px-3 py-3 text-gray-300 text-center" colspan="5">—</td>
                     @endif
-                    @if($row['yday'])
-                    <td class="border border-gray-300 px-3 py-3 font-bold">{{ $row['yday']['guest_name'] }}</td>
-                    <td class="border border-gray-300 px-3 py-3 font-semibold">{{ $row['yday']['received_by'] ?? '—' }}</td>
-                    <td class="border border-gray-300 px-3 py-3 font-black {{ $row['yday']['remaining'] > 0 ? 'text-red-700' : 'text-gray-400' }}">{{ number_format($row['yday']['remaining'], 0) }} {{ $row['yday']['currency'] }}</td>
-                    <td class="border border-gray-300 px-3 py-3 font-bold text-green-700">
-                        {{ number_format($row['yday']['paid'], 0) }} {{ $row['yday']['currency'] }}
-                        @if($row['yday']['paid_date'])
-                        <div class="text-xs font-normal text-gray-500">{{ $row['yday']['paid_date']->format('d/m/Y H:i') }}</div>
-                        @endif
-                    </td>
-                    @else
-                    <td class="border border-gray-300 px-3 py-3 text-gray-300 text-center" colspan="4">—</td>
-                    @endif
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="11" class="border border-gray-300 px-4 py-10 text-center text-gray-400 text-lg">لا توجد غرف</td>
+                    <td colspan="7" class="border border-gray-300 px-4 py-10 text-center text-gray-400 text-lg">لا توجد غرف</td>
                 </tr>
                 @endforelse
             </tbody>

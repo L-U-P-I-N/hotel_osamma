@@ -34,10 +34,7 @@
 <div class="header">
     @include('partials.pdf-logo')
     <h1>تقرير عم علي</h1>
-    <div class="sub">
-        مقارنة كل غرفة: نزيل اليوم {{ \Carbon\Carbon::parse($date)->format('Y/m/d') }}
-        — نزيل الأمس {{ \Carbon\Carbon::parse($yesterday)->format('Y/m/d') }}
-    </div>
+    <div class="sub">كل الغرف — {{ \Carbon\Carbon::parse($date)->format('Y/m/d') }}</div>
 </div>
 
 @if($rows->isEmpty())
@@ -48,42 +45,29 @@
 <table class="data" dir="rtl">
     <thead>
         <tr>
-            <th style="width:9%;">مبلغ آخر دفعة أمس</th>
-            <th style="width:9%;">مديونية الأمس</th>
-            <th style="width:9%;">سدد عند من</th>
-            <th style="width:12%;">من أمس كان فيها</th>
-            <th style="width:9%;">مديونية اليوم</th>
-            <th style="width:9%;">من استلم</th>
-            <th style="width:9%;">مبلغ آخر دفعة</th>
-            <th style="width:10%;">متى دخل</th>
-            <th style="width:12%;">من فيها اليوم</th>
-            <th style="width:7%;">حالة الغرفة</th>
-            <th style="width:5%;">الغرفة</th>
+            <th style="width:13%;">مديونيته</th>
+            <th style="width:18%;">من استلمها وتاريخها</th>
+            <th style="width:13%;">مبلغ آخر دفعة</th>
+            <th style="width:13%;">متى دخل</th>
+            <th style="width:18%;">من حاجزها اليوم</th>
+            <th style="width:10%;">حالة الغرفة</th>
+            <th style="width:8%;">الغرفة</th>
         </tr>
     </thead>
     <tbody>
         @foreach($rows as $row)
         <tr>
-            <td class="c" style="font-weight:bold;color:#16a34a;">
-                @if($row['yday'])
-                    {{ number_format($row['yday']['paid'], 0) . ' ' . $row['yday']['currency'] }}
-                    @if($row['yday']['paid_date'])<div class="sub-note">{{ $row['yday']['paid_date']->format('d/m/Y H:i') }}</div>@endif
-                @else — @endif
-            </td>
-            <td class="c" style="font-weight:bold;color:{{ ($row['yday']['remaining'] ?? 0) > 0 ? '#dc2626' : '#888' }};">
-                {{ $row['yday'] ? number_format($row['yday']['remaining'], 0) . ' ' . $row['yday']['currency'] : '—' }}
-            </td>
-            <td class="c">{{ $row['yday']['received_by'] ?? '—' }}</td>
-            <td>{{ $row['yday']['guest_name'] ?? '—' }}</td>
             <td class="c" style="font-weight:bold;color:{{ ($row['today']['remaining'] ?? 0) > 0 ? '#dc2626' : '#888' }};">
                 {{ $row['today'] ? number_format($row['today']['remaining'], 0) . ' ' . $row['today']['currency'] : '—' }}
             </td>
-            <td class="c">{{ $row['today']['received_by'] ?? '—' }}</td>
-            <td class="c" style="font-weight:bold;color:#16a34a;">
+            <td class="c">
                 @if($row['today'])
-                    {{ number_format($row['today']['paid'], 0) . ' ' . $row['today']['currency'] }}
+                    {{ $row['today']['received_by'] ?? '—' }}
                     @if($row['today']['paid_date'])<div class="sub-note">{{ $row['today']['paid_date']->format('d/m/Y H:i') }}</div>@endif
                 @else — @endif
+            </td>
+            <td class="c" style="font-weight:bold;color:#16a34a;">
+                {{ $row['today'] ? number_format($row['today']['paid'], 0) . ' ' . $row['today']['currency'] : '—' }}
             </td>
             <td class="c">
                 @if($row['today'])

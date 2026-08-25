@@ -1024,10 +1024,9 @@ class ReportController extends Controller
     }
 
     /**
-     * تقرير عم علي — جدول واحد بـ8 أعمدة لكل غرفة: رقم الغرفة، حالة الغرفة،
-     * نزيل اليوم (مع وقت الدخول)، كم دفع نزيل اليوم، من استلم دفعته، مديونيته،
-     * ثم نفس الشيء لنزيل الأمس (نزيل الأمس، سدد عند من، مديونيته) — مقارنة
-     * سريعة بين يومين لكل غرفة على ورقة واحدة عرضية.
+     * تقرير عم علي — جدول واحد لكل غرفة (تشمل الفاضية): رقم الغرفة، حالة
+     * الغرفة، من حاجزها اليوم ووقت دخوله، مبلغ آخر دفعة فعلية له ومن استلمها
+     * وتاريخها، ومديونيته المتبقية.
      */
     public function amAli(Request $request)
     {
@@ -1047,19 +1046,13 @@ class ReportController extends Controller
     }
 
     /**
-     * بناء بيانات تقرير عم علي (مشترك بين العرض والتصدير): صف واحد لكل غرفة
-     * يقارن نزيل اليوم بنزيل الأمس (إن وُجدا).
+     * بناء بيانات تقرير عم علي (مشترك بين العرض والتصدير): صف واحد لكل غرفة.
      */
     private function amAliData(string $date): array
     {
-        $yesterday = \Carbon\Carbon::parse($date)->subDay()->toDateString();
-
         $rooms = Room::orderBy('room_number')->get()->sortBy(fn($r) => $r->room_number, SORT_NATURAL)->values();
 
-        $rows = $rooms->map(function ($room) use ($date, $yesterday) {
-            $today = $this->amAliRoomOccupant($room->id, $date);
-            $yday  = $this->amAliRoomOccupant($room->id, $yesterday);
-
+        $rows = $rooms->map(function ($room) use ($date) {
             return [
                 'room'         => $room,
                 // حالة الغرفة الفعلية الحالية (مشغولة/متاحة/تحت الفحص/صيانة) من
@@ -1067,12 +1060,11 @@ class ReportController extends Controller
                 // فغرفة فيها نزيل اليوم قد تكون مثلاً تحت الفحص بعد مغادرته.
                 'status'       => $room->status_label,
                 'status_color' => $room->status_color,
-                'today'        => $today,
-                'yday'         => $yday,
+                'today'        => $this->amAliRoomOccupant($room->id, $date),
             ];
         });
 
-        return compact('rows', 'date', 'yesterday');
+        return compact('rows', 'date');
     }
 
     /**
