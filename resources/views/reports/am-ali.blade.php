@@ -32,7 +32,8 @@
     </div>
 
     <div class="no-print text-sm text-gray-500">
-        اليوم: <b class="text-gray-700">{{ \Carbon\Carbon::parse($date)->format('Y/m/d') }}</b>
+        يوم العمل: <b class="text-gray-700">{{ \Carbon\Carbon::parse($date)->format('Y/m/d') }} الساعة 1 ظهراً</b>
+        — إلى <b class="text-gray-700">{{ \Carbon\Carbon::parse($date)->addDay()->format('Y/m/d') }} الساعة 1 ظهراً</b>
     </div>
 
     <div id="amAliReport" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
@@ -43,6 +44,7 @@
                     <th class="border border-gray-300 px-3 py-3 font-bold">حالة الغرفة</th>
                     <th class="border border-gray-300 px-3 py-3 font-bold">من حاجزها اليوم</th>
                     <th class="border border-gray-300 px-3 py-3 font-bold">متى دخل</th>
+                    <th class="border border-gray-300 px-3 py-3 font-bold">متى موعد خروجه</th>
                     <th class="border border-gray-300 px-3 py-3 font-bold">دفعات اليوم</th>
                     <th class="border border-gray-300 px-3 py-3 font-bold">من استلمها وتاريخها</th>
                     <th class="border border-gray-300 px-3 py-3 font-bold">مديونيته</th>
@@ -69,6 +71,7 @@
                     @if($row['today'])
                     <td class="border border-gray-300 px-3 py-3 font-bold">{{ $row['today']['guest_name'] }}</td>
                     <td class="border border-gray-300 px-3 py-3 text-xs text-gray-500 whitespace-nowrap">{{ $row['today']['check_in_date']?->format('d/m/Y') }} — {{ $row['today']['check_in_time'] ?? '—' }}</td>
+                    <td class="border border-gray-300 px-3 py-3 text-xs text-gray-500 whitespace-nowrap">{{ $row['today']['check_out_date']?->format('d/m/Y') ?? '—' }}</td>
                     <td class="border border-gray-300 px-3 py-3 font-bold text-green-700">
                         @forelse($row['today']['todays_payments'] as $tp)
                         <div class="{{ !$loop->first ? 'mt-1.5 pt-1.5 border-t border-gray-100' : '' }}">
@@ -90,12 +93,12 @@
                     </td>
                     <td class="border border-gray-300 px-3 py-3 font-black {{ $row['today']['remaining'] > 0 ? 'text-red-700' : 'text-gray-400' }}">{{ number_format($row['today']['remaining'], 0) }} {{ $row['today']['currency'] }}</td>
                     @else
-                    <td class="border border-gray-300 px-3 py-3 text-gray-300 text-center" colspan="5">—</td>
+                    <td class="border border-gray-300 px-3 py-3 text-gray-300 text-center" colspan="6">—</td>
                     @endif
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="7" class="border border-gray-300 px-4 py-10 text-center text-gray-400 text-lg">لا توجد غرف</td>
+                    <td colspan="8" class="border border-gray-300 px-4 py-10 text-center text-gray-400 text-lg">لا توجد غرف</td>
                 </tr>
                 @endforelse
             </tbody>

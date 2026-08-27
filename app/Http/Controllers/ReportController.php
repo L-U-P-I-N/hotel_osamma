@@ -1025,12 +1025,13 @@ class ReportController extends Controller
 
     /**
      * تقرير عم علي — جدول واحد لكل غرفة (تشمل الفاضية): رقم الغرفة، حالة
-     * الغرفة، من حاجزها اليوم ووقت دخوله، مبلغ آخر دفعة فعلية له ومن استلمها
-     * وتاريخها، ومديونيته المتبقية.
+     * الغرفة، من حاجزها اليوم ووقت دخوله، دفعات "يوم العمل" الحالي ومن
+     * استلمها وتاريخها (أو آخر دفعة سابقة إن لم تُستلم دفعة اليوم)،
+     * مديونيته، وموعد خروجه المُجدوَل.
      */
     public function amAli(Request $request)
     {
-        $date = $request->input('date', now()->toDateString());
+        $date = $request->input('date', $this->amAliDefaultBusinessDate());
         return view('reports.am-ali', $this->amAliData($date));
     }
 
@@ -1039,10 +1040,21 @@ class ReportController extends Controller
      */
     public function amAliPdf(Request $request)
     {
-        $date = $request->input('date', now()->toDateString());
+        $date = $request->input('date', $this->amAliDefaultBusinessDate());
         $pdf  = $this->pdfOptions(pdf_load_view('reports.am_ali_pdf', $this->amAliData($date)));
         $pdf->setPaper('a4', 'landscape');
         return $pdf->download('am-ali-' . $date . '.pdf');
+    }
+
+    /**
+     * "يوم العمل" في الفندق يبدأ الساعة 1 ظهراً وينتهي 1 ظهراً اليوم التالي
+     * (لا منتصف الليل) — فالتصدير الساعة 2 فجراً مثلاً لا يزال يخصّ يوم
+     * العمل السابق. هذه الدالة تحسب تاريخ يوم العمل الحالي افتراضياً.
+     */
+    private function amAliDefaultBusinessDate(): string
+    {
+        $now = now();
+        return $now->hour < 13 ? $now->copy()->subDay()->toDateString() : $now->toDateString();
     }
 
     /**
@@ -1068,9 +1080,10 @@ class ReportController extends Controller
     }
 
     /**
-     * بيانات نزيل غرفة معيّنة في تاريخ محدَّد (إن وُجد): اسمه، وقت دخوله، كل
-     * دفعاته في ذلك اليوم بالذات (قد تكون أكثر من دفعة لموظفين مختلفين)،
-     * ومديونيته المتبقية.
+     * بيانات نزيل غرفة معيّنة في يوم عمل محدَّد (إن وُجد): اسمه، وقت دخوله،
+     * موعد خروجه، دفعات يوم العمل هذا (1 ظهراً حتى 1 ظهراً التالي — قد تكون
+     * أكثر من دفعة لموظفين مختلفين)، أو آخر دفعة سابقة إن لم تُستلم أي دفعة
+     * في يوم العمل هذا، ومديونيته المتبقية.
      */
     private function amAliRoomOccupant(int $roomId, string $date): ?array
     {
@@ -1095,26 +1108,42 @@ class ReportController extends Controller
 
         $remaining = (float) $res->total_amount - (float) $res->paid_amount;
 
-        // كل دفعات ذلك اليوم بالذات (لا آخر دفعة على الحجز إجمالاً) — إذا دفع
-        // النزيل جزءاً لموظف ثم أكمل الباقي لموظف آخر بنفس اليوم، لازم تظهر
-        // كلتا الدفعتين هنا (كل واحدة بمبلغها ومستلِمها ووقتها)، وإلا تختفي
-        // دفعة الموظف الأول من التقرير ويبدو وكأن موظفاً واحداً فقط استلم.
+        // يوم العمل: من 1 ظهراً بتاريخ $date حتى 1 ظهراً اليوم التالي — لا
+        // منتصف الليل، حتى لا تُقسَّم دفعات نفس المناوبة الليلية بين تاريخين.
+        $businessStart = \Carbon\Carbon::parse($date)->setTime(13, 0);
+        $businessEnd   = $businessStart->copy()->addDay();
+
+        // كل دفعات يوم العمل هذا بالذات (لا آخر دفعة على الحجز إجمالاً) — إذا
+        // دفع النزيل جزءاً لموظف ثم أكمل الباقي لموظف آخر بنفس يوم العمل،
+        // لازم تظهر كلتا الدفعتين هنا (كل واحدة بمبلغها ومستلِمها ووقتها).
         $todaysPayments = $res->payments
-            ->filter(fn ($p) => $p->payment_date && $p->payment_date->isSameDay(\Carbon\Carbon::parse($date)))
+            ->filter(fn ($p) => $p->payment_date && $p->payment_date->gte($businessStart) && $p->payment_date->lt($businessEnd))
             ->sortBy('payment_date')
-            ->values()
-            ->map(fn ($p) => [
-                'amount'      => (float) $p->amount,
-                'received_by' => $p->receivedBy?->name,
-                'time'        => $p->payment_date,
-            ]);
+            ->values();
+
+        // لم تُستلم أي دفعة في يوم العمل هذا (مثلاً نزيل مقيم منذ أيام ولا
+        // مديونية عليه) — نعرض آخر دفعة سابقة على الإطلاق بدل ترك الخانة
+        // فارغة، وتبقى ثابتة على الشاشة حتى تُستلم دفعة جديدة فعلاً.
+        if ($todaysPayments->isEmpty()) {
+            $lastEver = $res->payments
+                ->filter(fn ($p) => $p->payment_date && $p->payment_date->lt($businessEnd))
+                ->sortByDesc('payment_date')
+                ->first();
+            $todaysPayments = $lastEver ? collect([$lastEver]) : collect();
+        }
+
+        $todaysPayments = $todaysPayments->map(fn ($p) => [
+            'amount'      => (float) $p->amount,
+            'received_by' => $p->receivedBy?->name,
+            'time'        => $p->payment_date,
+        ]);
 
         return [
             'guest_name'      => $res->guest?->full_name ?? '—',
             'check_in_date'   => $res->check_in_date,
             'check_in_time'   => $res->check_in_time ?: $res->check_in_date?->format('H:i'),
-            // دفعات ذلك اليوم فقط (قائمة) — قد تكون فارغة إن لم يدفع النزيل شيئاً
-            // في ذلك اليوم بالذات (حتى لو كان مقيماً وعليه مديونية من قبل).
+            'check_out_date'  => $res->check_out_date,
+            // دفعات يوم العمل الحالي، أو آخر دفعة سابقة إن لم تُستلم دفعة اليوم.
             'todays_payments' => $todaysPayments,
             'remaining'       => $remaining,
             'currency'        => $res->currency_symbol,

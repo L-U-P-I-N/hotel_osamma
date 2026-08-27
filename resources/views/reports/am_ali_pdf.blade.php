@@ -34,7 +34,10 @@
 <div class="header">
     @include('partials.pdf-logo')
     <h1>تقرير عم علي</h1>
-    <div class="sub">كل الغرف — {{ \Carbon\Carbon::parse($date)->format('Y/m/d') }}</div>
+    <div class="sub">
+        كل الغرف — يوم العمل {{ \Carbon\Carbon::parse($date)->format('Y/m/d') }} الساعة 1 ظهراً
+        إلى {{ \Carbon\Carbon::parse($date)->addDay()->format('Y/m/d') }} الساعة 1 ظهراً
+    </div>
 </div>
 
 @if($rows->isEmpty())
@@ -47,9 +50,10 @@
         <tr>
             <th style="width:13%;">مديونيته</th>
             <th style="width:18%;">من استلمها وتاريخها</th>
-            <th style="width:13%;">دفعات اليوم</th>
-            <th style="width:13%;">متى دخل</th>
-            <th style="width:18%;">من حاجزها اليوم</th>
+            <th style="width:11%;">دفعات اليوم</th>
+            <th style="width:11%;">متى موعد خروجه</th>
+            <th style="width:11%;">متى دخل</th>
+            <th style="width:16%;">من حاجزها اليوم</th>
             <th style="width:10%;">حالة الغرفة</th>
             <th style="width:8%;">الغرفة</th>
         </tr>
@@ -79,6 +83,11 @@
                     @empty
                         —
                     @endforelse
+                @else — @endif
+            </td>
+            <td class="c">
+                @if($row['today'])
+                    {{ $row['today']['check_out_date']?->format('d/m/Y') ?? '—' }}
                 @else — @endif
             </td>
             <td class="c">
