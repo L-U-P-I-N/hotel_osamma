@@ -35,6 +35,21 @@ class RefundService
                 app(ShiftService::class)->computeTotals($shift);
             }
 
+            // ريال يمني فقط حالياً — عكس قيد الإيراد الأصلي (خروج نقدية)
+            if ($refund->currency === 'YER') {
+                app(JournalService::class)->post(
+                    $refund->refunded_at->toDateString(),
+                    'استرجاع لنزيل — حجز #' . $reservation->id,
+                    Refund::class,
+                    $refund->id,
+                    [
+                        ['account_code' => '4100', 'debit' => $refund->amount],
+                        ['account_code' => '1110', 'credit' => $refund->amount],
+                    ],
+                    $user->id
+                );
+            }
+
             return $refund;
         });
     }

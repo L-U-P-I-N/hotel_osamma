@@ -62,7 +62,7 @@ class CheckOutService
             $compensationAmount = $hasDamage ? ($data['compensation_amount'] ?? 0) : 0;
 
             if ($hasDamage && $compensationAmount > 0) {
-                ExtraCharge::create([
+                $damageCharge = ExtraCharge::create([
                     'reservation_id'     => $reservation->id,
                     'room_inspection_id' => $inspection->id,
                     'added_by'           => $user->id,
@@ -85,6 +85,22 @@ class CheckOutService
 
                 $reservation->increment('total_amount', $compensationAmount);
                 $inspection->update(['compensation_status' => 'pending']);
+
+                // ريال يمني فقط حالياً — الضرر مصروف صيانة يموَّل بزيادة دَين
+                // النزيل (لا خروج نقدية الآن)؛ عند تحصيله يُرحَّل كدفعة عادية.
+                if (($data['currency'] ?? 'YER') === 'YER') {
+                    app(JournalService::class)->post(
+                        now()->toDateString(),
+                        'تعويض أضرار — حجز #' . $reservation->id,
+                        ExtraCharge::class,
+                        $damageCharge->id,
+                        [
+                            ['account_code' => '5100', 'debit' => $compensationAmount],
+                            ['account_code' => '1200', 'credit' => $compensationAmount],
+                        ],
+                        $user->id
+                    );
+                }
             }
 
             // d. Settle combined balance (reservation balance + damage compensation in one payment)

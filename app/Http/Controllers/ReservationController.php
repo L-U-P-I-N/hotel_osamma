@@ -1263,7 +1263,7 @@ class ReservationController extends Controller
             }
 
             if ($amount > 0) {
-                \App\Models\ExtraCharge::create([
+                $charge = \App\Models\ExtraCharge::create([
                     'reservation_id'     => $reservation->id,
                     'room_inspection_id' => $inspection->id,
                     'added_by'           => auth()->id(),
@@ -1286,6 +1286,18 @@ class ReservationController extends Controller
 
                 $reservation->increment('total_amount', $amount);
                 $reservation->refresh()->updatePaymentStatus();
+
+                app(\App\Services\JournalService::class)->post(
+                    now()->toDateString(),
+                    'تعويض أضرار — حجز #' . $reservation->id,
+                    \App\Models\ExtraCharge::class,
+                    $charge->id,
+                    [
+                        ['account_code' => '5100', 'debit' => $amount],
+                        ['account_code' => '1200', 'credit' => $amount],
+                    ],
+                    auth()->id()
+                );
             }
 
             AuditLogService::log('update', $reservation, null, [
@@ -1396,6 +1408,29 @@ class ReservationController extends Controller
             }
             $reservation->refresh()->updatePaymentStatus();
 
+            // قيد تسوية بفارق المبلغ فقط (زيادة أو نقصان) على نفس حسابي المصروف/الدَّين
+            if ($delta !== 0.0) {
+                $charge = $inspection->extraCharge()->first();
+                $sourceId = $charge->id ?? $inspection->id;
+
+                app(\App\Services\JournalService::class)->post(
+                    now()->toDateString(),
+                    'تعديل تعويض أضرار — حجز #' . $reservation->id,
+                    \App\Models\ExtraCharge::class,
+                    $sourceId,
+                    $delta > 0
+                        ? [
+                            ['account_code' => '5100', 'debit' => abs($delta)],
+                            ['account_code' => '1200', 'credit' => abs($delta)],
+                        ]
+                        : [
+                            ['account_code' => '1200', 'debit' => abs($delta)],
+                            ['account_code' => '5100', 'credit' => abs($delta)],
+                        ],
+                    auth()->id()
+                );
+            }
+
             AuditLogService::log('update', $reservation, ['compensation_amount' => $oldAmount], [
                 'action'              => 'damage_updated',
                 'compensation_amount' => $newAmount,
@@ -1420,6 +1455,24 @@ class ReservationController extends Controller
         $amount = (float) $inspection->compensation_amount;
 
         DB::transaction(function () use ($reservation, $inspection, $amount) {
+            // عكس القيد المحاسبي الأصلي قبل حذف السجلات المرتبطة به
+            if ($amount > 0) {
+                $charge = $inspection->extraCharge()->first();
+                $sourceId = $charge->id ?? $inspection->id;
+
+                app(\App\Services\JournalService::class)->post(
+                    now()->toDateString(),
+                    'حذف تعويض أضرار — حجز #' . $reservation->id,
+                    \App\Models\ExtraCharge::class,
+                    $sourceId,
+                    [
+                        ['account_code' => '1200', 'debit' => $amount],
+                        ['account_code' => '5100', 'credit' => $amount],
+                    ],
+                    auth()->id()
+                );
+            }
+
             // حذف الرسم الإضافي (الدَّين) ومصروف الصيانة المرتبطَين
             $inspection->extraCharge()->get()->each->delete();
             $inspection->expense()->get()->each->delete();

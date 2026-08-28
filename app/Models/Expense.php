@@ -93,6 +93,21 @@ class Expense extends Model
         };
     }
 
+    /**
+     * كود حساب المصروف بشجرة الحسابات (5xxx) المطابق لتصنيف المصروف.
+     */
+    public static function categoryAccountCode(string $category): string
+    {
+        return match ($category) {
+            'maintenance' => '5100',
+            'electricity' => '5200',
+            'salary'      => '5300',
+            'cleaning'    => '5400',
+            'food'        => '5500',
+            default       => '5600',
+        };
+    }
+
     public static function currencyLabel(string $currency): string
     {
         return match ($currency) {

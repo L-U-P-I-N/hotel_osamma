@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Models\Account;
 use App\Models\Expense;
 use App\Models\Payment;
 use App\Models\Refund;
@@ -525,7 +526,32 @@ class ReportController extends Controller
             $profitabilityScore = min(10, max(0, (int)($profitMargin / 3)));
             $efficiencyScore    = min(10, max(0, round((100 - $costRatio) / 10)));
             $overallHealth      = round(($profitabilityScore + $efficiencyScore) / 2);
+
+        } elseif ($tab === 'accounts') {
+            abort_unless($request->user()->can('accounts.view'), 403);
+
+            $accountsTree = $this->buildAccountsTree();
+
+            if ($request->filled('account_id')) {
+                $drillAccount = Account::find($request->input('account_id'));
+                if ($drillAccount) {
+                    $drillLines = $drillAccount->journalLines()
+                        ->with('journalEntry')
+                        ->orderByDesc('id')
+                        ->limit(200)
+                        ->get();
+                }
+            }
+
+            $trialBalanceDebit  = (float) DB::table('journal_lines')->sum('debit');
+            $trialBalanceCredit = (float) DB::table('journal_lines')->sum('credit');
         }
+
+        $accountsTree       = $accountsTree ?? collect();
+        $drillAccount        = $drillAccount ?? null;
+        $drillLines           = $drillLines ?? collect();
+        $trialBalanceDebit  = $trialBalanceDebit ?? 0;
+        $trialBalanceCredit = $trialBalanceCredit ?? 0;
 
         return view('reports.finance-hub', compact(
             'tab', 'from', 'to', 'month', 'period',
@@ -537,8 +563,33 @@ class ReportController extends Controller
             'profitMargin', 'costRatio', 'occupancyRate', 'revenuePerRoom', 'adr',
             'revenuePerGuest', 'avgStay', 'guestCount',
             'dailyRevenueAvg', 'dailyExpenseAvg', 'dailyProfitAvg', 'avgOccupiedRooms',
-            'profitabilityScore', 'efficiencyScore', 'overallHealth'
+            'profitabilityScore', 'efficiencyScore', 'overallHealth',
+            'accountsTree', 'drillAccount', 'drillLines', 'trialBalanceDebit', 'trialBalanceCredit'
         ));
+    }
+
+    /**
+     * شجرة الحسابات مع رصيد كل حساب (يشمل أرصدة الفروع بالنسبة للحسابات
+     * الأب — تجميع تصاعدي من الأوراق إلى الجذر).
+     */
+    private function buildAccountsTree(): \Illuminate\Support\Collection
+    {
+        $accounts = Account::orderBy('code')->get();
+        $byParent = $accounts->groupBy('parent_id');
+
+        $build = function ($parentId) use (&$build, $byParent) {
+            return ($byParent->get($parentId) ?? collect())->map(function (Account $account) use (&$build) {
+                $children = $build($account->id);
+                $account->setAttribute(
+                    'effective_balance',
+                    $account->balance + $children->sum('effective_balance')
+                );
+                $account->setRelation('childNodes', $children);
+                return $account;
+            });
+        };
+
+        return $build(null);
     }
 
     private function pdfOptions(\Barryvdh\DomPDF\PDF $pdf): \Barryvdh\DomPDF\PDF

@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\DB;
 
 class CashSettlementService
 {
+    public function __construct(private JournalService $journalService) {}
+
     public function getOrCreateTodaySettlement(User $user): CashSettlement
     {
         $settlement = CashSettlement::firstOrCreate(
@@ -41,6 +43,23 @@ class CashSettlementService
         ]);
 
         $this->computeTotals($settlement);
+
+        // ريال يمني فقط حالياً، ولا يوجد تصنيف بهذا النظام القديم — يُقيَّد
+        // كمصروف "أخرى" (5600) حتى يُصنَّف يدوياً لاحقاً إن لزم.
+        if (($withdrawal->withdrawal_type ?? 'expense') === 'expense' && $withdrawal->currency === 'YER') {
+            $this->journalService->post(
+                now()->toDateString(),
+                'مصروف (حساب صندوق قديم): ' . $withdrawal->withdrawn_by_name,
+                CashWithdrawal::class,
+                $withdrawal->id,
+                [
+                    ['account_code' => '5600', 'debit' => $withdrawal->amount],
+                    ['account_code' => '1110', 'credit' => $withdrawal->amount],
+                ],
+                auth()->id()
+            );
+        }
+
         return $withdrawal;
     }
 

@@ -112,6 +112,21 @@ class SalaryController extends Controller
     public function markPaid(Request $request, Salary $salary)
     {
         $salary->update(['status' => 'paid']);
+
+        // يسدّ فجوة كانت موجودة: "مدفوع" لا ينشئ أي سجل مالي. راتب مستحق
+        // يُسدَّد الآن من الصندوق العام.
+        app(\App\Services\JournalService::class)->post(
+            now()->toDateString(),
+            'راتب مدفوع: ' . ($salary->employee?->name ?? '—') . ' — ' . $salary->month . '/' . $salary->year,
+            Salary::class,
+            $salary->id,
+            [
+                ['account_code' => '2100', 'debit' => $salary->net_salary],
+                ['account_code' => '1120', 'credit' => $salary->net_salary],
+            ],
+            auth()->id()
+        );
+
         return back()->with('success', 'تم تسجيل الراتب كمدفوع');
     }
 

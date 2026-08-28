@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 class PaymentService
 {
-    public function __construct(private ShiftService $shiftService) {}
+    public function __construct(private ShiftService $shiftService, private JournalService $journalService) {}
 
     public function addPayment(Reservation $reservation, array $data, User $user): Payment
     {
@@ -42,6 +42,21 @@ class PaymentService
 
             if ($shift) {
                 $this->shiftService->computeTotals($shift);
+            }
+
+            // ريال يمني فقط حالياً (الشجرة لا تدعم SAR/USD بعد)
+            if ($payment->currency === 'YER') {
+                $this->journalService->post(
+                    $payment->payment_date->toDateString(),
+                    'دفعة نزيل — حجز #' . $reservation->id,
+                    Payment::class,
+                    $payment->id,
+                    [
+                        ['account_code' => '1110', 'debit' => $payment->amount],
+                        ['account_code' => '4100', 'credit' => $payment->amount],
+                    ],
+                    $user->id
+                );
             }
 
             AuditLogService::log('create', $payment, null, $payment->toArray(), $user);

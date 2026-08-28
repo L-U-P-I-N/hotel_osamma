@@ -206,6 +206,8 @@ class ShiftController extends Controller
             'exchange_to_currency' => 'required_if:withdrawal_type,currency_exchange|nullable|in:YER,SAR,USD|different:currency',
             'exchange_to_amount'   => 'required_if:withdrawal_type,currency_exchange|nullable|numeric|min:0.01',
             'employee_id'          => 'nullable|exists:employees,id',
+            'funding_source'       => 'nullable|in:shift,general_safe',
+            'category'             => 'nullable|in:maintenance,electricity,salary,cleaning,food,other',
         ], [
             'amount.required'                  => 'المبلغ مطلوب',
             'amount.numeric'                   => 'يجب أن يكون المبلغ رقماً',
@@ -218,13 +220,17 @@ class ShiftController extends Controller
         ]);
 
         $shift = $this->service->getActiveShift(auth()->user());
-        if (!$shift) {
+        $isGeneralSafe = $request->input('funding_source') === 'general_safe';
+
+        // مصروف الصندوق العام لا يتطلب وردية مفتوحة (ليس سحباً من درج الوردية).
+        if (!$shift && !$isGeneralSafe) {
             return back()->withErrors(['error' => 'لا توجد وردية مفتوحة لك']);
         }
 
         try {
             $data = array_merge($request->all(), ['handed_by_name' => auth()->user()->name]);
-            $this->service->addWithdrawal($shift, $data);
+            // مصروف الصندوق العام لا يُربط بوردية — لا يدخل في احتساب درجها.
+            $this->service->addWithdrawal($isGeneralSafe ? null : $shift, $data);
             return back()->with('success', $isExchange ? 'تم تسجيل عملية صرف العملة بنجاح' : 'تم تسجيل السحب بنجاح');
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()]);

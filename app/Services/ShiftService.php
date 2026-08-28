@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\DB;
 
 class ShiftService
 {
+    public function __construct(private JournalService $journalService) {}
+
     public function openShift(User $user): Shift
     {
         // إذا كان لديه وردية مفتوحة بالفعل، أعدها (لا تفتح جديدة)
@@ -319,9 +321,9 @@ class ShiftService
         AuditLogService::log('update', $shift, $old, $shift->fresh()->toArray(), $requestingUser);
     }
 
-    public function addWithdrawal(Shift $shift, array $data): CashWithdrawal
+    public function addWithdrawal(?Shift $shift, array $data): CashWithdrawal
     {
-        if ($shift->is_closed) {
+        if ($shift && $shift->is_closed) {
             throw new \RuntimeException('لا يمكن إضافة سحب لوردية مقفلة');
         }
 
@@ -330,6 +332,8 @@ class ShiftService
         // صاحب الفندق...) فيدخل تلقائياً ضمن خصم راتب ذلك الموظف عند تفعيله.
         // لا معنى لربطه بموظف في حالة "صرف عملة" (ليس سلفة شخصية).
         $employeeId = $type === 'expense' ? ($data['employee_id'] ?? null) : null;
+        // مصدر تمويل المصروف: من نقدية الوردية الشخصية أو من الصندوق العام.
+        $fundingSource = $data['funding_source'] ?? 'shift';
 
         // إنشاء سجل مصروف تلقائياً لكل سحب من نوع "مصروف"
         $expenseId = null;
@@ -342,7 +346,7 @@ class ShiftService
                 'description'    => $data['notes'] ?? null,
                 'expense_date'   => now()->toDateString(),
                 'paid_by'        => auth()->id(),
-                'shift_id'       => $shift->id,
+                'shift_id'       => $shift?->id,
                 'employee_id'    => $employeeId,
                 'payment_method' => 'cash',
             ]);
@@ -350,7 +354,7 @@ class ShiftService
         }
 
         $withdrawal = CashWithdrawal::create([
-            'shift_id'             => $shift->id,
+            'shift_id'             => $shift?->id,
             'cash_settlement_id'   => null,
             'expense_id'           => $expenseId,
             'employee_id'          => $employeeId,
@@ -363,7 +367,25 @@ class ShiftService
             'withdrawal_type'      => $type,
             'exchange_to_currency' => $type === 'currency_exchange' ? ($data['exchange_to_currency'] ?? null) : null,
             'exchange_to_amount'   => $type === 'currency_exchange' ? ($data['exchange_to_amount'] ?? null) : null,
+            'funding_source'       => $type === 'expense' ? $fundingSource : 'shift',
         ]);
+
+        // ريال يمني فقط حالياً (الشجرة لا تدعم SAR/USD بعد)
+        if ($type === 'expense' && $withdrawal->currency === 'YER') {
+            $creditAccount = $fundingSource === 'general_safe' ? '1120' : '1110';
+
+            $this->journalService->post(
+                now()->toDateString(),
+                'مصروف: ' . ($data['withdrawn_by_name'] ?? '—'),
+                CashWithdrawal::class,
+                $withdrawal->id,
+                [
+                    ['account_code' => Expense::categoryAccountCode($data['category'] ?? 'other'), 'debit' => $withdrawal->amount],
+                    ['account_code' => $creditAccount, 'credit' => $withdrawal->amount],
+                ],
+                auth()->id()
+            );
+        }
 
         return $withdrawal;
     }

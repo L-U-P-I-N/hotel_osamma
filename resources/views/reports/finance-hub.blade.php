@@ -15,6 +15,9 @@
             'methods'  => ['label' => 'طرق الدفع', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>'],
             'ratios'   => ['label' => 'نسب الأداء المالي', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>'],
         ];
+        if (auth()->user()->can('accounts.view')) {
+            $hubTabs['accounts'] = ['label' => 'شجرة الحسابات', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>'];
+        }
         @endphp
         @foreach($hubTabs as $key => $info)
         <a href="{{ route('reports.financeHub', array_merge(request()->only(['from','to','month','period']), ['tab' => $key])) }}"
@@ -853,6 +856,85 @@ $pmColors = ['cash'=>'#10b981','bank_transfer'=>'#3b82f6','pos'=>'#a855f7','chec
     </ul>
 </div>
 </div>{{-- end ratios --}}
+@endif
+
+{{-- ════════════════════════════════════════════════════════
+     TAB 5 — شجرة الحسابات
+     ════════════════════════════════════════════════════════ --}}
+@if($tab === 'accounts')
+@can('accounts.view')
+<div class="space-y-5">
+
+    {{-- ميزان المراجعة --}}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <h3 class="font-bold text-gray-800 text-sm mb-3">ميزان المراجعة</h3>
+        <div class="flex flex-wrap gap-6 items-center">
+            <div>
+                <div class="text-xs text-gray-500">إجمالي المدين</div>
+                <div class="text-lg font-black text-gray-800">{{ number_format($trialBalanceDebit, 0) }} ر.ي</div>
+            </div>
+            <div>
+                <div class="text-xs text-gray-500">إجمالي الدائن</div>
+                <div class="text-lg font-black text-gray-800">{{ number_format($trialBalanceCredit, 0) }} ر.ي</div>
+            </div>
+            <div>
+                @if(round($trialBalanceDebit, 2) === round($trialBalanceCredit, 2))
+                <span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">متوازن ✓</span>
+                @else
+                <span class="px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">غير متوازن ⚠</span>
+                @endif
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {{-- شجرة الحسابات --}}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <h3 class="font-bold text-gray-800 text-sm mb-3">شجرة الحسابات</h3>
+            <div class="space-y-1">
+                @include('reports.partials.account-tree-node', ['nodes' => $accountsTree, 'depth' => 0])
+            </div>
+        </div>
+
+        {{-- درنة الحساب المحدد --}}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            @if($drillAccount)
+            <h3 class="font-bold text-gray-800 text-sm mb-3">
+                حركات حساب: {{ $drillAccount->code }} — {{ $drillAccount->name }}
+            </h3>
+            @if($drillLines->isEmpty())
+            <p class="text-gray-400 text-sm text-center py-8">لا توجد حركات على هذا الحساب</p>
+            @else
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-right">
+                    <thead>
+                        <tr class="text-xs text-gray-500 border-b border-gray-200">
+                            <th class="py-2 font-medium">التاريخ</th>
+                            <th class="py-2 font-medium">البيان</th>
+                            <th class="py-2 font-medium">مدين</th>
+                            <th class="py-2 font-medium">دائن</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($drillLines as $line)
+                        <tr class="border-b border-gray-50">
+                            <td class="py-2 text-gray-600 whitespace-nowrap">{{ $line->journalEntry?->entry_date?->format('d/m/Y') }}</td>
+                            <td class="py-2 text-gray-700">{{ $line->journalEntry?->description }}</td>
+                            <td class="py-2 font-semibold {{ $line->debit > 0 ? 'text-blue-700' : 'text-gray-300' }}">{{ $line->debit > 0 ? number_format($line->debit, 0) : '—' }}</td>
+                            <td class="py-2 font-semibold {{ $line->credit > 0 ? 'text-orange-700' : 'text-gray-300' }}">{{ $line->credit > 0 ? number_format($line->credit, 0) : '—' }}</td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            @endif
+            @else
+            <p class="text-gray-400 text-sm text-center py-8">اختر حساباً من الشجرة لعرض حركاته</p>
+            @endif
+        </div>
+    </div>
+</div>
+@endcan
 @endif
 
 </div>{{-- end dir=rtl --}}

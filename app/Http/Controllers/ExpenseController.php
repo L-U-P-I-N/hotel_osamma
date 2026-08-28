@@ -150,7 +150,34 @@ class ExpenseController extends Controller
             $this->syncWithdrawal($expense, $targetShift);
         }
 
+        $this->postExpenseJournal($expense);
+
         return redirect()->route('expenses.index')->with('success', 'تم تسجيل المصروف بنجاح');
+    }
+
+    /**
+     * قيد يومية للمصروف المباشر (لا يمر بـShiftService/CashSettlementService).
+     * كاش → دائن 1110 نقدية الورديات، تحويل/لاحق → دائن 2200 مصروفات مستحقة.
+     */
+    private function postExpenseJournal(Expense $expense): void
+    {
+        if ($expense->currency !== 'YER') {
+            return;
+        }
+
+        $creditAccount = $expense->isPaidFromCash() ? '1110' : '2200';
+
+        app(\App\Services\JournalService::class)->post(
+            $expense->expense_date->toDateString(),
+            'مصروف: ' . $expense->recipient_name,
+            Expense::class,
+            $expense->id,
+            [
+                ['account_code' => Expense::categoryAccountCode($expense->category), 'debit' => $expense->amount],
+                ['account_code' => $creditAccount, 'credit' => $expense->amount],
+            ],
+            auth()->id()
+        );
     }
 
     /**
@@ -264,6 +291,22 @@ class ExpenseController extends Controller
 
         // 'action' عمود enum ثابت القيم في audit_logs — لا يقبل 'expense_settled'
         \App\Services\AuditLogService::log('update', $expense, null, ['amount' => $expense->amount, 'settled_at' => now()->toDateTimeString()]);
+
+        // تسوية المصروف المؤجَّل = خروج نقدية فعلي الآن؛ يُقفَل التزام 2200
+        // ويُقيَّد الخروج على نقدية الورديات.
+        if ($expense->currency === 'YER') {
+            app(\App\Services\JournalService::class)->post(
+                now()->toDateString(),
+                'تسوية مصروف مؤجَّل: ' . $expense->recipient_name,
+                Expense::class,
+                $expense->id,
+                [
+                    ['account_code' => '2200', 'debit' => $expense->amount],
+                    ['account_code' => '1110', 'credit' => $expense->amount],
+                ],
+                auth()->id()
+            );
+        }
 
         return back()->with('success', 'تم تسوية المصروف بنجاح');
     }

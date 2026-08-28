@@ -38,6 +38,8 @@ class RolesSeeder extends Seeder
             'attendance.view', 'attendance.create',
             // Admin-only
             'users.manage', 'audit_log.view',
+            // Chart of Accounts
+            'accounts.view', 'accounts.manage',
             // Misc
             'dashboard.view', 'deferred.approve',
         ];
@@ -52,7 +54,7 @@ class RolesSeeder extends Seeder
                 'dashboard.view', 'rooms.view',
                 'payments.view', 'payments.create', 'payments.bank_receipt',
                 'settlement.view', 'settlement.manage', 'settlement.lock',
-                'reports.view',
+                'reports.view', 'accounts.view',
                 'hr.view', 'hr.create', 'hr.edit', 'hr.delete',
                 'expenses.view', 'expenses.create', 'expenses.edit', 'expenses.delete',
                 'withdrawal.create', 'withdrawal.view', 'withdrawal.edit', 'withdrawal.delete',
@@ -72,7 +74,7 @@ class RolesSeeder extends Seeder
             'auditor' => [
                 'dashboard.view', 'rooms.view', 'checkin.view',
                 'guests.view', 'payments.view',
-                'settlement.view', 'reports.view', 'audit_log.view',
+                'settlement.view', 'reports.view', 'audit_log.view', 'accounts.view',
             ],
         ];
 

@@ -11,7 +11,7 @@ class CashWithdrawal extends Model
     protected $fillable = [
         'cash_settlement_id','shift_id','expense_id','employee_id','amount','currency',
         'withdrawal_date','withdrawn_by_name','handed_by_name','notes',
-        'withdrawal_type','exchange_to_currency','exchange_to_amount',
+        'withdrawal_type','exchange_to_currency','exchange_to_amount','funding_source',
     ];
 
     protected $casts = [
