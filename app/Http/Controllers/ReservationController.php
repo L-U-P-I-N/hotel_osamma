@@ -1102,13 +1102,18 @@ class ReservationController extends Controller
         $todayCount   = (clone $query)->where('status', 'checked_in')->whereDate('check_out_date', today())->count();
         $total        = (clone $query)->count();
 
-        // من لم يغادروا أولاً (الأقرب لموعد الخروج أعلى القائمة)، ثم من غادروا في النهاية
+        if ($status === 'checked_out') {
+            // فلتر المغادرين وحده: الأحدث مغادرة أولاً (أعلى القائمة).
+            $query->orderByDesc('actual_check_out');
+        } else {
+            // من لم يغادروا أولاً (الأقرب لموعد الخروج أعلى القائمة)، ثم من غادروا في النهاية.
+            $query->orderByRaw("CASE WHEN status = 'checked_in' THEN 0 ELSE 1 END")
+                  ->orderBy('check_out_date', 'asc');
+        }
+
         // مُرقَّمة (بدل تحميل كل السجلات دفعة واحدة) — القائمة تكبر باستمرار مع تراكم
         // النزلاء المغادرين تاريخياً وكانت تُبطئ الصفحة أكثر كل فترة.
-        $reservations = $query->orderByRaw("CASE WHEN status = 'checked_in' THEN 0 ELSE 1 END")
-            ->orderBy('check_out_date', 'asc')
-            ->paginate(30)
-            ->withQueryString();
+        $reservations = $query->paginate(30)->withQueryString();
 
         return view('reservations.expiring', compact('reservations', 'status', 'overdueCount', 'todayCount', 'total'));
     }
