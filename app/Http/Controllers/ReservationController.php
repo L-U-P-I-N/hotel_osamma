@@ -1106,9 +1106,11 @@ class ReservationController extends Controller
             // فلتر المغادرين وحده: الأحدث مغادرة أولاً (أعلى القائمة).
             $query->orderByDesc('actual_check_out');
         } else {
-            // من لم يغادروا أولاً (الأقرب لموعد الخروج أعلى القائمة)، ثم من غادروا في النهاية.
+            // من لم يغادروا أولاً (الأقرب لموعد الخروج أعلى القائمة)، ثم من غادروا
+            // (الأحدث مغادرة أولاً ضمن مجموعتهم — نفس ترتيب فلتر "المغادرون" وحده).
             $query->orderByRaw("CASE WHEN status = 'checked_in' THEN 0 ELSE 1 END")
-                  ->orderBy('check_out_date', 'asc');
+                  ->orderByRaw("CASE WHEN status = 'checked_in' THEN check_out_date END ASC")
+                  ->orderByRaw("CASE WHEN status = 'checked_out' THEN actual_check_out END DESC");
         }
 
         // مُرقَّمة (بدل تحميل كل السجلات دفعة واحدة) — القائمة تكبر باستمرار مع تراكم
