@@ -39,17 +39,6 @@
     </a>
 </div>
 
-{{-- زر تسجيل دخول نزيل جديد — داخل صفحة الحجوزات نفسها، بارز ومستقل حتى لا
-     يحتاج الموظف مغادرة هذه الصفحة أو الرجوع للوحة التحكم لتسجيل نزيل. --}}
-@can('checkin.create')
-<a href="{{ route('checkin.create') }}"
-   class="flex items-center justify-center gap-2 w-full px-4 py-3 mb-4 text-white rounded-xl text-sm font-bold transition shadow-sm hover:shadow-md"
-   style="background:#0F4C75;">
-    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H5a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
-    تسجيل دخول نزيل جديد
-</a>
-@endcan
-
 <!-- Filters -->
 <form method="GET" action="{{ route('reservations.expiring') }}" id="filters" class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-5">
     <div class="flex flex-wrap gap-3 items-end">

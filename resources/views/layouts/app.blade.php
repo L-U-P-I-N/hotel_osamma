@@ -475,6 +475,15 @@
             @endif
             <h1 class="text-base font-semibold text-gray-800 flex-1">@yield('page-title', 'لوحة التحكم')</h1>
             <div class="flex items-center gap-3">
+                {{-- تسجيل دخول نزيل — متاح من أي صفحة بالنظام، لا يحتاج الموظف
+                     الرجوع للوحة التحكم أو صفحة الحجوزات كل مرة --}}
+                @can('checkin.create')
+                <a href="{{ route('checkin.create') }}"
+                   title="تسجيل دخول نزيل"
+                   class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-green-600 hover:bg-green-50 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H5a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
+                </a>
+                @endcan
                 {{-- Refresh — essential in PWA standalone mode (no browser reload button) --}}
                 <button type="button" onclick="this.firstElementChild.classList.add('animate-spin'); window.location.reload()"
                         title="تحديث الصفحة"
