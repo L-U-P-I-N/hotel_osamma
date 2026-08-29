@@ -86,13 +86,13 @@
 
         <button type="submit" class="px-4 py-2 text-white rounded-lg text-sm font-medium self-end" style="background:#0F4C75;">بحث</button>
 
-        @if(request()->hasAny(['search','check_in_date','check_out_date']) || (request('status') && request('status') !== 'all'))
-        <a href="{{ route('reservations.expiring') }}"
-           class="inline-flex items-center gap-1.5 px-4 py-2 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition self-end">
+        {{-- يُعرَض/يُخفى عبر JS مع كل فلترة حيّة (لا يُعاد رسمه بإعادة تحميل) --}}
+        <a href="{{ route('reservations.expiring') }}" id="clearFilters"
+           class="inline-flex items-center gap-1.5 px-4 py-2 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition self-end
+                  {{ (request()->hasAny(['search','check_in_date','check_out_date']) || (request('status') && request('status') !== 'all')) ? '' : 'hidden' }}">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             إلغاء الفلترة
         </a>
-        @endif
     </div>
 </form>
 
@@ -136,6 +136,17 @@
     function runFilter() {
         const params = new URLSearchParams(new FormData(form)).toString();
         load(form.action + (params ? '?' + params : ''));
+        toggleClearButton();
+    }
+
+    // زر "إلغاء الفلترة" خارج منطقة النتائج المُستبدَلة، فنُظهره/نُخفيه هنا
+    function toggleClearButton() {
+        const btn = document.getElementById('clearFilters');
+        if (!btn) return;
+        const d = new FormData(form);
+        const active = ['search', 'check_in_date', 'check_out_date'].some(k => (d.get(k) || '').trim() !== '')
+                     || ((d.get('status') || 'all') !== 'all');
+        btn.classList.toggle('hidden', !active);
     }
 
     // أرقام العدّادات تصل ضمن جزئية النتائج (data-*) فنحدّث بها سطر الملخص
