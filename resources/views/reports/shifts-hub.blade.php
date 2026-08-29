@@ -45,29 +45,107 @@
 <div class="p-4">
     <form method="GET" action="{{ route('reports.shiftsHub') }}" class="flex flex-wrap items-end gap-4 mb-4">
         <input type="hidden" name="tab" value="shifts">
+
+        {{-- فلتر الموظف: جوهر مراجعة الحسابات — يعزل ورديات موظف بعينه --}}
         <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-semibold text-gray-500">الموظف</label>
+            <select name="user_id" onchange="this.form.submit()"
+                    class="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white min-w-44">
+                <option value="">كل الموظفين</option>
+                @foreach($shiftUsers as $u)
+                <option value="{{ $u->id }}" {{ (string) $userId === (string) $u->id ? 'selected' : '' }}>{{ $u->name }}</option>
+                @endforeach
+            </select>
+        </div>
+
+        {{-- لا نُعطّل الحقلين عند "كل الفترات" (الحقل المُعطَّل لا تُرسَل قيمته،
+             فتضيع الفترة المختارة عند إلغاء الخيار) — نكتفي بتخفيتهما. --}}
+        <div class="flex flex-col gap-1.5 {{ $allPeriods ? 'opacity-40' : '' }}">
             <label class="text-xs font-semibold text-gray-500">من تاريخ</label>
             <input type="date" name="from" value="{{ $from }}" onchange="this.form.submit()"
                    class="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white">
         </div>
-        <div class="flex flex-col gap-1.5">
+        <div class="flex flex-col gap-1.5 {{ $allPeriods ? 'opacity-40' : '' }}">
             <label class="text-xs font-semibold text-gray-500">إلى تاريخ</label>
             <input type="date" name="to" value="{{ $to }}" onchange="this.form.submit()"
                    class="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white">
         </div>
+
+        {{-- كل الفترات: يُلغي حدود التاريخ ليظهر تاريخ الموظف كاملاً --}}
+        <label class="flex items-center gap-2 px-3 py-2 rounded-xl border cursor-pointer transition self-end
+                      {{ $allPeriods ? 'bg-blue-50 border-blue-300 text-blue-700' : 'bg-white border-gray-200 text-gray-600 hover:border-blue-300' }}">
+            <input type="checkbox" name="all_periods" value="1" onchange="this.form.submit()" {{ $allPeriods ? 'checked' : '' }}
+                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+            <span class="text-sm font-semibold whitespace-nowrap">كل الفترات</span>
+        </label>
+
+        @php $exportParams = array_filter(['from' => $from, 'to' => $to, 'user_id' => $userId, 'all_periods' => $allPeriods ? 1 : null]); @endphp
         <div class="flex items-center gap-2 me-auto">
-            <a href="{{ route('reports.shifts.pdf', ['from' => $from, 'to' => $to]) }}"
+            <a href="{{ route('reports.shifts.pdf', $exportParams) }}"
                class="inline-flex items-center gap-1.5 px-3 py-2 bg-red-600 text-white text-xs rounded-xl hover:bg-red-700 transition font-semibold">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
                 PDF
             </a>
-            <a href="{{ route('reports.shifts.excel', ['from' => $from, 'to' => $to]) }}"
+            <a href="{{ route('reports.shifts.excel', $exportParams) }}"
                class="inline-flex items-center gap-1.5 px-3 py-2 bg-green-600 text-white text-xs rounded-xl hover:bg-green-700 transition font-semibold">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 Excel
             </a>
         </div>
     </form>
+
+    {{-- شريط الإجماليات: على كل النتائج المطابقة لا الصفحة الظاهرة وحدها --}}
+    @if($shiftTotals && $shiftTotals['count'] > 0)
+    <div class="rounded-2xl border border-gray-200 bg-gradient-to-l from-gray-50 to-white p-4 mb-4">
+        <div class="flex items-center justify-between flex-wrap gap-3 mb-3">
+            <div class="text-sm font-bold text-gray-800">
+                @if($selectedUser)
+                    حساب <span style="color:#0F4C75;">{{ $selectedUser->name }}</span>
+                @else
+                    إجمالي كل الموظفين
+                @endif
+                <span class="text-xs font-normal text-gray-400 mr-1">
+                    — {{ $allPeriods ? 'كل الفترات' : \Carbon\Carbon::parse($from)->format('d/m/Y') . ' إلى ' . \Carbon\Carbon::parse($to)->format('d/m/Y') }}
+                </span>
+            </div>
+            <div class="text-xs text-gray-500">
+                {{ $shiftTotals['count'] }} وردية
+                <span class="text-gray-300 mx-1">·</span>{{ $shiftTotals['closed'] }} مغلقة
+                @if($shiftTotals['open'] > 0)<span class="text-gray-300 mx-1">·</span><span class="text-amber-600 font-semibold">{{ $shiftTotals['open'] }} مفتوحة</span>@endif
+            </div>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div class="bg-white rounded-xl border border-gray-100 p-3">
+                <div class="text-xs text-gray-500">إجمالي المستلم</div>
+                <div class="text-lg font-black text-green-700 mt-0.5">{{ number_format($shiftTotals['received_yer'], 0) }}</div>
+            </div>
+            <div class="bg-white rounded-xl border border-gray-100 p-3">
+                <div class="text-xs text-gray-500">إجمالي السحبيات</div>
+                <div class="text-lg font-black text-red-700 mt-0.5">{{ number_format($shiftTotals['withdrawals_yer'], 0) }}</div>
+            </div>
+            <div class="bg-white rounded-xl border border-gray-100 p-3">
+                <div class="text-xs text-gray-500">الاسترجاعات</div>
+                <div class="text-lg font-black text-orange-700 mt-0.5">{{ number_format($shiftTotals['refunds_yer'], 0) }}</div>
+            </div>
+            <div class="bg-white rounded-xl border border-gray-100 p-3">
+                <div class="text-xs text-gray-500">الصافي</div>
+                <div class="text-lg font-black {{ $shiftTotals['net_yer'] >= 0 ? 'text-gray-800' : 'text-red-700' }} mt-0.5">{{ number_format($shiftTotals['net_yer'], 0) }}</div>
+            </div>
+            <div class="bg-white rounded-xl border {{ $shiftTotals['deficit'] > 0 ? 'border-red-200 bg-red-50/40' : 'border-gray-100' }} p-3">
+                <div class="text-xs text-gray-500">العجز التراكمي</div>
+                <div class="text-lg font-black {{ $shiftTotals['deficit'] > 0 ? 'text-red-700' : 'text-gray-300' }} mt-0.5">
+                    {{ number_format($shiftTotals['deficit'], 0) }}
+                </div>
+                @if($shiftTotals['deficit_count'] > 0)
+                <div class="text-[11px] text-red-500 mt-0.5">{{ $shiftTotals['deficit_count'] }} وردية بعجز</div>
+                @endif
+            </div>
+        </div>
+        @if($shiftTotals['surplus'] > 0)
+        <div class="mt-2 text-xs text-green-700">زيادة تراكمية: <b>{{ number_format($shiftTotals['surplus'], 0) }}</b> ر.ي</div>
+        @endif
+    </div>
+    @endif
 
     @if($shifts && $shifts->isEmpty())
     <div class="py-16 text-center text-gray-400">
@@ -116,9 +194,21 @@
                 @endforeach
             </div>
             <div class="flex items-center gap-3 ms-auto">
+                @if($shift->shortfall !== null && (float) $shift->shortfall != 0)
+                <span class="px-2.5 py-1 rounded-full text-xs font-bold {{ (float) $shift->shortfall < 0 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700' }}">
+                    {{ (float) $shift->shortfall < 0 ? 'عجز' : 'زيادة' }} {{ number_format(abs((float) $shift->shortfall), 0) }}
+                </span>
+                @endif
                 <span class="px-2.5 py-1 rounded-full text-xs font-semibold {{ $shift->is_closed ? 'bg-gray-100 text-gray-600' : 'bg-amber-100 text-amber-700' }}">
                     {{ $shift->is_closed ? 'مغلقة' : 'مفتوحة' }}
                 </span>
+                {{-- طباعة تفصيل هذه الوردية وحدها (المسار موجود ولم يكن مرتبطاً من هنا) --}}
+                <a href="{{ route('shifts.pdf', $shift) }}" target="_blank" @click.stop
+                   title="طباعة تفصيل هذه الوردية"
+                   class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-gray-200 text-gray-500 text-xs hover:border-red-300 hover:text-red-600 transition">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                    طباعة
+                </a>
                 <svg :class="open?'rotate-180':''" class="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
             </div>
         </div>
@@ -252,15 +342,31 @@
     <form method="GET" action="{{ route('reports.shiftsHub') }}" class="flex flex-wrap gap-3 items-end mb-4">
         <input type="hidden" name="tab" value="deficits">
         <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-500">الموظف</label>
+            <select name="user_id" onchange="this.form.submit()"
+                    class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white min-w-40">
+                <option value="">كل الموظفين</option>
+                @foreach($shiftUsers as $u)
+                <option value="{{ $u->id }}" {{ (string) $userId === (string) $u->id ? 'selected' : '' }}>{{ $u->name }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="flex flex-col gap-1 {{ $allPeriods ? 'opacity-40' : '' }}">
             <label class="text-xs font-medium text-gray-500">من تاريخ</label>
             <input type="date" name="from" value="{{ $from }}" onchange="this.form.submit()"
                    class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white">
         </div>
-        <div class="flex flex-col gap-1">
+        <div class="flex flex-col gap-1 {{ $allPeriods ? 'opacity-40' : '' }}">
             <label class="text-xs font-medium text-gray-500">إلى تاريخ</label>
             <input type="date" name="to" value="{{ $to }}" onchange="this.form.submit()"
                    class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white">
         </div>
+        <label class="flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition self-end
+                      {{ $allPeriods ? 'bg-blue-50 border-blue-300 text-blue-700' : 'bg-white border-gray-200 text-gray-600 hover:border-blue-300' }}">
+            <input type="checkbox" name="all_periods" value="1" onchange="this.form.submit()" {{ $allPeriods ? 'checked' : '' }}
+                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+            <span class="text-sm font-semibold whitespace-nowrap">كل الفترات</span>
+        </label>
         <button type="submit" class="px-4 py-2 text-sm text-white rounded-lg transition" style="background:#0F4C75;">عرض</button>
     </form>
 

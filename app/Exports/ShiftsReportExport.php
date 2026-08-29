@@ -12,13 +12,21 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class ShiftsReportExport implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize
 {
-    public function __construct(private string $from, private string $to) {}
+    public function __construct(
+        private string $from,
+        private string $to,
+        private $userId = null,
+        private bool $allPeriods = false
+    ) {}
 
     public function collection(): Collection
     {
         return Shift::with(['user', 'payments', 'withdrawals'])
-            ->whereDate('shift_date', '>=', $this->from)
-            ->whereDate('shift_date', '<=', $this->to)
+            // "كل الفترات" يُلغي حدود التاريخ لمراجعة تاريخ الموظف كاملاً
+            ->when(! $this->allPeriods, fn($q) => $q
+                ->whereDate('shift_date', '>=', $this->from)
+                ->whereDate('shift_date', '<=', $this->to))
+            ->when($this->userId, fn($q) => $q->where('user_id', $this->userId))
             ->orderBy('shift_date')
             ->orderBy('started_at')
             ->get();

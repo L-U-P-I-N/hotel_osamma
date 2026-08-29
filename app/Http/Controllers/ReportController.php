@@ -247,22 +247,36 @@ class ReportController extends Controller
 
     public function shiftsPdf(Request $request)
     {
-        $from = $request->input('from', now()->subDays(30)->toDateString());
-        $to   = $request->input('to', now()->toDateString());
-        $shifts = \App\Models\Shift::with(['user', 'payments', 'withdrawals'])
-            ->whereDate('shift_date', '>=', $from)
-            ->whereDate('shift_date', '<=', $to)
+        $from       = $request->input('from', now()->subDays(30)->toDateString());
+        $to         = $request->input('to', now()->toDateString());
+        $userId     = $request->input('user_id');
+        $allPeriods = $request->boolean('all_periods');
+
+        $shifts = $this->shiftsQuery($from, $to, $userId, $allPeriods)
+            ->with(['user', 'payments', 'withdrawals'])
             ->orderBy('shift_date')->orderBy('started_at')->get();
-        $pdf = $this->pdfOptions(pdf_load_view('reports.shifts_pdf', compact('shifts', 'from', 'to')));
+
+        $shiftTotals  = $this->shiftTotals($this->shiftsQuery($from, $to, $userId, $allPeriods));
+        $selectedUser = $userId ? User::find($userId) : null;
+
+        $pdf = $this->pdfOptions(pdf_load_view('reports.shifts_pdf', compact('shifts', 'from', 'to', 'selectedUser', 'allPeriods', 'shiftTotals')));
         $pdf->setPaper('a3', 'landscape');
-        return $pdf->download('shifts-' . $from . '-' . $to . '.pdf');
+
+        $name = 'ورديات-' . ($selectedUser?->name ?? 'الكل') . '-' . ($allPeriods ? 'كل-الفترات' : $from . '-' . $to);
+        return $pdf->download($name . '.pdf');
     }
 
     public function shiftsExcel(Request $request)
     {
-        $from = $request->input('from', now()->subDays(30)->toDateString());
-        $to   = $request->input('to', now()->toDateString());
-        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\ShiftsReportExport($from, $to), 'shifts-' . $from . '-' . $to . '.xlsx');
+        $from       = $request->input('from', now()->subDays(30)->toDateString());
+        $to         = $request->input('to', now()->toDateString());
+        $userId     = $request->input('user_id');
+        $allPeriods = $request->boolean('all_periods');
+
+        $export = new \App\Exports\ShiftsReportExport($from, $to, $userId, $allPeriods);
+        $name   = 'shifts-' . ($allPeriods ? 'all' : $from . '-' . $to) . ($userId ? '-user' . $userId : '') . '.xlsx';
+
+        return \Maatwebsite\Excel\Facades\Excel::download($export, $name);
     }
 
     public function dailyClosePdf(Request $request)
@@ -311,8 +325,16 @@ class ReportController extends Controller
         $to   = $request->input('to', now()->toDateString());
         $date = $request->input('date', today()->toDateString());
 
+        // مراجعة حسابات موظف بعينه: فلتر بالموظف + خيار "كل الفترات" الذي
+        // يُلغي حدود التاريخ تماماً ليظهر تاريخه كاملاً في النظام.
+        $userId    = $request->input('user_id');
+        $allPeriods = $request->boolean('all_periods');
+        $shiftUsers = User::whereHas('shifts')->orderBy('name')->get(['id', 'name']);
+        $selectedUser = $userId ? $shiftUsers->firstWhere('id', (int) $userId) : null;
+
         $shifts = null;
         $summary = null;
+        $shiftTotals = null;
         $totalRevenue = $paymentCount = $reservationCount = 0;
         $revenueByMethod = collect();
         $totalExpenses = $cashRevenue = $cashExpenses = $totalWithdrawals = $expectedCash = $netDay = 0;
@@ -320,24 +342,34 @@ class ReportController extends Controller
         $dailyShifts = collect();
 
         if ($tab === 'shifts') {
-            $shifts = Shift::with(['user', 'payments.reservation.room', 'withdrawals'])
-                ->whereDate('shift_date', '>=', $from)
-                ->whereDate('shift_date', '<=', $to)
+            $base = fn() => $this->shiftsQuery($from, $to, $userId, $allPeriods);
+
+            $shifts = $base()
+                ->with(['user', 'payments.reservation.room', 'withdrawals'])
                 ->orderBy('shift_date', 'desc')
                 ->orderBy('started_at', 'desc')
                 ->paginate(20)
                 ->withQueryString();
 
+            // إجماليات كل النتائج المطابقة (لا الصفحة الظاهرة وحدها) — هي
+            // المقصد من المراجعة: صافي ما بيد الموظف وعجزه التراكمي.
+            $shiftTotals = $this->shiftTotals($base());
+
         } elseif ($tab === 'deficits') {
-            $users = User::with(['shifts' => function ($q) use ($from, $to) {
-                $q->where('is_closed', true)
-                  ->whereDate('shift_date', '>=', $from)
-                  ->whereDate('shift_date', '<=', $to)
-                  ->orderBy('shift_date', 'desc');
-            }])->whereHas('shifts', function ($q) use ($from, $to) {
-                $q->where('is_closed', true)
-                  ->whereDate('shift_date', '>=', $from)
-                  ->whereDate('shift_date', '<=', $to);
+            $users = User::with(['shifts' => function ($q) use ($from, $to, $userId, $allPeriods) {
+                $q->where('is_closed', true)->orderBy('shift_date', 'desc');
+                if (! $allPeriods) {
+                    $q->whereDate('shift_date', '>=', $from)->whereDate('shift_date', '<=', $to);
+                }
+                if ($userId) {
+                    $q->where('user_id', $userId);
+                }
+            }])->when($userId, fn($q) => $q->where('id', $userId))
+              ->whereHas('shifts', function ($q) use ($from, $to, $allPeriods) {
+                $q->where('is_closed', true);
+                if (! $allPeriods) {
+                    $q->whereDate('shift_date', '>=', $from)->whereDate('shift_date', '<=', $to);
+                }
             })->get();
 
             $summary = $users->map(function (User $user) {
@@ -390,8 +422,42 @@ class ReportController extends Controller
             'totalRevenue', 'paymentCount', 'reservationCount',
             'revenueByMethod', 'totalExpenses', 'expensesByCategory',
             'dailyShifts', 'cashRevenue', 'cashExpenses', 'totalWithdrawals',
-            'expectedCash', 'netDay'
+            'expectedCash', 'netDay',
+            'shiftUsers', 'userId', 'allPeriods', 'selectedUser', 'shiftTotals'
         ));
+    }
+
+    /**
+     * استعلام الورديات المشترك بين الشاشة والتصدير — فلتر بالموظف، و"كل
+     * الفترات" يُلغي حدود التاريخ ليظهر تاريخ الموظف كاملاً.
+     */
+    private function shiftsQuery(string $from, string $to, $userId = null, bool $allPeriods = false)
+    {
+        return Shift::query()
+            ->when(! $allPeriods, fn($q) => $q->whereDate('shift_date', '>=', $from)->whereDate('shift_date', '<=', $to))
+            ->when($userId, fn($q) => $q->where('user_id', $userId));
+    }
+
+    /** إجماليات مجموعة ورديات — للمراجعة المحاسبية (صافي وعجز تراكمي). */
+    private function shiftTotals($query): array
+    {
+        $shifts = $query->get();
+
+        $deficit = $shifts->filter(fn($s) => $s->shortfall !== null && $s->shortfall < 0);
+        $surplus = $shifts->filter(fn($s) => $s->shortfall !== null && $s->shortfall > 0);
+
+        return [
+            'count'           => $shifts->count(),
+            'closed'          => $shifts->where('is_closed', true)->count(),
+            'open'            => $shifts->where('is_closed', false)->count(),
+            'received_yer'    => (float) $shifts->sum('total_received_yer'),
+            'withdrawals_yer' => (float) $shifts->sum('total_withdrawals_yer'),
+            'refunds_yer'     => (float) $shifts->sum('total_refunds_yer'),
+            'net_yer'         => (float) $shifts->sum(fn($s) => (float) $s->total_received_yer - (float) $s->total_withdrawals_yer),
+            'deficit'         => (float) $deficit->sum(fn($s) => abs((float) $s->shortfall)),
+            'surplus'         => (float) $surplus->sum(fn($s) => (float) $s->shortfall),
+            'deficit_count'   => $deficit->count(),
+        ];
     }
 
     public function financeHub(Request $request)
