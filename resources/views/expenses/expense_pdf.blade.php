@@ -101,7 +101,7 @@
 @endphp
 
 <div class="header">
-    @include('partials.pdf-logo')
+    @include('partials.pdf-hotel-header')
     <h1>تقرير المصروفات</h1>
     @if($dateFrom || $dateTo)
     <div class="sub">

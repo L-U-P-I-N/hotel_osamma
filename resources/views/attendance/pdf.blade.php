@@ -33,7 +33,7 @@
 <body>
 
 <div class="header">
-    @include('partials.pdf-logo')
+    @include('partials.pdf-hotel-header')
     <h1>كشف الحضور والغياب الشهري</h1>
     <p>{{ \App\Models\Salary::monthName($month) }} {{ $year }}</p>
 </div>

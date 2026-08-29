@@ -41,7 +41,7 @@
 <body>
 
 <div class="header">
-    @include('partials.pdf-logo')
+    @include('partials.pdf-hotel-header')
     <h1>كشف حساب الموظفين</h1>
     <div class="sub">
         الفترة: {{ \Carbon\Carbon::parse($from)->format('Y/m/d') }} — {{ \Carbon\Carbon::parse($to)->format('Y/m/d') }}

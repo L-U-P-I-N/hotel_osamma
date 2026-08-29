@@ -79,5 +79,40 @@
             ويظهر مباشرةً في ملفات PDF المُصدَّرة دون أي إعداد إضافي.
         </div>
     </div>
+
+    {{-- بيانات الفندق: تُطبع في رأس كل فاتورة وتقرير --}}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div class="mb-5 pb-4 border-b border-gray-100">
+            <h2 class="text-lg font-semibold text-gray-800">بيانات الفندق</h2>
+            <p class="text-sm text-gray-500 mt-1">
+                تظهر في رأس كل فاتورة وتقرير: البيانات العربية على اليمين، والشعار في المنتصف،
+                والإنجليزية على اليسار — مع أرقام التواصل أسفل الرأس.
+            </p>
+        </div>
+
+        <form method="POST" action="{{ route('settings.profile.update') }}" class="space-y-5">
+            @csrf
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                @foreach($fields as $key => [$label, $hint])
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">{{ $label }}</label>
+                    <input type="{{ $key === 'hotel_email' ? 'email' : 'text' }}"
+                           name="{{ $key }}"
+                           value="{{ old($key, $profile[$key] ?? '') }}"
+                           placeholder="{{ $hint }}"
+                           dir="{{ str_ends_with($key, '_en') || in_array($key, ['hotel_email','hotel_website']) ? 'ltr' : 'rtl' }}"
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none">
+                </div>
+                @endforeach
+            </div>
+
+            <div class="flex items-center gap-3 pt-1">
+                <button type="submit" class="px-5 py-2.5 text-white rounded-lg text-sm font-semibold transition" style="background:#0F4C75;">
+                    حفظ بيانات الفندق
+                </button>
+                <span class="text-xs text-gray-400">اترك أي حقل فارغاً ليُخفى من الرأس بدل أن يظهر شرطة.</span>
+            </div>
+        </form>
+    </div>
 </div>
 @endsection

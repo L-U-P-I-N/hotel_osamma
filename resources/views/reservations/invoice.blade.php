@@ -280,12 +280,19 @@ table.mini tr { page-break-inside: avoid; }
 <div class="page">
 
   <!-- HEADER -->
+  @php $__p = \App\Models\Setting::hotelProfile(); $__contact = \App\Models\Setting::contactLine(); @endphp
   <div class="brand">
     @if($logo)
     <img class="brand-logo" src="{{ $logo }}" alt="شعار الفندق">
     @endif
-    <div class="hotel-ar">الفندق السعودي</div>
-    <div class="hotel-en">THE SAUDI HOTEL</div>
+    <div class="hotel-ar">{{ $__p['hotel_name_ar'] ?: 'الفندق السعودي' }}</div>
+    <div class="hotel-en">{{ $__p['hotel_name_en'] ?: 'THE SAUDI HOTEL' }}</div>
+    @if($__p['hotel_address_ar'] ?? null)
+    <div style="font-size:8.5px;color:#777;margin-top:3px;">{{ $__p['hotel_address_ar'] }}</div>
+    @endif
+    @if($__contact)
+    <div style="font-size:8px;color:#888;margin-top:2px;">{{ $__contact }}</div>
+    @endif
   </div>
   <div class="invmeta">
     <div class="inv-title">فاتورة</div>

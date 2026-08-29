@@ -37,7 +37,7 @@
 <body>
 
 <div class="header">
-    @include('partials.pdf-logo')
+    @include('partials.pdf-hotel-header')
     <h1>تقرير الديون والمبالغ غير المحصّلة</h1>
     <div class="sub">تاريخ الطباعة: {{ now()->format('d/m/Y') }}</div>
 </div>

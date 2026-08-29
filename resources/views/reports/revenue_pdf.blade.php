@@ -40,7 +40,7 @@
 @php $methodLabels = ['cash' => 'نقدي', 'pos' => 'POS', 'bank_transfer' => 'تحويل بنكي']; @endphp
 
 <div class="header">
-    @include('partials.pdf-logo')
+    @include('partials.pdf-hotel-header')
     <h1>تقرير الإيرادات</h1>
     <div class="sub">الفترة: {{ \Carbon\Carbon::parse($from)->format('d/m/Y') }} — {{ \Carbon\Carbon::parse($to)->format('d/m/Y') }}</div>
 </div>
@@ -58,7 +58,7 @@
 <div class="warning">
     <strong>عملات أجنبية (غير مشمولة):</strong>
     @foreach($foreignPayments as $fp)
-    &nbsp;|&nbsp; {{ $fp->count }} دفعة · {{ number_format($fp->total, 0) }} {{ $fp->currency === 'SAR' ? 'ر.س' : '$' }}
+     |  {{ $fp->count }} دفعة · {{ number_format($fp->total, 0) }} {{ $fp->currency === 'SAR' ? 'ر.س' : '$' }}
     @endforeach
 </div>
 @endif

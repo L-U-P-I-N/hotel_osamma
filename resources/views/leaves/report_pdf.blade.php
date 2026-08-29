@@ -30,7 +30,7 @@
 <body>
 
 <div class="header">
-    @include('partials.pdf-logo')
+    @include('partials.pdf-hotel-header')
     <h1>تقرير أرصدة الإجازات</h1>
     <p>سنة {{ $year }} — الرصيد السنوي للإجازة الاعتيادية: {{ $annualEntitlement }} يوماً</p>
 </div>

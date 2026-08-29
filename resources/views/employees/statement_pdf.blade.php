@@ -27,6 +27,14 @@
     .info-box { border: 1px solid #e2e8f0; border-radius: 5px; padding: 8px 10px; margin-bottom: 12px; font-size: 10px; }
     .info-box b { color: #0F4C75; }
 
+    /* شبكة بيانات (تسمية/قيمة) — أوضح من سطر واحد بفواصل، وتتفادى &nbsp;
+       التي يطبعها dompdf مع الخط العربي كرمز "Â". */
+    table.info-grid { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 9.5px; }
+    table.info-grid td { border: 1px solid #e2e8f0; padding: 5px 8px; }
+    table.info-grid td.lbl { background: #f8fafc; color: #64748b; font-weight: bold; white-space: nowrap; width: 1%; }
+    table.info-grid td.val { color: #1e293b; font-weight: bold; }
+    table.info-grid td.val.ltr { direction: ltr; text-align: right; }
+
     .cards { display: table; width: 100%; margin-bottom: 12px; }
     .card { display: table-cell; width: 25%; padding: 5px; }
     .card-inner { border: 1px solid #e0e0e0; border-radius: 5px; padding: 7px 8px; text-align: center; }
@@ -49,20 +57,35 @@
 <body>
 
 <div class="header">
-    @include('partials.pdf-logo')
+    @include('partials.pdf-hotel-header')
     <h1>كشف حساب موظف</h1>
     <div class="sub">
         الفترة: {{ \Carbon\Carbon::parse($from)->format('Y/m/d') }} — {{ \Carbon\Carbon::parse($to)->format('Y/m/d') }}
     </div>
 </div>
 
-<div class="info-box">
-    <b>الاسم:</b> {{ $employee->name }}
-    &nbsp;|&nbsp; <b>الوظيفة:</b> {{ $employee->position ?? '—' }}
-    &nbsp;|&nbsp; <b>تاريخ التعيين:</b> {{ $employee->hire_date?->format('Y/m/d') ?? '—' }}
-    &nbsp;|&nbsp; <b>الراتب الأساسي:</b> {{ number_format((float) $employee->base_salary, 0) }} ر.ي
-    @if($employee->phone) &nbsp;|&nbsp; <b>الجوال:</b> {{ $employee->phone }} @endif
-</div>
+{{-- بيانات الموظف كجدول مرتّب (لا سطر واحد بفواصل): أوضح للقراءة، ويتفادى
+     &nbsp; التي يطبعها dompdf مع الخط العربي كرمز "Â". --}}
+<table class="info-grid" dir="rtl">
+    <tr>
+        <td class="lbl">الاسم</td>
+        <td class="val">{{ $employee->name }}</td>
+        <td class="lbl">الوظيفة</td>
+        <td class="val">{{ $employee->position ?: '—' }}</td>
+    </tr>
+    <tr>
+        <td class="lbl">الراتب الأساسي</td>
+        <td class="val">{{ number_format((float) $employee->base_salary, 0) }} ر.ي</td>
+        <td class="lbl">تاريخ التعيين</td>
+        <td class="val">{{ $employee->hire_date?->format('Y/m/d') ?: '—' }}</td>
+    </tr>
+    <tr>
+        <td class="lbl">الجوال</td>
+        <td class="val ltr">{{ $employee->phone ?: '—' }}</td>
+        <td class="lbl">الحالة</td>
+        <td class="val">{{ $employee->is_active ? 'نشط' : 'غير نشط' }}</td>
+    </tr>
+</table>
 
 <div class="cards">
     <div class="card"><div class="card-inner">
@@ -160,12 +183,18 @@
 @endif
 
 <h2 class="sec">الحضور والإجازات</h2>
-<div class="info-box">
-    <b>أيام الحضور:</b> {{ $totals['present_days'] }}
-    &nbsp;|&nbsp; <b>أيام الغياب:</b> {{ $totals['absent_days'] }}
-    &nbsp;|&nbsp; <b>أيام التأخير:</b> {{ $totals['late_days'] }}
-    &nbsp;|&nbsp; <b>أيام الإجازات:</b> {{ $totals['leave_days'] }}
-</div>
+<table class="info-grid" dir="rtl">
+    <tr>
+        <td class="lbl">أيام الحضور</td>
+        <td class="val">{{ $totals['present_days'] }}</td>
+        <td class="lbl">أيام الغياب</td>
+        <td class="val">{{ $totals['absent_days'] }}</td>
+        <td class="lbl">أيام التأخير</td>
+        <td class="val">{{ $totals['late_days'] }}</td>
+        <td class="lbl">أيام الإجازات</td>
+        <td class="val">{{ $totals['leave_days'] }}</td>
+    </tr>
+</table>
 
 @if($leaves->isNotEmpty())
 <table class="data" dir="rtl">

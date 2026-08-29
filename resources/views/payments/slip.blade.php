@@ -104,10 +104,24 @@
 </head>
 <body>
 
+@php
+    // المستلمة ضيّقة (إيصال) فلا تتّسع للرأس ثلاثي الأعمدة — نكتفي بالشعار
+    // واسم الفندق وسطر التواصل من الإعدادات.
+    $__p = \App\Models\Setting::hotelProfile();
+    $__contact = \App\Models\Setting::contactLine();
+@endphp
 <div class="header">
     @include('partials.pdf-logo')
-    <h1>الفندق السعودي</h1>
-    <p>نظام إدارة الفندق</p>
+    <h1>{{ $__p['hotel_name_ar'] ?: 'الفندق السعودي' }}</h1>
+    @if($__p['hotel_name_en'] ?? null)
+    <p style="direction:ltr;">{{ $__p['hotel_name_en'] }}</p>
+    @endif
+    @if($__p['hotel_address_ar'] ?? null)
+    <p>{{ $__p['hotel_address_ar'] }}</p>
+    @endif
+    @if($__contact)
+    <p style="font-size:8px;color:#666;">{{ $__contact }}</p>
+    @endif
 </div>
 
 <div class="slip-title">إيصال استلام دفعة</div>

@@ -143,7 +143,7 @@
 
 {{-- Header --}}
 <div class="header">
-    @include('partials.pdf-logo')
+    @include('partials.pdf-hotel-header')
     <h1>تقرير الوردية</h1>
     <div class="sub">
         {{-- تاريخ العنوان: يوم إنشاء (فتح) الوردية دائماً — هو "اليوم المحاسبي"
@@ -569,7 +569,7 @@
 
 <div class="footer">
     طُبع في: {{ now()->format('d/m/Y H:i') }}
-    &nbsp;|&nbsp;
+     | 
     رقم الوردية: #{{ $shift->id }}
 </div>
 

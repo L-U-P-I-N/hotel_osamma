@@ -197,7 +197,7 @@
 @endphp
 @php $isSingleDay = \Carbon\Carbon::parse($from)->isSameDay(\Carbon\Carbon::parse($to)); @endphp
 <div class="header">
-    @include('partials.pdf-logo')
+    @include('partials.pdf-hotel-header')
     <h1>{{ $isSingleDay ? 'قائمة اليومية' : 'تقرير الحجوزات' }}</h1>
     <div class="sub">
         @if($isSingleDay)

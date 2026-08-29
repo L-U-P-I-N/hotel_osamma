@@ -105,11 +105,11 @@
 @endphp
 
 <div class="header">
-    @include('partials.pdf-logo')
+    @include('partials.pdf-hotel-header')
     <h1>القائمة اليومية للنزلاء</h1>
     <p>
         تاريخ: {{ \Carbon\Carbon::parse($date)->format('d/m/Y') }}
-        &nbsp;&nbsp;|&nbsp;&nbsp;
+          |  
         عدد النزلاء: {{ $reservations->count() }}
     </p>
 </div>

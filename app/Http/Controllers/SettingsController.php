@@ -11,7 +11,34 @@ class SettingsController extends Controller
     {
         return view('settings.index', [
             'hotelLogo' => Setting::hotelLogo(),
+            'profile'   => Setting::hotelProfile(),
+            'fields'    => Setting::PROFILE_FIELDS,
         ]);
+    }
+
+    /** حفظ بيانات الفندق التي تظهر في رأس كل فاتورة وتقرير. */
+    public function updateProfile(Request $request)
+    {
+        $keys = array_keys(Setting::PROFILE_FIELDS);
+
+        $rules = [];
+        foreach ($keys as $key) {
+            $rules[$key] = 'nullable|string|max:255';
+        }
+        $rules['hotel_email'] = 'nullable|email|max:255';
+
+        $validated = $request->validate($rules, [
+            'hotel_email.email' => 'البريد الإلكتروني غير صالح',
+        ]);
+
+        foreach ($keys as $key) {
+            $value = trim((string) ($validated[$key] ?? ''));
+            $value === '' ? Setting::forget($key) : Setting::set($key, $value);
+        }
+
+        AuditLogService::log('update', null, null, ['action' => 'hotel_profile_updated'], auth()->user());
+
+        return back()->with('success', 'تم حفظ بيانات الفندق — ستظهر في رأس كل فاتورة وتقرير');
     }
 
     public function updateLogo(Request $request)

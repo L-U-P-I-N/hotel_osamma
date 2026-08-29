@@ -31,7 +31,7 @@
 <body>
 
 <div class="header">
-    @include('partials.pdf-logo')
+    @include('partials.pdf-hotel-header')
     <h1>الفندق السعودي</h1>
     <p>نظام إدارة الفندق</p>
 </div>

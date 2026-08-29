@@ -17,17 +17,11 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'NotoNaskhArabic', sans-serif; font-size: 9.5px; direction: rtl; color: #1a1a1a; background: #fff; padding: 14px; }
 
-    /* رأس ثابت بأعلى الصفحة الأولى فقط (نفس أسلوب باقي قوالب التقارير —
-       am_ali_pdf/daily_close_pdf — بدل تقنية position:fixed التي لا تُصدَّر
-       بشكل صحيح مع هامش body بهذا القالب تحديداً). ثلاثة أعمدة متزنة: التاريخ
-       يمين، الشعار والاسم والعنوان في الوسط، وعمود فارغ يوازن الجهة اليسرى —
-       بدل التصميم السابق غير المتّسق (سطر تاريخ منفصل فوق كتلة مُوسَّطة). */
-    .header { display: table; width: 100%; border-bottom: 2px solid #0F4C75; padding-bottom: 12px; margin-bottom: 16px; }
-    .header .col-date, .header .col-spacer { display: table-cell; width: 22%; vertical-align: bottom; }
-    .header .col-date { text-align: right; font-weight: bold; font-size: 10.5px; color: #555; }
-    .header .col-center { display: table-cell; width: 56%; text-align: center; vertical-align: bottom; }
-    .header .col-center .hotel-name { font-size: 14px; font-weight: bold; color: #1a1a1a; margin-top: 2px; }
-    .header .col-center h1 { font-size: 16px; color: #0F4C75; font-weight: bold; margin-top: 4px; }
+    /* الرأس الموحّد (عربي يمين / شعار وسط / إنجليزي يسار) يأتي من الجزئية
+       المشتركة partials.pdf-hotel-header، ويليه عنوان التقرير وتاريخ إصداره. */
+    .header { border-bottom: 2px solid #0F4C75; padding-bottom: 10px; margin-bottom: 14px; }
+    .header h1 { font-size: 16px; color: #0F4C75; font-weight: bold; text-align: center; }
+    .header .issued { text-align: center; font-size: 9px; color: #666; margin-top: 3px; }
 
     .footer { margin-top: 12px; border-top: 1px solid #eee; padding-top: 6px; font-size: 8px; color: #aaa; text-align: right; }
 
@@ -57,13 +51,9 @@
 <body>
 
 <div class="header" dir="rtl">
-    <div class="col-date">تاريخ الإصدار<br>{{ now()->format('Y/n/j') }}</div>
-    <div class="col-center">
-        @include('partials.pdf-logo', ['logoHeight' => 88])
-        <div class="hotel-name">{{ $hotel?->name ?? '—' }}</div>
-        <h1>حجوزات الفندق</h1>
-    </div>
-    <div class="col-spacer"></div>
+    @include('partials.pdf-hotel-header', ['logoHeight' => 80])
+    <h1>حجوزات الفندق</h1>
+    <div class="issued">تاريخ الإصدار: {{ now()->format('Y/n/j') }}</div>
 </div>
 
 @php
