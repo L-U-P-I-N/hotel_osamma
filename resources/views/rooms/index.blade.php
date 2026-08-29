@@ -231,12 +231,21 @@ html.dark .filter-chip.bg-white { background: #1e293b !important; }
         <span class="text-sm font-bold text-blue-800 bg-blue-100 px-3 py-1 rounded-lg">
             <span x-text="selectedIds.length"></span> محددة
         </span>
+        @can('rooms.edit')
         <button x-show="selectedIds.length > 0" @click="openBulkPrice()"
                 class="flex items-center gap-2 px-4 py-2 text-white text-sm font-semibold rounded-xl shadow-sm transition hover:opacity-90"
                 style="background:#0F4C75;">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
             تحديث السعر
         </button>
+        @endcan
+        @can('rooms.delete')
+        <button x-show="selectedIds.length > 0" @click="bulkDeleteModal=true"
+                class="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl shadow-sm transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            حذف المحدد
+        </button>
+        @endcan
         <button @click="selectMode=false; selectedIds=[]"
                 class="text-sm text-blue-500 hover:text-blue-700 font-medium px-2 py-2 rounded-lg hover:bg-blue-50 transition">
             إلغاء
@@ -252,7 +261,7 @@ html.dark .filter-chip.bg-white { background: #1e293b !important; }
         <span class="text-xs text-blue-500 mr-1">· فلترة مفعّلة</span>
         @endif
     </p>
-    @can('rooms.edit')
+    @canany(['rooms.edit', 'rooms.delete'])
     <button @click="selectMode=!selectMode; if(!selectMode) selectedIds=[]"
             class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition"
             :class="selectMode
@@ -264,7 +273,7 @@ html.dark .filter-chip.bg-white { background: #1e293b !important; }
         </svg>
         <span x-text="selectMode ? 'إلغاء التحديد' : 'تحديد متعدد'"></span>
     </button>
-    @endcan
+    @endcanany
 </div>
 
 {{-- ════════ Rooms Grid ════════ --}}
@@ -367,7 +376,7 @@ html.dark .filter-chip.bg-white { background: #1e293b !important; }
         <div x-show="!selectMode"
              class="flex border-t border-gray-100 divide-x divide-x-reverse divide-gray-100">
             @can('rooms.edit')
-            <a href="{{ route('rooms.edit', $room) }}"
+            <a href="{{ route('rooms.edit', array_merge(['room' => $room->id], request()->only(['status', 'type', 'sub_type', 'floor']))) }}"
                class="room-action-btn hover:bg-blue-50 font-semibold"
                style="color:#0F4C75;">
                 تعديل
@@ -542,6 +551,42 @@ html.dark .filter-chip.bg-white { background: #1e293b !important; }
 </div>
 @endcan
 
+{{-- ════════ Bulk Delete Modal ════════ --}}
+@can('rooms.delete')
+<div x-show="bulkDeleteModal" x-cloak
+     class="fixed inset-0 z-50 flex items-center justify-center p-4"
+     style="background:rgba(15,30,50,0.6); backdrop-filter:blur(4px);"
+     @click.self="bulkDeleteModal=false">
+    <div x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 scale-95"
+         x-transition:enter-end="opacity-100 scale-100"
+         class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
+        <div class="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <svg class="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        </div>
+        <h3 class="font-bold text-gray-800 text-lg mb-1">حذف الغرف المحددة</h3>
+        <p class="text-sm text-gray-500 mb-5">
+            هل تريد حذف <strong class="text-gray-800" x-text="selectedIds.length"></strong> غرفة نهائياً؟<br>
+            <span class="text-xs text-red-400 mt-1 block">لا يمكن التراجع عن هذا الإجراء — الغرف التي بها نزلاء حالياً لن تُحذف</span>
+        </p>
+        <form action="{{ route('rooms.bulkDelete') }}" method="POST" class="flex gap-3">
+            @csrf
+            <template x-for="id in selectedIds" :key="id">
+                <input type="hidden" name="room_ids[]" :value="id">
+            </template>
+            <button type="submit"
+                    class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl text-sm font-bold transition">
+                نعم، احذف
+            </button>
+            <button type="button" @click="bulkDeleteModal=false"
+                    class="flex-1 border-2 border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition">
+                إلغاء
+            </button>
+        </form>
+    </div>
+</div>
+@endcan
+
 {{-- ════════ Room Detail Modal ════════ --}}
 <div x-show="modalOpen" x-cloak
      class="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -648,6 +693,7 @@ function roomsPage() {
         },
         modalOpen: false,
         deleteModal: false,
+        bulkDeleteModal: false,
         deleteRoomId: null,
         deleteRoomNumber: '',
         selectedRoom: {},

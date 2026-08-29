@@ -1,7 +1,12 @@
 @extends('layouts.app')
 @section('title', 'تعديل الغرفة ' . $room->room_number)
 @section('page-title', 'تعديل الغرفة ' . $room->room_number)
-@section('back-url', route('rooms.index'))
+@php
+    // فلاتر قائمة الغرف التي جاء منها الموظف (status/type/sub_type/floor) —
+    // تُعاد معه بعد الحفظ حتى لا يُعاد للقائمة الكاملة غير المفلترة كل مرة.
+    $returnFilters = request()->only(['status', 'type', 'sub_type', 'floor']);
+@endphp
+@section('back-url', route('rooms.index', $returnFilters))
 
 @section('content')
 @php
@@ -26,7 +31,7 @@
     {{-- ───── بيانات الغرفة ───── --}}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <div class="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
-            <a href="{{ route('rooms.index') }}" class="text-gray-400 hover:text-gray-600">
+            <a href="{{ route('rooms.index', $returnFilters) }}" class="text-gray-400 hover:text-gray-600">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
             </a>
             <h2 class="text-lg font-semibold text-gray-800">تعديل بيانات الغرفة</h2>
@@ -47,6 +52,9 @@
         <form method="POST" action="{{ route('rooms.update', $room) }}" class="space-y-5" x-data="floorSelector({{ $floors->toJson() }}, '{{ old('floor', $room->floor) }}', '{{ old('room_number', $room->room_number) }}')">
             @csrf
             @method('PUT')
+            @foreach($returnFilters as $key => $value)
+            <input type="hidden" name="return_{{ $key }}" value="{{ $value }}">
+            @endforeach
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
@@ -148,7 +156,7 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                     حفظ التغييرات
                 </button>
-                <a href="{{ route('rooms.index') }}" class="px-6 py-2.5 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition">إلغاء</a>
+                <a href="{{ route('rooms.index', $returnFilters) }}" class="px-6 py-2.5 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition">إلغاء</a>
             </div>
         </form>
     </div>
@@ -167,6 +175,9 @@
 
         <form method="POST" action="{{ route('rooms.updateStatus', $room) }}" class="flex gap-3 items-end">
             @csrf
+            @foreach($returnFilters as $key => $value)
+            <input type="hidden" name="return_{{ $key }}" value="{{ $value }}">
+            @endforeach
             <div class="flex-1">
                 <label class="block text-sm font-medium text-gray-700 mb-1.5">الحالة الجديدة</label>
                 <select name="status" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none transition">

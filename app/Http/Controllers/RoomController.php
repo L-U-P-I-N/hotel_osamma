@@ -252,7 +252,21 @@ class RoomController extends Controller
         $room->update($attributes);
         AuditLogService::log('update', $room, $old, $room->fresh()->toArray(), auth()->user());
 
-        return redirect()->route('rooms.index')->with('success', 'تم تحديث بيانات الغرفة بنجاح');
+        return redirect()->route('rooms.index', $this->returnFilters($request))
+            ->with('success', 'تم تحديث بيانات الغرفة بنجاح');
+    }
+
+    /**
+     * فلاتر قائمة الغرف (status/type/sub_type/floor) التي جاء منها الموظف قبل
+     * فتح صفحة التعديل — مُمرَّرة كحقول مخفية من edit.blade.php — حتى لا يُعاد
+     * بعد الحفظ لقائمة كل الغرف غير المفلترة في كل مرة.
+     */
+    private function returnFilters(Request $request): array
+    {
+        return collect($request->only(['return_status', 'return_type', 'return_sub_type', 'return_floor']))
+            ->filter()
+            ->mapWithKeys(fn($value, $key) => [substr($key, 7) => $value])
+            ->all();
     }
 
     public function destroy(Room $room)
@@ -266,6 +280,34 @@ class RoomController extends Controller
 
         // العودة إلى نفس الصفحة (قائمة غرف الطابق مع الفلاتر) بدل القفز للوحة التحكم
         return redirect()->back()->with('success', 'تم حذف الغرفة ' . $room->room_number . ' بنجاح');
+    }
+
+    public function bulkDelete(Request $request)
+    {
+        $request->validate([
+            'room_ids'   => 'required|array|min:1',
+            'room_ids.*' => 'integer|exists:rooms,id',
+        ], [
+            'room_ids.required' => 'اختر غرفة واحدة على الأقل للحذف',
+        ]);
+
+        $rooms = Room::whereIn('id', $request->room_ids)->get();
+
+        $blocked = $rooms->filter(fn(Room $room) => $room->reservations()->where('status', 'checked_in')->exists());
+        $deletable = $rooms->diff($blocked);
+
+        foreach ($deletable as $room) {
+            AuditLogService::log('delete', $room, $room->toArray(), [], auth()->user());
+            $room->delete();
+        }
+
+        $message = "تم حذف {$deletable->count()} غرفة بنجاح";
+        if ($blocked->isNotEmpty()) {
+            $message .= '. تعذّر حذف ' . $blocked->count() . ' غرفة لوجود حجوزات نشطة عليها: '
+                . $blocked->pluck('room_number')->implode('، ');
+        }
+
+        return redirect()->back()->with('success', $message);
     }
 
     public function available()
@@ -365,6 +407,7 @@ class RoomController extends Controller
         if ($request->expectsJson()) {
             return response()->json(['success' => true, 'room' => $room->fresh()]);
         }
-        return redirect()->route('rooms.index')->with('success', 'تم تحديث حالة الغرفة بنجاح');
+        return redirect()->route('rooms.index', $this->returnFilters($request))
+            ->with('success', 'تم تحديث حالة الغرفة بنجاح');
     }
 }
