@@ -72,11 +72,104 @@ class ReservationSegmentService
     /**
      * يعيد بناء كل فترات الحجز من الصفر اعتماداً على أسعار الغرفة الحالية — يُستخدم
      * عند تعديل الحجز (الذي يعيد حساب إجمالي الغرفة كـ «ليلة أولى + باقي الليالي»).
+     *
+     * لا يُسمح بذلك إن كانت هناك فترة مرتبطة بوردية مُقفلة: إعادة البناء تحذف كل
+     * الفترات، فتُغيّر أرقام عملٍ سابق مُصفّى — وهو ما تمنعه أصلاً شاشتا تعديل/حذف
+     * الفترة (isLocked). كان هذا المسار ينسف تلك الحماية بالكامل.
      */
     public function rebuildFromCurrentPricing(Reservation $reservation, float $firstNight, float $restPrice, int $nights, ?int $userId = null): void
     {
+        if ($this->hasLockedSegments($reservation)) {
+            throw new \RuntimeException(
+                'لا يمكن إعادة تسعير كامل الإقامة لأن بعض فتراتها تخصّ ورديات أُقفلت بالفعل. '
+                . 'عدّل سعر الفترة المطلوبة وحدها من تفصيل فترات الغرفة، أو استخدم «تغيير السعر من تاريخ».'
+            );
+        }
+
         $reservation->segments()->delete();
         $this->recordInitial($reservation, $firstNight, $restPrice, $nights, $userId);
+    }
+
+    /** هل بالحجز فترة مرتبطة بوردية أُقفلت (فلا يجوز المساس بها)؟ */
+    public function hasLockedSegments(Reservation $reservation): bool
+    {
+        return $reservation->segments()->with('shift')->get()->contains(fn(ReservationSegment $s) => $s->isLocked());
+    }
+
+    /** مجموع مبالغ فترات الغرفة (= إجمالي الغرفة قبل الخصم متى تطابقت). */
+    public function sumAmount(Reservation $reservation): float
+    {
+        return round((float) $reservation->segments()->sum('amount'), 2);
+    }
+
+    /**
+     * يطبّق سعر ليلة جديداً اعتباراً من تاريخ معيّن فصاعداً فقط — الليالي المنقضية
+     * قبل ذلك التاريخ تبقى بسعرها الأصلي. هذا هو المطلوب عند منح النزيل تخفيضاً
+     * للّيالي القادمة دون إعادة كتابة ما احتُسب وسُجِّل بالفعل.
+     *
+     * الفترة التي يقع التاريخ في منتصفها تُقسَم إلى فترتين: ما قبل التاريخ بسعرها
+     * القديم، وما بعده بالسعر الجديد.
+     *
+     * @return array{updated:int, split:int, delta:float} ملخص ما تغيّر
+     */
+    public function repriceFrom(Reservation $reservation, Carbon $fromDate, float $newPrice, ?int $userId = null): array
+    {
+        $from = $fromDate->copy()->startOfDay();
+        $updated = 0;
+        $split = 0;
+        $delta = 0.0;
+
+        $segments = $reservation->segments()->with('shift')->orderBy('start_date')->get();
+
+        foreach ($segments as $segment) {
+            $start = $segment->start_date->copy()->startOfDay();
+            $end   = $segment->end_date->copy()->startOfDay();
+
+            // فترة انتهت قبل التاريخ المطلوب — لا تُمسّ إطلاقاً
+            if ($end->lte($from)) {
+                continue;
+            }
+            // فترة مُقفلة بوردية مُصفّاة — تُترك كما هي (لا نغيّر عمل وردية منتهية)
+            if ($segment->isLocked()) {
+                continue;
+            }
+
+            $oldPrice = (float) $segment->price_per_night;
+
+            if ($start->gte($from)) {
+                // الفترة كلها ضمن المدى الجديد
+                if (round($oldPrice, 2) === round($newPrice, 2)) {
+                    continue;
+                }
+                $newAmount = round($newPrice * $segment->nights, 2);
+                $delta += round($newAmount - (float) $segment->amount, 2);
+                $segment->update(['price_per_night' => $newPrice, 'amount' => $newAmount]);
+                $updated++;
+                continue;
+            }
+
+            // التاريخ يقع داخل الفترة → نقسمها: ما قبله بسعره القديم، وما بعده بالجديد
+            $nightsBefore = $start->diffInDays($from);
+            $nightsAfter  = $segment->nights - $nightsBefore;
+            if ($nightsBefore < 1 || $nightsAfter < 1) {
+                continue;
+            }
+
+            $beforeAmount = round($oldPrice * $nightsBefore, 2);
+            $afterAmount  = round($newPrice * $nightsAfter, 2);
+            $delta += round(($beforeAmount + $afterAmount) - (float) $segment->amount, 2);
+
+            $segment->update([
+                'end_date' => $from->toDateString(),
+                'nights'   => $nightsBefore,
+                'amount'   => $beforeAmount,
+            ]);
+
+            $this->create($reservation, $segment->type, $from->copy(), $end->copy(), $nightsAfter, $newPrice, $afterAmount, $userId, $segment->shift_id);
+            $split++;
+        }
+
+        return ['updated' => $updated, 'split' => $split, 'delta' => round($delta, 2)];
     }
 
     /**

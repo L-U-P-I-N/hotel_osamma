@@ -145,6 +145,7 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('/reservations/{reservation}/settle-purchases', [ReservationController::class, 'settleCharges'])->name('reservations.settlePurchases')->middleware('permission:payments.create');
         // إضافة / تعديل / حذف فترة تجديد أو الحجز الأولي (تصحيح سعر أو عدد تجديدات خاطئ)
         Route::post('/reservations/{reservation}/segment', [ReservationController::class, 'addSegment'])->name('reservations.addSegment')->middleware('permission:payments.create');
+        Route::post('/reservations/{reservation}/reprice-from', [ReservationController::class, 'repriceFrom'])->name('reservations.repriceFrom')->middleware('permission:room.price.edit');
         Route::put('/reservations/segment/{segment}', [ReservationController::class, 'updateSegment'])->name('reservations.updateSegment')->middleware('permission:payments.create');
         Route::delete('/reservations/segment/{segment}', [ReservationController::class, 'deleteSegment'])->name('reservations.deleteSegment')->middleware('permission:payments.create');
         // تصحيح: إعادة احتساب فترات الغرفة والإجمالي وفق صيغة حساب الليالي الحالية

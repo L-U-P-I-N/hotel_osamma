@@ -699,6 +699,14 @@
                 </button>
                 @endif
                 @endcan
+                @can('room.price.edit')
+                @if($reservation->status === 'checked_in')
+                <button type="button" onclick="document.getElementById('repriceFromModal').classList.remove('hidden')"
+                        class="w-full py-1.5 rounded-lg border border-dashed border-amber-300 text-amber-700 text-xs font-semibold hover:bg-amber-50 transition mb-1">
+                    ↓ تخفيض سعر الليالي القادمة (من تاريخ)
+                </button>
+                @endif
+                @endcan
                 @elseif($hasFirstNight)
                 <div class="flex justify-between items-center">
                     <span class="text-gray-500">سعر الليلة الأولى</span>
@@ -1755,6 +1763,71 @@
     }
     document.addEventListener('DOMContentLoaded', updateAddSegmentPreview);
 </script>
+@endif
+@endcan
+
+{{-- ===== REPRICE FROM DATE MODAL (تخفيض سعر الليالي القادمة من تاريخ) ===== --}}
+@can('room.price.edit')
+@if($reservation->status === 'checked_in')
+<div id="repriceFromModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto"
+     onclick="if(event.target===this) this.classList.add('hidden')">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto my-auto" onclick="event.stopPropagation()">
+        <div class="px-6 py-5 rounded-t-2xl flex items-center justify-between" style="background:linear-gradient(135deg,#b45309,#f59e0b);">
+            <div>
+                <h3 class="text-white font-bold text-base">تغيير سعر الليالي القادمة</h3>
+                <p class="text-white/80 text-xs mt-0.5">من تاريخ محدَّد فصاعداً — دون المساس بالليالي المنقضية</p>
+            </div>
+            <button type="button" onclick="document.getElementById('repriceFromModal').classList.add('hidden')"
+                    class="text-white/70 hover:text-white transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+
+        <form method="POST" action="{{ route('reservations.repriceFrom', $reservation) }}" class="p-6 space-y-4">
+            @csrf
+            <div class="rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800 leading-relaxed">
+                الليالي التي انقضت قبل التاريخ المختار تبقى بسعرها الأصلي كما احتُسبت،
+                ولا تتأثر أي فترة تخصّ وردية أُقفلت بالفعل.
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1.5">السعر الجديد يبدأ من تاريخ</label>
+                <input type="date" name="from_date" required
+                       value="{{ now()->toDateString() }}"
+                       min="{{ $reservation->check_in_date->toDateString() }}"
+                       max="{{ $reservation->check_out_date->copy()->subDay()->toDateString() }}"
+                       class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-amber-200 focus:border-amber-400 outline-none">
+                <p class="text-xs text-gray-400 mt-1">اليوم = يبدأ التخفيض من ليلة اليوم. اختر تاريخ الغد ليبدأ من الليلة القادمة.</p>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1.5">سعر الليلة الجديد</label>
+                <input type="number" name="price_per_night" min="0" step="100" required
+                       placeholder="السعر الحالي: {{ number_format($reservation->effective_renewal_price_per_night, 0) }}"
+                       class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-amber-200 focus:border-amber-400 outline-none">
+            </div>
+
+            <label class="flex items-start gap-2 cursor-pointer">
+                <input type="checkbox" name="apply_to_future" value="1" checked
+                       class="mt-0.5 rounded border-gray-300 text-amber-600 focus:ring-amber-500">
+                <span class="text-xs text-gray-600 leading-relaxed">
+                    اعتماده أيضاً كسعر التجديدات القادمة (يُعبَّأ تلقائياً عند التجديد اليدوي والتلقائي)
+                </span>
+            </label>
+
+            <div class="flex gap-2 pt-1">
+                <button type="submit"
+                        class="flex-1 px-4 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-sm font-bold transition">
+                    تطبيق السعر الجديد
+                </button>
+                <button type="button" onclick="document.getElementById('repriceFromModal').classList.add('hidden')"
+                        class="px-5 py-3 border border-gray-300 text-gray-600 rounded-xl text-sm hover:bg-gray-50 transition">
+                    إلغاء
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 @endif
 @endcan
 

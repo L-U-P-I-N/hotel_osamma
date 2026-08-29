@@ -452,9 +452,17 @@ class ReservationController extends Controller
                 $reservation->check_in_time
             );
 
-            // نموذج التسعير: الليلة الأولى بسعرها الخاص + بقية الليالي (بما فيها كل
-            // التجديدات) بسعر التجديد. لذا تعديل سعر التجديد هنا يعيد حساب كامل مدة
-            // الإقامة فيصحّح التجديدات السابقة أيضاً — لا القادمة فقط.
+            // نموذج التسعير: الليلة الأولى بسعرها الخاص + بقية الليالي بسعر التجديد.
+            // لكن متى وُجدت فترات مسجَّلة ومتطابقة ولم تتغيّر تواريخ الإقامة، فهذه
+            // الفترات هي مصدر الحقيقة لما احتُسب فعلاً على النزيل (لكل تجديد سعره
+            // وتاريخه). عندها لا نُعيد حساب الإقامة كلها بالصيغة المسطّحة ولا نحذف
+            // الفترات — وإلا طُبِّق سعر التجديد الجديد بأثر رجعي على ليالٍ ماضية
+            // احتُسبت وسُجِّلت بأسعار أخرى، فتختلّ الحسابات.
+            $segmentService  = app(\App\Services\ReservationSegmentService::class);
+            $datesUnchanged  = $reservation->check_in_date?->toDateString() === $validated['check_in_date']
+                            && $reservation->check_out_date?->toDateString() === $validated['check_out_date'];
+            $preserveHistory = $datesUnchanged && $segmentService->reconciles($reservation);
+
             $submittedFirstNight = isset($validated['price_per_night']) && $validated['price_per_night'] > 0
                 ? (float) $validated['price_per_night']
                 : null;
@@ -475,9 +483,12 @@ class ReservationController extends Controller
                 ?? ($reservation->renewal_price_per_night !== null ? (float) $reservation->renewal_price_per_night : null)
                 ?? $firstNightPrice;
 
-            // إجمالي الغرفة قبل الخصم = الليلة الأولى + (بقية الليالي × سعر التجديد)،
+            // إجمالي الغرفة قبل الخصم: من مجموع الفترات المسجَّلة متى كانت مصدر
+            // الحقيقة، وإلا بالصيغة المسطّحة (ليلة أولى + بقية الليالي × سعر التجديد).
             // ثم نطبّق الخصم ونُعيد الرسوم الإضافية حتى لا يضيع الخصم ولا تُفقد مصروفات النزيل
-            $grossTotal = round($firstNightPrice + max(0, $billableNights - 1) * $renewalPrice, 2);
+            $grossTotal = $preserveHistory
+                ? $segmentService->sumAmount($reservation)
+                : round($firstNightPrice + max(0, $billableNights - 1) * $renewalPrice, 2);
             $discountAmount = $reservation->discountAmountFor($grossTotal);
             $newTotal = round(max(0, round($grossTotal - $discountAmount, 2)) + $reservation->hotel_charges_total, 0);
 
@@ -491,8 +502,11 @@ class ReservationController extends Controller
                 'total_amount'   => $newTotal,
                 // نحفظ سعر الليلة الأولى فقط عند وجود أكثر من ليلة واختلافه عن سعر التجديد
                 // حتى يظهر تفصيل السعرين في صفحة الحجز والفاتورة، وإلا فسعر موحّد
-                'first_night_price' => ($billableNights > 1 && round($firstNightPrice, 2) != round($renewalPrice, 2))
-                    ? $firstNightPrice : null,
+                'first_night_price' => $preserveHistory
+                    ? $reservation->first_night_price
+                    : (($billableNights > 1 && round($firstNightPrice, 2) != round($renewalPrice, 2)) ? $firstNightPrice : null),
+                // سعر التجديد المُدخَل هنا هو سعر التجديدات القادمة، لا إعادة تسعير
+                // لما مضى — تغيير سعر ليالٍ بعينها يتم من «تغيير السعر من تاريخ».
                 'renewal_price_per_night' => $submittedRenewal,
             ]);
 
@@ -502,9 +516,11 @@ class ReservationController extends Controller
             $reservation->refresh();
             $reservation->updatePaymentStatus();
 
-            // إعادة بناء فترات الغرفة وفق التسعيرة الجديدة (ليلة أولى + باقي الليالي)
-            app(\App\Services\ReservationSegmentService::class)
-                ->rebuildFromCurrentPricing($reservation, $firstNightPrice, $renewalPrice, $billableNights, auth()->id());
+            // لا نُعيد بناء الفترات إلا حين لا تكون مصدر الحقيقة (تغيّرت التواريخ أو
+            // لم تتطابق) — وإلا نُبقيها كما هي حفاظاً على تسعيرة كل فترة على حدة.
+            if (! $preserveHistory) {
+                $segmentService->rebuildFromCurrentPricing($reservation, $firstNightPrice, $renewalPrice, $billableNights, auth()->id());
+            }
 
             AuditLogService::log('update', $reservation, $old, $reservation->fresh()->toArray(), auth()->user());
 
@@ -523,6 +539,9 @@ class ReservationController extends Controller
                 }
             }
             return back()->withInput()->withErrors(['general' => 'خطأ في قاعدة البيانات: ' . $e->getMessage()]);
+        } catch (\RuntimeException $e) {
+            // رسالة مفهومة (مثل منع إعادة تسعير فترات تخصّ ورديات مُقفلة)
+            return back()->withInput()->withErrors(['general' => $e->getMessage()]);
         } catch (\Exception $e) {
             return back()->withInput()->withErrors(['general' => 'حدث خطأ غير متوقع: ' . $e->getMessage()]);
         }
@@ -1684,6 +1703,87 @@ class ReservationController extends Controller
      * المطلوب. عدد ليالي الفترة وتواريخها لا يتغيران من هنا (فقط السعر) حتى يبقى
      * تسلسل الفترات متّصلاً؛ لتغيير عدد الليالي استخدم إضافة/حذف تجديد.
      */
+    /**
+     * تغيير سعر الليلة اعتباراً من تاريخ معيّن فصاعداً فقط (تخفيض يمنحه المدير
+     * للّيالي القادمة). الليالي المنقضية قبل ذلك التاريخ تبقى بسعرها الأصلي، ولا
+     * تُمسّ الفترات المرتبطة بورديات مُقفلة — بخلاف تعديل سعر التجديد من نموذج
+     * تعديل الحجز الذي كان يُعيد تسعير الإقامة كلها بأثر رجعي.
+     */
+    public function repriceFrom(Request $request, Reservation $reservation)
+    {
+        if (! in_array($reservation->status, ['checked_in', 'checked_out'])) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'from_date'       => 'required|date',
+            'price_per_night' => 'required|numeric|min:0',
+            'apply_to_future' => 'nullable|boolean',
+        ], [
+            'from_date.required'       => 'تاريخ بداية السعر الجديد مطلوب',
+            'price_per_night.required' => 'سعر الليلة الجديد مطلوب',
+            'price_per_night.numeric'  => 'سعر الليلة يجب أن يكون رقماً',
+        ]);
+
+        $from     = \Carbon\Carbon::parse($validated['from_date'])->startOfDay();
+        $newPrice = (float) $validated['price_per_night'];
+
+        if ($from->lt($reservation->check_in_date->copy()->startOfDay())) {
+            return back()->withErrors(['from_date' => 'التاريخ قبل تاريخ دخول النزيل']);
+        }
+        if ($from->gte($reservation->check_out_date->copy()->startOfDay())) {
+            return back()->withErrors(['from_date' => 'التاريخ بعد تاريخ خروج النزيل — لا توجد ليالٍ لتسعيرها']);
+        }
+
+        $result = null;
+
+        DB::transaction(function () use ($reservation, $from, $newPrice, $validated, &$result) {
+            $service = app(\App\Services\ReservationSegmentService::class);
+
+            $result = $service->repriceFrom($reservation, $from, $newPrice, auth()->id());
+
+            // الإجمالي يُشتقّ من مجموع الفترات بعد التعديل (مصدر الحقيقة)
+            $grossTotal = $service->sumAmount($reservation);
+            $discount   = $reservation->discountAmountFor($grossTotal);
+
+            $update = [
+                'discount_amount' => $discount,
+                'total_amount'    => round(max(0, round($grossTotal - $discount, 2)) + $reservation->hotel_charges_total, 0),
+            ];
+
+            // اعتماد السعر الجديد كسعر التجديدات القادمة أيضاً (اختياري)
+            if (! empty($validated['apply_to_future'])) {
+                $update['renewal_price_per_night'] = $newPrice;
+            }
+
+            $reservation->update($update);
+            $reservation->refresh()->updatePaymentStatus();
+
+            AuditLogService::log('update', $reservation, null, [
+                'action'          => 'reprice_from',
+                'from_date'       => $from->toDateString(),
+                'price_per_night' => $newPrice,
+                'segments_updated'=> $result['updated'],
+                'segments_split'  => $result['split'],
+                'delta'           => $result['delta'],
+            ], auth()->user());
+        });
+
+        $touched = ($result['updated'] ?? 0) + ($result['split'] ?? 0);
+        if ($touched === 0) {
+            return back()->with('success', 'لا توجد ليالٍ قابلة للتعديل من هذا التاريخ (إمّا انقضت أو تخصّ ورديات مُقفلة).');
+        }
+
+        $delta = $result['delta'] ?? 0;
+        return back()->with('success', sprintf(
+            'تم تطبيق سعر %s ر.ي/ليلة اعتباراً من %s — تأثّرت %d فترة، وتغيّر إجمالي الحجز بمقدار %s ر.ي.',
+            number_format($newPrice, 0),
+            $from->format('d/m/Y'),
+            $touched,
+            ($delta >= 0 ? '+' : '') . number_format($delta, 0)
+        ));
+    }
+
     public function updateSegment(Request $request, \App\Models\ReservationSegment $segment)
     {
         $reservation = $segment->reservation;
@@ -1891,6 +1991,12 @@ class ReservationController extends Controller
         $discountAmount = $reservation->discountAmountFor($newGross);
         $newTotal       = round(max(0, round($newGross - $discountAmount, 2)) + $reservation->hotel_charges_total, 0);
 
+        // إعادة الاحتساب تُعيد بناء كل الفترات — تُمنَع إن كانت إحداها تخصّ وردية
+        // مُقفلة حتى لا تتغيّر أرقام عملٍ سابق مُصفّى.
+        if (app(\App\Services\ReservationSegmentService::class)->hasLockedSegments($reservation)) {
+            return back()->withErrors(['error' => 'لا يمكن إعادة احتساب الفترات لأن بعضها يخصّ ورديات أُقفلت بالفعل — عدّل الفترة المطلوبة وحدها، أو استخدم «تخفيض سعر الليالي القادمة».']);
+        }
+
         $old = $reservation->only(['total_amount', 'discount_amount']);
 
         DB::transaction(function () use ($reservation, $billableNights, $firstNightPrice, $renewalPrice, $newTotal, $discountAmount, $old) {
@@ -1998,6 +2104,12 @@ class ReservationController extends Controller
         $newGross       = round($firstNightPrice + max(0, $newBillableNights - 1) * $renewalPrice, 2);
         $discountAmount = $reservation->discountAmountFor($newGross);
         $newTotal       = round(max(0, round($newGross - $discountAmount, 2)) + $reservation->hotel_charges_total, 0);
+
+        // تغيير تواريخ الإقامة يُعيد بناء كل الفترات — يُمنَع إن كانت إحداها تخصّ
+        // وردية مُقفلة حتى لا تتغيّر أرقام عملٍ سابق مُصفّى.
+        if (app(\App\Services\ReservationSegmentService::class)->hasLockedSegments($reservation)) {
+            return back()->withErrors(['error' => 'لا يمكن تعديل تواريخ الإقامة لأن بعض فتراتها يخصّ ورديات أُقفلت بالفعل — عدّل الفترة المطلوبة وحدها من تفصيل فترات الغرفة.']);
+        }
 
         $old = $reservation->only(['check_in_date', 'check_in_time', 'check_out_date', 'check_out_time', 'total_amount']);
 
