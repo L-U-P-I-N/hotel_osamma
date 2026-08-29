@@ -17,10 +17,82 @@
         </a>
     </div>
 
-    {{-- رصيد الصندوق الحالي (لحظي، بصرف النظر عن فلتر التاريخ) --}}
-    <div class="rounded-xl p-5 border" style="background:#fffbeb; border-color:#fde68a;">
-        <div class="text-xs text-amber-600">رصيد الصندوق العام الحالي</div>
-        <div class="text-3xl font-bold text-amber-800 mt-1">{{ number_format($currentBalance, 0) }} <span class="text-lg font-normal">ر.ي</span></div>
+    {{-- الموجود الفعلي: الصندوق العام + ما بأدراج الورديات المفتوحة --}}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="rounded-xl p-5 border" style="background:#fffbeb; border-color:#fde68a;">
+            <div class="text-xs text-amber-600">رصيد الصندوق العام</div>
+            <div class="text-2xl font-black text-amber-800 mt-1">{{ number_format($currentBalance, 0) }} <span class="text-sm font-normal">ر.ي</span></div>
+        </div>
+        <div class="rounded-xl p-5 border" style="background:#eff6ff; border-color:#bfdbfe;">
+            <div class="text-xs text-blue-600">بأدراج الورديات المفتوحة</div>
+            <div class="text-2xl font-black text-blue-800 mt-1">{{ number_format($shiftsCashTotal, 0) }} <span class="text-sm font-normal">ر.ي</span></div>
+            <div class="text-[11px] text-blue-500 mt-1">{{ $shiftBoxes->count() }} وردية مفتوحة</div>
+        </div>
+        <div class="rounded-xl p-5 border-2" style="background:#f0fdf4; border-color:#86efac;">
+            <div class="text-xs text-green-700 font-semibold">الموجود الفعلي بالفندق</div>
+            <div class="text-2xl font-black text-green-800 mt-1">{{ number_format($totalCashOnHand, 0) }} <span class="text-sm font-normal">ر.ي</span></div>
+            <div class="text-[11px] text-green-600 mt-1">الصندوق العام + أدراج الورديات</div>
+        </div>
+    </div>
+
+    {{-- صناديق المستخدمين المرتبطة بالصندوق العام --}}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2">
+            <div>
+                <h3 class="font-bold text-gray-800 text-sm">صناديق المستخدمين (الورديات المفتوحة)</h3>
+                <p class="text-xs text-gray-400 mt-0.5">نقدية بيد كل موظف لم تُسلَّم بعد — تُضاف للصندوق العام لتكوين الموجود الفعلي</p>
+            </div>
+            <div class="text-xs text-gray-500">
+                رصيد حساب «نقدية الورديات» محاسبياً:
+                <b class="text-gray-700">{{ number_format($shiftsAccountBalance, 0) }} ر.ي</b>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-right">
+                <thead class="bg-gray-50">
+                    <tr class="text-xs text-gray-500">
+                        <th class="px-4 py-2.5 font-medium">الموظف</th>
+                        <th class="px-4 py-2.5 font-medium">تاريخ الوردية</th>
+                        <th class="px-4 py-2.5 font-medium">فُتحت</th>
+                        <th class="px-4 py-2.5 font-medium">المستلم</th>
+                        <th class="px-4 py-2.5 font-medium">السحبيات</th>
+                        <th class="px-4 py-2.5 font-medium">الاسترجاعات</th>
+                        <th class="px-4 py-2.5 font-medium">بالدرج الآن</th>
+                        <th class="px-4 py-2.5 font-medium"></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                    @forelse($shiftBoxes as $box)
+                    <tr>
+                        <td class="px-4 py-2.5 font-bold text-gray-800">{{ $box['user'] }}</td>
+                        <td class="px-4 py-2.5 text-gray-600 whitespace-nowrap">{{ $box['date']?->format('d/m/Y') }}</td>
+                        <td class="px-4 py-2.5 text-gray-500 text-xs whitespace-nowrap">{{ $box['started_at']?->format('H:i') ?? '—' }}</td>
+                        <td class="px-4 py-2.5 text-green-700 font-semibold">{{ number_format($box['received'], 0) }}</td>
+                        <td class="px-4 py-2.5 text-red-700">{{ $box['withdrawals'] > 0 ? number_format($box['withdrawals'], 0) : '—' }}</td>
+                        <td class="px-4 py-2.5 text-orange-700">{{ $box['refunds'] > 0 ? number_format($box['refunds'], 0) : '—' }}</td>
+                        <td class="px-4 py-2.5 font-black {{ $box['in_drawer'] >= 0 ? 'text-blue-800' : 'text-red-700' }}">{{ number_format($box['in_drawer'], 0) }}</td>
+                        <td class="px-4 py-2.5">
+                            <a href="{{ route('reports.shiftsHub', ['tab' => 'shifts', 'user_id' => $box['shift']->user_id, 'all_periods' => 1]) }}"
+                               class="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:border-blue-400 hover:text-blue-600 transition whitespace-nowrap">
+                                ورديّاته
+                            </a>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr><td colspan="8" class="px-4 py-8 text-center text-gray-400">لا توجد ورديات مفتوحة حالياً — كل النقدية بالصندوق العام</td></tr>
+                    @endforelse
+                </tbody>
+                @if($shiftBoxes->isNotEmpty())
+                <tfoot class="bg-blue-50 font-bold text-primary-900">
+                    <tr>
+                        <td class="px-4 py-3" colspan="6">إجمالي ما بأدراج الورديات</td>
+                        <td class="px-4 py-3 text-blue-800">{{ number_format($shiftsCashTotal, 0) }}</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+                @endif
+            </table>
+        </div>
     </div>
 
     {{-- فلتر الفترة --}}

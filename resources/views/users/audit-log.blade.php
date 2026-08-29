@@ -116,37 +116,10 @@
                         'CashWithdrawal' => 'سحب', 'Salary' => 'راتب', 'Employee' => 'موظف',
                         'User' => 'مستخدم', 'Leave' => 'إجازة', 'Attendance' => 'حضور',
                     ];
-                    // مفاتيح تُستبعد من عرض التفاصيل لأنها بيانات نظام لا تهمّ المراجعة
-                    $noiseFields = ['id', 'created_at', 'updated_at', 'deleted_at', 'room', 'linked_room', 'guest', 'payments'];
-                    // تسمية عربية لأكثر الحقول شيوعاً — أي حقل غير موجود هنا يُعرض باسمه كما هو
-                    $fieldLabels = [
-                        'guest_id' => 'النزيل', 'room_id' => 'الغرفة', 'linked_room_id' => 'الغرفة المرتبطة',
-                        'created_by' => 'أنشأه', 'cancelled_by' => 'ألغاه', 'settled_by' => 'سوّاه',
-                        'processed_by' => 'نفّذه', 'received_by' => 'استلمها', 'paid_by' => 'صرفها',
-                        'status' => 'الحالة', 'payment_status' => 'حالة الدفع',
-                        'check_in_date' => 'تاريخ الدخول', 'check_in_time' => 'وقت الدخول',
-                        'check_out_date' => 'تاريخ الخروج', 'check_out_time' => 'وقت الخروج',
-                        'actual_check_out' => 'وقت الخروج الفعلي',
-                        'total_amount' => 'الإجمالي', 'paid_amount' => 'المدفوع', 'amount' => 'المبلغ',
-                        'currency' => 'العملة', 'discount_type' => 'نوع الخصم', 'discount_value' => 'قيمة الخصم',
-                        'discount_amount' => 'مبلغ الخصم', 'discount_reason' => 'سبب الخصم',
-                        'cancellation_reason' => 'سبب الإلغاء', 'cancelled_at' => 'وقت الإلغاء',
-                        'notes' => 'ملاحظات', 'origin' => 'جهة القدوم', 'purpose' => 'الغرض',
-                        'category' => 'الفئة', 'recipient_name' => 'المستلم', 'description' => 'الوصف',
-                        'expense_date' => 'تاريخ المصروف', 'settled_at' => 'وقت التسوية',
-                        'payment_method' => 'طريقة الدفع', 'method' => 'الطريقة', 'reason' => 'السبب',
-                        'base_salary' => 'الراتب الأساسي', 'bonuses' => 'المكافآت', 'deductions' => 'الخصومات',
-                        'net_salary' => 'صافي الراتب', 'name' => 'الاسم', 'email' => 'البريد',
-                        'phone' => 'الجوال', 'is_active' => 'نشط', 'room_number' => 'رقم الغرفة',
-                        'floor' => 'الطابق', 'action' => 'الإجراء',
-                    ];
-                    $fmtVal = function ($v) {
-                        if ($v === null || $v === '') return '—';
-                        if (is_bool($v)) return $v ? 'نعم' : 'لا';
-                        if (is_array($v)) return json_encode($v, JSON_UNESCAPED_UNICODE);
-                        $s = (string) $v;
-                        return mb_strlen($s) > 60 ? mb_substr($s, 0, 60) . '…' : $s;
-                    };
+                    // تنسيق القيم (أسماء بدل المعرّفات، تسميات عربية بدل enum،
+                    // ومبالغ مُنسَّقة) موحّد في AuditFormatter ليُقرأه المدير بسهولة.
+                    $fmt = \App\Support\AuditFormatter::class;
+                    $noiseFields = $fmt::NOISE_FIELDS;
                 @endphp
                 @forelse($logs as $log)
                 <tr class="hover:bg-gray-50 transition">
@@ -182,14 +155,21 @@
                                 ->filter(fn($v, $k) => ($old[$k] ?? null) != $v);
                         @endphp
                         @if($changed->isNotEmpty())
+                        {{-- سطر مختصر يوضّح ما تغيّر دون الحاجة لفتح التفاصيل --}}
+                        @php
+                            $changedLabels = $changed->keys()->map(fn($k) => $fmt::fieldLabel($k));
+                            $changedBrief  = $changedLabels->take(3)->implode('، ')
+                                           . ($changedLabels->count() > 3 ? ' وغيرها' : '');
+                        @endphp
+                        <div class="text-xs text-gray-500 mb-1">تغيّر: <span class="text-gray-700 font-semibold">{{ $changedBrief }}</span></div>
                         <details class="cursor-pointer">
-                            <summary class="text-xs text-blue-600 hover:text-blue-800 font-medium">عرض التغييرات ({{ $changed->count() }})</summary>
+                            <summary class="text-xs text-blue-600 hover:text-blue-800 font-medium">عرض التغييرات بالتفصيل ({{ $changed->count() }})</summary>
                             <div class="mt-2 text-xs space-y-1 bg-gray-50 p-2 rounded">
                                 @foreach($changed as $key => $newVal)
                                 <div class="text-gray-600">
-                                    <strong class="text-gray-700">{{ $fieldLabels[$key] ?? $key }}:</strong>
-                                    <span class="line-through text-red-600">{{ $fmtVal($old[$key] ?? null) }}</span>
-                                    <span class="text-green-600">→ {{ $fmtVal($newVal) }}</span>
+                                    <strong class="text-gray-700">{{ $fmt::fieldLabel($key) }}:</strong>
+                                    <span class="line-through text-red-600">{{ $fmt::formatValue($key, $old[$key] ?? null) }}</span>
+                                    <span class="text-green-600">→ {{ $fmt::formatValue($key, $newVal) }}</span>
                                 </div>
                                 @endforeach
                             </div>
@@ -205,7 +185,7 @@
                             <summary class="text-xs text-green-600 hover:text-green-800 font-medium">عرض التفاصيل ({{ $shown->count() }})</summary>
                             <div class="mt-2 text-xs space-y-1 bg-gray-50 p-2 rounded">
                                 @foreach($shown as $key => $val)
-                                <div class="text-gray-600"><strong class="text-gray-700">{{ $fieldLabels[$key] ?? $key }}:</strong> {{ $fmtVal($val) }}</div>
+                                <div class="text-gray-600"><strong class="text-gray-700">{{ $fmt::fieldLabel($key) }}:</strong> {{ $fmt::formatValue($key, $val) }}</div>
                                 @endforeach
                             </div>
                         </details>
@@ -220,7 +200,7 @@
                             <summary class="text-xs text-red-600 hover:text-red-800 font-medium">عرض بيانات ما قبل الحذف ({{ $shown->count() }})</summary>
                             <div class="mt-2 text-xs space-y-1 bg-gray-50 p-2 rounded">
                                 @foreach($shown as $key => $val)
-                                <div class="text-gray-600"><strong class="text-gray-700">{{ $fieldLabels[$key] ?? $key }}:</strong> {{ $fmtVal($val) }}</div>
+                                <div class="text-gray-600"><strong class="text-gray-700">{{ $fmt::fieldLabel($key) }}:</strong> {{ $fmt::formatValue($key, $val) }}</div>
                                 @endforeach
                             </div>
                         </details>

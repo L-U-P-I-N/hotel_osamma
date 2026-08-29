@@ -666,20 +666,18 @@ class ReportController extends Controller
     {
         abort_unless($request->user()->can('accounts.view'), 403);
 
-        [$account, $from, $to, $openingBalance, $movements, $currentBalance] = $this->generalSafeData($request);
-
-        return view('reports.general-safe', compact('account', 'from', 'to', 'openingBalance', 'movements', 'currentBalance'));
+        return view('reports.general-safe', $this->generalSafeData($request));
     }
 
     public function generalSafePdf(Request $request)
     {
         abort_unless($request->user()->can('accounts.view'), 403);
 
-        [$account, $from, $to, $openingBalance, $movements, $currentBalance] = $this->generalSafeData($request);
+        $data = $this->generalSafeData($request);
 
-        $pdf = $this->pdfOptions(pdf_load_view('reports.general_safe_pdf', compact('account', 'from', 'to', 'openingBalance', 'movements', 'currentBalance')));
+        $pdf = $this->pdfOptions(pdf_load_view('reports.general_safe_pdf', $data));
         $pdf->setPaper('a4', 'portrait');
-        return $pdf->download('الصندوق-العام-' . $from . '-' . $to . '.pdf');
+        return $pdf->download('الصندوق-العام-' . $data['from'] . '-' . $data['to'] . '.pdf');
     }
 
     private function generalSafeData(Request $request): array
@@ -714,7 +712,42 @@ class ReportController extends Controller
 
         $currentBalance = $account->balance;
 
-        return [$account, $from, $to, $openingBalance, $movements, $currentBalance];
+        // صناديق المستخدمين المرتبطة بالصندوق العام: درج كل وردية مفتوحة حالياً.
+        // الموجود الفعلي بالفندق = رصيد الصندوق العام + ما بأدراج الورديات
+        // المفتوحة (فالنقدية المستلمة تبقى بيد الموظف حتى تُسلَّم عند الإقفال).
+        $openShifts = Shift::with('user')
+            ->where('is_closed', false)
+            ->orderBy('shift_date')
+            ->get();
+
+        $shiftBoxes = $openShifts->map(function (Shift $shift) {
+            $received    = (float) $shift->total_received_yer;
+            $withdrawals = (float) $shift->total_withdrawals_yer;
+            $refunds     = (float) $shift->total_refunds_yer;
+
+            return [
+                'shift'       => $shift,
+                'user'        => $shift->user?->name ?? '—',
+                'date'        => $shift->shift_date,
+                'started_at'  => $shift->started_at,
+                'received'    => $received,
+                'withdrawals' => $withdrawals,
+                'refunds'     => $refunds,
+                'in_drawer'   => round($received - $withdrawals - $refunds, 2),
+            ];
+        });
+
+        $shiftsCashTotal = round((float) $shiftBoxes->sum('in_drawer'), 2);
+        $totalCashOnHand = round($currentBalance + $shiftsCashTotal, 2);
+
+        // رصيد حساب «نقدية الورديات» (1110) محاسبياً — قد يختلف عن مجموع أدراج
+        // الورديات المفتوحة لأنه يشمل الورديات المُقفلة أيضاً؛ نعرضه للمقارنة.
+        $shiftsAccountBalance = (float) (Account::where('code', '1110')->first()?->balance ?? 0);
+
+        return compact(
+            'account', 'from', 'to', 'openingBalance', 'movements', 'currentBalance',
+            'shiftBoxes', 'shiftsCashTotal', 'totalCashOnHand', 'shiftsAccountBalance'
+        );
     }
 
     private function pdfOptions(\Barryvdh\DomPDF\PDF $pdf): \Barryvdh\DomPDF\PDF

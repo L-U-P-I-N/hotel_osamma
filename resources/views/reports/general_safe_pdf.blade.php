@@ -47,6 +47,69 @@
     </div>
 </div>
 
+{{-- الموجود الفعلي بالفندق = رصيد الصندوق العام + ما بأدراج الورديات المفتوحة --}}
+<table style="width:100%;border-collapse:collapse;margin-bottom:12px;" dir="rtl">
+    <tr>
+        <td style="width:33%;padding:5px;">
+            <div style="border:1px solid #fde68a;background:#fffbeb;border-radius:5px;padding:8px;text-align:center;">
+                <div style="font-size:8px;color:#b45309;">رصيد الصندوق العام</div>
+                <div style="font-size:14px;font-weight:bold;color:#92400e;margin-top:2px;">{{ number_format($currentBalance, 0) }} ر.ي</div>
+            </div>
+        </td>
+        <td style="width:33%;padding:5px;">
+            <div style="border:1px solid #bfdbfe;background:#eff6ff;border-radius:5px;padding:8px;text-align:center;">
+                <div style="font-size:8px;color:#1d4ed8;">بأدراج الورديات المفتوحة</div>
+                <div style="font-size:14px;font-weight:bold;color:#1e40af;margin-top:2px;">{{ number_format($shiftsCashTotal, 0) }} ر.ي</div>
+                <div style="font-size:7px;color:#60a5fa;">{{ $shiftBoxes->count() }} وردية مفتوحة</div>
+            </div>
+        </td>
+        <td style="width:34%;padding:5px;">
+            <div style="border:2px solid #86efac;background:#f0fdf4;border-radius:5px;padding:8px;text-align:center;">
+                <div style="font-size:8px;color:#15803d;font-weight:bold;">الموجود الفعلي بالفندق</div>
+                <div style="font-size:14px;font-weight:bold;color:#166534;margin-top:2px;">{{ number_format($totalCashOnHand, 0) }} ر.ي</div>
+            </div>
+        </td>
+    </tr>
+</table>
+
+@if($shiftBoxes->isNotEmpty())
+<h2 style="font-size:11px;font-weight:bold;color:#0F4C75;border-bottom:1px solid #d0e4f5;padding-bottom:4px;margin-bottom:6px;">
+    صناديق المستخدمين (الورديات المفتوحة)
+</h2>
+<table class="data" dir="rtl" style="margin-bottom:12px;">
+    <thead>
+        <tr>
+            <th style="width:18%;">بالدرج الآن</th>
+            <th style="width:15%;">الاسترجاعات</th>
+            <th style="width:15%;">السحبيات</th>
+            <th style="width:17%;">المستلم</th>
+            <th style="width:15%;">تاريخ الوردية</th>
+            <th style="width:20%;">الموظف</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach($shiftBoxes as $box)
+        <tr>
+            <td class="c" style="font-weight:bold;color:#1e40af;">{{ number_format($box['in_drawer'], 0) }}</td>
+            <td class="c">{{ $box['refunds'] > 0 ? number_format($box['refunds'], 0) : '—' }}</td>
+            <td class="c" style="color:#dc2626;">{{ $box['withdrawals'] > 0 ? number_format($box['withdrawals'], 0) : '—' }}</td>
+            <td class="c" style="color:#16a34a;">{{ number_format($box['received'], 0) }}</td>
+            <td class="c">{{ $box['date']?->format('d/m/Y') }}</td>
+            <td style="font-weight:bold;">{{ $box['user'] }}</td>
+        </tr>
+        @endforeach
+        <tr style="background:#e8f0f7;font-weight:bold;color:#0F4C75;">
+            <td class="c">{{ number_format($shiftsCashTotal, 0) }}</td>
+            <td colspan="5" style="text-align:right;">إجمالي ما بأدراج الورديات</td>
+        </tr>
+    </tbody>
+</table>
+@endif
+
+<h2 style="font-size:11px;font-weight:bold;color:#0F4C75;border-bottom:1px solid #d0e4f5;padding-bottom:4px;margin-bottom:6px;">
+    حركات الصندوق العام خلال الفترة
+</h2>
+
 <div class="cards">
     <div class="card">
         <div class="card-inner">
