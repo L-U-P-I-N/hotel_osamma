@@ -263,6 +263,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/reports/shifts-hub', [ReportController::class, 'shiftsHub'])->name('reports.shiftsHub');
         Route::get('/reports/daily-close/pdf', [ReportController::class, 'dailyClosePdf'])->name('reports.dailyClose.pdf');
         Route::get('/reports/finance-hub', [ReportController::class, 'financeHub'])->name('reports.financeHub');
+        Route::get('/reports/general-safe', [ReportController::class, 'generalSafe'])->name('reports.generalSafe');
+        Route::get('/reports/general-safe/pdf', [ReportController::class, 'generalSafePdf'])->name('reports.generalSafe.pdf');
         // فحص تكامل البيانات المالية (قراءة فقط) — مقصور على المدير داخل الكونترولر
         Route::get('/reports/financial-integrity', [\App\Http\Controllers\FinancialIntegrityController::class, 'index'])->name('reports.financialIntegrity');
         Route::get('/reports/hr-hub', [ReportController::class, 'hrHub'])->name('reports.hrHub');

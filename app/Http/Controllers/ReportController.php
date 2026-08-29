@@ -592,6 +592,65 @@ class ReportController extends Controller
         return $build(null);
     }
 
+    /**
+     * تقرير "الصندوق العام" — حركات حساب 1120 بالتفصيل (تاريخ، بيان، وارد/
+     * صادر، رصيد جارٍ) ورصيده الحالي. مقصور على من يملك accounts.view.
+     */
+    public function generalSafe(Request $request)
+    {
+        abort_unless($request->user()->can('accounts.view'), 403);
+
+        [$account, $from, $to, $openingBalance, $movements, $currentBalance] = $this->generalSafeData($request);
+
+        return view('reports.general-safe', compact('account', 'from', 'to', 'openingBalance', 'movements', 'currentBalance'));
+    }
+
+    public function generalSafePdf(Request $request)
+    {
+        abort_unless($request->user()->can('accounts.view'), 403);
+
+        [$account, $from, $to, $openingBalance, $movements, $currentBalance] = $this->generalSafeData($request);
+
+        $pdf = $this->pdfOptions(pdf_load_view('reports.general_safe_pdf', compact('account', 'from', 'to', 'openingBalance', 'movements', 'currentBalance')));
+        $pdf->setPaper('a4', 'portrait');
+        return $pdf->download('الصندوق-العام-' . $from . '-' . $to . '.pdf');
+    }
+
+    private function generalSafeData(Request $request): array
+    {
+        $account = Account::where('code', '1120')->firstOrFail();
+        $from = $request->input('from', now()->startOfMonth()->toDateString());
+        $to   = $request->input('to', now()->toDateString());
+
+        $openingBalance = (float) $account->journalLines()
+            ->whereHas('journalEntry', fn($q) => $q->whereDate('entry_date', '<', $from))
+            ->selectRaw('COALESCE(SUM(debit),0) - COALESCE(SUM(credit),0) as bal')
+            ->value('bal') ?? 0;
+
+        $lines = $account->journalLines()
+            ->with('journalEntry')
+            ->whereHas('journalEntry', fn($q) => $q->whereDate('entry_date', '>=', $from)->whereDate('entry_date', '<=', $to))
+            ->get()
+            ->sortBy([['journalEntry.entry_date', 'asc'], ['id', 'asc']])
+            ->values();
+
+        $running = $openingBalance;
+        $movements = $lines->map(function ($line) use (&$running) {
+            $running += (float) $line->debit - (float) $line->credit;
+            return [
+                'date'        => $line->journalEntry?->entry_date,
+                'description' => $line->journalEntry?->description,
+                'in'          => (float) $line->debit,
+                'out'         => (float) $line->credit,
+                'balance'     => $running,
+            ];
+        });
+
+        $currentBalance = $account->balance;
+
+        return [$account, $from, $to, $openingBalance, $movements, $currentBalance];
+    }
+
     private function pdfOptions(\Barryvdh\DomPDF\PDF $pdf): \Barryvdh\DomPDF\PDF
     {
         $dompdf = $pdf->getDomPDF();
