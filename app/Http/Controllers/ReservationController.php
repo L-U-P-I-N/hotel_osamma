@@ -1117,6 +1117,12 @@ class ReservationController extends Controller
         // النزلاء المغادرين تاريخياً وكانت تُبطئ الصفحة أكثر كل فترة.
         $reservations = $query->paginate(30)->withQueryString();
 
+        // طلب AJAX من حقل البحث الفوري: نُعيد جزئية النتائج وحدها ليستبدلها
+        // المتصفح دون إعادة تحميل الصفحة — فلا يُفقد تركيز الحقل أثناء الكتابة.
+        if ($request->ajax()) {
+            return view('reservations._expiring_results', compact('reservations', 'status', 'overdueCount', 'todayCount', 'total'));
+        }
+
         return view('reservations.expiring', compact('reservations', 'status', 'overdueCount', 'todayCount', 'total'));
     }
 
