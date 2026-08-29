@@ -480,8 +480,9 @@
                 @can('checkin.create')
                 <a href="{{ route('checkin.create') }}"
                    title="تسجيل دخول نزيل"
-                   class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-green-600 hover:bg-green-50 transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H5a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
+                   class="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-gray-500 hover:text-green-600 hover:bg-green-50 transition-colors flex-shrink-0">
+                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H5a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
+                    <span class="text-xs font-semibold whitespace-nowrap">تسجيل دخول</span>
                 </a>
                 @endcan
                 {{-- Refresh — essential in PWA standalone mode (no browser reload button) --}}

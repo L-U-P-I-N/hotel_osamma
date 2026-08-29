@@ -1658,6 +1658,11 @@ function checkInForm() {
             this.guestData.phone         = g.phone || '';
             this.existingGuestId         = g.id;
             this.existingGuestHasImage   = !!g.has_id_image;
+            // مرافقو آخر حجز لهذا النزيل العائد — تُعبَّأ تلقائياً (لا نستبدل
+            // مرافقين أضافهم الموظف يدوياً بالفعل قبل اختياره من الاقتراحات).
+            if (this.companions.length === 0 && Array.isArray(g.companions) && g.companions.length) {
+                this.companions = g.companions.map(c => ({ ...c, id_preview: null }));
+            }
             this.guestSuggestions = [];
             this.showSuggestions  = false;
             this.saveToSession();

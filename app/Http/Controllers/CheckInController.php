@@ -261,18 +261,36 @@ class CheckInController extends Controller
             ->get(['id', 'full_name', 'nationality', 'occupation', 'id_type', 'id_number',
                    'id_issuer', 'id_issue_date', 'phone', 'id_image_path']);
 
-        return response()->json($guests->map(fn($g) => [
-            'id'            => $g->id,
-            'full_name'     => $g->full_name,
-            'nationality'   => $g->nationality ?? '',
-            'occupation'    => $g->occupation ?? '',
-            'id_type'       => $g->id_type,
-            'id_number'     => $g->id_number,
-            'id_issuer'     => $g->id_issuer ?? '',
-            'id_issue_date' => $g->id_issue_date?->format('Y-m-d') ?? '',
-            'phone'         => $g->phone ?? '',
-            'has_id_image'  => (bool) $g->id_image_path,
-        ]));
+        return response()->json($guests->map(function ($g) {
+            // مرافقو آخر حجز لهذا النزيل العائد — تُعبَّأ بياناتهم النصية تلقائياً
+            // (لا صور الهوية؛ تبقى مطلوبة عند كل تسجيل دخول جديد).
+            $lastReservation = $g->reservations()->latest('check_in_date')->first();
+            $companions = $lastReservation
+                ? $lastReservation->companions()->get()->map(fn($c) => [
+                    'full_name'     => $c->full_name,
+                    'nationality'   => $c->nationality ?? '',
+                    'id_type'       => $c->id_type ?? 'national_id',
+                    'id_number'     => $c->id_number ?? '',
+                    'id_issuer'     => $c->id_issuer ?? '',
+                    'id_issue_date' => $c->id_issue_date?->format('Y-m-d') ?? '',
+                    'relationship'  => $c->relationship ?? 'other',
+                ])
+                : collect();
+
+            return [
+                'id'            => $g->id,
+                'full_name'     => $g->full_name,
+                'nationality'   => $g->nationality ?? '',
+                'occupation'    => $g->occupation ?? '',
+                'id_type'       => $g->id_type,
+                'id_number'     => $g->id_number,
+                'id_issuer'     => $g->id_issuer ?? '',
+                'id_issue_date' => $g->id_issue_date?->format('Y-m-d') ?? '',
+                'phone'         => $g->phone ?? '',
+                'has_id_image'  => (bool) $g->id_image_path,
+                'companions'    => $companions,
+            ];
+        }));
     }
 
     public function guestLookup(Request $request)
