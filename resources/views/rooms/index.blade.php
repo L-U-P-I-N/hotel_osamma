@@ -656,6 +656,11 @@ html.dark .filter-chip.bg-white { background: #1e293b !important; }
 
             <form x-show="selectedRoom.status !== 'occupied'" :action="`/rooms/${selectedRoom.id}/status`" method="POST">
                 @csrf
+                {{-- فلاتر القائمة الحالية (الحالة/النوع/التصنيف/الطابق) — تُعاد
+                     بعد الحفظ حتى لا يُعاد الموظف لقائمة كل الغرف غير المفلترة. --}}
+                @foreach(request()->only(['status', 'type', 'sub_type', 'floor']) as $key => $value)
+                <input type="hidden" name="return_{{ $key }}" value="{{ $value }}">
+                @endforeach
                 <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">تغيير الحالة</label>
                 <div class="flex gap-2">
                     <select name="status"
