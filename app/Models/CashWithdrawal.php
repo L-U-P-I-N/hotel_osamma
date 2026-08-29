@@ -39,4 +39,9 @@ class CashWithdrawal extends Model
     {
         return $this->withdrawal_type === 'currency_exchange';
     }
+
+    public function getFundingSourceLabelAttribute(): string
+    {
+        return $this->funding_source === 'general_safe' ? 'الصندوق العام' : 'الوردية';
+    }
 }

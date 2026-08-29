@@ -30,6 +30,17 @@ class ShiftController extends Controller
             ]);
         }
 
+        // مصروفات الصندوق العام التي سحبها المستخدم خلال وردية مفتوحة له حالياً —
+        // توضيحية فقط، لا تدخل في حساب درج الوردية (ليست مسحوبة منه أصلاً).
+        $generalSafeWithdrawals = collect();
+        if ($activeShift) {
+            $generalSafeWithdrawals = \App\Models\CashWithdrawal::where('funding_source', 'general_safe')
+                ->where('handed_by_name', $user->name)
+                ->where('created_at', '>=', $activeShift->started_at)
+                ->orderByDesc('created_at')
+                ->get();
+        }
+
         $allActive       = $user->isAdmin() ? $this->service->getAllActiveShifts() : collect();
         $allUsersStatus  = $user->isAdmin() ? $this->service->getAllUsersShiftStatus() : collect();
 
@@ -63,14 +74,16 @@ class ShiftController extends Controller
                 ->get();
 
             // سحبيات/مصروفات غير مرتبطة بأي وردية (قد تنشأ من حذف وردية سابقة)
-            // تُعرض ليتمكن الموظف من ضمّها إلى وردية مفتوحة.
+            // تُعرض ليتمكن الموظف من ضمّها إلى وردية مفتوحة. نستثني مصروفات
+            // الصندوق العام — هي بلا وردية عمداً، وليست "يتيمة" بالخطأ.
             $orphanWithdrawals = CashWithdrawal::whereNull('shift_id')
+                ->where('funding_source', '!=', 'general_safe')
                 ->orderByDesc('withdrawal_date')
                 ->limit(100)
                 ->get();
         }
 
-        return view('shifts.index', compact('activeShift', 'recentShifts', 'allActive', 'allUsersStatus', 'reassignTargets', 'orphanPayments', 'orphanWithdrawals', 'reopenableShifts'));
+        return view('shifts.index', compact('activeShift', 'recentShifts', 'allActive', 'allUsersStatus', 'reassignTargets', 'orphanPayments', 'orphanWithdrawals', 'reopenableShifts', 'generalSafeWithdrawals'));
     }
 
     public function attachOrphans(Request $request)
@@ -394,7 +407,17 @@ class ShiftController extends Controller
             ->orderBy('created_at')
             ->get();
 
-        $pdf = pdf_load_view('shifts.report_pdf', compact('shift', 'checkedInGuests'));
+        // سحوبات الصندوق العام التي أجراها موظف هذه الوردية خلال فترتها — لا
+        // تدخل في حساب عجز/زيادة الوردية (ليست من درجها)، لكن تظهر توضيحياً
+        // حتى لا يظنّ القارئ أن الوردية بلا أي مصروفات فيها.
+        $generalSafeWithdrawals = \App\Models\CashWithdrawal::where('funding_source', 'general_safe')
+            ->where('handed_by_name', $shift->user->name)
+            ->when($shiftStart, fn($q) => $q->where('created_at', '>=', $shiftStart))
+            ->where('created_at', '<=', $shiftEnd)
+            ->orderBy('created_at')
+            ->get();
+
+        $pdf = pdf_load_view('shifts.report_pdf', compact('shift', 'checkedInGuests', 'generalSafeWithdrawals'));
         $pdf->setPaper('a4', 'portrait');
 
         $dompdf = $pdf->getDomPDF();

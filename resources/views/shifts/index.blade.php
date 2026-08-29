@@ -200,6 +200,7 @@
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المستلم</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المبلغ</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">النوع</th>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المصدر</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">البيان</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">بواسطة</th>
                 @canany(['withdrawal.edit','withdrawal.delete'])
@@ -230,6 +231,13 @@
                         <span class="px-1.5 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded">صرف عملة</span>
                         @else
                         <span class="text-gray-400 text-xs">مصروف</span>
+                        @endif
+                    </td>
+                    <td class="px-4 py-2">
+                        @if($w->funding_source === 'general_safe')
+                        <span class="px-1.5 py-0.5 bg-amber-100 text-amber-700 text-xs rounded font-semibold">الصندوق العام</span>
+                        @else
+                        <span class="text-gray-400 text-xs">الوردية</span>
                         @endif
                     </td>
                     <td class="px-4 py-2 text-gray-400 text-xs">{{ $w->notes ?? '—' }}</td>
@@ -297,6 +305,37 @@
     @endif
 </div>
 </div>
+
+{{-- مصروفات الصندوق العام خلال هذه الوردية — توضيحية فقط، لا تُحتسب على
+     درج الوردية (ليست مسحوبة منه). --}}
+@if($generalSafeWithdrawals->count() > 0)
+<div class="bg-white rounded-xl shadow-sm border border-amber-200 mb-6">
+    <div class="px-5 py-4 border-b border-amber-100 bg-amber-50 rounded-t-xl">
+        <h3 class="font-bold text-amber-800 text-sm">مصروفات من الصندوق العام خلال وردَّتك</h3>
+        <p class="text-xs text-amber-600 mt-0.5">لا تُحتسب ضمن درج هذه الوردية — للتوضيح فقط</p>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50"><tr>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الوقت</th>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المبلغ</th>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">البيان</th>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المستلم</th>
+            </tr></thead>
+            <tbody class="divide-y divide-gray-50">
+                @foreach($generalSafeWithdrawals as $gw)
+                <tr>
+                    <td class="px-4 py-2 text-gray-500 text-xs whitespace-nowrap">{{ $gw->created_at?->format('H:i') }}</td>
+                    <td class="px-4 py-2 font-semibold text-amber-700 whitespace-nowrap">{{ number_format($gw->amount, 0) }} {{ $gw->currency }}</td>
+                    <td class="px-4 py-2 text-gray-400 text-xs">{{ $gw->notes ?? '—' }}</td>
+                    <td class="px-4 py-2 text-gray-700 text-xs">{{ $gw->withdrawn_by_name }}</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+</div>
+@endif
 
 @if($activeShift->refunds->count() > 0)
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 mt-5">

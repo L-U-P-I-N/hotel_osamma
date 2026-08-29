@@ -233,11 +233,12 @@
         <tr>
             <th style="width:7%;">الوقت</th>
             <th style="width:11%;">بواسطة</th>
-            <th style="width:10%;">مقابل</th>
+            <th style="width:9%;">مقابل</th>
             <th style="width:6%;">العملة</th>
-            <th style="width:10%;">المبلغ</th>
-            <th style="width:9%;">النوع</th>
-            <th style="width:26%;">البيان / السبب</th>
+            <th style="width:9%;">المبلغ</th>
+            <th style="width:8%;">النوع</th>
+            <th style="width:9%;">المصدر</th>
+            <th style="width:19%;">البيان / السبب</th>
             <th style="width:14%;">المستلم</th>
             <th style="width:4%;">#</th>
         </tr>
@@ -257,6 +258,7 @@
             <td class="center">{{ $curLabels[$w->currency] ?? $w->currency }}</td>
             <td class="ltr" style="font-weight:bold;color:#dc2626;">{{ number_format($w->amount, 0) }}</td>
             <td class="center">{{ $w->type_label }}</td>
+            <td class="center" style="{{ $w->funding_source === 'general_safe' ? 'font-weight:bold;color:#b45309;' : '' }}">{{ $w->funding_source_label }}</td>
             <td class="wrap">{{ $w->notes }}</td>
             <td>{{ $w->withdrawn_by_name }}</td>
             <td class="center">{{ $i + 1 }}</td>
@@ -269,9 +271,38 @@
             <td colspan="3"></td>
             <td class="center">{{ $curLabels[$c] }}</td>
             <td class="ltr neg">{{ number_format($cTotal, 0) }}</td>
-            <td colspan="4" style="text-align:right;">مجموع السحبيات ({{ $curLabels[$c] }})</td>
+            <td colspan="5" style="text-align:right;">مجموع السحبيات ({{ $curLabels[$c] }})</td>
         </tr>
         @endif
+        @endforeach
+    </tbody>
+</table>
+@endif
+
+{{-- Withdrawals from the general safe during this shift — informational only,
+     not counted in the shift's own cash reconciliation (not from its drawer). --}}
+@php $generalSafeWithdrawals = $generalSafeWithdrawals ?? collect(); @endphp
+@if($generalSafeWithdrawals->isNotEmpty())
+<h2>مصروفات من الصندوق العام خلال هذه الوردية <span style="font-size:8px;color:#999;font-weight:normal;">(لا تُحتسب على درج هذه الوردية)</span></h2>
+<table class="data" dir="rtl">
+    <thead>
+        <tr>
+            <th style="width:12%;">الوقت</th>
+            <th style="width:12%;">العملة</th>
+            <th style="width:15%;">المبلغ</th>
+            <th style="width:37%;">البيان / السبب</th>
+            <th style="width:24%;">المستلم</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach($generalSafeWithdrawals as $gw)
+        <tr>
+            <td class="ltr">{{ $gw->created_at?->format('H:i') }}</td>
+            <td class="center">{{ $curLabels[$gw->currency] ?? $gw->currency }}</td>
+            <td class="ltr" style="font-weight:bold;color:#b45309;">{{ number_format($gw->amount, 0) }}</td>
+            <td class="wrap">{{ $gw->notes }}</td>
+            <td>{{ $gw->withdrawn_by_name }}</td>
+        </tr>
         @endforeach
     </tbody>
 </table>
