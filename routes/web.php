@@ -288,6 +288,13 @@ Route::middleware(['auth'])->group(function () {
         ->name('audit.log')
         ->middleware('permission:audit_log.view');
 
+    // ===== إعدادات النظام (شعار الفندق…) =====
+    Route::middleware('permission:settings.manage')->group(function () {
+        Route::get('/settings', [\App\Http\Controllers\SettingsController::class, 'index'])->name('settings.index');
+        Route::post('/settings/logo', [\App\Http\Controllers\SettingsController::class, 'updateLogo'])->name('settings.logo.update');
+        Route::delete('/settings/logo', [\App\Http\Controllers\SettingsController::class, 'removeLogo'])->name('settings.logo.remove');
+    });
+
     // ===== HR Module =====
     // Employees
     Route::middleware('permission:hr.view')->group(function () {

@@ -275,13 +275,13 @@ table.mini tr { page-break-inside: avoid; }
     $invNo         = str_pad($reservation->id, 6, '0', STR_PAD_LEFT);
     $methodMap = ['cash'=>'نقدي','pos'=>'POS','bank_transfer'=>'تحويل بنكي'];
     $typeMap   = ['reservation'=>'دفعة حجز','renewal'=>'تجديد','compensation'=>'تعويض','extra_service'=>'خدمة إضافية'];
-    $logo      = public_path('images/hotel-logo.png');
+    $logo      = \App\Models\Setting::hotelLogo();
 @endphp
 <div class="page">
 
   <!-- HEADER -->
   <div class="brand">
-    @if(file_exists($logo))
+    @if($logo)
     <img class="brand-logo" src="{{ $logo }}" alt="شعار الفندق">
     @endif
     <div class="hotel-ar">الفندق السعودي</div>

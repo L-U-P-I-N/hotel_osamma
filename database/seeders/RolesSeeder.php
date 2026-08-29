@@ -40,6 +40,8 @@ class RolesSeeder extends Seeder
             'users.manage', 'audit_log.view',
             // Chart of Accounts
             'accounts.view', 'accounts.manage',
+            // إعدادات النظام (شعار الفندق…) — للمدير فقط
+            'settings.manage',
             // Misc
             'dashboard.view', 'deferred.approve',
         ];
