@@ -299,6 +299,11 @@ Route::middleware(['auth'])->group(function () {
     // Employees
     Route::middleware('permission:hr.view')->group(function () {
         Route::get('/employees', [EmployeeController::class, 'index'])->name('employees.index');
+        // كشوف الحساب — قبل {employee} حتى لا يبتلع "statements" كمعرّف موظف
+        Route::get('/employees/statements', [EmployeeController::class, 'statements'])->name('employees.statements');
+        Route::get('/employees/statements/pdf', [EmployeeController::class, 'statementsPdf'])->name('employees.statements.pdf');
+        Route::get('/employees/{employee}/statement', [EmployeeController::class, 'statement'])->name('employees.statement');
+        Route::get('/employees/{employee}/statement/pdf', [EmployeeController::class, 'statementPdf'])->name('employees.statement.pdf');
         Route::get('/employees/{employee}/withdrawals', [EmployeeController::class, 'withdrawals'])->name('employees.withdrawals');
     });
     Route::middleware('permission:hr.create')->group(function () {

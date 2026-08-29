@@ -8,12 +8,20 @@
 <!-- Header -->
 <div class="flex items-center justify-between mb-5">
     <p class="text-sm text-gray-500">إجمالي الموظفين: {{ $employees->total() }}</p>
-    @can('hr.create')
-    <a href="{{ route('employees.create') }}" class="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm transition" style="background:#0F4C75;">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-        إضافة موظف
-    </a>
-    @endcan
+    <div class="flex items-center gap-2 flex-wrap">
+        <a href="{{ route('employees.statements') }}"
+           class="flex items-center gap-2 px-4 py-2 border-2 rounded-lg text-sm font-medium transition"
+           style="border-color:#0F4C75; color:#0F4C75;">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            كشف حساب الموظفين
+        </a>
+        @can('hr.create')
+        <a href="{{ route('employees.create') }}" class="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm transition" style="background:#0F4C75;">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            إضافة موظف
+        </a>
+        @endcan
+    </div>
 </div>
 
 <!-- Table -->
@@ -40,8 +48,13 @@
                     <td class="px-4 py-3 text-gray-500">{{ $employee->id }}</td>
                     <td class="px-4 py-3">
                         <span class="font-semibold text-gray-800">{{ $employee->name }}</span>
-                        <a href="{{ route('employees.withdrawals', $employee) }}"
-                           class="block text-xs text-blue-600 hover:text-blue-800 hover:underline mt-0.5">كشف المسحوبات</a>
+                        <span class="block mt-0.5 text-xs">
+                            <a href="{{ route('employees.statement', $employee) }}"
+                               class="text-blue-600 hover:text-blue-800 hover:underline font-semibold">كشف الحساب</a>
+                            <span class="text-gray-300 mx-1">·</span>
+                            <a href="{{ route('employees.withdrawals', $employee) }}"
+                               class="text-blue-600 hover:text-blue-800 hover:underline">كشف المسحوبات</a>
+                        </span>
                     </td>
                     <td class="px-4 py-3 text-gray-600">{{ $employee->position }}</td>
                     <td class="px-4 py-3 font-medium" style="color:#0F4C75;">{{ number_format($employee->base_salary, 2) }}</td>
