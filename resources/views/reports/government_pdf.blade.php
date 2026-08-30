@@ -2,7 +2,6 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-@php $hotel = \App\Models\Hotel::first(); @endphp
 <style>
     @font-face {
         font-family: 'NotoNaskhArabic';
@@ -134,7 +133,8 @@
     @endif
 @endforeach
 
-<div class="footer">{{ $hotel?->name ?? '' }} — رقم الهاتف: {{ $hotel?->phone ?? '—' }} — طُبع في: {{ now()->format('d/m/Y H:i') }}</div>
+{{-- أرقام التواصل تظهر بالرأس الموحّد أعلاه، فلا نكرّرها هنا --}}
+<div class="footer">{{ \App\Models\Setting::hotelProfile()['hotel_name_ar'] ?? '' }} — طُبع في: {{ now()->format('d/m/Y H:i') }}</div>
 
 <script type="text/php">
     if (isset($pdf)) {
