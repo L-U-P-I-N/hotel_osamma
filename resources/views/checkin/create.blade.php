@@ -145,8 +145,22 @@
 .rtag-hall   { background: #F3F4F6; color: #4B5563; }
 .rtag-apt    { background: #FEF3C7; color: #92400E; }
 
-/* ── Suite A/B buttons ── */
-.sbtna { border-radius: .5rem; padding: .4rem; font-size: .75rem; font-weight: 800; border: 1.5px solid; cursor: pointer; transition: all .15s; flex: 1; text-align: center; }
+/* ── خيارات حجز الجناح: صف مكتوب بوضوح بدل زر مضغوط ── */
+.suite-opt { display: flex; align-items: center; gap: .5rem; width: 100%; text-align: right;
+             border-radius: .5rem; padding: .4rem .5rem; border: 1.5px solid; cursor: pointer; transition: all .15s; }
+.suite-opt-key { flex-shrink: 0; min-width: 2.4rem; text-align: center; font-weight: 800; font-size: .72rem;
+                 border-radius: .35rem; padding: .18rem .3rem; background: rgba(0,0,0,.06); }
+.suite-opt-txt { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+.suite-opt-title { font-size: .72rem; font-weight: 700; }
+.suite-opt-sub { font-size: .65rem; opacity: .75; }
+.suite-opt-off { background: #fff; color: #4b5563; border-color: #d1d5db; }
+.suite-opt-off:hover { border-color: #3b82f6; color: #1d4ed8; }
+.suite-opt-on-blue   { background: #2563eb; color: #fff; border-color: #2563eb; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.suite-opt-on-purple { background: #7c3aed; color: #fff; border-color: #7c3aed; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.suite-opt-on-indigo { background: #4338ca; color: #fff; border-color: #4338ca; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.suite-opt-disabled  { background: #f9fafb; color: #9ca3af; border-color: #e5e7eb; cursor: not-allowed; }
+html.dark .suite-opt-off { background: transparent; color: var(--d-text-2); border-color: var(--d-border-2); }
+html.dark .suite-opt-disabled { background: transparent; color: var(--d-text-3); border-color: var(--d-border-2); }
 
 /* ── Payment option cards ── */
 .pay-opt { position: relative; cursor: pointer; }
@@ -783,29 +797,59 @@ html.dark [style*="background:var(--gold-l)"] {
                     </div>
                     <div class="text-xs text-gray-500 mb-0.5">{{ $room->roomType->name }}</div>
                     <div class="text-xs font-bold mb-2.5" style="color:var(--emerald)">{{ number_format($room->priceFor('YER'),0) }} ر.ي</div>
-                    <div class="flex gap-1">
-                        {{-- A only --}}
-                        <button type="button"
+                    {{-- خيارات حجز الجناح: صفوف مكتوبة بوضوح (رقم الباب + ما الذي
+                         يُحجَز فعلاً) بدل ثلاثة أزرار مضغوطة A/B/A+B كان يسهل
+                         الخطأ في الضغط عليها والخلط بينها. --}}
+                    <div class="space-y-1">
+                        {{-- الباب A وحده --}}
+                        <button type="button" class="suite-opt"
                                 @click="selectRoom({{ json_encode($roomData) }}, {{ json_encode($info) }}, 'a_only')"
                                 :class="roomId == '{{ $room->id }}' && suiteBookingType === 'a_only'
-                                    ? 'sbtna bg-blue-600 text-white border-blue-600 shadow-sm'
-                                    : 'sbtna bg-white text-gray-600 border-gray-300 hover:border-blue-500 hover:text-blue-700'">A</button>
+                                    ? 'suite-opt-on-blue' : 'suite-opt-off'">
+                            <span class="suite-opt-key">A</span>
+                            <span class="suite-opt-txt">
+                                <span class="suite-opt-title">الباب {{ $room->room_number }} فقط</span>
+                                <span class="suite-opt-sub">نصف الجناح — {{ number_format($room->priceFor('YER'), 0) }} ر.ي</span>
+                            </span>
+                        </button>
+
                         @if($info && $info['linked_available'] && $linkedRoomData)
-                        {{-- B only --}}
-                        <button type="button"
+                        {{-- الباب B وحده --}}
+                        <button type="button" class="suite-opt"
                                 @click="selectRoom({{ json_encode($linkedRoomData) }}, null, 'b_only')"
                                 :class="roomId == '{{ $info['linked_id'] }}'
-                                    ? 'sbtna bg-purple-600 text-white border-purple-600 shadow-sm'
-                                    : 'sbtna bg-white text-gray-600 border-gray-300 hover:border-purple-500 hover:text-purple-700'">B</button>
-                        {{-- A+B --}}
-                        <button type="button"
+                                    ? 'suite-opt-on-purple' : 'suite-opt-off'">
+                            <span class="suite-opt-key">B</span>
+                            <span class="suite-opt-txt">
+                                <span class="suite-opt-title">الباب {{ $info['linked_number'] }} فقط</span>
+                                <span class="suite-opt-sub">نصف الجناح — {{ number_format($room->priceFor('YER'), 0) }} ر.ي</span>
+                            </span>
+                        </button>
+
+                        {{-- الجناح كاملاً --}}
+                        <button type="button" class="suite-opt"
                                 @click="selectRoom({{ json_encode($roomData) }}, {{ json_encode($info) }}, 'both')"
                                 :class="roomId == '{{ $room->id }}' && suiteBookingType === 'both'
-                                    ? 'sbtna bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                                    : 'sbtna bg-white text-gray-600 border-gray-300 hover:border-indigo-500 hover:text-indigo-700'">A+B</button>
+                                    ? 'suite-opt-on-indigo' : 'suite-opt-off'">
+                            <span class="suite-opt-key">A+B</span>
+                            <span class="suite-opt-txt">
+                                <span class="suite-opt-title">الجناح كاملاً ({{ $room->room_number }} + {{ $info['linked_number'] }})</span>
+                                <span class="suite-opt-sub">
+                                    البابان معاً
+                                    @if(($room->suite_price_yer ?? 0) > 0)
+                                        — {{ number_format((float) $room->suite_price_yer, 0) }} ر.ي
+                                    @endif
+                                </span>
+                            </span>
+                        </button>
                         @else
-                        <div class="sbtna border-gray-100 text-gray-300 bg-gray-50 cursor-not-allowed" title="البوابة B محجوزة" style="cursor:not-allowed">B</div>
-                        <div class="sbtna border-gray-100 text-gray-300 bg-gray-50 cursor-not-allowed" title="البوابة B محجوزة" style="cursor:not-allowed">A+B</div>
+                        <div class="suite-opt suite-opt-disabled" title="الباب المقابل محجوز حالياً">
+                            <span class="suite-opt-key">B</span>
+                            <span class="suite-opt-txt">
+                                <span class="suite-opt-title">الباب المقابل غير متاح</span>
+                                <span class="suite-opt-sub">محجوز حالياً — لا يمكن حجزه ولا حجز الجناح كاملاً</span>
+                            </span>
+                        </div>
                         @endif
                     </div>
                 </div>
