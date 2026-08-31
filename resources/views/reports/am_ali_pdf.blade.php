@@ -32,7 +32,7 @@
 <body>
 
 <div class="header">
-    @include('partials.pdf-hotel-header')
+    @include('partials.pdf-hotel-header-full')
     <h1>تقرير عم علي</h1>
     <div class="sub">
         كل الغرف — يوم العمل {{ \Carbon\Carbon::parse($date)->format('Y/m/d') }} الساعة 1 ظهراً

@@ -105,7 +105,7 @@
 @endphp
 
 <div class="header">
-    @include('partials.pdf-hotel-header')
+    @include('partials.pdf-hotel-header-full')
     <h1>القائمة اليومية للنزلاء</h1>
     <p>
         تاريخ: {{ \Carbon\Carbon::parse($date)->format('d/m/Y') }}

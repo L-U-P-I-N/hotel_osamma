@@ -16,11 +16,10 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'NotoNaskhArabic', sans-serif; font-size: 9.5px; direction: rtl; color: #1a1a1a; background: #fff; padding: 14px; }
 
-    /* الرأس الموحّد (عربي يمين / شعار وسط / إنجليزي يسار) يأتي من الجزئية
-       المشتركة partials.pdf-hotel-header، ويليه عنوان التقرير وتاريخ إصداره. */
+    /* الرأس الكامل (عربي يمين / شعار وسط / إنجليزي يسار — ويحمل التاريخ وأرقام
+       التواصل على الجانبين) من partials.pdf-hotel-header-full، ويليه العنوان. */
     .header { border-bottom: 2px solid #0F4C75; padding-bottom: 10px; margin-bottom: 14px; }
     .header h1 { font-size: 16px; color: #0F4C75; font-weight: bold; text-align: center; }
-    .header .issued { text-align: center; font-size: 9px; color: #666; margin-top: 3px; }
 
     .footer { margin-top: 12px; border-top: 1px solid #eee; padding-top: 6px; font-size: 8px; color: #aaa; text-align: right; }
 
@@ -50,9 +49,8 @@
 <body>
 
 <div class="header" dir="rtl">
-    @include('partials.pdf-hotel-header', ['logoHeight' => 80])
+    @include('partials.pdf-hotel-header-full', ['logoHeight' => 72])
     <h1>حجوزات الفندق</h1>
-    <div class="issued">تاريخ الإصدار: {{ now()->format('Y/n/j') }}</div>
 </div>
 
 @php

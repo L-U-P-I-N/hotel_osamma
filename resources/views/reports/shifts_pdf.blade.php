@@ -39,7 +39,7 @@
 @endphp
 
 <div class="header">
-    @include('partials.pdf-hotel-header')
+    @include('partials.pdf-hotel-header-full')
     <h1>تقرير الورديات{{ $selectedUser ? ' — ' . $selectedUser->name : '' }}</h1>
     <div class="sub">
         @if($allPeriods)

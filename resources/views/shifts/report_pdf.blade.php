@@ -143,7 +143,7 @@
 
 {{-- Header --}}
 <div class="header">
-    @include('partials.pdf-hotel-header')
+    @include('partials.pdf-hotel-header-full')
     <h1>تقرير الوردية</h1>
     <div class="sub">
         {{-- تاريخ العنوان: يوم إنشاء (فتح) الوردية دائماً — هو "اليوم المحاسبي"
