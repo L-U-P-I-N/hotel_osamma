@@ -3,10 +3,13 @@
 @section('page-title', 'الوردية')
 
 @section('content')
-<div x-data="{ closeModal: {{ $errors->has('actual_amount') ? 'true' : 'false' }}, editWithdrawal: null, reopenModal: null, selectedPayments: [], selectedWithdrawals: [], bulkModal: false, selectedOrphans: [], selectedOrphanWithdrawals: [] }">
+<div x-data="{ closeModal: {{ $errors->has('actual_amount') ? 'true' : 'false' }}, dateModal: {{ $errors->has('shift_date') ? 'true' : 'false' }}, editWithdrawal: null, reopenModal: null, selectedPayments: [], selectedWithdrawals: [], bulkModal: false, selectedOrphans: [], selectedOrphanWithdrawals: [] }">
 
 @if(session('success'))
 <div class="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">{{ session('success') }}</div>
+@endif
+@if(session('warning'))
+<div class="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm font-medium">{{ session('warning') }}</div>
 @endif
 @if($errors->any())
 <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -33,7 +36,16 @@
                 بدأت {{ $activeShift->started_at->format('H:i') }}
                 — {{ $activeShift->shift_date->format('d/m/Y') }}
                 @if(auth()->user()->isAdmin()) · {{ $activeShift->user->name }} @endif
+                <button type="button" @click="dateModal = true"
+                        class="mr-1 text-blue-600 hover:text-blue-800 underline">تعديل التاريخ</button>
             </p>
+            {{-- وردية فُتحت أمس ونُسي إقفالها: ننبّه صراحةً لأن أرقامها ستُحتسب
+                 على اليوم السابق في كل التقارير ما لم يُصحَّح تاريخها. --}}
+            @if($activeShift->shift_date->lt(today()))
+            <p class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1 mt-1.5">
+                تاريخ هذه الوردية {{ $activeShift->shift_date->format('d/m/Y') }} وليس اليوم — صحّح التاريخ أو أقفلها.
+            </p>
+            @endif
         </div>
     </div>
     <div class="flex gap-2 flex-wrap">
@@ -517,7 +529,16 @@
             </svg>
         </div>
         <h3 class="text-lg font-bold text-gray-700 mb-2">لا توجد وردية مفتوحة</h3>
-        <p class="text-gray-400 text-sm">الوردية تُفتح تلقائياً عند تسجيل الدخول</p>
+        <p class="text-gray-400 text-sm mb-5">افتح وردية قبل تسجيل أي مستلمة أو سحب — ستُفتح بتاريخ اليوم.</p>
+
+        <form method="POST" action="{{ route('shifts.open') }}">
+            @csrf
+            <button type="submit"
+                    class="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-bold transition shadow-sm">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                فتح وردية جديدة
+            </button>
+        </form>
     </div>
 </div>
 @endif
@@ -826,6 +847,56 @@
     </div>
 </div>
 @endcan
+
+{{-- Modal: تصحيح تاريخ الوردية --}}
+@if($activeShift)
+<div x-show="dateModal" x-cloak
+     class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+     @click.self="dateModal = false">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md" @click.stop>
+        <div class="px-6 py-4 rounded-t-2xl flex items-center justify-between" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6);">
+            <h3 class="font-bold text-white">تصحيح تاريخ الوردية</h3>
+            <button type="button" @click="dateModal = false" class="text-white/70 hover:text-white transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+
+        <form method="POST" action="{{ route('shifts.updateDate', $activeShift) }}" class="p-6 space-y-4">
+            @csrf @method('PATCH')
+
+            <div class="rounded-xl bg-blue-50 border border-blue-200 p-3 text-xs text-blue-800 leading-relaxed">
+                لوردية فُتحت ليلاً ونُسي إقفالها فباتت محسوبة على اليوم السابق.
+                كل مستلمات هذه الوردية وسحبياتها ستنتقل معها إلى التاريخ الجديد في التقارير.
+                وقت الفتح الفعلي ({{ $activeShift->started_at->format('H:i') }}) لا يتغيّر.
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">التاريخ الحالي</label>
+                <div class="text-sm font-bold text-gray-700">{{ $activeShift->shift_date->format('d/m/Y') }}</div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">التاريخ الجديد</label>
+                <input type="date" name="shift_date" required
+                       value="{{ old('shift_date', today()->toDateString()) }}"
+                       max="{{ today()->toDateString() }}"
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none">
+                @error('shift_date')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            </div>
+
+            <div class="flex gap-2">
+                <button type="submit" class="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition">
+                    حفظ التاريخ
+                </button>
+                <button type="button" @click="dateModal = false"
+                        class="px-5 py-2.5 border border-gray-300 text-gray-600 rounded-xl text-sm hover:bg-gray-50 transition">
+                    إلغاء
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
 
 {{-- Modal: إقفال الوردية --}}
 @if($activeShift)

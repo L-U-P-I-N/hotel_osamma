@@ -55,8 +55,21 @@ class AuthController extends Controller
 
         AuditLogService::log('login', null, null, ['username' => $request->username], $user);
 
-        // فتح وردية تلقائياً عند تسجيل الدخول
-        app(ShiftService::class)->openShift($user);
+        return $this->afterLoginRedirect($user);
+    }
+
+    /**
+     * لا تُفتح الوردية تلقائياً عند الدخول — كان ذلك يُنشئ وردية لمن سجّل دخوله
+     * للتصفّح فقط، ويثبّت تاريخها على يوم الدخول لا يوم العمل الفعلي. بدلاً منه
+     * نتحقق: إن لم تكن له وردية مفتوحة نوجّهه لصفحة الوردية ليفتحها بنفسه،
+     * وإلا فاللوحة الرئيسية كالمعتاد.
+     */
+    private function afterLoginRedirect(\App\Models\User $user)
+    {
+        if ($user->can('shifts.view') && ! app(ShiftService::class)->getActiveShift($user)) {
+            return redirect()->route('shifts.index')
+                ->with('warning', 'لا توجد لك وردية مفتوحة — افتح وردية قبل تسجيل أي مستلمة أو سحب.');
+        }
 
         return redirect()->intended(route('dashboard'));
     }
@@ -82,9 +95,8 @@ class AuthController extends Controller
         $request->session()->regenerate();
 
         AuditLogService::log('login', null, null, ['username' => $request->username, 'force_override' => true], $user);
-        app(ShiftService::class)->openShift($user);
 
-        return redirect()->intended(route('dashboard'));
+        return $this->afterLoginRedirect($user);
     }
 
     public function logout(Request $request)

@@ -86,6 +86,66 @@ class ShiftController extends Controller
         return view('shifts.index', compact('activeShift', 'recentShifts', 'allActive', 'allUsersStatus', 'reassignTargets', 'orphanPayments', 'orphanWithdrawals', 'reopenableShifts', 'generalSafeWithdrawals'));
     }
 
+    /**
+     * فتح وردية يدوياً. كانت الوردية تُفتح تلقائياً عند تسجيل الدخول، فتُنشأ
+     * ورديات لمن دخل ليتصفّح فقط، وتُفتح بتاريخ الدخول لا بتاريخ العمل الفعلي.
+     */
+    public function open()
+    {
+        $user = auth()->user();
+
+        if ($existing = $this->service->getActiveShift($user)) {
+            return redirect()->route('shifts.index')
+                ->with('success', 'لديك وردية مفتوحة بالفعل بتاريخ ' . $existing->shift_date->format('d/m/Y'));
+        }
+
+        $shift = $this->service->openShift($user);
+
+        return redirect()->route('shifts.index')
+            ->with('success', 'تم فتح وردية جديدة بتاريخ ' . $shift->shift_date->format('d/m/Y'));
+    }
+
+    /**
+     * تصحيح تاريخ الوردية — لوردية فُتحت ليلاً ونُسي إقفالها فباتت محسوبة على
+     * اليوم السابق. تنتقل معها كل مستلماتها وسحبياتها إلى التاريخ الجديد لأنها
+     * مرتبطة بها بالمعرّف. وقت الفتح الفعلي (started_at) لا يتغيّر — هو واقعة
+     * حقيقية، والمتغيّر هو اليوم المحاسبي الذي تُنسب إليه الوردية.
+     */
+    public function updateDate(Request $request, Shift $shift)
+    {
+        $user = auth()->user();
+
+        // الموظف يصحّح تاريخ ورديته هو، والمدير أي وردية
+        abort_unless($shift->user_id === $user->id || $user->isAdmin(), 403);
+
+        if ($shift->is_closed && ! $user->isAdmin()) {
+            return back()->withErrors(['shift_date' => 'الوردية مقفلة — تصحيح تاريخها متاح للمدير فقط.']);
+        }
+
+        $validated = $request->validate([
+            'shift_date' => 'required|date|before_or_equal:today',
+        ], [
+            'shift_date.required'        => 'تاريخ الوردية مطلوب',
+            'shift_date.date'            => 'تاريخ غير صالح',
+            'shift_date.before_or_equal' => 'لا يمكن تعيين تاريخ مستقبلي للوردية',
+        ]);
+
+        $old = ['shift_date' => $shift->shift_date->toDateString()];
+
+        if ($old['shift_date'] === $validated['shift_date']) {
+            return back()->with('success', 'تاريخ الوردية لم يتغيّر');
+        }
+
+        $shift->update(['shift_date' => $validated['shift_date']]);
+
+        AuditLogService::log('update', $shift, $old, [
+            'action'     => 'shift_date_corrected',
+            'shift_date' => $validated['shift_date'],
+        ], $user);
+
+        return back()->with('success', 'تم تصحيح تاريخ الوردية إلى ' . $shift->fresh()->shift_date->format('d/m/Y'));
+    }
+
     public function attachOrphans(Request $request)
     {
         $request->validate([

@@ -208,6 +208,8 @@ Route::middleware(['auth'])->group(function () {
     // Shifts
     Route::middleware('permission:shifts.view')->group(function () {
         Route::get('/shifts', [ShiftController::class, 'index'])->name('shifts.index');
+        Route::post('/shifts/open', [ShiftController::class, 'open'])->name('shifts.open');
+        Route::patch('/shifts/{shift}/date', [ShiftController::class, 'updateDate'])->name('shifts.updateDate');
         Route::post('/shifts/close', [ShiftController::class, 'close'])->name('shifts.close');
         Route::get('/shifts/{shift}/pdf', [ShiftController::class, 'exportPdf'])->name('shifts.pdf');
         Route::get('/shifts/{shift}/handover', [ShiftController::class, 'handover'])->name('shifts.handover');
