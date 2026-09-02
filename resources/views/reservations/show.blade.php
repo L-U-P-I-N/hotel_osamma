@@ -189,7 +189,7 @@
             @endif
             @endcan
 
-            @can('checkin.view')
+            @can('reservation.renew')
             @if($reservation->status === 'checked_in')
             <button type="button" onclick="event.stopPropagation(); document.getElementById('renewModal').classList.remove('hidden')"
                     class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/15 hover:bg-white/25 text-white text-xs font-medium rounded-lg transition border border-white/20">
@@ -199,7 +199,7 @@
             @endif
             @endcan
 
-            @can('checkin.create')
+            @can('reservation.discount')
             @if(in_array($reservation->status, ['confirmed', 'checked_in', 'checked_out']) && $reservation->total_amount > 0)
             <button type="button" onclick="document.getElementById('discountModal').classList.remove('hidden')"
                     class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/15 hover:bg-white/25 text-white text-xs font-medium rounded-lg transition border border-white/20">
@@ -219,13 +219,15 @@
                 </button>
                 <div x-show="moreOpen" x-cloak x-transition
                      class="absolute left-0 mt-2 w-52 bg-white rounded-xl shadow-2xl border border-gray-100 py-1.5 z-30 text-sm">
-                    @can('checkin.view')
+                    @can('reservation.edit')
                     @if(in_array($reservation->status, ['confirmed', 'checked_in']))
                     <a href="{{ route('reservations.edit', $reservation) }}" class="flex items-center gap-2.5 px-4 py-2 text-gray-700 hover:bg-gray-50 transition">
                         <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                         تعديل الحجز
                     </a>
                     @endif
+                    @endcan
+                    @can('checkin.view')
                     @if($reservation->status === 'checked_in')
                     <button onclick="document.getElementById('checkinDateModal').classList.remove('hidden')" class="w-full flex items-center gap-2.5 px-4 py-2 text-gray-700 hover:bg-gray-50 transition">
                         <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -653,8 +655,8 @@
                             <span class="font-bold text-gray-800 whitespace-nowrap">{{ number_format($seg->amount, 0) }} {{ $reservation->currency_symbol }}</span>
                             @can('payments.create')
                             @if($reservation->status !== 'cancelled')
-                                @if($seg->isLocked())
-                                <span class="p-1 text-gray-300" title="مقفل — يخصّ وردية أُقفلت بالفعل، لا يمكن تعديله">
+                                @if(!$seg->isEditableBy(auth()->user()))
+                                <span class="p-1 text-gray-300" title="مقفل — يخصّ وردية أُقفلت بالفعل. صلاحية «تعديل فترة تخصّ وردية مقفلة» تسمح بتعديله">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
                                 </span>
                                 @else
@@ -664,7 +666,8 @@
                                         data-segment-nights="{{ $seg->nights }}"
                                         data-segment-price="{{ (float) $seg->price_per_night }}"
                                         onclick="openEditSegment(this)"
-                                        class="p-1 rounded-lg text-blue-600 hover:bg-blue-50 transition" title="تعديل السعر">
+                                        class="p-1 rounded-lg {{ $seg->isLocked() ? 'text-amber-600 hover:bg-amber-50' : 'text-blue-600 hover:bg-blue-50' }} transition"
+                                        title="{{ $seg->isLocked() ? 'تعديل السعر رغم أن الفترة تخصّ وردية مقفلة — سيُسجَّل في سجل المراجعة' : 'تعديل السعر' }}">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                 </button>
                                 @if($seg->type === 'renewal')

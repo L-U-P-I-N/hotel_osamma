@@ -9,6 +9,7 @@ use App\Models\RoomType;
 use App\Models\User;
 use App\Models\Reservation;
 use App\Helpers\StorageHelper;
+use App\Rules\WithinPriceBounds;
 use App\Services\CheckInService;
 use App\Services\GovernmentExportService;
 use App\Services\ShiftService;
@@ -136,6 +137,13 @@ class CheckInController extends Controller
             $request->merge(['phone' => 'لا يوجد']);
         }
 
+        // نطاق السعر يعتمد على الغرفة ونوع حجز الجناح، فنجهّز القاعدة قبل التحقق
+        $priceBoundsRule = new WithinPriceBounds(
+            Room::with('roomType')->find($request->input('room_id')),
+            auth()->user(),
+            $request->input('suite_booking_type')
+        );
+
         $request->validate([
             'full_name'   => 'required|string|max:255',
             'occupation'  => 'nullable|string|max:255',
@@ -152,8 +160,9 @@ class CheckInController extends Controller
             'check_out_date'  => 'required|date|after_or_equal:check_in_date',
             'check_out_time'  => 'nullable|regex:/^\d{2}:\d{2}$/',
             'payment_status'  => 'required|in:unpaid,partial,paid,deferred',
-            'first_night_price'       => 'nullable|numeric|min:0',
-            'renewal_price_per_night' => 'nullable|numeric|min:0',
+            'price_per_night'         => ['nullable', 'numeric', 'min:0', $priceBoundsRule],
+            'first_night_price'       => ['nullable', 'numeric', 'min:0', $priceBoundsRule],
+            'renewal_price_per_night' => ['nullable', 'numeric', 'min:0', $priceBoundsRule],
             'currency'        => 'nullable|in:YER',
             'bank_receipt' => "required_if:payment_method,bank_transfer|nullable|file|mimes:{$imgMimes}|max:10240",
             'companions.*.full_name' => 'required_with:companions.*.relationship|string',

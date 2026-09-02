@@ -14,6 +14,8 @@ class PermissionService
         'checkin.create',
         'checkin.view',
         'checkout.process',
+        'reservation.edit',
+        'reservation.renew',
         'guests.view',
         'companions.manage',
         'payments.create',
@@ -31,6 +33,12 @@ class PermissionService
         'checkin.create'        => ['label' => 'إضافة حجز جديد',              'default' => true,  'group' => '📋 الحجوزات والإقامة'],
         'checkin.view'          => ['label' => 'عرض الحجوزات',                 'default' => true,  'group' => '📋 الحجوزات والإقامة'],
         'checkout.process'      => ['label' => 'تسجيل الخروج',                'default' => true,  'group' => '📋 الحجوزات والإقامة'],
+        'reservation.edit'      => ['label' => 'تعديل الحجز',                  'default' => true,  'group' => '📋 الحجوزات والإقامة'],
+        'reservation.renew'     => ['label' => 'تجديد الإقامة',                'default' => true,  'group' => '📋 الحجوزات والإقامة'],
+        'reservation.cancel'    => ['label' => 'إلغاء الحجز',                  'default' => false, 'group' => '📋 الحجوزات والإقامة'],
+        'reservation.discount'  => ['label' => 'منح خصم على الحجز',            'default' => false, 'group' => '📋 الحجوزات والإقامة'],
+        'reservation.reprice'   => ['label' => 'إعادة تسعير الإقامة (تغيير سعر الليلة لاحقاً)', 'default' => false, 'group' => '📋 الحجوزات والإقامة'],
+        'segment.unlock'        => ['label' => 'تعديل فترة تخصّ وردية مقفلة (فكّ القفل)', 'default' => false, 'group' => '📋 الحجوزات والإقامة'],
 
         // Guests
         'guests.view'           => ['label' => 'عرض بيانات النزلاء',          'default' => true,  'group' => '👤 النزلاء'],
@@ -83,14 +91,31 @@ class PermissionService
         'attendance.create'     => ['label' => 'تسجيل الحضور اليومي',       'default' => false, 'group' => '✅ الحضور والغياب'],
 
         // System Management
+        'pricing.manage'        => ['label' => 'إعدادات التسعير (نطاق أقل وأعلى سعر)', 'default' => false, 'group' => '⚙️ إدارة النظام'],
         'users.manage'          => ['label' => 'إدارة المستخدمين والصلاحيات', 'default' => false, 'group' => '⚙️ إدارة النظام'],
         'audit_log.view'        => ['label' => 'عرض سجل المراجعة',            'default' => false, 'group' => '⚙️ إدارة النظام'],
+    ];
+
+    // أزرار تفاصيل الحجز — كلها تتطلب أيضاً صلاحية عرض الحجوزات، فلا معنى
+    // لتعديل أو إلغاء حجز لا يستطيع الموظف رؤيته أصلاً.
+    const RESERVATION_ACTION_KEYS = [
+        'reservation.edit'     => true,
+        'reservation.renew'    => true,
+        'reservation.cancel'   => true,
+        'reservation.discount' => true,
+        'reservation.reprice'  => true,
+        'segment.unlock'       => true,
     ];
 
     public static function userCan(User $user, string $permission): bool
     {
         if ($user->isAdmin()) {
             return true;
+        }
+
+        if (isset(self::RESERVATION_ACTION_KEYS[$permission])
+            && !self::userCan($user, 'checkin.view')) {
+            return false;
         }
 
         // Check explicit record

@@ -131,12 +131,12 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/reservations/{reservation}/companions', [ReservationController::class, 'storeCompanion'])->name('reservations.companions.store')->middleware('permission:companions.manage');
         Route::put('/companions/{companion}', [ReservationController::class, 'updateCompanion'])->name('reservations.companions.update')->middleware('permission:companions.manage');
         Route::delete('/companions/{companion}', [ReservationController::class, 'destroyCompanion'])->name('reservations.companions.destroy')->middleware('permission:companions.manage');
-        Route::get('/reservations/{reservation}/edit', [ReservationController::class, 'edit'])->name('reservations.edit');
-        Route::put('/reservations/{reservation}', [ReservationController::class, 'update'])->name('reservations.update');
-        Route::patch('/reservations/{reservation}/cancel', [ReservationController::class, 'cancel'])->name('reservations.cancel');
+        Route::get('/reservations/{reservation}/edit', [ReservationController::class, 'edit'])->name('reservations.edit')->middleware('permission:reservation.edit');
+        Route::put('/reservations/{reservation}', [ReservationController::class, 'update'])->name('reservations.update')->middleware('permission:reservation.edit');
+        Route::patch('/reservations/{reservation}/cancel', [ReservationController::class, 'cancel'])->name('reservations.cancel')->middleware('permission:reservation.cancel');
         Route::delete('/reservations/{reservation}', [ReservationController::class, 'destroy'])->name('reservations.destroy')->middleware('permission:reservations.delete');
         Route::patch('/reservations/{reservation}/checkin', [ReservationController::class, 'checkin'])->name('reservations.checkin')->middleware('permission:checkin.create');
-        Route::post('/reservations/{reservation}/renew', [ReservationController::class, 'renew'])->name('reservations.renew');
+        Route::post('/reservations/{reservation}/renew', [ReservationController::class, 'renew'])->name('reservations.renew')->middleware('permission:reservation.renew');
         Route::patch('/reservations/{reservation}/auto-renew', [ReservationController::class, 'toggleAutoRenew'])->name('reservations.toggleAutoRenew')->middleware('permission:checkin.create');
         Route::post('/reservations/{reservation}/charge', [ReservationController::class, 'addCharge'])->name('reservations.addCharge')->middleware('permission:payments.create');
         Route::put('/reservations/charge/{charge}', [ReservationController::class, 'updateCharge'])->name('reservations.updateCharge')->middleware('permission:payments.create');
@@ -145,7 +145,7 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('/reservations/{reservation}/settle-purchases', [ReservationController::class, 'settleCharges'])->name('reservations.settlePurchases')->middleware('permission:payments.create');
         // إضافة / تعديل / حذف فترة تجديد أو الحجز الأولي (تصحيح سعر أو عدد تجديدات خاطئ)
         Route::post('/reservations/{reservation}/segment', [ReservationController::class, 'addSegment'])->name('reservations.addSegment')->middleware('permission:payments.create');
-        Route::post('/reservations/{reservation}/reprice-from', [ReservationController::class, 'repriceFrom'])->name('reservations.repriceFrom')->middleware('permission:room.price.edit');
+        Route::post('/reservations/{reservation}/reprice-from', [ReservationController::class, 'repriceFrom'])->name('reservations.repriceFrom')->middleware('permission:reservation.reprice|room.price.edit');
         Route::put('/reservations/segment/{segment}', [ReservationController::class, 'updateSegment'])->name('reservations.updateSegment')->middleware('permission:payments.create');
         Route::delete('/reservations/segment/{segment}', [ReservationController::class, 'deleteSegment'])->name('reservations.deleteSegment')->middleware('permission:payments.create');
         // تصحيح: إعادة احتساب فترات الغرفة والإجمالي وفق صيغة حساب الليالي الحالية
@@ -425,8 +425,14 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/reservations/{reservation}/invoice', [\App\Http\Controllers\ReservationController::class, 'invoice'])->name('reservations.invoice');
     });
     Route::middleware('permission:checkin.create')->group(function () {
-        Route::post('/reservations/{reservation}/discount', [\App\Http\Controllers\ReservationController::class, 'applyDiscount'])->name('reservations.applyDiscount');
-        Route::delete('/reservations/{reservation}/discount', [\App\Http\Controllers\ReservationController::class, 'removeDiscount'])->name('reservations.removeDiscount');
+        Route::post('/reservations/{reservation}/discount', [\App\Http\Controllers\ReservationController::class, 'applyDiscount'])->name('reservations.applyDiscount')->middleware('permission:reservation.discount');
+        Route::delete('/reservations/{reservation}/discount', [\App\Http\Controllers\ReservationController::class, 'removeDiscount'])->name('reservations.removeDiscount')->middleware('permission:reservation.discount');
+    });
+
+    // إعدادات التسعير — المدير هو من يحدد نطاق أقل وأعلى سعر لكل نوع
+    Route::middleware('permission:pricing.manage')->group(function () {
+        Route::get('/pricing', [\App\Http\Controllers\PricingController::class, 'index'])->name('pricing.index');
+        Route::put('/pricing/room-types/{roomType}', [\App\Http\Controllers\PricingController::class, 'updateRoomType'])->name('pricing.roomType.update');
     });
 
     // ===== Leaves: Report =====

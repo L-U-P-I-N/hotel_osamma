@@ -8,6 +8,7 @@ use App\Models\Reservation;
 use App\Models\Room;
 use App\Models\Shift;
 use App\Models\User;
+use App\Rules\WithinPriceBounds;
 use App\Services\AuditLogService;
 use App\Services\RefundService;
 use App\Services\ShiftService;
@@ -319,6 +320,10 @@ class ReservationController extends Controller
             return back()->with('error', 'لا يمكن تعديل هذا الحجز في حالته الحالية');
         }
 
+        $priceBoundsRule = new WithinPriceBounds(
+            $reservation->room, auth()->user(), $reservation->suite_booking_type
+        );
+
         $validated = $request->validate([
             'check_in_date'                 => 'required|date',
             'check_out_date'                => 'required|date|after_or_equal:check_in_date',
@@ -348,8 +353,8 @@ class ReservationController extends Controller
             'companions.*.delete'           => 'nullable|boolean',
             'companions.*.id_image'         => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
             'companions.*.marriage_doc'     => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
-            'price_per_night'               => 'nullable|numeric|min:0',
-            'renewal_price_per_night'       => 'nullable|numeric|min:0',
+            'price_per_night'               => ['nullable', 'numeric', 'min:0', $priceBoundsRule],
+            'renewal_price_per_night'       => ['nullable', 'numeric', 'min:0', $priceBoundsRule],
         ], [
             'check_in_date.required'     => 'تاريخ الدخول مطلوب',
             'check_in_date.date'         => 'تاريخ الدخول غير صالح',
@@ -557,7 +562,8 @@ class ReservationController extends Controller
 
         $validated = $request->validate([
             'new_check_out_date'      => 'required|date|after:' . $reservation->check_out_date->format('Y-m-d'),
-            'renewal_price_per_night' => 'nullable|numeric|min:0',
+            'renewal_price_per_night' => ['nullable', 'numeric', 'min:0',
+                new WithinPriceBounds($reservation->room, auth()->user(), $reservation->suite_booking_type)],
             'advance_payment'         => 'nullable|numeric|min:0',
             'payment_method'          => 'nullable|in:cash,pos,bank_transfer',
             'notes'                   => 'nullable|string|max:500',
@@ -1717,7 +1723,10 @@ class ReservationController extends Controller
 
         $validated = $request->validate([
             'from_date'       => 'required|date',
-            'price_per_night' => 'required|numeric|min:0',
+            'price_per_night' => [
+                'required', 'numeric', 'min:0',
+                new WithinPriceBounds($reservation->room, auth()->user(), $reservation->suite_booking_type),
+            ],
             'apply_to_future' => 'nullable|boolean',
         ], [
             'from_date.required'       => 'تاريخ بداية السعر الجديد مطلوب',
@@ -1790,12 +1799,17 @@ class ReservationController extends Controller
         if (!$reservation || !in_array($reservation->status, ['checked_in', 'checked_out'])) {
             abort(404);
         }
-        if ($segment->isLocked()) {
-            return back()->withErrors(['error' => 'لا يمكن تعديل هذه الفترة لأنها تخصّ وردية أُقفلت بالفعل — تصحيح سعرها قد يُغيّر أرقام عملٍ سابق مُصفّى.']);
+        // القفل المحاسبي يُتجاوَز فقط بصلاحية صريحة يمنحها المدير
+        $wasLocked = $segment->isLocked();
+        if (!$segment->isEditableBy(auth()->user())) {
+            return back()->withErrors(['error' => 'لا يمكن تعديل هذه الفترة لأنها تخصّ وردية أُقفلت بالفعل — تصحيح سعرها قد يُغيّر أرقام عملٍ سابق مُصفّى. صلاحية "تعديل فترة تخصّ وردية مقفلة" تسمح بذلك.']);
         }
 
         $validated = $request->validate([
-            'price_per_night' => 'required|numeric|min:0',
+            'price_per_night' => [
+                'required', 'numeric', 'min:0',
+                new WithinPriceBounds($reservation->room, auth()->user(), $reservation->suite_booking_type),
+            ],
         ], [
             'price_per_night.required' => 'سعر الليلة مطلوب',
             'price_per_night.numeric'  => 'سعر الليلة يجب أن يكون رقماً',
@@ -1806,7 +1820,7 @@ class ReservationController extends Controller
         $newAmount = round($newPrice * $segment->nights, 2);
         $delta     = round($newAmount - $oldAmount, 2);
 
-        DB::transaction(function () use ($reservation, $segment, $newPrice, $newAmount, $oldAmount, $delta) {
+        DB::transaction(function () use ($reservation, $segment, $newPrice, $newAmount, $oldAmount, $delta, $wasLocked) {
             $segment->update([
                 'price_per_night' => $newPrice,
                 'amount'          => $newAmount,
@@ -1824,11 +1838,14 @@ class ReservationController extends Controller
                 'segment_type'    => $segment->type,
                 'price_per_night' => $newPrice,
                 'amount'          => $newAmount,
+                'locked_override' => $wasLocked, // تعديل على وردية مقفلة — يلزم تتبّعه
             ], auth()->user());
         });
 
         return redirect()->route('reservations.show', $reservation)
-            ->with('success', 'تم تعديل السعر بنجاح');
+            ->with('success', $wasLocked
+                ? 'تم تعديل السعر رغم أن الفترة تخصّ وردية مقفلة — سُجّل التعديل في سجل المراجعة'
+                : 'تم تعديل السعر بنجاح');
     }
 
     /**
@@ -1842,8 +1859,8 @@ class ReservationController extends Controller
         if (!$reservation || !in_array($reservation->status, ['checked_in', 'checked_out']) || $segment->type !== 'renewal') {
             abort(404);
         }
-        if ($segment->isLocked()) {
-            return back()->withErrors(['error' => 'لا يمكن حذف هذا التجديد لأنه يخصّ وردية أُقفلت بالفعل — حذفه قد يُغيّر أرقام عملٍ سابق مُصفّى.']);
+        if (!$segment->isEditableBy(auth()->user())) {
+            return back()->withErrors(['error' => 'لا يمكن حذف هذا التجديد لأنه يخصّ وردية أُقفلت بالفعل — حذفه قد يُغيّر أرقام عملٍ سابق مُصفّى. صلاحية "تعديل فترة تخصّ وردية مقفلة" تسمح بذلك.']);
         }
 
         $amount = (float) $segment->amount;
@@ -1897,7 +1914,10 @@ class ReservationController extends Controller
 
         $validated = $request->validate([
             'nights'          => 'required|integer|min:1|max:365',
-            'price_per_night' => 'required|numeric|min:0',
+            'price_per_night' => [
+                'required', 'numeric', 'min:0',
+                new WithinPriceBounds($reservation->room, auth()->user(), $reservation->suite_booking_type),
+            ],
         ], [
             'nights.required'          => 'عدد الليالي مطلوب',
             'nights.integer'           => 'عدد الليالي يجب أن يكون رقماً صحيحاً',

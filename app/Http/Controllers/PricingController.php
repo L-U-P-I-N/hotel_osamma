@@ -1,0 +1,68 @@
+<?php
+namespace App\Http\Controllers;
+
+use App\Models\RoomType;
+use App\Services\AuditLogService;
+use Illuminate\Http\Request;
+
+/**
+ * إعدادات التسعير — للمدير (صلاحية pricing.manage).
+ * هنا يُحدَّد نطاق سعر الليلة لكل نوع، وهو النطاق الذي يُفرض على الموظف
+ * في كل مسار إدخال سعر: حجز جديد، تعديل، تجديد، إعادة تسعير، مقاطع الإقامة.
+ */
+class PricingController extends Controller
+{
+    public function index()
+    {
+        $roomTypes = RoomType::withCount('rooms')->orderBy('name')->get();
+
+        return view('pricing.index', compact('roomTypes'));
+    }
+
+    public function updateRoomType(Request $request, RoomType $roomType)
+    {
+        $validated = $request->validate([
+            'base_price' => 'required|numeric|min:1|max:99999999',
+            'min_price'  => 'required|numeric|min:1|max:99999999',
+            'max_price'  => 'required|numeric|min:1|max:99999999|gte:min_price',
+        ], [
+            'base_price.required' => 'السعر الأساسي مطلوب',
+            'base_price.numeric'  => 'السعر الأساسي يجب أن يكون رقماً',
+            'base_price.min'      => 'السعر الأساسي يجب أن يكون أكبر من صفر',
+            'min_price.required'  => 'أقل سعر مطلوب',
+            'min_price.numeric'   => 'أقل سعر يجب أن يكون رقماً',
+            'min_price.min'       => 'أقل سعر يجب أن يكون أكبر من صفر',
+            'max_price.required'  => 'أعلى سعر مطلوب',
+            'max_price.numeric'   => 'أعلى سعر يجب أن يكون رقماً',
+            'max_price.gte'       => 'أعلى سعر يجب أن يكون مساوياً أو أكبر من أقل سعر',
+        ]);
+
+        // السعر الأساسي هو المقترح تلقائياً على الموظف، فلا معنى لوقوعه خارج النطاق
+        if ($validated['base_price'] < $validated['min_price'] || $validated['base_price'] > $validated['max_price']) {
+            return back()->withInput()->withErrors([
+                'base_price' => 'السعر الأساسي يجب أن يقع بين أقل سعر وأعلى سعر',
+            ]);
+        }
+
+        // تحذير مبكر بدل مفاجأة عند الحجز: غرف سعرها الخاص خارج النطاق الجديد
+        $outOfRange = $roomType->rooms()
+            ->whereNotNull('price_yer')
+            ->where('price_yer', '>', 0)
+            ->where(fn($q) => $q->where('price_yer', '<', $validated['min_price'])
+                                ->orWhere('price_yer', '>', $validated['max_price']))
+            ->pluck('room_number');
+
+        $old = $roomType->only(['base_price', 'min_price', 'max_price']);
+        $roomType->update($validated);
+
+        AuditLogService::log('update', $roomType, $old, $roomType->fresh()->toArray(), auth()->user());
+
+        $message = 'تم تحديث تسعير "' . $roomType->name . '" بنجاح';
+        if ($outOfRange->isNotEmpty()) {
+            $message .= ' — تنبيه: أسعار الغرف ' . $outOfRange->implode('، ')
+                        . ' خارج النطاق الجديد وستُرفض عند الحجز حتى تُعدَّل.';
+        }
+
+        return back()->with('success', $message);
+    }
+}

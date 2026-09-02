@@ -54,4 +54,18 @@ class ReservationSegment extends Model
     {
         return $this->shift_id !== null && (bool) $this->shift?->is_closed;
     }
+
+    /**
+     * القفل المحاسبي يبقى قائماً، لكنه ليس نهائياً: من يملك صلاحية
+     * segment.unlock (المدير افتراضياً) يستطيع تصحيح سعر أُدخل خطأً
+     * في وردية أُقفلت، ويُسجَّل التجاوز في سجل المراجعة.
+     */
+    public function isEditableBy(?User $user): bool
+    {
+        if (!$this->isLocked()) {
+            return true;
+        }
+
+        return $user !== null && $user->can('segment.unlock');
+    }
 }

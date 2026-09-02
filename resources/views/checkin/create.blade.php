@@ -746,6 +746,8 @@ html.dark [style*="background:var(--gold-l)"] {
                         'room_number'     => $room->room_number,
                         'floor'           => $room->floor,
                         'base_price'      => (float)$room->roomType->base_price,
+                        'min_price'       => $room->roomType->effective_min_price,
+                        'max_price'       => $room->roomType->effective_max_price,
                         'prices'          => $room->pricesArray(),
                         'suite_price_yer' => (float)($room->suite_price_yer ?? 0),
                         'room_type_name'  => $room->roomType->name,
@@ -773,6 +775,8 @@ html.dark [style*="background:var(--gold-l)"] {
                         'room_number'     => $info['linked_number'],
                         'floor'           => $room->floor,
                         'base_price'      => (float)$room->roomType->base_price,
+                        'min_price'       => $room->roomType->effective_min_price,
+                        'max_price'       => $room->roomType->effective_max_price,
                         'prices'          => $room->pricesArray(),
                         'suite_price_yer' => (float)($room->suite_price_yer ?? 0),
                         'room_type_name'  => $room->roomType->name,
@@ -994,7 +998,8 @@ html.dark [style*="background:var(--gold-l)"] {
                     </div>
                 </div>
 
-                {{-- Price Override --}}
+                {{-- Price Override — النطاق يحدده المدير، والزر يظهر فقط لمن يملك الصلاحية --}}
+                @can('room.price.edit')
                 <div>
                     <button type="button" x-show="!showPriceOverride" @click="showPriceOverride = true"
                             class="w-full py-2 px-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-700 text-xs font-semibold hover:bg-amber-100 transition flex items-center justify-center gap-1.5">
@@ -1006,15 +1011,20 @@ html.dark [style*="background:var(--gold-l)"] {
                             <span class="text-xs font-bold text-amber-800">سعر التفاوض (ر.ي/ليلة)</span>
                             <button type="button" @click="showPriceOverride = false; customPrice = null; calcTotal()" class="text-xs text-gray-400 hover:text-red-500 underline">إلغاء</button>
                         </div>
-                        <input type="number" min="3000" step="100"
+                        <input type="number" :min="priceMin()" :max="priceMax()" step="100"
                                :placeholder="'الأصلي: ' + formatNumber(roomBasePriceFor('YER'))"
                                x-model.number="customPrice" @input="calcTotal()"
                                class="fi text-sm border-amber-300 bg-white focus:border-amber-500">
-                        <p class="text-xs text-amber-600">الحد الأدنى: 3,000 ر.ي (لا يوجد حد أقصى)</p>
-                        <p x-show="customPrice !== null && customPrice !== '' && parseFloat(customPrice) < 3000"
-                           class="text-xs text-red-600 font-semibold">⚠ السعر أقل من الحد الأدنى المسموح</p>
+                        <p class="text-xs text-amber-600">
+                            النطاق المسموح: <span x-text="formatNumber(priceMin())"></span> —
+                            <span x-text="formatNumber(priceMax())"></span> ر.ي
+                            <span x-show="suiteBookingType === 'both'">(الجناح كاملاً)</span>
+                        </p>
+                        <p x-show="priceOutOfRange()"
+                           class="text-xs text-red-600 font-semibold">⚠ السعر خارج النطاق المسموح وسيُرفض عند الحفظ</p>
                     </div>
                 </div>
+                @endcan
 
                 {{-- First-night different price (يظهر عند أكثر من يوم محاسبة) --}}
                 <div x-show="nights >= 1">
@@ -1866,6 +1876,17 @@ function checkInForm() {
             let val = parseFloat(prices['YER']);
             if (isNaN(val) || val <= 0) val = parseFloat(this.selectedRoom.base_price) || 0;
             return isNaN(val) ? 0 : val;
+        },
+
+        // النطاق يُضاعَف لحجز الجناح كاملاً، تماماً كما يُضاعف السعر نفسه
+        priceRangeFactor() { return this.suiteBookingType === 'both' ? 2 : 1; },
+        priceMin() { return (parseFloat(this.selectedRoom?.min_price) || 0) * this.priceRangeFactor(); },
+        priceMax() { return (parseFloat(this.selectedRoom?.max_price) || 0) * this.priceRangeFactor(); },
+
+        priceOutOfRange() {
+            if (this.customPrice === null || this.customPrice === '' || !this.selectedRoom) return false;
+            const p = parseFloat(this.customPrice);
+            return isNaN(p) || p < this.priceMin() || p > this.priceMax();
         },
 
         effectiveRoomPrice() {
