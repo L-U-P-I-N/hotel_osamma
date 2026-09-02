@@ -295,6 +295,8 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware('permission:settings.manage')->group(function () {
         Route::get('/settings', [\App\Http\Controllers\SettingsController::class, 'index'])->name('settings.index');
         Route::post('/settings/profile', [\App\Http\Controllers\SettingsController::class, 'updateProfile'])->name('settings.profile.update');
+        // بيانات دخول الحساب الحالي (اسم المستخدم/كلمة المرور)
+        Route::post('/settings/account', [\App\Http\Controllers\SettingsController::class, 'updateAccount'])->name('settings.account.update');
         Route::post('/settings/logo', [\App\Http\Controllers\SettingsController::class, 'updateLogo'])->name('settings.logo.update');
         Route::delete('/settings/logo', [\App\Http\Controllers\SettingsController::class, 'removeLogo'])->name('settings.logo.remove');
     });

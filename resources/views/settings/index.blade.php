@@ -114,5 +114,73 @@
             </div>
         </form>
     </div>
+
+    {{-- بيانات الدخول: تخصّ حساب المستخدم الحالي وحده --}}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div class="mb-5 pb-4 border-b border-gray-100">
+            <h2 class="text-lg font-semibold text-gray-800">بيانات الدخول</h2>
+            <p class="text-sm text-gray-500 mt-1">
+                تغيير اسم المستخدم أو كلمة المرور لحسابك أنت
+                (<span class="font-semibold text-gray-700">{{ $account->name }}</span>).
+                لا يؤثر على حسابات الموظفين — تلك تُدار من صفحة المستخدمين.
+            </p>
+        </div>
+
+        <form method="POST" action="{{ route('settings.account.update') }}" class="space-y-5" autocomplete="off">
+            @csrf
+
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1.5">اسم المستخدم</label>
+                <input type="text" name="username" dir="ltr" required autocomplete="username"
+                       value="{{ old('username', $account->username) }}"
+                       class="w-full border @error('username') border-red-400 bg-red-50 @else border-gray-300 @enderror rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none">
+                @error('username')
+                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                @enderror
+                <p class="text-xs text-gray-400 mt-1.5">حروف وأرقام وشرطات فقط، بدون مسافات.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">
+                        كلمة المرور الجديدة <span class="text-gray-400 font-normal">(اتركها فارغة لإبقائها كما هي)</span>
+                    </label>
+                    <input type="password" name="password" dir="ltr" autocomplete="new-password" minlength="8"
+                           class="w-full border @error('password') border-red-400 bg-red-50 @else border-gray-300 @enderror rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none">
+                    @error('password')
+                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
+                    <p class="text-xs text-gray-400 mt-1.5">8 أحرف على الأقل.</p>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">تأكيد كلمة المرور الجديدة</label>
+                    <input type="password" name="password_confirmation" dir="ltr" autocomplete="new-password"
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none">
+                </div>
+            </div>
+
+            <div class="pt-1 border-t border-gray-100">
+                <label class="block text-xs font-semibold text-gray-600 mb-1.5 mt-4">
+                    كلمة المرور الحالية <span class="text-red-500">*</span>
+                </label>
+                <input type="password" name="current_password" dir="ltr" required autocomplete="current-password"
+                       class="w-full md:w-1/2 border @error('current_password') border-red-400 bg-red-50 @else border-gray-300 @enderror rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none">
+                @error('current_password')
+                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                @enderror
+                <p class="text-xs text-gray-400 mt-1.5">مطلوبة للتأكيد قبل أي تغيير.</p>
+            </div>
+
+            <div class="flex items-center gap-3 pt-1">
+                <button type="submit" class="px-5 py-2.5 text-white rounded-lg text-sm font-semibold transition" style="background:#0F4C75;">
+                    حفظ بيانات الدخول
+                </button>
+                <span class="text-xs text-gray-400">
+                    تغيير كلمة المرور يُنهي جلساتك المفتوحة على الأجهزة الأخرى.
+                </span>
+            </div>
+        </form>
+    </div>
 </div>
 @endsection
