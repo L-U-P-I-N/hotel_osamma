@@ -10,12 +10,13 @@ class Refund extends Model
 
     protected $fillable = [
         'reservation_id','payment_id','processed_by','shift_id',
-        'amount','currency','method','reason','refunded_at','notes',
+        'amount','affects_paid_amount','currency','method','reason','refunded_at','notes',
     ];
 
     protected $casts = [
-        'amount'      => 'decimal:2',
-        'refunded_at' => 'datetime',
+        'amount'              => 'decimal:2',
+        'affects_paid_amount' => 'boolean',
+        'refunded_at'         => 'datetime',
     ];
 
     public function reservation() { return $this->belongsTo(Reservation::class); }

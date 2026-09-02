@@ -18,18 +18,18 @@ class RefundService
                 'payment_id'     => $data['payment_id'] ?? null,
                 'shift_id'       => $shift?->id,
                 'processed_by'   => $user->id,
-                'amount'         => $data['amount'],
-                'currency'       => $data['currency'] ?? 'YER',
+                'amount'              => $data['amount'],
+                'affects_paid_amount' => $adjustPaidAmount,
+                'currency'            => $data['currency'] ?? 'YER',
                 'method'         => $data['method'],
                 'reason'         => $data['reason'],
                 'notes'          => $data['notes'] ?? null,
                 'refunded_at'    => now(),
             ]);
 
-            if ($adjustPaidAmount) {
-                $reservation->decrement('paid_amount', $data['amount']);
-                $reservation->refresh()->updatePaymentStatus();
-            }
+            // إعادة الحساب تجري دائماً: الاسترجاع الذي لا يُخصم مُعلَّم بذلك في
+            // صفّه، فتتجاهله المعادلة من تلقائها بدل أن نتخطى التحديث كلياً.
+            $reservation->refresh()->recalculatePaidAmount();
 
             if ($shift) {
                 app(ShiftService::class)->computeTotals($shift);

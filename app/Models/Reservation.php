@@ -595,6 +595,28 @@ class Reservation extends Model
         };
     }
 
+    /**
+     * يعيد حساب "المدفوع" من مصدره مباشرةً — مجموع الدفعات القائمة ناقص
+     * الاسترجاعات التي تُخصم منه — ثم يحدّث حالة الدفع.
+     *
+     * الحساب بالجمع من المصدر لا بالزيادة/النقصان التراكمي: أي عملية على
+     * الدفعات (إضافة، تصحيح، حذف، استرجاع) تُنتج الرقم الصحيح نفسه، فلا
+     * يتراكم انحراف يظهر لاحقاً كـ"مدفوع" في تقارير الورديات وهو ليس كذلك.
+     */
+    public function recalculatePaidAmount(): void
+    {
+        $paid = (float) $this->payments()->sum('amount');
+
+        $refunded = (float) $this->refunds()
+            ->where('affects_paid_amount', true)
+            ->sum('amount');
+
+        $this->paid_amount = max(0, round($paid - $refunded, 2));
+        $this->save();
+
+        $this->updatePaymentStatus();
+    }
+
     public function updatePaymentStatus(): void
     {
         $status = 'unpaid';

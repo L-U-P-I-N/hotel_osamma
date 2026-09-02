@@ -63,8 +63,7 @@ class GroupPaymentService
                     'notes'             => $meta['notes'] ?? null,
                 ]);
 
-                $reservation->increment('paid_amount', $amount);
-                $reservation->refresh()->updatePaymentStatus();
+                $reservation->refresh()->recalculatePaidAmount();
 
                 if ($shift) {
                     $affectedShiftIds[$shift->id] = true;

@@ -37,8 +37,7 @@ class PaymentService
                 'notes'             => $data['notes'] ?? null,
             ]);
 
-            $reservation->increment('paid_amount', $data['amount']);
-            $reservation->refresh()->updatePaymentStatus();
+            $reservation->refresh()->recalculatePaidAmount();
 
             if ($shift) {
                 $this->shiftService->computeTotals($shift);

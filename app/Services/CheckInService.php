@@ -216,7 +216,7 @@ class CheckInService
                     'type'              => 'reservation',
                 ]);
 
-                $reservation->increment('paid_amount', $data['paid_amount']);
+                $reservation->refresh()->recalculatePaidAmount();
                 $reservation->updatePaymentStatus();
 
                 if ($shift) {

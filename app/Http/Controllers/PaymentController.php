@@ -94,8 +94,7 @@ class PaymentController extends Controller
             $payment->delete(); // حذف ناعم (Payment يستخدم SoftDeletes)
 
             if ($reservation) {
-                $reservation->decrement('paid_amount', $amount);
-                $reservation->refresh()->updatePaymentStatus();
+                $reservation->refresh()->recalculatePaidAmount();
             }
 
             if ($shift) {
@@ -157,8 +156,7 @@ class PaymentController extends Controller
             'notes'  => $payment->notes ? $payment->notes . "\n" . $correctionNote : $correctionNote,
         ]);
 
-        $reservation->increment('paid_amount', $delta);
-        $reservation->refresh()->updatePaymentStatus();
+        $reservation->refresh()->recalculatePaidAmount();
 
         if ($payment->shift_id && $payment->shift) {
             app(\App\Services\ShiftService::class)->computeTotals($payment->shift);

@@ -660,7 +660,7 @@ class ReservationController extends Controller
                 'type'           => 'renewal',
                 'notes'          => $validated['payment_notes'] ?? null,
             ]);
-            $reservation->increment('paid_amount', $validated['advance_payment']);
+            $reservation->refresh()->recalculatePaidAmount();
             $reservation->refresh()->updatePaymentStatus();
 
             if ($shift) {
