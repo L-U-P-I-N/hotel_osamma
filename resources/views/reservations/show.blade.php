@@ -19,11 +19,15 @@
         <span class="text-gray-500 text-sm">حالة الدفع:</span>
         <span class="px-3 py-1 rounded-full text-sm font-medium {{ $pc[$reservation->payment_status] ?? '' }}">{{ $reservation->payment_status_label }}</span>
     </div>
+    {{-- كل زر هنا محكوم بصلاحية مستقلة يمنحها المدير من صفحة صلاحيات المستخدم --}}
     <div class="flex items-center gap-2 mr-auto flex-wrap">
-        @can('checkin.view')
+        @can('reservation.edit')
         @if(in_array($reservation->status, ['confirmed','checked_in']))
         <a href="{{ route('reservations.edit', $reservation) }}" class="px-4 py-2 border text-sm rounded-lg hover:bg-gray-50 transition" style="border-color:#0F4C75;color:#0F4C75;">تعديل</a>
         @endif
+        @endcan
+
+        @can('reservation.cancel')
         @if(!in_array($reservation->status, ['checked_out','cancelled']))
         <form method="POST" action="{{ route('reservations.cancel', $reservation) }}" onsubmit="return confirm('هل أنت متأكد من إلغاء هذا الحجز؟')">
             @csrf @method('PATCH')
@@ -31,8 +35,16 @@
         </form>
         @endif
         @endcan
+
+        @can('reservation.discount')
+        @if($maxDiscountAmount > 0)
+        <button onclick="document.getElementById('discountModal').classList.remove('hidden')"
+                class="px-4 py-2 border border-amber-400 text-amber-700 text-sm rounded-lg hover:bg-amber-50 transition">خصم</button>
+        @endif
+        @endcan
+
         @if($reservation->status === 'checked_in')
-        @can('checkin.view')
+        @can('reservation.renew')
         <button onclick="document.getElementById('renewModal').classList.remove('hidden')"
                 class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition">تجديد الإقامة</button>
         @endcan
@@ -46,6 +58,7 @@
         @endif
         @endcan
         @endif
+
         @can('government.export')
         <a href="{{ route('checkin.exportGov', ['reservation'=>$reservation->id,'format'=>'pdf']) }}" class="px-4 py-2 bg-gray-800 text-white rounded-lg text-sm hover:bg-gray-700 transition">تصدير PDF</a>
         @endcan
@@ -77,6 +90,19 @@
             <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">تاريخ الدخول</span><span>{{ $reservation->check_in_date->format('d/m/Y') }}</span></div>
             <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">تاريخ الخروج</span><span>{{ $reservation->check_out_date->format('d/m/Y') }}</span></div>
             <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">عدد الليالي</span><span class="font-medium">{{ $reservation->nights }}</span></div>
+            <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">سعر الليلة المعتمد</span><span class="font-medium">{{ number_format($nightlyPrice, 2) }} ر.ي</span></div>
+            @if((float)$reservation->discount_amount > 0)
+            <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">قبل الخصم</span><span class="text-gray-500 line-through">{{ number_format($reservation->gross_amount, 2) }} ر.ي</span></div>
+            <div class="flex justify-between py-1.5 border-b border-gray-50">
+                <span class="text-gray-500">الخصم</span>
+                <span class="font-medium text-amber-700">
+                    -{{ number_format($reservation->discount_amount, 2) }} ر.ي
+                    @if($reservation->discount_reason)
+                    <span class="block text-xs text-gray-400 font-normal">{{ $reservation->discount_reason }}@if($reservation->discountedBy) — {{ $reservation->discountedBy->name }}@endif</span>
+                    @endif
+                </span>
+            </div>
+            @endif
             <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">الإجمالي</span><span class="font-bold">{{ number_format($reservation->total_amount, 2) }} ر.ي</span></div>
             <div class="flex justify-between py-1.5 border-b border-gray-50"><span class="text-gray-500">المدفوع</span><span class="font-medium text-green-600">{{ number_format($reservation->paid_amount, 2) }} ر.ي</span></div>
             <div class="flex justify-between py-1.5"><span class="text-gray-500">المتبقي</span><span class="font-bold {{ $reservation->balance > 0 ? 'text-red-600' : 'text-green-600' }}">{{ number_format($reservation->balance, 2) }} ر.ي</span></div>
@@ -228,7 +254,7 @@
 
 <!-- Renewal Modal -->
 @if($reservation->status === 'checked_in')
-@can('checkin.view')
+@can('reservation.renew')
 <div id="renewModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
      onclick="if(event.target===this) this.classList.add('hidden')">
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg" onclick="event.stopPropagation()">
@@ -245,7 +271,7 @@
             <div class="grid grid-cols-2 gap-3 bg-gray-50 rounded-xl p-3 text-sm">
                 <div><span class="text-gray-500">تاريخ الدخول:</span> <strong>{{ $reservation->check_in_date->format('d/m/Y') }}</strong></div>
                 <div><span class="text-gray-500">تاريخ الخروج الحالي:</span> <strong>{{ $reservation->check_out_date->format('d/m/Y') }}</strong></div>
-                <div><span class="text-gray-500">سعر الليلة:</span> <strong>{{ number_format($reservation->room->roomType->base_price, 0) }} ر.ي</strong></div>
+                <div><span class="text-gray-500">سعر الليلة:</span> <strong>{{ number_format($nightlyPrice, 0) }} ر.ي</strong></div>
                 <div><span class="text-gray-500">الرصيد المتبقي:</span> <strong class="{{ $reservation->balance > 0 ? 'text-red-600' : 'text-green-600' }}">{{ number_format($reservation->balance, 0) }} ر.ي</strong></div>
             </div>
 
@@ -313,7 +339,7 @@ function renewForm() {
         extraNights: 0,
         extraAmount: 0,
         advancePay: 0,
-        pricePerNight: {{ $reservation->room->roomType->base_price }},
+        pricePerNight: {{ $nightlyPrice }},
         currentOut: '{{ $reservation->check_out_date->format('Y-m-d') }}',
         calcExtra() {
             if (!this.newDate) return;
@@ -328,5 +354,57 @@ function renewForm() {
 @endpush
 @endcan
 @endif
+
+<!-- Discount Modal -->
+@can('reservation.discount')
+@if($maxDiscountAmount > 0)
+<div id="discountModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+     onclick="if(event.target===this) this.classList.add('hidden')">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md" onclick="event.stopPropagation()">
+        <div class="p-6 border-b border-gray-100 flex items-center justify-between">
+            <h3 class="font-bold text-gray-800 text-lg">منح خصم</h3>
+            <button onclick="document.getElementById('discountModal').classList.add('hidden')"
+                    class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <form method="POST" action="{{ route('reservations.discount', $reservation) }}" class="p-6 space-y-4">
+            @csrf
+            <div class="grid grid-cols-2 gap-3 bg-gray-50 rounded-xl p-3 text-sm">
+                <div><span class="text-gray-500">الإجمالي الحالي:</span> <strong>{{ number_format($reservation->total_amount, 0) }} ر.ي</strong></div>
+                <div><span class="text-gray-500">الرصيد المتبقي:</span> <strong>{{ number_format($reservation->balance, 0) }} ر.ي</strong></div>
+                <div class="col-span-2 text-xs text-amber-700 bg-amber-50 rounded-lg p-2">
+                    أقصى خصم مسموح: <strong>{{ number_format($maxDiscountAmount, 2) }} ر.ي</strong>
+                    (سقف {{ rtrim(rtrim(number_format($maxDiscountPercent, 2), '0'), '.') }}% يحدده المدير)
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">مبلغ الخصم <span class="text-red-500">*</span></label>
+                <input type="number" name="amount" step="0.01" min="0.01" max="{{ $maxDiscountAmount }}" required
+                       placeholder="0.00"
+                       class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">سبب الخصم <span class="text-red-500">*</span></label>
+                <input type="text" name="reason" maxlength="255" required placeholder="مثال: نزيل دائم / تعويض عن عطل"
+                       class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+            </div>
+
+            <div class="flex gap-3 pt-2">
+                <button type="submit" class="flex-1 py-2.5 bg-amber-600 text-white rounded-lg font-semibold text-sm hover:bg-amber-700 transition">
+                    تأكيد الخصم
+                </button>
+                <button type="button" onclick="document.getElementById('discountModal').classList.add('hidden')"
+                        class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50 transition">
+                    إلغاء
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
+@endcan
 
 @endsection

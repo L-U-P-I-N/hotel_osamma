@@ -9,7 +9,9 @@ class Hotel extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ['name', 'address', 'phone', 'email', 'logo_path'];
+    protected $fillable = ['name', 'address', 'phone', 'email', 'logo_path', 'max_discount_percent'];
+
+    protected $casts = ['max_discount_percent' => 'decimal:2'];
 
     public function roomTypes()
     {

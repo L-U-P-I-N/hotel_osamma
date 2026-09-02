@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 use App\Models\Reservation;
 use App\Models\Room;
 use App\Services\AuditLogService;
+use App\Services\PricingService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ReservationController extends Controller
 {
@@ -40,8 +42,18 @@ class ReservationController extends Controller
 
     public function show(Reservation $reservation)
     {
-        $reservation->load(['guest', 'room.roomType', 'companions', 'payments', 'extraCharges', 'roomInspections.images', 'createdBy', 'adminApproval']);
-        return view('reservations.show', compact('reservation'));
+        $reservation->load([
+            'guest', 'room.roomType', 'companions', 'payments', 'extraCharges',
+            'roomInspections.images', 'createdBy', 'adminApproval', 'discountedBy',
+        ]);
+
+        $nightlyPrice       = PricingService::nightlyPriceFor($reservation);
+        $maxDiscountAmount  = PricingService::maxDiscountAmount($reservation);
+        $maxDiscountPercent = PricingService::maxDiscountPercent();
+
+        return view('reservations.show', compact(
+            'reservation', 'nightlyPrice', 'maxDiscountAmount', 'maxDiscountPercent'
+        ));
     }
 
     public function edit(Reservation $reservation)
@@ -55,7 +67,14 @@ class ReservationController extends Controller
             ->where(fn($q) => $q->available()->orWhere('id', $reservation->room_id))
             ->orderBy('floor')->orderBy('room_number')->get();
 
-        return view('reservations.edit', compact('reservation', 'rooms'));
+        $roomType     = $reservation->room->roomType;
+        $multiplier   = PricingService::unitMultiplier($reservation->room, $reservation->suite_booking_type);
+        $unitPrice    = round(PricingService::nightlyPriceFor($reservation) / max(1, $multiplier), 2);
+        $canEditPrice = auth()->user()->can(PricingService::PRICE_OVERRIDE_PERMISSION);
+
+        return view('reservations.edit', compact(
+            'reservation', 'rooms', 'roomType', 'multiplier', 'unitPrice', 'canEditPrice'
+        ));
     }
 
     public function update(Request $request, Reservation $reservation)
@@ -67,6 +86,7 @@ class ReservationController extends Controller
         $validated = $request->validate([
             'check_in_date'  => 'required|date',
             'check_out_date' => 'required|date|after:check_in_date',
+            'nightly_price'  => 'nullable|numeric|min:0',
             'purpose'        => 'nullable|string|max:255',
             'origin'         => 'nullable|string|max:255',
             'notes'          => 'nullable|string|max:1000',
@@ -79,10 +99,24 @@ class ReservationController extends Controller
             'purpose.max'              => 'الغرض لا يتجاوز 255 حرف',
             'origin.max'               => 'جهة القدوم لا تتجاوز 255 حرف',
             'notes.max'                => 'الملاحظات لا تتجاوز 1000 حرف',
+            'nightly_price.numeric'    => 'سعر الليلة يجب أن يكون رقماً',
         ]);
 
-        $nights = Carbon::parse($validated['check_in_date'])->diffInDays($validated['check_out_date']);
-        $newTotal = $nights * $reservation->room->roomType->base_price;
+        // السعر يُحسم في الخادم عبر PricingService: الموظف يرسل سعر الليلة فقط،
+        // والإجمالي لا يأتي من المتصفح إطلاقاً.
+        $multiplier   = PricingService::unitMultiplier($reservation->room, $reservation->suite_booking_type);
+        $currentUnit  = round(PricingService::nightlyPriceFor($reservation) / max(1, $multiplier), 2);
+        $requestedUnit = $validated['nightly_price'] ?? $currentUnit;
+
+        $nightlyPrice = PricingService::resolveNightlyPrice(
+            $reservation->room,
+            $reservation->suite_booking_type,
+            $requestedUnit,
+            auth()->user()
+        );
+
+        $nights   = Carbon::parse($validated['check_in_date'])->diffInDays($validated['check_out_date']);
+        $newTotal = round($nightlyPrice * $nights, 2) - (float) $reservation->discount_amount;
 
         $old = $reservation->toArray();
 
@@ -92,8 +126,11 @@ class ReservationController extends Controller
             'purpose'        => $validated['purpose'] ?? null,
             'origin'         => $validated['origin'] ?? null,
             'notes'          => $validated['notes'] ?? null,
-            'total_amount'   => $newTotal,
+            'nightly_price'  => $nightlyPrice,
+            'total_amount'   => max(0, $newTotal),
         ]);
+
+        $reservation->refresh()->updatePaymentStatus();
 
         AuditLogService::log('update', $reservation, $old, $reservation->fresh()->toArray(), auth()->user());
 
@@ -117,14 +154,16 @@ class ReservationController extends Controller
             'new_check_out_date.after'    => 'يجب أن يكون تاريخ الخروج الجديد بعد التاريخ الحالي',
         ]);
 
-        $extraNights = $reservation->check_out_date->diffInDays($validated['new_check_out_date']);
-        $pricePerNight = $reservation->room->roomType->base_price;
-        $extraAmount  = $extraNights * $pricePerNight;
+        $extraNights   = $reservation->check_out_date->diffInDays($validated['new_check_out_date']);
+        // التجديد يُسعَّر بنفس السعر المتفق عليه في الحجز، لا بسعر جديد يختاره الموظف
+        $pricePerNight = PricingService::nightlyPriceFor($reservation);
+        $extraAmount   = round($extraNights * $pricePerNight, 2);
 
         $old = $reservation->only(['check_out_date', 'total_amount']);
 
         $reservation->update([
             'check_out_date' => $validated['new_check_out_date'],
+            'nightly_price'  => $pricePerNight,
             'total_amount'   => $reservation->total_amount + $extraAmount,
             'notes'          => $reservation->notes
                                     ? $reservation->notes . "\n[تجديد +{$extraNights} ليلة]"
@@ -153,6 +192,73 @@ class ReservationController extends Controller
 
         return redirect()->route('reservations.show', $reservation)
             ->with('success', "تم تجديد الإقامة بنجاح — تمديد {$extraNights} ليلة إضافية");
+    }
+
+    /**
+     * منح خصم على الحجز — محكوم بصلاحية reservation.discount وبسقف النسبة
+     * الذي يحدده المدير في إعدادات التسعير.
+     */
+    public function discount(Request $request, Reservation $reservation)
+    {
+        if (in_array($reservation->status, ['cancelled'])) {
+            return back()->with('error', 'لا يمكن منح خصم على حجز ملغي');
+        }
+
+        $maxAllowed = PricingService::maxDiscountAmount($reservation);
+
+        if ($maxAllowed <= 0) {
+            $percent = PricingService::maxDiscountPercent();
+            return back()->withErrors(['amount' => $percent <= 0
+                ? 'الخصم موقوف — لم يحدد المدير سقفاً للخصم في إعدادات التسعير'
+                : 'لا يوجد مبلغ متاح للخصم على هذا الحجز (تم استنفاد السقف أو لا يوجد رصيد متبقٍ)']);
+        }
+
+        $validated = $request->validate([
+            'amount' => 'required|numeric|min:0.01|max:' . $maxAllowed,
+            'reason' => 'required|string|max:255',
+        ], [
+            'amount.required' => 'مبلغ الخصم مطلوب',
+            'amount.numeric'  => 'مبلغ الخصم يجب أن يكون رقماً',
+            'amount.min'      => 'مبلغ الخصم يجب أن يكون أكبر من صفر',
+            'amount.max'      => 'أقصى خصم مسموح على هذا الحجز هو ' . number_format($maxAllowed, 2) . ' ر.ي',
+            'reason.required' => 'سبب الخصم مطلوب',
+            'reason.max'      => 'سبب الخصم لا يتجاوز 255 حرف',
+        ]);
+
+        $amount = round((float) $validated['amount'], 2);
+        $old    = $reservation->only(['total_amount', 'discount_amount', 'discount_reason']);
+
+        DB::transaction(function () use ($reservation, $amount, $validated) {
+            // القفل يمنع تجاوز السقف عند طلبين متزامنين على نفس الحجز
+            $locked = Reservation::whereKey($reservation->id)->lockForUpdate()->firstOrFail();
+
+            $allowedNow = PricingService::maxDiscountAmount($locked);
+            if ($amount > $allowedNow) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'amount' => 'أقصى خصم مسموح على هذا الحجز هو ' . number_format($allowedNow, 2) . ' ر.ي',
+                ]);
+            }
+
+            $locked->update([
+                'total_amount'    => max(0, round((float) $locked->total_amount - $amount, 2)),
+                'discount_amount' => round((float) $locked->discount_amount + $amount, 2),
+                'discount_reason' => $validated['reason'],
+                'discounted_by'   => auth()->id(),
+                'discounted_at'   => now(),
+            ]);
+
+            $locked->refresh()->updatePaymentStatus();
+        });
+
+        $reservation->refresh();
+
+        AuditLogService::log('discount', $reservation, $old, [
+            'discount_amount' => $amount,
+            'discount_reason' => $validated['reason'],
+            'total_amount'    => $reservation->total_amount,
+        ], auth()->user());
+
+        return back()->with('success', 'تم منح خصم بمبلغ ' . number_format($amount, 2) . ' ر.ي');
     }
 
     public function cancel(Reservation $reservation)

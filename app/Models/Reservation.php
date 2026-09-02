@@ -13,7 +13,8 @@ class Reservation extends Model
     protected $fillable = [
         'guest_id','room_id','linked_room_id','suite_booking_type','created_by',
         'check_in_date','check_out_date','actual_check_out','origin','purpose','notes',
-        'status','payment_status','total_amount','paid_amount',
+        'status','payment_status','nightly_price','total_amount','paid_amount',
+        'discount_amount','discount_reason','discounted_by','discounted_at',
         'admin_approval_id','government_exported','government_exported_at',
     ];
 
@@ -25,6 +26,9 @@ class Reservation extends Model
         'government_exported_at' => 'datetime',
         'total_amount' => 'decimal:2',
         'paid_amount' => 'decimal:2',
+        'nightly_price' => 'decimal:2',
+        'discount_amount' => 'decimal:2',
+        'discounted_at' => 'datetime',
     ];
 
     public function guest()
@@ -38,6 +42,11 @@ class Reservation extends Model
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function discountedBy()
+    {
+        return $this->belongsTo(User::class, 'discounted_by');
     }
 
     public function adminApproval()
@@ -83,6 +92,12 @@ class Reservation extends Model
     public function getBalanceAttribute(): float
     {
         return (float)$this->total_amount - (float)$this->paid_amount;
+    }
+
+    /** الإجمالي قبل الخصم — يُستخدم كأساس لحساب سقف الخصم */
+    public function getGrossAmountAttribute(): float
+    {
+        return (float) $this->total_amount + (float) $this->discount_amount;
     }
 
     public function getNightsAttribute(): int

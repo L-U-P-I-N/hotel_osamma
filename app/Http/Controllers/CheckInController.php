@@ -9,9 +9,11 @@ use App\Models\RoomType;
 use App\Models\User;
 use App\Models\Reservation;
 use App\Services\CheckInService;
+use App\Services\PricingService;
 use App\Services\GovernmentExportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class CheckInController extends Controller
 {
@@ -44,7 +46,15 @@ class CheckInController extends Controller
 
         $admins = User::role('admin')->where('is_active', true)->get();
         $nationalities = $this->getNationalities();
-        return view('checkin.create', compact('availableRooms', 'linkedAvailability', 'admins', 'nationalities'));
+
+        // نطاق السعر لكل نوع غرفة + هل يملك هذا الموظف صلاحية تعديل السعر أصلاً
+        $priceBounds  = PricingService::boundsByRoomType();
+        $canEditPrice = auth()->user()->can(PricingService::PRICE_OVERRIDE_PERMISSION);
+
+        return view('checkin.create', compact(
+            'availableRooms', 'linkedAvailability', 'admins', 'nationalities',
+            'priceBounds', 'canEditPrice'
+        ));
     }
 
     public function store(Request $request)
@@ -57,6 +67,8 @@ class CheckInController extends Controller
             'check_in_date' => 'required|date',
             'check_out_date' => 'required|date|after:check_in_date',
             'payment_status' => 'required|in:unpaid,partial,paid,deferred',
+            'nightly_price' => 'nullable|numeric|min:0',
+            'paid_amount' => 'nullable|numeric|min:0',
             'id_image' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
             'bank_receipt' => 'required_if:payment_method,bank_transfer|nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
             'admin_approval_id' => 'required_if:payment_status,deferred|nullable|exists:users,id',
@@ -67,9 +79,10 @@ class CheckInController extends Controller
         ]);
 
         try {
-            $data = $request->except(['_token']);
+            $data = $request->except(['_token', 'total_amount']);
             $data['paid_amount'] = $request->input('paid_amount', 0);
-            $data['total_amount'] = $request->input('total_amount', 0);
+            // الإجمالي لا يُقرأ من الطلب — يحسبه CheckInService من سعر الليلة المعتمد
+            $data['nightly_price'] = $request->input('nightly_price');
             $data['payment_method'] = $request->input('payment_method', 'cash');
             $data['currency'] = $request->input('currency', 'YER');
 
@@ -94,6 +107,9 @@ class CheckInController extends Controller
 
             return redirect()->route('checkin.success', $reservation->id)
                 ->with('success', 'تم تسجيل الدخول بنجاح');
+        } catch (ValidationException $e) {
+            // أخطاء التسعير تأتي من PricingService وتُعرض على الحقل المعني
+            throw $e;
         } catch (BlacklistedException $e) {
             return back()->withErrors(['id_number' => $e->getMessage()])->withInput();
         } catch (\Exception $e) {

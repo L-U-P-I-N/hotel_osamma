@@ -42,7 +42,15 @@
           x-data="{
             checkIn: '{{ old('check_in_date', $reservation->check_in_date->format('Y-m-d')) }}',
             checkOut: '{{ old('check_out_date', $reservation->check_out_date->format('Y-m-d')) }}',
-            pricePerNight: {{ $reservation->room->roomType->base_price_per_night }},
+            unitPrice: {{ old('nightly_price', $unitPrice) }},
+            multiplier: {{ $multiplier }},
+            minPrice: {{ $roomType->effective_min_price }},
+            maxPrice: {{ $roomType->effective_max_price }},
+            get pricePerNight() { return (parseFloat(this.unitPrice) || 0) * this.multiplier; },
+            get priceOutOfRange() {
+                const p = parseFloat(this.unitPrice);
+                return isNaN(p) || p < this.minPrice || p > this.maxPrice;
+            },
             get nights() {
                 if (!this.checkIn || !this.checkOut) return 0;
                 const d = (new Date(this.checkOut) - new Date(this.checkIn)) / 86400000;
@@ -74,12 +82,36 @@
                 @enderror
             </div>
 
+            <!-- Nightly price — محكوم بنطاق يحدده المدير -->
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">
+                    سعر الليلة للوحدة ({{ $roomType->name }})
+                    @if($multiplier > 1)<span class="text-xs text-gray-400">— يُضرب × {{ $multiplier }} لأن الحجز يشمل وحدتين</span>@endif
+                </label>
+                <input type="number" name="nightly_price" x-model.number="unitPrice" step="0.01"
+                       min="{{ $roomType->effective_min_price }}" max="{{ $roomType->effective_max_price }}"
+                       @readonly(!$canEditPrice) @disabled(!$canEditPrice)
+                       class="w-full border @error('nightly_price') border-red-400 bg-red-50 @else border-gray-300 @enderror rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none transition {{ $canEditPrice ? '' : 'bg-gray-100 text-gray-500 cursor-not-allowed' }}">
+                @if($canEditPrice)
+                <p class="mt-1 text-xs text-gray-500">
+                    النطاق المسموح: {{ number_format($roomType->effective_min_price, 0) }} —
+                    {{ number_format($roomType->effective_max_price, 0) }} ر.ي
+                </p>
+                <p x-show="priceOutOfRange" class="mt-1 text-xs text-red-600">السعر خارج النطاق المسموح وسيُرفض عند الحفظ.</p>
+                @else
+                <p class="mt-1 text-xs text-gray-500">السعر ثابت حسب إعدادات المدير — لا تملك صلاحية تعديله.</p>
+                @endif
+                @error('nightly_price')
+                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                @enderror
+            </div>
+
             <!-- Live calculation -->
             <div class="md:col-span-2 p-4 rounded-lg border" style="background:#f0f7ff; border-color:#c7dff7;">
                 <div class="flex items-center justify-between text-sm flex-wrap gap-2">
                     <div class="flex items-center gap-4">
                         <span class="text-gray-600">عدد الليالي: <strong x-text="nights" class="text-gray-900"></strong></span>
-                        <span class="text-gray-600">السعر/ليلة: <strong>{{ number_format($reservation->room->roomType->base_price_per_night, 0) }} ر.ي</strong></span>
+                        <span class="text-gray-600">السعر/ليلة: <strong x-text="pricePerNight.toLocaleString('ar-SA')"></strong> ر.ي</span>
                     </div>
                     <div class="text-base font-bold" style="color:#0F4C75;">
                         الإجمالي: <span x-text="total.toLocaleString('ar-SA')"></span> ر.ي
@@ -116,7 +148,11 @@
         </div>
 
         <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs text-yellow-800">
-            ملاحظة: سيتم إعادة حساب إجمالي الحجز تلقائياً بناءً على التواريخ الجديدة وسعر الغرفة.
+            ملاحظة: يُعاد حساب الإجمالي في الخادم من التواريخ وسعر الليلة المعتمد،
+            ولا يُقبل أي سعر خارج النطاق الذي حدده المدير.
+            @if((float)$reservation->discount_amount > 0)
+            الخصم المسجّل ({{ number_format($reservation->discount_amount, 2) }} ر.ي) يبقى مطبقاً على الإجمالي الجديد.
+            @endif
         </div>
 
         <div class="flex gap-3 pt-2">

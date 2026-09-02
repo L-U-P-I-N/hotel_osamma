@@ -8,6 +8,7 @@ use App\Models\Payment;
 use App\Models\Reservation;
 use App\Models\Room;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class CheckInService
@@ -49,13 +50,26 @@ class CheckInService
                 }
             }
 
-            // 4. صورة الهوية
+            // 4. التسعير — يُحسم في الخادم بالكامل: الموظف يرسل سعر الليلة فقط،
+            //    ويُتحقق منه مقابل النطاق الذي حدده المدير لنوع الغرفة.
+            $nightlyPrice = PricingService::resolveNightlyPrice(
+                $room,
+                $suiteBookingType,
+                $data['nightly_price'] ?? null,
+                $user
+            );
+
+            $nights = max(1, Carbon::parse($data['check_in_date'])
+                ->diffInDays(Carbon::parse($data['check_out_date'])));
+            $totalAmount = round($nightlyPrice * $nights, 2);
+
+            // 5. صورة الهوية
             $idImagePath = null;
             if (!empty($data['id_image'])) {
                 $idImagePath = $data['id_image']->store('id_images/guests', 'private');
             }
 
-            // 5. النزيل
+            // 6. النزيل
             $guest = Guest::firstOrNew(['id_number' => $data['id_number']]);
             $guest->fill([
                 'full_name'     => $data['full_name'],
@@ -70,7 +84,7 @@ class CheckInService
             ]);
             $guest->save();
 
-            // 6. الحجز
+            // 7. الحجز
             $reservation = Reservation::create([
                 'guest_id'           => $guest->id,
                 'room_id'            => $room->id,
@@ -84,19 +98,20 @@ class CheckInService
                 'notes'              => $data['notes'] ?? null,
                 'status'             => 'checked_in',
                 'payment_status'     => $data['payment_status'],
-                'total_amount'       => $data['total_amount'],
+                'nightly_price'      => $nightlyPrice,
+                'total_amount'       => $totalAmount,
                 'paid_amount'        => 0,
                 'admin_approval_id'  => $data['payment_status'] === 'deferred'
                                             ? ($data['admin_approval_id'] ?? null) : null,
             ]);
 
-            // 7. تحديث حالة الغرف
+            // 8. تحديث حالة الغرف
             $room->update(['status' => 'occupied']);
             if ($linkedRoom) {
                 $linkedRoom->update(['status' => 'occupied']);
             }
 
-            // 8. المرافقون
+            // 9. المرافقون
             if (!empty($data['companions'])) {
                 foreach ($data['companions'] as $companionData) {
                     $compImgPath = null;
@@ -122,8 +137,12 @@ class CheckInService
                 }
             }
 
-            // 9. الدفعة الأولى — ربطها بالوردية المفتوحة
-            if (!empty($data['paid_amount']) && $data['paid_amount'] > 0) {
+            // 10. الدفعة الأولى — ربطها بالوردية المفتوحة
+            $paidAmount = round((float) ($data['paid_amount'] ?? 0), 2);
+            // الدفعة لا تتجاوز الإجمالي المحسوب في الخادم مهما أرسل المتصفح
+            $paidAmount = min($paidAmount, $totalAmount);
+
+            if ($paidAmount > 0) {
                 $bankReceiptPath = null;
                 if (!empty($data['bank_receipt'])) {
                     $bankReceiptPath = $data['bank_receipt']->store('bank_receipts', 'private');
@@ -135,7 +154,7 @@ class CheckInService
                     'reservation_id'    => $reservation->id,
                     'shift_id'          => $shift?->id,
                     'received_by'       => $user->id,
-                    'amount'            => $data['paid_amount'],
+                    'amount'            => $paidAmount,
                     'currency'          => $data['currency'] ?? 'YER',
                     'method'            => $data['payment_method'] ?? 'cash',
                     'bank_receipt_path' => $bankReceiptPath,
@@ -144,7 +163,7 @@ class CheckInService
                     'type'              => 'reservation',
                 ]);
 
-                $reservation->increment('paid_amount', $data['paid_amount']);
+                $reservation->increment('paid_amount', $paidAmount);
                 $reservation->updatePaymentStatus();
 
                 if ($shift) {

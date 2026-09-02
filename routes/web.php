@@ -13,6 +13,7 @@ use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\BlacklistController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\PricingController;
 
 Route::get('/', fn() => redirect()->route('login'));
 
@@ -60,15 +61,24 @@ Route::middleware(['auth'])->group(function () {
         ->name('guests.blacklistCheck')
         ->middleware('permission:checkin.create|guests.view');
 
-    // Reservations
+    // Reservations — كل زر في تفاصيل الحجز له صلاحية مستقلة يتحكم بها المدير
     Route::middleware('permission:checkin.view')->group(function () {
         Route::get('/reservations', [ReservationController::class, 'index'])->name('reservations.index');
         Route::get('/reservations/{reservation}', [ReservationController::class, 'show'])->name('reservations.show');
+    });
+    Route::middleware('permission:reservation.edit')->group(function () {
         Route::get('/reservations/{reservation}/edit', [ReservationController::class, 'edit'])->name('reservations.edit');
         Route::put('/reservations/{reservation}', [ReservationController::class, 'update'])->name('reservations.update');
-        Route::patch('/reservations/{reservation}/cancel', [ReservationController::class, 'cancel'])->name('reservations.cancel');
-        Route::post('/reservations/{reservation}/renew', [ReservationController::class, 'renew'])->name('reservations.renew');
     });
+    Route::patch('/reservations/{reservation}/cancel', [ReservationController::class, 'cancel'])
+        ->name('reservations.cancel')
+        ->middleware('permission:reservation.cancel');
+    Route::post('/reservations/{reservation}/renew', [ReservationController::class, 'renew'])
+        ->name('reservations.renew')
+        ->middleware('permission:reservation.renew');
+    Route::post('/reservations/{reservation}/discount', [ReservationController::class, 'discount'])
+        ->name('reservations.discount')
+        ->middleware('permission:reservation.discount');
 
     // Check-out
     Route::middleware('permission:checkout.process')->group(function () {
@@ -110,6 +120,13 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/blacklist', [BlacklistController::class, 'index'])->name('blacklist.index');
         Route::post('/blacklist', [BlacklistController::class, 'store'])->name('blacklist.store');
         Route::delete('/blacklist/{guest}', [BlacklistController::class, 'remove'])->name('blacklist.remove');
+    });
+
+    // Pricing settings — المدير هو من يحدد نطاق الأسعار وسقف الخصم
+    Route::middleware('permission:pricing.manage')->group(function () {
+        Route::get('/pricing', [PricingController::class, 'index'])->name('pricing.index');
+        Route::put('/pricing/room-types/{roomType}', [PricingController::class, 'updateRoomType'])->name('pricing.roomType.update');
+        Route::put('/pricing/discount-ceiling', [PricingController::class, 'updateDiscountCeiling'])->name('pricing.discount.update');
     });
 
     // Users

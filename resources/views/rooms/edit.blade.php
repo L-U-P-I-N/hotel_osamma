@@ -53,7 +53,7 @@
                         class="w-full border @error('room_type_id') border-red-400 bg-red-50 @else border-gray-300 @enderror rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none transition">
                     @foreach($roomTypes as $type)
                     <option value="{{ $type->id }}" {{ old('room_type_id', $room->room_type_id) == $type->id ? 'selected' : '' }}>
-                        {{ $type->name }} — {{ number_format($type->base_price_per_night, 0) }} ر.ي / ليلة
+                        {{ $type->name }} — {{ number_format($type->effective_min_price, 0) }} إلى {{ number_format($type->effective_max_price, 0) }} ر.ي / ليلة
                     </option>
                     @endforeach
                 </select>

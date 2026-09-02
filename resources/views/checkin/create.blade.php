@@ -312,6 +312,8 @@
                 'room_number'    => $room->room_number,
                 'floor'          => $room->floor,
                 'base_price'     => (float)$room->roomType->base_price,
+                'min_price'      => $room->roomType->effective_min_price,
+                'max_price'      => $room->roomType->effective_max_price,
                 'room_type_name' => $room->roomType->name,
                 'sub_type'       => $room->room_sub_type,
             ];
@@ -390,7 +392,33 @@
             </div>
         </div>
 
-        <input type="hidden" name="total_amount" :value="totalAmount">
+        {{-- سعر الليلة هو الحقل الوحيد الذي يرسله الموظف؛ الإجمالي يحسبه الخادم --}}
+        <div class="md:col-span-2" x-show="selectedRoom">
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">
+                سعر الليلة للوحدة
+                <span x-show="unitMultiplier > 1" class="text-xs text-gray-400">— يُضرب × 2 لأن الحجز يشمل وحدتين</span>
+            </label>
+            <input type="number" name="nightly_price" x-model.number="unitPrice" step="0.01"
+                   :min="selectedRoom?.min_price" :max="selectedRoom?.max_price"
+                   @input="calcTotal()"
+                   @if(!$canEditPrice) readonly @endif
+                   class="w-full border rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none transition"
+                   :class="priceOutOfRange ? 'border-red-400 bg-red-50' : 'border-gray-300'"
+                   @if(!$canEditPrice) style="background:#f3f4f6;color:#6b7280;cursor:not-allowed;" @endif>
+            @if($canEditPrice)
+            <p class="mt-1 text-xs text-gray-500">
+                النطاق المسموح لـ <span x-text="selectedRoom?.room_type_name"></span>:
+                <span x-text="formatNumber(selectedRoom?.min_price)"></span> —
+                <span x-text="formatNumber(selectedRoom?.max_price)"></span> ر.ي
+            </p>
+            <p x-show="priceOutOfRange" class="mt-1 text-xs text-red-600">السعر خارج النطاق المسموح وسيُرفض عند الحفظ.</p>
+            @else
+            <p class="mt-1 text-xs text-gray-500">السعر ثابت حسب إعدادات المدير — لا تملك صلاحية تعديله.</p>
+            @endif
+            @error('nightly_price')
+            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+            @enderror
+        </div>
 
         <!-- Payment Status -->
         <div class="md:col-span-2">
@@ -614,6 +642,7 @@ function checkInWizard() {
         checkOutDate: '',
         nights: 0,
         nightsInput: 1,
+        unitPrice: 0,
         totalAmount: 0,
         paymentStatus: 'paid',
         paymentMethod: 'cash',
@@ -653,6 +682,7 @@ function checkInWizard() {
                     checkInDate:     this.checkInDate,
                     checkOutDate:    this.checkOutDate,
                     nightsInput:     this.nightsInput,
+                    unitPrice:       this.unitPrice,
                     paymentStatus:   this.paymentStatus,
                     paymentMethod:   this.paymentMethod,
                     paidAmount:      this.paidAmount,
@@ -674,6 +704,8 @@ function checkInWizard() {
                 this.checkInDate      = s.checkInDate       || this.checkInDate;
                 this.checkOutDate     = s.checkOutDate      || this.checkOutDate;
                 this.nightsInput      = s.nightsInput       ?? 1;
+                // السعر المستعاد لا يُوثق به: يعاد ضبطه على السعر الأساسي للغرفة المختارة
+                this.unitPrice        = s.unitPrice ?? (s.selectedRoom?.base_price ?? 0);
                 this.paymentStatus    = s.paymentStatus     ?? 'paid';
                 this.paymentMethod    = s.paymentMethod     ?? 'cash';
                 this.paidAmount       = s.paidAmount        ?? 0;
@@ -723,6 +755,8 @@ function checkInWizard() {
             } else {
                 this.suiteBookingType = '';
             }
+            // السعر الأساسي هو الاقتراح الافتراضي؛ الموظف يعدّله فقط إن كان يملك الصلاحية
+            this.unitPrice = room.base_price;
             this.calcTotal();
             this.saveToSession();
         },
@@ -732,14 +766,26 @@ function checkInWizard() {
             this.linkedInfo = null;
             this.roomId = '';
             this.suiteBookingType = 'a_only';
+            this.unitPrice = 0;
             this.totalAmount = 0;
             this.nights = 0;
             this.saveToSession();
         },
 
+        get unitMultiplier() {
+            if (this.suiteBookingType === 'both') return 2;
+            return this.linkedInfo?.is_always_linked ? 2 : 1;
+        },
+
+        get priceOutOfRange() {
+            if (!this.selectedRoom) return false;
+            const p = parseFloat(this.unitPrice);
+            return isNaN(p) || p < this.selectedRoom.min_price || p > this.selectedRoom.max_price;
+        },
+
         effectiveRoomPrice() {
-            const base = this.selectedRoom?.base_price || 0;
-            return this.suiteBookingType === 'both' ? base * 2 : base;
+            const unit = parseFloat(this.unitPrice) || 0;
+            return unit * this.unitMultiplier;
         },
 
         roomSelectionLabel() {
