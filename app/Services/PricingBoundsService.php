@@ -17,12 +17,19 @@ class PricingBoundsService
     /** صلاحية إدخال سعر مختلف عن السعر الافتراضي للغرفة */
     public const PRICE_OVERRIDE_PERMISSION = 'room.price.edit';
 
-    public static function multiplier(?string $suiteBookingType): int
+    /** هل هذا الحجز للجناح كاملاً (غرفتان) بدل قسم واحد؟ */
+    public static function isFullSuite(?string $suiteBookingType): bool
     {
-        return $suiteBookingType === 'both' ? 2 : 1;
+        return $suiteBookingType === 'both';
     }
 
-    /** [min, max] لسعر الليلة المسموح لهذه الغرفة بهذا النوع من الحجز */
+    /**
+     * [min, max] لسعر الليلة المسموح.
+     *
+     * قسم الجناح غرفة كأي غرفة، فيأخذ نطاق القسم الواحد. أما الجناح كاملاً
+     * فله نطاقه المستقل الذي يضبطه المدير — لا ضِعف نطاق القسم — حتى يمكن
+     * بيعه بسعر عرض يختلف عن مجموع قسميه.
+     */
     public static function boundsFor(?Room $room, ?string $suiteBookingType = null): ?array
     {
         $type = $room?->roomType;
@@ -30,12 +37,11 @@ class PricingBoundsService
             return null;
         }
 
-        $factor = self::multiplier($suiteBookingType);
+        if (self::isFullSuite($suiteBookingType)) {
+            return [$type->effective_suite_min_price, $type->effective_suite_max_price];
+        }
 
-        return [
-            round($type->effective_min_price * $factor, 2),
-            round($type->effective_max_price * $factor, 2),
-        ];
+        return [$type->effective_min_price, $type->effective_max_price];
     }
 
     /** السعر الافتراضي المقترح للغرفة (وهو المسموح الوحيد لمن لا يملك صلاحية التعديل) */
@@ -82,9 +88,12 @@ class PricingBoundsService
         [$min, $max] = self::boundsFor($room, $suiteBookingType);
 
         if ($price < $min || $price > $max) {
-            return 'سعر الليلة لـ "' . $type->name . '" يجب أن يكون بين '
-                   . number_format($min, 0) . ' و ' . number_format($max, 0) . ' ر.ي'
-                   . ($suiteBookingType === 'both' ? ' (الجناح كاملاً)' : '') . '.';
+            $label = self::isFullSuite($suiteBookingType)
+                ? '"' . $type->name . '" كاملاً (غرفتان)'
+                : '"' . $type->name . '"';
+
+            return 'سعر الليلة لـ ' . $label . ' يجب أن يكون بين '
+                   . number_format($min, 0) . ' و ' . number_format($max, 0) . ' ر.ي.';
         }
 
         return null;
@@ -95,8 +104,10 @@ class PricingBoundsService
     {
         return RoomType::all()->mapWithKeys(fn(RoomType $type) => [
             $type->id => [
-                'min' => $type->effective_min_price,
-                'max' => $type->effective_max_price,
+                'min'       => $type->effective_min_price,
+                'max'       => $type->effective_max_price,
+                'suite_min' => $type->effective_suite_min_price,
+                'suite_max' => $type->effective_suite_max_price,
             ],
         ])->toArray();
     }

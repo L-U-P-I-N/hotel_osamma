@@ -748,6 +748,8 @@ html.dark [style*="background:var(--gold-l)"] {
                         'base_price'      => (float)$room->roomType->base_price,
                         'min_price'       => $room->roomType->effective_min_price,
                         'max_price'       => $room->roomType->effective_max_price,
+                        'suite_min_price' => $room->roomType->effective_suite_min_price,
+                        'suite_max_price' => $room->roomType->effective_suite_max_price,
                         'prices'          => $room->pricesArray(),
                         'suite_price_yer' => (float)($room->suite_price_yer ?? 0),
                         'room_type_name'  => $room->roomType->name,
@@ -777,6 +779,8 @@ html.dark [style*="background:var(--gold-l)"] {
                         'base_price'      => (float)$room->roomType->base_price,
                         'min_price'       => $room->roomType->effective_min_price,
                         'max_price'       => $room->roomType->effective_max_price,
+                        'suite_min_price' => $room->roomType->effective_suite_min_price,
+                        'suite_max_price' => $room->roomType->effective_suite_max_price,
                         'prices'          => $room->pricesArray(),
                         'suite_price_yer' => (float)($room->suite_price_yer ?? 0),
                         'room_type_name'  => $room->roomType->name,
@@ -1018,7 +1022,7 @@ html.dark [style*="background:var(--gold-l)"] {
                         <p class="text-xs text-amber-600">
                             النطاق المسموح: <span x-text="formatNumber(priceMin())"></span> —
                             <span x-text="formatNumber(priceMax())"></span> ر.ي
-                            <span x-show="suiteBookingType === 'both'">(الجناح كاملاً)</span>
+                            <span x-show="isFullSuite()">(الجناح كاملاً — غرفتان)</span>
                         </p>
                         <p x-show="priceOutOfRange()"
                            class="text-xs text-red-600 font-semibold">⚠ السعر خارج النطاق المسموح وسيُرفض عند الحفظ</p>
@@ -1878,10 +1882,19 @@ function checkInForm() {
             return isNaN(val) ? 0 : val;
         },
 
-        // النطاق يُضاعَف لحجز الجناح كاملاً، تماماً كما يُضاعف السعر نفسه
-        priceRangeFactor() { return this.suiteBookingType === 'both' ? 2 : 1; },
-        priceMin() { return (parseFloat(this.selectedRoom?.min_price) || 0) * this.priceRangeFactor(); },
-        priceMax() { return (parseFloat(this.selectedRoom?.max_price) || 0) * this.priceRangeFactor(); },
+        // الجناح كاملاً له نطاقه المستقل الذي يضبطه المدير؛ القسم الواحد غرفة
+        // كأي غرفة فيأخذ نطاق الغرفة.
+        isFullSuite() { return this.suiteBookingType === 'both'; },
+        priceMin() {
+            const r = this.selectedRoom;
+            if (!r) return 0;
+            return parseFloat(this.isFullSuite() ? r.suite_min_price : r.min_price) || 0;
+        },
+        priceMax() {
+            const r = this.selectedRoom;
+            if (!r) return 0;
+            return parseFloat(this.isFullSuite() ? r.suite_max_price : r.max_price) || 0;
+        },
 
         priceOutOfRange() {
             if (this.customPrice === null || this.customPrice === '' || !this.selectedRoom) return false;

@@ -12,7 +12,9 @@
            أي مبلغ خارج النطاق يرفضه الخادم.</p>
         <p class="mt-1">الموظف الذي لا يملك صلاحية <strong>«تعديل سعر الغرفة»</strong> لا يستطيع تغيير السعر أصلاً،
            ويُلزَم بالسعر الافتراضي للغرفة.</p>
-        <p class="mt-1">حجز الجناح كاملاً (A+B) يُضاعَف نطاقه تلقائياً، تماماً كما يُضاعف سعره.</p>
+        <p class="mt-1">قسم الجناح (A أو B) غرفة كأي غرفة ويأخذ نطاق القسم الواحد.
+           أما حجز الجناح كاملاً (غرفتان) فله نطاقه المستقل الذي تضبطه بنفسك أدناه —
+           فيمكنك بيعه بسعر عرض أقل من مجموع قسميه أو أعلى.</p>
     </div>
 
     @if(session('success'))
@@ -57,6 +59,12 @@
                     @endunless
                 </div>
 
+                @php $isSuiteType = in_array($type->id, $suiteTypeIds ?? []); @endphp
+
+                @if($isSuiteType)
+                <p class="text-xs font-semibold text-gray-500 mb-2">سعر القسم الواحد (غرفة)</p>
+                @endif
+
                 <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
                     <div>
                         <label class="block text-xs font-medium text-gray-600 mb-1">أقل سعر / ليلة</label>
@@ -77,11 +85,43 @@
                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
                     </div>
                     <div class="flex items-end">
-                        <button type="submit" class="w-full px-4 py-2 text-white rounded-lg text-sm font-medium transition" style="background:#0F4C75;">
+                        <button type="submit" class="w-full px-4 py-2 text-white rounded-lg text-sm font-medium transition {{ $isSuiteType ? 'sm:col-span-1' : '' }}" style="background:#0F4C75;">
                             حفظ
                         </button>
                     </div>
                 </div>
+
+                @if($isSuiteType)
+                <div class="mt-4 pt-4 border-t border-dashed border-gray-200">
+                    <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+                        <p class="text-xs font-semibold text-gray-500">سعر الجناح كاملاً (غرفتان)</p>
+                        @unless($type->hasExplicitSuiteBounds())
+                        <span class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1">
+                            غير مضبوط — يُحتسب الآن كضِعف نطاق القسم
+                        </span>
+                        @endunless
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">أقل سعر للجناح / ليلة</label>
+                            <input type="number" name="suite_min_price" step="0.01" min="1" required
+                                   value="{{ old('suite_min_price', $type->effective_suite_min_price) }}"
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">أعلى سعر للجناح / ليلة</label>
+                            <input type="number" name="suite_max_price" step="0.01" min="1" required
+                                   value="{{ old('suite_max_price', $type->effective_suite_max_price) }}"
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                        </div>
+                        <div class="sm:col-span-2 flex items-end">
+                            <p class="text-xs text-gray-400 leading-relaxed">
+                                هذا النطاق يُفرض عند حجز الجناح كاملاً فقط، ولا علاقة له بنطاق القسم أعلاه.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                @endif
             </form>
             @endforeach
         </div>
