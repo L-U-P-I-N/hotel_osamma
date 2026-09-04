@@ -10,6 +10,12 @@ class Setting extends Model
 
     public const HOTEL_LOGO = 'hotel_logo';
 
+    // نطاق سعر الجناح كاملاً (غرفتان) — على مستوى الفندق لا على نوع الغرفة،
+    // لأن أقسام الأجنحة تُصنَّف غرفاً عادية (القسم غرفة أصلاً)، فلو رُبط النطاق
+    // بالنوع لما طُبِّق على أي جناح.
+    public const SUITE_MIN_PRICE = 'suite_min_price';
+    public const SUITE_MAX_PRICE = 'suite_max_price';
+
     /**
      * بيانات الفندق التي تظهر في رأس كل فاتورة وتقرير — مفتاح => [التسمية،
      * تلميح]. تُدار كلها من شاشة الإعدادات، ويُقرأ منها رأس التصدير الموحّد.
@@ -65,6 +71,19 @@ class Setting extends Model
      * أو null إن لم يُرفع شعار. يسقط تلقائياً للملف القديم في public/images
      * (توافق مع النسخ التي رُفع شعارها قبل وجود هذه الشاشة).
      */
+    /** [min, max] لسعر الجناح كاملاً، أو null إن لم يضبطه المدير بعد */
+    public static function suitePriceRange(): ?array
+    {
+        $min = (float) self::get(self::SUITE_MIN_PRICE, 0);
+        $max = (float) self::get(self::SUITE_MAX_PRICE, 0);
+
+        if ($min <= 0 || $max < $min) {
+            return null;
+        }
+
+        return [round($min, 2), round($max, 2)];
+    }
+
     public static function hotelLogo(): ?string
     {
         $logo = static::get(self::HOTEL_LOGO);

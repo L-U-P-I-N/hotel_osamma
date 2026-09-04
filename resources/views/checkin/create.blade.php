@@ -748,8 +748,6 @@ html.dark [style*="background:var(--gold-l)"] {
                         'base_price'      => (float)$room->roomType->base_price,
                         'min_price'       => $room->roomType->effective_min_price,
                         'max_price'       => $room->roomType->effective_max_price,
-                        'suite_min_price' => $room->roomType->effective_suite_min_price,
-                        'suite_max_price' => $room->roomType->effective_suite_max_price,
                         'prices'          => $room->pricesArray(),
                         'suite_price_yer' => (float)($room->suite_price_yer ?? 0),
                         'room_type_name'  => $room->roomType->name,
@@ -779,8 +777,6 @@ html.dark [style*="background:var(--gold-l)"] {
                         'base_price'      => (float)$room->roomType->base_price,
                         'min_price'       => $room->roomType->effective_min_price,
                         'max_price'       => $room->roomType->effective_max_price,
-                        'suite_min_price' => $room->roomType->effective_suite_min_price,
-                        'suite_max_price' => $room->roomType->effective_suite_max_price,
                         'prices'          => $room->pricesArray(),
                         'suite_price_yer' => (float)($room->suite_price_yer ?? 0),
                         'room_type_name'  => $room->roomType->name,
@@ -1885,15 +1881,21 @@ function checkInForm() {
         // الجناح كاملاً له نطاقه المستقل الذي يضبطه المدير؛ القسم الواحد غرفة
         // كأي غرفة فيأخذ نطاق الغرفة.
         isFullSuite() { return this.suiteBookingType === 'both'; },
+        // نطاق الجناح كاملاً إعداد فندقي واحد؛ وما لم يُضبط يسقط على ضِعف نطاق القسم
+        suiteRange: @js($suiteRange),
         priceMin() {
-            const r = this.selectedRoom;
-            if (!r) return 0;
-            return parseFloat(this.isFullSuite() ? r.suite_min_price : r.min_price) || 0;
+            if (this.isFullSuite()) {
+                return this.suiteRange ? this.suiteRange[0]
+                                       : (parseFloat(this.selectedRoom?.min_price) || 0) * 2;
+            }
+            return parseFloat(this.selectedRoom?.min_price) || 0;
         },
         priceMax() {
-            const r = this.selectedRoom;
-            if (!r) return 0;
-            return parseFloat(this.isFullSuite() ? r.suite_max_price : r.max_price) || 0;
+            if (this.isFullSuite()) {
+                return this.suiteRange ? this.suiteRange[1]
+                                       : (parseFloat(this.selectedRoom?.max_price) || 0) * 2;
+            }
+            return parseFloat(this.selectedRoom?.max_price) || 0;
         },
 
         priceOutOfRange() {

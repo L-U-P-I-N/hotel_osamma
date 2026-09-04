@@ -65,7 +65,6 @@ class RoomController extends Controller
             'room_sub_type'   => 'nullable|in:regular,double,suite,suite_a,suite_b,hall,apartment',
             'beds_count'      => 'nullable|integer|min:1|max:20',
             'price_yer'       => 'nullable|numeric|min:0',
-            'suite_price_yer' => 'nullable|numeric|min:0',
             'notes'           => 'nullable|string|max:500',
         ], [
             'room_number.required'     => 'رقم الغرفة مطلوب',
@@ -77,7 +76,6 @@ class RoomController extends Controller
             'floor.max'                => 'رقم الطابق لا يتجاوز 50',
             'room_sub_type.in'         => 'تصنيف الغرفة غير صالح',
             'price_yer.numeric'        => 'السعر المستقل يجب أن يكون رقماً',
-            'suite_price_yer.numeric'  => 'سعر الجناح الكامل يجب أن يكون رقماً',
             'notes.max'                => 'الملاحظات لا تتجاوز 500 حرف',
         ]);
 
@@ -112,10 +110,8 @@ class RoomController extends Controller
         ];
 
         if (auth()->user()->can('room.price.edit')) {
+            // سعر الجناح الكامل محسوب (مجموع القسمين) ولا يُخزَّن يدوياً
             $baseAttributes['price_yer'] = $validated['price_yer'] ?? null;
-            if ($isSuite) {
-                $baseAttributes['suite_price_yer'] = $validated['suite_price_yer'] ?? null;
-            }
         }
 
         try {
@@ -205,7 +201,6 @@ class RoomController extends Controller
             'room_sub_type'   => 'nullable|in:regular,double,suite,suite_a,suite_b,hall,apartment',
             'beds_count'      => 'nullable|integer|min:1|max:20',
             'price_yer'       => 'nullable|numeric|min:0',
-            'suite_price_yer' => 'nullable|numeric|min:0',
             'notes'           => 'nullable|string|max:500',
         ], [
             'room_number.required'    => 'رقم الغرفة مطلوب',
@@ -218,7 +213,6 @@ class RoomController extends Controller
             'room_type_id.exists'     => 'نوع الغرفة المحدد غير موجود',
             'room_sub_type.in'        => 'تصنيف الغرفة غير صالح',
             'price_yer.numeric'       => 'السعر المستقل يجب أن يكون رقماً',
-            'suite_price_yer.numeric' => 'سعر الجناح الكامل يجب أن يكون رقماً',
             'notes.max'               => 'الملاحظات لا تتجاوز 500 حرف',
         ]);
 
@@ -243,10 +237,8 @@ class RoomController extends Controller
         ];
 
         if (auth()->user()->can('room.price.edit')) {
+            // سعر الجناح الكامل محسوب (مجموع القسمين) ولا يُخزَّن يدوياً
             $attributes['price_yer'] = $validated['price_yer'] ?? null;
-            if ($isSuite) {
-                $attributes['suite_price_yer'] = $validated['suite_price_yer'] ?? null;
-            }
         }
 
         $room->update($attributes);
@@ -320,17 +312,15 @@ class RoomController extends Controller
     {
         $request->validate([
             'price_yer'       => 'nullable|numeric|min:0',
-            'suite_price_yer' => 'nullable|numeric|min:0',
             'sub_type'        => 'nullable|string',
             'room_ids'        => 'nullable|array',
             'room_ids.*'      => 'integer|exists:rooms,id',
         ], [
             'price_yer.numeric'       => 'السعر يجب أن يكون رقماً',
-            'suite_price_yer.numeric' => 'سعر الجناح الكامل يجب أن يكون رقماً',
         ]);
 
-        if (!$request->filled('price_yer') && !$request->filled('suite_price_yer')) {
-            return back()->withErrors(['price_yer' => 'يجب إدخال سعر واحد على الأقل']);
+        if (!$request->filled('price_yer')) {
+            return back()->withErrors(['price_yer' => 'أدخل سعر القسم/الغرفة']);
         }
 
         // بناء الاستعلام حسب التحديد
@@ -358,15 +348,6 @@ class RoomController extends Controller
             $q = $buildQuery();
             $updatedCount = $q->count();
             $q->update(['price_yer' => $request->price_yer]);
-        }
-
-        // تحديث suite_price_yer للأجنحة فقط
-        if ($request->filled('suite_price_yer')) {
-            $q = $buildQuery(['suite_a', 'suite_b']);
-            if ($updatedCount === 0) {
-                $updatedCount = $q->count();
-            }
-            $q->update(['suite_price_yer' => $request->suite_price_yer]);
         }
 
         return back()->with('success', "تم تحديث أسعار {$updatedCount} غرفة بنجاح");

@@ -26,9 +26,10 @@ class PricingBoundsService
     /**
      * [min, max] لسعر الليلة المسموح.
      *
-     * قسم الجناح غرفة كأي غرفة، فيأخذ نطاق القسم الواحد. أما الجناح كاملاً
-     * فله نطاقه المستقل الذي يضبطه المدير — لا ضِعف نطاق القسم — حتى يمكن
-     * بيعه بسعر عرض يختلف عن مجموع قسميه.
+     * قسم الجناح غرفة كأي غرفة فيأخذ نطاق نوعه. أما الجناح كاملاً (غرفتان)
+     * فنطاقه إعداد واحد على مستوى الفندق يسري على كل الأجنحة — لا يُشتق من
+     * نوع الغرفة، لأن أقسام الأجنحة تُصنَّف غرفاً عادية فلن يُطبَّق أي نطاق
+     * مربوط بنوع اسمه "جناح". وما لم يُضبط يسقط على ضِعف نطاق القسم.
      */
     public static function boundsFor(?Room $room, ?string $suiteBookingType = null): ?array
     {
@@ -38,7 +39,10 @@ class PricingBoundsService
         }
 
         if (self::isFullSuite($suiteBookingType)) {
-            return [$type->effective_suite_min_price, $type->effective_suite_max_price];
+            return \App\Models\Setting::suitePriceRange() ?? [
+                round($type->effective_min_price * 2, 2),
+                round($type->effective_max_price * 2, 2),
+            ];
         }
 
         return [$type->effective_min_price, $type->effective_max_price];
@@ -89,8 +93,8 @@ class PricingBoundsService
 
         if ($price < $min || $price > $max) {
             $label = self::isFullSuite($suiteBookingType)
-                ? '"' . $type->name . '" كاملاً (غرفتان)'
-                : '"' . $type->name . '"';
+                ? 'الجناح كاملاً (غرفتان)'
+                : 'غرفة "' . $type->name . '"';
 
             return 'سعر الليلة لـ ' . $label . ' يجب أن يكون بين '
                    . number_format($min, 0) . ' و ' . number_format($max, 0) . ' ر.ي.';
@@ -104,10 +108,8 @@ class PricingBoundsService
     {
         return RoomType::all()->mapWithKeys(fn(RoomType $type) => [
             $type->id => [
-                'min'       => $type->effective_min_price,
-                'max'       => $type->effective_max_price,
-                'suite_min' => $type->effective_suite_min_price,
-                'suite_max' => $type->effective_suite_max_price,
+                'min' => $type->effective_min_price,
+                'max' => $type->effective_max_price,
             ],
         ])->toArray();
     }

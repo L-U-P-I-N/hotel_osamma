@@ -46,113 +46,96 @@ class SuitePricingBoundsTest extends TestCase
             ]);
     }
 
-    /** الخانتان الجديدتان تظهران لنوع له أقسام أجنحة فقط */
-    public function test_pricing_page_shows_a_separate_full_suite_range(): void
+    /**
+     * سيناريو المستخدم الحقيقي: أقسام الجناح مُصنَّفة "غرفة عادية" (لأنها غرف
+     * أصلاً)، فنطاق الجناح يجب أن يُطبَّق رغم ذلك — كان يُتجاهَل تماماً ويُستبدل
+     * بضِعف نطاق الغرفة العادية.
+     */
+    public function test_suite_range_applies_even_when_sections_are_typed_as_regular_rooms(): void
+    {
+        $room = $this->suiteRoom();
+        $regular = RoomType::where('name', 'غرفة عادية')->firstOrFail();
+        $regular->update(['min_price' => 30000, 'base_price' => 40000, 'max_price' => 60000]);
+        $room->update(['room_type_id' => $regular->id]);
+
+        // المدير يضبط نطاق الجناح على مستوى الفندق
+        $this->actingAs($this->admin())->put('/pricing/suite-range', [
+            'suite_min_price' => 50000,
+            'suite_max_price' => 200000,
+        ])->assertSessionHasNoErrors();
+
+        $suite = $this->reservation($room->fresh(), 'both');
+
+        // 50,000 كان يُرفض (ضِعف نطاق الغرفة = 60,000–120,000) — الآن يُقبل
+        $this->reprice($suite, 50000)->assertSessionHasNoErrors();
+        $this->reprice($suite, 180000)->assertSessionHasNoErrors();
+
+        // خارج نطاق الجناح -> مرفوض
+        $this->reprice($suite, 40000)->assertSessionHasErrors('price_per_night');
+        $this->reprice($suite, 250000)->assertSessionHasErrors('price_per_night');
+    }
+
+    /** القسم الواحد يبقى على نطاق نوعه — غرفة كأي غرفة */
+    public function test_a_single_section_still_uses_its_room_type_range(): void
+    {
+        $room = $this->suiteRoom();
+        $regular = RoomType::where('name', 'غرفة عادية')->firstOrFail();
+        $regular->update(['min_price' => 30000, 'base_price' => 40000, 'max_price' => 60000]);
+        $room->update(['room_type_id' => $regular->id]);
+
+        \App\Models\Setting::set(\App\Models\Setting::SUITE_MIN_PRICE, '50000');
+        \App\Models\Setting::set(\App\Models\Setting::SUITE_MAX_PRICE, '200000');
+
+        $section = $this->reservation($room->fresh(), 'a_only');
+
+        $this->reprice($section, 45000)->assertSessionHasNoErrors();
+        // داخل نطاق الجناح لكنه خارج نطاق الغرفة -> مرفوض
+        $this->reprice($section, 150000)->assertSessionHasErrors('price_per_night');
+    }
+
+    /** ما لم يُضبط نطاق الجناح يسقط على ضِعف نطاق القسم — سلوك سابق محفوظ */
+    public function test_unset_suite_range_falls_back_to_double_the_section(): void
+    {
+        $room = $this->suiteRoom();
+        $room->roomType->update(['min_price' => 10000, 'base_price' => 12000, 'max_price' => 14000]);
+
+        $this->assertNull(\App\Models\Setting::suitePriceRange());
+
+        $suite = $this->reservation($room, 'both');
+        $this->reprice($suite, 24000)->assertSessionHasNoErrors();
+        $this->reprice($suite, 29000)->assertSessionHasErrors('price_per_night');
+    }
+
+    public function test_pricing_page_exposes_one_suite_range_card(): void
     {
         $this->actingAs($this->admin())->get('/pricing')
             ->assertOk()
-            ->assertSee('سعر القسم الواحد (غرفة)', false)
-            ->assertSee('سعر الجناح كاملاً (غرفتان)', false)
+            ->assertSee('نطاق سعر الجناح كاملاً (غرفتان)', false)
             ->assertSee('suite_min_price', false);
     }
 
-    /** جوهر البلاغ: نطاق الجناح الكامل صار قابلاً للتعديل ومستقلاً عن ضِعف القسم */
-    public function test_admin_can_set_a_full_suite_range_that_is_not_double_the_section(): void
+    public function test_suite_range_is_validated(): void
     {
-        $type = $this->suiteRoom()->roomType;
+        $this->actingAs($this->admin())
+            ->put('/pricing/suite-range', ['suite_min_price' => 90000, 'suite_max_price' => 1000])
+            ->assertSessionHasErrors('suite_max_price');
 
         $this->actingAs($this->admin())
-            ->put("/pricing/room-types/{$type->id}", [
-                'min_price'       => 10000,
-                'base_price'      => 12000,
-                'max_price'       => 14000,
-                // سعر عرض: أقل من مجموع القسمين (20,000–28,000)
-                'suite_min_price' => 16000,
-                'suite_max_price' => 22000,
-            ])->assertSessionHasNoErrors();
-
-        $type->refresh();
-        $this->assertEqualsWithDelta(16000, $type->effective_suite_min_price, 0.01);
-        $this->assertEqualsWithDelta(22000, $type->effective_suite_max_price, 0.01);
-        // نطاق القسم لم يتأثر
-        $this->assertEqualsWithDelta(10000, $type->effective_min_price, 0.01);
-        $this->assertEqualsWithDelta(14000, $type->effective_max_price, 0.01);
+            ->put('/pricing/suite-range', ['suite_min_price' => 0, 'suite_max_price' => 1000])
+            ->assertSessionHasErrors('suite_min_price');
     }
 
-    public function test_full_suite_booking_is_judged_by_the_suite_range_only(): void
+    /** سعر الجناح الافتراضي = مجموع القسمين، والسعر اليدوي القديم لا يُقرأ */
+    public function test_full_suite_default_price_is_the_sum_of_sections(): void
     {
-        $room = $this->suiteRoom();
-        $room->roomType->update([
-            'min_price' => 10000, 'base_price' => 12000, 'max_price' => 14000,
-            'suite_min_price' => 16000, 'suite_max_price' => 22000,
-        ]);
+        $a = $this->suiteRoom();
+        $b = $a->suitePartner();
+        $this->assertNotNull($b);
 
-        $suiteReservation = $this->reservation($room, 'both');
+        $a->update(['price_yer' => 9000, 'suite_price_yer' => 50000]);
+        $b->update(['price_yer' => 9000]);
 
-        // 18,000 خارج نطاق القسم لكنه داخل نطاق الجناح -> مقبول
-        $this->reprice($suiteReservation, 18000)->assertSessionHasNoErrors();
-
-        // 28,000 = ضِعف أعلى سعر للقسم، وكان يُقبل سابقاً — الآن مرفوض
-        $this->reprice($suiteReservation, 28000)->assertSessionHasErrors('price_per_night');
-
-        // 15,000 تحت أقل سعر للجناح -> مرفوض
-        $this->reprice($suiteReservation, 15000)->assertSessionHasErrors('price_per_night');
-    }
-
-    public function test_a_suite_section_is_priced_like_a_room(): void
-    {
-        $room = $this->suiteRoom();
-        $room->roomType->update([
-            'min_price' => 10000, 'base_price' => 12000, 'max_price' => 14000,
-            'suite_min_price' => 16000, 'suite_max_price' => 22000,
-        ]);
-
-        $sectionReservation = $this->reservation($room, 'a_only');
-
-        // داخل نطاق القسم -> مقبول
-        $this->reprice($sectionReservation, 13000)->assertSessionHasNoErrors();
-
-        // داخل نطاق الجناح لكنه خارج نطاق القسم -> مرفوض
-        $this->reprice($sectionReservation, 18000)->assertSessionHasErrors('price_per_night');
-    }
-
-    public function test_unset_suite_range_still_falls_back_to_double_the_section(): void
-    {
-        $type = $this->suiteRoom()->roomType;
-        $type->update([
-            'min_price' => 10000, 'max_price' => 14000,
-            'suite_min_price' => 0, 'suite_max_price' => 0,
-        ]);
-
-        $type->refresh();
-        $this->assertFalse($type->hasExplicitSuiteBounds());
-        $this->assertEqualsWithDelta(20000, $type->effective_suite_min_price, 0.01);
-        $this->assertEqualsWithDelta(28000, $type->effective_suite_max_price, 0.01);
-    }
-
-    public function test_suite_range_is_validated_and_required_only_for_suite_types(): void
-    {
-        $suiteType = $this->suiteRoom()->roomType;
-
-        // نوع له أقسام أجنحة: النطاق مطلوب ومقلوبه مرفوض
-        $this->actingAs($this->admin())
-            ->put("/pricing/room-types/{$suiteType->id}", [
-                'min_price' => 10000, 'base_price' => 12000, 'max_price' => 14000,
-                'suite_min_price' => 25000, 'suite_max_price' => 20000,
-            ])->assertSessionHasErrors('suite_max_price');
-
-        $this->actingAs($this->admin())
-            ->put("/pricing/room-types/{$suiteType->id}", [
-                'min_price' => 10000, 'base_price' => 12000, 'max_price' => 14000,
-            ])->assertSessionHasErrors('suite_min_price');
-
-        // نوع بلا أقسام أجنحة: لا يُطالَب بها
-        $plainType = RoomType::whereDoesntHave('rooms', fn($q) => $q->whereIn('room_sub_type', ['suite_a', 'suite_b']))
-            ->firstOrFail();
-
-        $this->actingAs($this->admin())
-            ->put("/pricing/room-types/{$plainType->id}", [
-                'min_price' => 6000, 'base_price' => 7000, 'max_price' => 9000,
-            ])->assertSessionHasNoErrors();
+        $this->assertEqualsWithDelta(18000, $a->fresh()->fullSuitePrice(), 0.01,
+            'السعر اليدوي القديم يجب أن يُتجاهل');
     }
 }

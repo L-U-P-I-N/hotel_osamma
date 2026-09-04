@@ -435,6 +435,7 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware('permission:pricing.manage')->group(function () {
         Route::get('/pricing', [\App\Http\Controllers\PricingController::class, 'index'])->name('pricing.index');
         Route::put('/pricing/room-types/{roomType}', [\App\Http\Controllers\PricingController::class, 'updateRoomType'])->name('pricing.roomType.update');
+        Route::put('/pricing/suite-range', [\App\Http\Controllers\PricingController::class, 'updateSuiteRange'])->name('pricing.suiteRange.update');
     });
 
     // ===== Leaves: Report =====

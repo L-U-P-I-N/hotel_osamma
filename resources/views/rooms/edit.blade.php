@@ -123,11 +123,12 @@
                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-400 outline-none bg-white">
                         </div>
                         <div>
-                            <label class="block text-xs font-medium text-gray-600 mb-1">سعر الجناح كامل (القسمين A+B معاً)</label>
-                            <input type="number" name="suite_price_yer" value="{{ old('suite_price_yer', $room->suite_price_yer) }}" min="0" step="1"
-                                   placeholder="0"
-                                   class="w-full border border-indigo-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-400 outline-none bg-white">
-                            <p class="text-xs text-indigo-600 mt-1">يُستخدم عند حجز الجناح كامل دفعة واحدة</p>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">سعر الجناح كامل (القسمان A+B)</label>
+                            <p class="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 leading-relaxed">
+                                يُحتسب تلقائياً = مجموع سعرَي القسمين
+                                (<strong>{{ number_format($room->fullSuitePrice(), 0) }}</strong> ر.ي حالياً).
+                                لا يُدخَل يدوياً حتى لا توجد تسعيرتان للجناح.
+                            </p>
                         </div>
                         @else
                         <div>

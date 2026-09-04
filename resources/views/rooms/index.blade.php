@@ -313,7 +313,7 @@ html.dark .filter-chip.bg-white { background: #1e293b !important; }
         </div>
 
         {{-- Card Body --}}
-        <div @click="selectMode ? toggleSelect({{ $room->id }}) : openRoom(@js($room->only(['id','room_number','floor','beds_count','status','room_sub_type','price_yer','suite_price_yer'])), @js($room->roomType?->name ?? ''), {{ (float)($room->price_yer ?? 0) }})"
+        <div @click="selectMode ? toggleSelect({{ $room->id }}) : openRoom(@js($room->only(['id','room_number','floor','beds_count','status','room_sub_type','price_yer'])), @js($room->roomType?->name ?? ''), {{ (float)($room->price_yer ?? 0) }})"
              class="p-4 pb-3 cursor-pointer select-none">
 
             {{-- Top row: room number + status badge --}}
@@ -350,15 +350,16 @@ html.dark .filter-chip.bg-white { background: #1e293b !important; }
             @endif
 
             {{-- Price --}}
-            @if($room->isSuite() && ($room->suite_price_yer ?? 0) > 0)
+            @if($room->isSuite())
             <div class="mt-1 space-y-0.5">
                 <div class="flex items-baseline gap-1">
                     <span class="text-sm font-bold text-gray-600">{{ number_format($room->priceFor('YER'), 0) }}</span>
-                    <span class="text-[10px] text-gray-400">ر.ي مستقل</span>
+                    <span class="text-[10px] text-gray-400">ر.ي القسم</span>
                 </div>
                 <div class="flex items-baseline gap-1">
-                    <span class="text-base font-black" style="color:#0F4C75;">{{ number_format($room->suite_price_yer, 0) }}</span>
-                    <span class="text-[10px] text-indigo-500 font-medium">ر.ي كامل</span>
+                    {{-- محسوب: مجموع سعرَي القسمين، لا سعر يدوي --}}
+                    <span class="text-base font-black" style="color:#0F4C75;">{{ number_format($room->fullSuitePrice(), 0) }}</span>
+                    <span class="text-[10px] text-indigo-500 font-medium">ر.ي كامل (محسوب)</span>
                 </div>
             </div>
             @else
@@ -490,17 +491,12 @@ html.dark .filter-chip.bg-white { background: #1e293b !important; }
                 <p class="text-xs text-amber-600 mt-1 text-center" x-show="hasSuiteInSelection">يُستخدم عند تأجير القسم بشكل مستقل</p>
             </div>
 
-            {{-- ─── حقل سعر الجناح الكامل (يظهر فقط عند تضمين الأجنحة) ─── --}}
+            {{-- سعر الجناح الكامل محسوب تلقائياً = مجموع القسمين، فلا حقل يدوي له --}}
             <div x-show="hasSuiteInSelection" x-cloak>
-                <label class="block text-xs font-bold text-indigo-700 mb-1.5">
-                    سعر الجناح كامل — A+B معاً (ر.ي)
-                </label>
-                <div class="relative">
-                    <input type="number" name="suite_price_yer" min="0" step="1" placeholder="0"
-                           class="w-full border-2 border-indigo-200 rounded-xl px-4 py-3 text-2xl font-black text-center text-indigo-800 outline-none focus:border-indigo-500 transition bg-indigo-50 focus:bg-white">
-                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-indigo-400">ر.ي</span>
-                </div>
-                <p class="text-xs text-indigo-500 mt-1 text-center">يُستخدم عند حجز الجناح كامل دفعة واحدة — اتركه فارغاً لعدم تغييره</p>
+                <p class="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 leading-relaxed text-center">
+                    سعر الجناح كاملاً (A+B) يُحتسب تلقائياً بمجموع سعرَي القسمين —
+                    يكفي ضبط سعر القسم أعلاه.
+                </p>
             </div>
 
             {{-- رسالة خطأ --}}

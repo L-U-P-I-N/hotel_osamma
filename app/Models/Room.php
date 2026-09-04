@@ -135,16 +135,12 @@ class Room extends Model
      */
     public function fullSuitePrice(): float
     {
-        $price = (float) ($this->suite_price_yer ?? 0);
-        if ($price > 0) {
-            return $price;
-        }
+        // الجناح غرفتان: سعره مجموع سعرَي قسميه، لا سعر مستقل يُدخَل يدوياً.
+        // (عمود suite_price_yer لم يعد يُقرأ — بقي في القاعدة للسجل التاريخي فقط،
+        //  فوجود تسعيرة ثانية للجناح هو ما كان يفتح باب التلاعب.)
         $partner = $this->suitePartner();
-        $partnerSuitePrice = (float) ($partner?->suite_price_yer ?? 0);
-        if ($partnerSuitePrice > 0) {
-            return $partnerSuitePrice;
-        }
-        return $this->priceFor('YER') + ($partner?->priceFor('YER') ?? 0);
+
+        return round($this->priceFor('YER') + ($partner?->priceFor('YER') ?? $this->priceFor('YER')), 2);
     }
 
     public function isLinkedRoomAvailable(): bool

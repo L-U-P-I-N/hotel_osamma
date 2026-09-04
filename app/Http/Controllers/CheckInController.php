@@ -91,7 +91,10 @@ class CheckInController extends Controller
         );
         $floors = $displayRooms->pluck('floor')->unique()->sort()->values();
 
-        return view('checkin.create', compact('availableRooms', 'displayRooms', 'floors', 'linkedAvailability', 'admins', 'nationalities', 'mode', 'upcomingByRoom', 'hasActiveShift'));
+        // نطاق الجناح كاملاً: إعداد واحد على مستوى الفندق يسري على كل الأجنحة
+        $suiteRange = \App\Models\Setting::suitePriceRange();
+
+        return view('checkin.create', compact('availableRooms', 'displayRooms', 'floors', 'linkedAvailability', 'admins', 'nationalities', 'mode', 'upcomingByRoom', 'hasActiveShift', 'suiteRange'));
     }
 
     public function store(Request $request)
