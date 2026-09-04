@@ -36,6 +36,46 @@
             <button type="submit" class="px-4 py-2 text-white rounded-lg text-sm font-semibold" style="background:#0F4C75;">عرض</button>
         </form>
 
+        @if($foodSummary['allowance'] > 0)
+        {{-- صرفية الطعام والشراب: بند مستقل يتجدد شهرياً ولا يُخصم من الراتب --}}
+        <div class="mb-4 rounded-xl border border-indigo-100 bg-indigo-50 p-4">
+            <div class="flex items-center justify-between flex-wrap gap-2 mb-2">
+                <p class="text-sm font-semibold text-indigo-900">
+                    صرفية الطعام والشراب — {{ \App\Models\Salary::monthName($month) }} {{ $year }}
+                </p>
+                <p class="text-xs text-indigo-700">تتجدد كل شهر ولا تُخصم من الراتب الأساسي</p>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <div>
+                    <p class="text-xs text-indigo-600 mb-0.5">الصرفية الشهرية</p>
+                    <p class="font-bold text-indigo-900">{{ number_format($foodSummary['allowance'], 0) }} ر.ي</p>
+                </div>
+                <div>
+                    <p class="text-xs text-indigo-600 mb-0.5">المصروف منها</p>
+                    <p class="font-bold text-indigo-900">{{ number_format($foodSummary['spent'], 0) }} ر.ي</p>
+                </div>
+                <div>
+                    <p class="text-xs text-indigo-600 mb-0.5">المتبقي</p>
+                    <p class="font-bold {{ $foodSummary['remaining'] > 0 ? 'text-emerald-700' : 'text-gray-500' }}">
+                        {{ number_format($foodSummary['remaining'], 0) }} ر.ي
+                    </p>
+                </div>
+                <div>
+                    <p class="text-xs text-indigo-600 mb-0.5">تجاوز يُخصم من الراتب</p>
+                    <p class="font-bold {{ $foodSummary['overspend'] > 0 ? 'text-red-700' : 'text-gray-400' }}">
+                        {{ $foodSummary['overspend'] > 0 ? number_format($foodSummary['overspend'], 0) . ' ر.ي' : '—' }}
+                    </p>
+                </div>
+            </div>
+
+            <div class="mt-3 h-2 w-full rounded-full bg-white overflow-hidden border border-indigo-100">
+                <div class="h-full rounded-full {{ $foodSummary['overspend'] > 0 ? 'bg-red-500' : 'bg-indigo-500' }}"
+                     style="width: {{ $foodSummary['percent'] }}%;"></div>
+            </div>
+        </div>
+        @endif
+
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div class="bg-gray-50 rounded-lg p-4">
                 <p class="text-xs text-gray-500 mb-1">الراتب الأساسي</p>
@@ -44,9 +84,15 @@
             <div class="bg-amber-50 rounded-lg p-4 border border-amber-100">
                 <p class="text-xs text-amber-700 mb-1">مسحوبات {{ \App\Models\Salary::monthName($month) }} {{ $year }}</p>
                 <p class="text-lg font-bold text-amber-800">{{ number_format($monthTotal, 0) }} <span class="text-xs font-normal">ر.ي</span> <span class="text-xs font-normal">({{ $withdrawals->count() }} عملية)</span></p>
+                @if($foodSummary['allowance'] > 0)
+                <p class="text-[11px] text-amber-700 mt-1">
+                    المخصوم منها من الراتب: <b>{{ number_format($salaryChargeable, 0) }}</b> ر.ي
+                    — الباقي على صرفية الطعام
+                </p>
+                @endif
             </div>
             <div class="rounded-lg p-4 border {{ $remainingSalary < 0 ? 'bg-red-50 border-red-100' : 'bg-emerald-50 border-emerald-100' }}">
-                <p class="text-xs mb-1 {{ $remainingSalary < 0 ? 'text-red-700' : 'text-emerald-700' }}">المتبقي من الراتب بعد المسحوبات</p>
+                <p class="text-xs mb-1 {{ $remainingSalary < 0 ? 'text-red-700' : 'text-emerald-700' }}">المتبقي من الراتب (بعد ما يُخصم منه)</p>
                 <p class="text-lg font-bold {{ $remainingSalary < 0 ? 'text-red-800' : 'text-emerald-800' }}">{{ number_format($remainingSalary, 0) }} <span class="text-xs font-normal">ر.ي</span></p>
             </div>
             <div class="bg-blue-50 rounded-lg p-4 border border-blue-100">

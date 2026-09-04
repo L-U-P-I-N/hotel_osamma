@@ -15,6 +15,7 @@ class Employee extends Model
         'national_id',
         'position',
         'base_salary',
+        'food_allowance',
         'phone',
         'hire_date',
         'is_active',
@@ -23,7 +24,8 @@ class Employee extends Model
 
     protected $casts = [
         'hire_date'   => 'date',
-        'base_salary' => 'decimal:2',
+        'base_salary'    => 'decimal:2',
+        'food_allowance' => 'decimal:2',
         'is_active'   => 'boolean',
     ];
 
@@ -71,17 +73,68 @@ class Employee extends Model
         return $this->hasMany(CashWithdrawal::class);
     }
 
+    /** فئة المصروفات المحتسبة على صرفية الطعام والشراب */
+    public const FOOD_CATEGORY = 'food';
+
     /**
-     * إجمالي مسحوبات الموظف خلال شهر معيّن — يُخصم من راتب ذلك الشهر عند
-     * تفعيل الخصم التلقائي. يشمل مصروفات وحدة المصروفات وسحبيات الوردية
-     * المربوطة صراحةً بالموظف (فكلاهما يُنشئ سجل Expense بنفس employee_id).
+     * إجمالي ما صُرف للموظف خلال شهر معيّن — بكل فئاته.
+     * يشمل مصروفات وحدة المصروفات وسحبيات الوردية المربوطة صراحةً بالموظف
+     * (فكلاهما يُنشئ سجل Expense بنفس employee_id).
      */
-    public function withdrawalsTotalForMonth(int $month, int $year): float
+    public function expensesTotalForMonth(int $month, int $year, ?string $category = null): float
     {
         return (float) $this->expenses()
+            ->when($category !== null, fn($q) => $q->where('category', $category))
             ->whereMonth('expense_date', $month)
             ->whereYear('expense_date', $year)
             ->sum('amount');
+    }
+
+    /** ما صُرف من صرفية الطعام والشراب خلال الشهر */
+    public function foodSpentForMonth(int $month, int $year): float
+    {
+        return round($this->expensesTotalForMonth($month, $year, self::FOOD_CATEGORY), 2);
+    }
+
+    /** المتبقي من صرفية الشهر — تتجدد كل شهر ولا تُرحَّل */
+    public function foodRemainingForMonth(int $month, int $year): float
+    {
+        return round(max(0, (float) $this->food_allowance - $this->foodSpentForMonth($month, $year)), 2);
+    }
+
+    /** ما تجاوز الصرفية من مصروف طعام — هذا وحده يُخصم من الراتب */
+    public function foodOverspendForMonth(int $month, int $year): float
+    {
+        return round(max(0, $this->foodSpentForMonth($month, $year) - (float) $this->food_allowance), 2);
+    }
+
+    /**
+     * تفصيل صرفية الطعام والشراب لشهر معيّن — للعرض في كشف الموظف وقسيمة الراتب.
+     */
+    public function foodAllowanceSummary(int $month, int $year): array
+    {
+        $allowance = round((float) $this->food_allowance, 2);
+        $spent     = $this->foodSpentForMonth($month, $year);
+
+        return [
+            'allowance' => $allowance,
+            'spent'     => $spent,
+            'remaining' => round(max(0, $allowance - $spent), 2),
+            'overspend' => round(max(0, $spent - $allowance), 2),
+            'percent'   => $allowance > 0 ? min(100, round($spent / $allowance * 100)) : 0,
+        ];
+    }
+
+    /**
+     * ما يُخصم من الراتب الأساسي: كل المصروفات غير الطعام، زائد ما تجاوز
+     * صرفية الطعام فقط. الصرفية بند مستقل يتجدد شهرياً فلا تُخصم من الراتب.
+     */
+    public function withdrawalsTotalForMonth(int $month, int $year): float
+    {
+        $all  = $this->expensesTotalForMonth($month, $year);
+        $food = $this->foodSpentForMonth($month, $year);
+
+        return round(($all - $food) + $this->foodOverspendForMonth($month, $year), 2);
     }
 
     /**

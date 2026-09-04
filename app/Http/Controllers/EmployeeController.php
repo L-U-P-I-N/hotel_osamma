@@ -28,7 +28,8 @@ class EmployeeController extends Controller
             'name'        => 'required|string|max:255',
             'national_id' => 'nullable|string|max:50|unique:employees,national_id',
             'position'    => 'required|string|max:255',
-            'base_salary' => 'required|numeric|min:0',
+            'base_salary'    => 'required|numeric|min:0',
+            'food_allowance' => 'nullable|numeric|min:0',
             'phone'       => 'nullable|string|max:30',
             'hire_date'   => 'required|date',
             'is_active'   => 'boolean',
@@ -53,7 +54,8 @@ class EmployeeController extends Controller
             'name'        => 'required|string|max:255',
             'national_id' => 'nullable|string|max:50|unique:employees,national_id,' . $employee->id,
             'position'    => 'required|string|max:255',
-            'base_salary' => 'required|numeric|min:0',
+            'base_salary'    => 'required|numeric|min:0',
+            'food_allowance' => 'nullable|numeric|min:0',
             'phone'       => 'nullable|string|max:30',
             'hire_date'   => 'required|date',
             'is_active'   => 'boolean',
@@ -89,10 +91,15 @@ class EmployeeController extends Controller
             ->orderBy('id', 'desc')
             ->get();
 
-        $monthTotal      = (float) $withdrawals->sum('amount');
-        $allTimeTotal    = (float) $employee->expenses()->sum('amount');
-        $baseSalary      = (float) $employee->base_salary;
-        $remainingSalary = $baseSalary - $monthTotal;
+        $monthTotal   = (float) $withdrawals->sum('amount');
+        $allTimeTotal = (float) $employee->expenses()->sum('amount');
+        $baseSalary   = (float) $employee->base_salary;
+
+        // الطعام والشراب بند مستقل بصرفيته الشهرية؛ الراتب لا يُخصم منه إلا
+        // ما تجاوز الصرفية، فالمتبقي من الراتب يُحسب على هذا الأساس.
+        $foodSummary       = $employee->foodAllowanceSummary($month, $year);
+        $salaryChargeable  = $employee->withdrawalsTotalForMonth($month, $year);
+        $remainingSalary   = $baseSalary - $salaryChargeable;
 
         // قسيمة راتب الشهر إن كانت قد أُنشئت — لعرض حالة الخصم الفعلي
         $salary = $employee->salaries()
@@ -102,7 +109,8 @@ class EmployeeController extends Controller
 
         return view('employees.withdrawals', compact(
             'employee', 'withdrawals', 'month', 'year',
-            'monthTotal', 'allTimeTotal', 'baseSalary', 'remainingSalary', 'salary'
+            'monthTotal', 'allTimeTotal', 'baseSalary', 'remainingSalary', 'salary',
+            'foodSummary', 'salaryChargeable'
         ));
     }
 

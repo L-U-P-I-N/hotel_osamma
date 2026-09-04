@@ -89,10 +89,23 @@ class SalaryController extends Controller
         $notes = $notes ?? '';
 
         if ($request->boolean('include_withdrawals')) {
+            // صرفية الطعام والشراب بند مستقل يتجدد شهرياً، فلا تدخل الخصم إلا
+            // بما تجاوزها. نوضّح ذلك في الملاحظات حتى لا يبدو الخصم ناقصاً.
             $withdrawalsDeduction = $employee->withdrawalsTotalForMonth($month, $year);
+            $food = $employee->foodAllowanceSummary($month, $year);
+
             if ($withdrawalsDeduction > 0) {
                 $notes = trim($notes . "\n" . 'خصم مسحوبات ' . Salary::monthName($month) . ' ' . $year
-                    . ': ' . number_format($withdrawalsDeduction, 0) . ' ر.ي');
+                    . ': ' . number_format($withdrawalsDeduction, 0) . ' ر.ي'
+                    . ($food['overspend'] > 0
+                        ? ' (منها ' . number_format($food['overspend'], 0) . ' ر.ي تجاوزاً لصرفية الطعام والشراب)'
+                        : ''));
+            }
+
+            if ($food['allowance'] > 0) {
+                $notes = trim($notes . "\n" . 'صرفية طعام وشراب ' . Salary::monthName($month) . ' ' . $year
+                    . ': صُرف ' . number_format($food['spent'], 0) . ' من ' . number_format($food['allowance'], 0)
+                    . ' ر.ي — لا تُخصم من الراتب');
             }
         }
 
