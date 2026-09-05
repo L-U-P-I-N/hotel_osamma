@@ -2060,7 +2060,32 @@
                            class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                     <span class="absolute left-4 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">ر.ي / ليلة</span>
                 </div>
-                <p class="text-xs text-gray-400 mt-1">سيُحفَظ هذا السعر كسعر تجديد افتراضي للحجز.</p>
+                <p class="text-xs text-gray-400 mt-1">
+                    مبلغ التجديد مفتوح — لا يخضع لنطاق إعدادات التسعير الذي يحكم تسعير الدخول الأول.
+                    سيُحفَظ كسعر تجديد افتراضي للحجز.
+                </p>
+            </div>
+
+            {{-- خصم على هذا التجديد وحده — لا يمسّ الليالي السابقة ولا خصم الحجز الأصلي --}}
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                    خصم على التجديد <span class="text-gray-400 font-normal">(اختياري)</span>
+                </label>
+                <div class="grid grid-cols-3 gap-3">
+                    <select name="renewal_discount_type" x-model="discountType" @change="calc()"
+                            class="border border-gray-300 rounded-xl px-3 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="">بدون خصم</option>
+                        <option value="fixed">مبلغ ثابت</option>
+                        <option value="percent">نسبة %</option>
+                    </select>
+                    <input type="number" name="renewal_discount_value" min="0" step="0.01" placeholder="0"
+                           x-model.number="discountValue" @input="calc()" :disabled="!discountType"
+                           class="col-span-2 border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-400">
+                </div>
+                <p x-show="discountAmount > 0" class="text-xs text-amber-700 mt-1">
+                    قيمة الخصم: <strong x-text="formatNum(discountAmount)"></strong> ر.ي —
+                    صافي التجديد <strong x-text="formatNum(netExtraAmount)"></strong> ر.ي
+                </p>
             </div>
 
             <div x-show="extraNights > 0" class="grid grid-cols-3 gap-3">
@@ -2069,8 +2094,11 @@
                     <div class="text-xs text-blue-500 mt-0.5 font-medium">ليالٍ إضافية</div>
                 </div>
                 <div class="bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-center">
-                    <div class="text-lg font-black text-emerald-700" x-text="formatNum(extraAmount)"></div>
-                    <div class="text-xs text-emerald-500 mt-0.5 font-medium">مبلغ إضافي (ر.ي)</div>
+                    <div class="text-lg font-black text-emerald-700" x-text="formatNum(netExtraAmount)"></div>
+                    <div class="text-xs text-emerald-500 mt-0.5 font-medium">
+                        مبلغ إضافي (ر.ي)
+                        <span x-show="discountAmount > 0" class="block text-[10px] text-amber-600">بعد الخصم</span>
+                    </div>
                 </div>
                 <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 text-center">
                     <div class="text-lg font-black text-gray-800" x-text="formatNum(newTotal)"></div>
@@ -2090,6 +2118,15 @@
                         <option value="bank_transfer">تحويل بنكي</option>
                     </select>
                 </div>
+                <div class="flex items-center gap-3 mt-2">
+                    <button type="button" @click="payFull()"
+                            class="text-xs font-semibold text-blue-700 hover:text-blue-800 underline">
+                        دفع كامل المطلوب (<span x-text="formatNum(dueAfterRenewal())"></span> ر.ي)
+                    </button>
+                    <button type="button" @click="advancePayment = 0; calc()"
+                            class="text-xs text-gray-400 hover:text-gray-600 underline">تصفير</button>
+                </div>
+                <p class="text-xs text-gray-400 mt-1">اتركه صفراً للتأجيل، أو أدخل جزءاً من المبلغ للدفع الجزئي.</p>
             </div>
 
             {{-- ملخص المطلوب على النزيل بعد التجديد والدفعة --}}
@@ -2472,6 +2509,10 @@ function renewForm() {
         newTotal: 0,
         advancePayment: 0,
         remaining: 0,
+        discountType: '',
+        discountValue: 0,
+        discountAmount: 0,
+        netExtraAmount: 0,
         pricePerNight: {{ $renewalPrice }},
         currentOut: '{{ $reservation->check_out_date?->format('Y-m-d') ?? '' }}',
         currentTotal: {{ (float) $reservation->total_amount }},
@@ -2508,12 +2549,32 @@ function renewForm() {
             this.extraNights = Math.max(0, diff);
             this.calc();
         },
+        // المطلوب على النزيل بعد إضافة التجديد وقبل الدفعة
+        dueAfterRenewal() {
+            return Math.max(0, Math.round(this.newTotal - this.paidAmount));
+        },
+        payFull() {
+            this.advancePayment = this.dueAfterRenewal();
+            this.calc();
+        },
         calc() {
             // الريال اليمني عملة صحيحة عملياً — نقرّب لأقرب ريال حتى لا تظهر كسور
             // متراكمة (مثل 379,999.99) من عمليات القسمة/الضرب السابقة.
             this.extraAmount = Math.round(this.extraNights * (parseFloat(this.pricePerNight) || 0));
-            this.newTotal    = Math.round(this.currentTotal + this.extraAmount);
-            this.remaining   = Math.max(0, Math.round(this.newTotal - this.paidAmount - (parseFloat(this.advancePayment) || 0)));
+
+            // الخصم يقع على هذا التجديد وحده
+            const v = parseFloat(this.discountValue) || 0;
+            if (this.discountType === 'percent') {
+                this.discountAmount = Math.round(this.extraAmount * Math.min(v, 100) / 100);
+            } else if (this.discountType === 'fixed') {
+                this.discountAmount = Math.round(Math.min(v, this.extraAmount));
+            } else {
+                this.discountAmount = 0;
+            }
+
+            this.netExtraAmount = Math.max(0, this.extraAmount - this.discountAmount);
+            this.newTotal       = Math.round(this.currentTotal + this.netExtraAmount);
+            this.remaining      = Math.max(0, Math.round(this.newTotal - this.paidAmount - (parseFloat(this.advancePayment) || 0)));
         },
         formatNum(n) { return (parseFloat(n)||0).toLocaleString('ar-YE'); },
     }

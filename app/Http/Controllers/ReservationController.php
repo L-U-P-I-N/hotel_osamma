@@ -560,17 +560,22 @@ class ReservationController extends Controller
             return back()->withErrors(['error' => 'لا يمكن تجديد إلا الحجوزات النشطة (مسجل دخول)']);
         }
 
+        // سعر التجديد مفتوح عمداً: التمديد يُتفاوَض عليه مع نزيل مقيم أصلاً،
+        // فلا يخضع لنطاق إعدادات التسعير الذي يحكم تسعير الدخول الأول.
         $validated = $request->validate([
             'new_check_out_date'      => 'required|date|after:' . $reservation->check_out_date->format('Y-m-d'),
-            'renewal_price_per_night' => ['nullable', 'numeric', 'min:0',
-                new WithinPriceBounds($reservation->room, auth()->user(), $reservation->suite_booking_type)],
+            'renewal_price_per_night' => 'nullable|numeric|min:0',
+            'renewal_discount_type'   => 'nullable|in:fixed,percent',
+            'renewal_discount_value'  => 'nullable|numeric|min:0',
             'advance_payment'         => 'nullable|numeric|min:0',
             'payment_method'          => 'nullable|in:cash,pos,bank_transfer',
             'notes'                   => 'nullable|string|max:500',
             'payment_notes'           => 'nullable|string|max:500',
         ], [
-            'new_check_out_date.required' => 'تاريخ الخروج الجديد مطلوب',
-            'new_check_out_date.after'    => 'يجب أن يكون تاريخ الخروج الجديد بعد التاريخ الحالي',
+            'new_check_out_date.required'   => 'تاريخ الخروج الجديد مطلوب',
+            'new_check_out_date.after'      => 'يجب أن يكون تاريخ الخروج الجديد بعد التاريخ الحالي',
+            'renewal_price_per_night.numeric' => 'سعر ليلة التجديد يجب أن يكون رقماً',
+            'renewal_discount_value.numeric'  => 'قيمة الخصم يجب أن تكون رقماً',
         ]);
 
         // منع التجديد فوق حجزٍ قادم على نفس الغرفة/الجناح مع ترك يوم فاصل للتنظيف:
@@ -606,9 +611,23 @@ class ReservationController extends Controller
             : $reservation->effective_renewal_price_per_night;
         $extraAmount   = $extraNights * $pricePerNight;
 
+        // خصم على هذا التجديد وحده — لا يمسّ خصم الحجز الأصلي ولا الليالي السابقة
+        $renewalDiscount = 0.0;
+        $discountType    = $validated['renewal_discount_type'] ?? null;
+        $discountValue   = (float) ($validated['renewal_discount_value'] ?? 0);
+
+        if ($discountType && $discountValue > 0 && $extraAmount > 0) {
+            $renewalDiscount = $discountType === 'percent'
+                ? round($extraAmount * min($discountValue, 100) / 100, 2)
+                : round(min($discountValue, $extraAmount), 2);
+        }
+
+        // صافي التجديد بعد خصمه — هو ما يُضاف فعلاً إلى حساب النزيل
+        $netExtraAmount = round(max(0, $extraAmount - $renewalDiscount), 2);
+
         // نعيد بناء الإجمالي قبل الخصم (الصافي + الخصم) ثم نضيف ليالي التجديد
         // ونطبّق الخصم المحفوظ على الإجمالي الجديد حتى يبقى الخصم ساري المفعول.
-        $newGross       = $reservation->gross_total + $extraAmount;
+        $newGross       = $reservation->gross_total + $netExtraAmount;
         $discountAmount = $reservation->discountAmountFor($newGross);
         // نقرّب الإجمالي لأقرب ريال (عملة صحيحة عملياً) لتفادي تراكم كسور القسمة
         $newTotal       = round(max(0, round($newGross - $discountAmount, 2)) + $reservation->hotel_charges_total, 0);
@@ -616,7 +635,12 @@ class ReservationController extends Controller
         $old = $reservation->only(['check_out_date', 'total_amount', 'renewal_price_per_night']);
 
         // نُلحق ملاحظة المستخدم دائماً بعلامة التجديد (كانت تُهمل سابقاً إن وُجدت ملاحظات قديمة)
-        $renewalNote = "[تجديد +{$extraNights} ليلة بسعر " . number_format($pricePerNight, 0) . " ر.ي/ليلة]"
+        $renewalNote = "[تجديد +{$extraNights} ليلة بسعر " . number_format($pricePerNight, 0) . " ر.ي/ليلة"
+            . ($renewalDiscount > 0
+                ? ' — خصم ' . number_format($renewalDiscount, 0) . ' ر.ي، الصافي '
+                  . number_format($netExtraAmount, 0) . ' ر.ي'
+                : '')
+            . "]"
             . (!empty($validated['notes']) ? ': ' . $validated['notes'] : '');
 
         $oldCheckOut = $reservation->check_out_date->copy();
@@ -643,17 +667,23 @@ class ReservationController extends Controller
             $validated['new_check_out_date'],
             $extraNights,
             $pricePerNight,
-            $extraAmount,
+            $netExtraAmount, // الصافي بعد خصم التجديد — هو ما حُمِّل على الحجز
             auth()->id(),
             $shift?->id
         );
 
-        if (!empty($validated['advance_payment']) && $validated['advance_payment'] > 0) {
+        // الدفع عند التجديد: جزئي أو كامل. يُقيَّد بالرصيد المتبقي بعد التجديد
+        // حتى لا يتحول فائض الإدخال إلى "مدفوع أكثر من المستحق".
+        $reservation->refresh();
+        $paymentAmount = round((float) ($validated['advance_payment'] ?? 0), 2);
+        $paymentAmount = min($paymentAmount, max(0, (float) $reservation->balance));
+
+        if ($paymentAmount > 0) {
             \App\Models\Payment::create([
                 'reservation_id' => $reservation->id,
                 'shift_id'       => $shift?->id,
                 'received_by'    => auth()->id(),
-                'amount'         => $validated['advance_payment'],
+                'amount'         => $paymentAmount,
                 'currency'       => 'YER',
                 'method'         => $validated['payment_method'] ?? 'cash',
                 'payment_date'   => now(),
@@ -670,13 +700,17 @@ class ReservationController extends Controller
 
         AuditLogService::log('update', $reservation, $old, [
             'check_out_date'  => $validated['new_check_out_date'],
-            'extra_nights'    => $extraNights,
-            'extra_amount'    => $extraAmount,
-            'price_per_night' => $pricePerNight,
+            'extra_nights'     => $extraNights,
+            'extra_amount'     => $extraAmount,
+            'renewal_discount' => $renewalDiscount,
+            'net_extra_amount' => $netExtraAmount,
+            'price_per_night'  => $pricePerNight,
         ], auth()->user());
 
         return redirect()->route('reservations.show', $reservation)
-            ->with('success', "تم تجديد الإقامة بنجاح — تمديد {$extraNights} ليلة إضافية");
+            ->with('success', "تم تجديد الإقامة بنجاح — تمديد {$extraNights} ليلة بمبلغ "
+                . number_format($netExtraAmount, 0) . ' ر.ي'
+                . ($renewalDiscount > 0 ? ' (بعد خصم ' . number_format($renewalDiscount, 0) . ' ر.ي)' : ''));
     }
 
     /**
