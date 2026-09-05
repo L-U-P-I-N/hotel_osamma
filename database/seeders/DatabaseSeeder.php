@@ -11,6 +11,7 @@ class DatabaseSeeder extends Seeder
             HotelSeeder::class,
             RolesSeeder::class,
             AccountsSeeder::class,
+            ChartOfAccountsSeeder::class,
             UserSeeder::class,
             RoomTypeSeeder::class,
             RoomSeeder::class,

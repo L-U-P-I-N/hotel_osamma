@@ -427,6 +427,16 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/reservations/{reservation}/discount', [\App\Http\Controllers\ReservationController::class, 'removeDiscount'])->name('reservations.removeDiscount')->middleware('permission:reservation.discount');
     });
 
+    // ═══ شجرة الحسابات (USALI) — عرض وواجهات JSON ═══
+    Route::middleware('permission:reports.view')->group(function () {
+        Route::get('/accounting/chart-of-accounts', [\App\Http\Controllers\ChartOfAccountController::class, 'index'])->name('coa.index');
+        Route::get('/accounting/chart-of-accounts/tree', [\App\Http\Controllers\ChartOfAccountController::class, 'tree'])->name('coa.tree');
+        Route::get('/accounting/chart-of-accounts/posting', [\App\Http\Controllers\ChartOfAccountController::class, 'postingAccounts'])->name('coa.posting');
+        Route::post('/accounting/chart-of-accounts/validate-entry', [\App\Http\Controllers\ChartOfAccountController::class, 'validateEntry'])->name('coa.validateEntry');
+        Route::get('/accounting/chart-of-accounts/integrity', [\App\Http\Controllers\ChartOfAccountController::class, 'integrity'])->name('coa.integrity');
+        Route::get('/accounting/chart-of-accounts/{code}', [\App\Http\Controllers\ChartOfAccountController::class, 'show'])->name('coa.show');
+    });
+
     // إعدادات التسعير — المدير هو من يحدد نطاق أقل وأعلى سعر لكل نوع
     Route::middleware('permission:pricing.manage')->group(function () {
         Route::get('/pricing', [\App\Http\Controllers\PricingController::class, 'index'])->name('pricing.index');
