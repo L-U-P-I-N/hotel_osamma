@@ -898,6 +898,62 @@ html.dark [style*="background:var(--gold-l)"] {
                 </div>
                 @endif
             </div>
+
+            @can('rooms.maintenance')
+            @if($blockedRooms->isNotEmpty())
+            {{-- غرف غير متاحة: يستطيع الموظف تحريرها هنا دون مغادرة شاشة التسجيل،
+                 فالغرفة التي انتهى فحصها كانت تُجبره على الذهاب لصفحة الغرف. --}}
+            <div class="mt-4 border-t border-gray-100 pt-4" x-data="{ openBlocked: false }">
+                <button type="button" @click="openBlocked = !openBlocked"
+                        class="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border border-amber-200 bg-amber-50 text-amber-800 text-sm font-semibold hover:bg-amber-100 transition">
+                    <span class="flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        غرف غير متاحة ({{ $blockedRooms->count() }}) — تغيير الحالة
+                    </span>
+                    <svg class="w-4 h-4 transition-transform" :class="openBlocked && 'rotate-180'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+
+                <div x-show="openBlocked" x-cloak x-transition class="mt-3 space-y-2">
+                    <p class="text-xs text-gray-500">
+                        بعد تحويل الغرفة إلى «متاحة» ستظهر فوراً في قائمة الاختيار أعلاه.
+                        الغرف المشغولة بنزيل لا تظهر هنا — تتحرر بتسجيل الخروج فقط.
+                    </p>
+
+                    @foreach($blockedRooms as $room)
+                    <div class="flex items-center justify-between gap-3 flex-wrap rounded-xl border border-gray-200 bg-white px-3 py-2.5">
+                        <div class="min-w-0">
+                            <span class="font-bold text-gray-800">{{ $room->room_number }}</span>
+                            <span class="text-xs text-gray-400 mr-1">{{ $room->roomType?->name }}</span>
+                            <span class="text-xs mr-2 px-2 py-0.5 rounded-full
+                                {{ $room->status === 'maintenance' ? 'bg-gray-100 text-gray-600' : 'bg-yellow-100 text-yellow-700' }}">
+                                {{ $room->status_label }}
+                            </span>
+                        </div>
+
+                        <div class="flex items-center gap-1.5">
+                            @foreach(['available' => 'متاحة', 'under_inspection' => 'تحت الفحص', 'maintenance' => 'صيانة'] as $value => $label)
+                            @if($room->status !== $value)
+                            <form method="POST" action="{{ route('rooms.updateStatus', $room) }}" class="inline">
+                                @csrf
+                                <input type="hidden" name="status" value="{{ $value }}">
+                                <input type="hidden" name="redirect_to" value="checkin">
+                                <button type="submit"
+                                        class="px-2.5 py-1 rounded-lg text-xs font-semibold border transition
+                                        {{ $value === 'available'
+                                            ? 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'
+                                            : 'border-gray-300 text-gray-600 hover:bg-gray-50' }}">
+                                    {{ $label }}
+                                </button>
+                            </form>
+                            @endif
+                            @endforeach
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+            @endcan
         </div>
     </div>
     </div>{{-- /room col --}}

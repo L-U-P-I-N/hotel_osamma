@@ -280,52 +280,11 @@ class RoomController extends Controller
         return response()->json($rooms);
     }
 
-    public function bulkUpdatePrice(Request $request)
-    {
-        $request->validate([
-            'price_yer'       => 'nullable|numeric|min:0',
-            'sub_type'        => 'nullable|string',
-        ], [
-            'price_yer.numeric'       => 'السعر يجب أن يكون رقماً',
-        ]);
-
-        if (!$request->filled('price_yer')) {
-            return back()->withErrors(['price_yer' => 'أدخل سعر القسم/الغرفة']);
-        }
-
-        // بناء الاستعلام حسب التحديد
-        // التوحيد بالنوع فقط: أُلغي تحديد غرف بعينها لأنه كان مصدر أخطاء
-        $buildQuery = function (array $additionalSubTypes = []) use ($request) {
-            $q = Room::query();
-            if ($request->filled('sub_type')) {
-                $subType = $request->sub_type;
-                // 'suite' يعني كلا القسمين
-                $subType === 'suite'
-                    ? $q->whereIn('room_sub_type', ['suite_a', 'suite_b'])
-                    : $q->where('room_sub_type', $subType);
-            }
-            if (!empty($additionalSubTypes)) {
-                $q->whereIn('room_sub_type', $additionalSubTypes);
-            }
-            return $q;
-        };
-
-        $updatedCount = 0;
-
-        // تحديث price_yer لجميع الغرف المحددة
-        if ($request->filled('price_yer')) {
-            $q = $buildQuery();
-            $updatedCount = $q->count();
-            $q->update(['price_yer' => $request->price_yer]);
-        }
-
-        return back()->with('success', "تم تحديث أسعار {$updatedCount} غرفة بنجاح");
-    }
-
     public function updateStatus(Request $request, Room $room)
     {
         $request->validate([
-            'status' => 'required|in:available,under_inspection,maintenance',
+            'status'      => 'required|in:available,under_inspection,maintenance',
+            'redirect_to' => 'nullable|in:checkin',
         ], [
             'status.required' => 'الحالة مطلوبة',
             'status.in'       => 'لا يمكن تعيين هذه الحالة يدوياً — مشغولة ومحجوزة تتغيران تلقائياً عبر الحجوزات فقط',
@@ -357,6 +316,14 @@ class RoomController extends Controller
         if ($request->expectsJson()) {
             return response()->json(['success' => true, 'room' => $room->fresh()]);
         }
+
+        // التحرير من شاشة تسجيل الدخول يعود إليها لا لصفحة الغرف، حتى يكمل
+        // الموظف تسجيل النزيل على الغرفة التي حرّرها للتو.
+        if ($request->input('redirect_to') === 'checkin') {
+            return redirect()->route('checkin.create')
+                ->with('success', 'تم تحديث حالة الغرفة ' . $room->room_number . ' إلى "' . $room->status_label . '"');
+        }
+
         return redirect()->route('rooms.index', $this->returnFilters($request))
             ->with('success', 'تم تحديث حالة الغرفة بنجاح');
     }

@@ -181,14 +181,6 @@ html.dark .filter-chip.bg-white { background: #1e293b !important; }
             @endif
 
             <div class="flex items-center gap-2 mr-auto">
-                @can('rooms.edit')
-                <button type="button" @click="bulkPriceModal=true"
-                        class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition border-2"
-                        style="border-color:#0F4C75; color:#0F4C75;">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-5 5a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a2 2 0 014-4z"/></svg>
-                    توحيد سعر الغرف
-                </button>
-                @endcan
                 @can('rooms.create')
                 <a href="{{ route('rooms.create') }}"
                    class="flex items-center gap-2 px-4 py-2.5 text-white rounded-xl text-sm font-medium transition"
@@ -202,7 +194,6 @@ html.dark .filter-chip.bg-white { background: #1e293b !important; }
     </form>
 </div>
 
-{{-- ════════ Bulk Select Toolbar ════════ --}}
 {{-- ════════ Grid Header ════════ --}}
 <div class="flex items-center justify-between mb-3">
     <p class="text-sm text-gray-500 font-medium">
@@ -331,85 +322,6 @@ html.dark .filter-chip.bg-white { background: #1e293b !important; }
     </div>
 </div>
 
-
-{{-- ════════ Bulk Price Modal ════════ --}}
-@can('rooms.edit')
-<div x-show="bulkPriceModal" x-cloak
-     class="fixed inset-0 z-50 flex items-center justify-center p-4"
-     style="background:rgba(15,30,50,0.6); backdrop-filter:blur(4px);"
-     @click.self="bulkPriceModal=false">
-    <div x-transition:enter="transition ease-out duration-200"
-         x-transition:enter-start="opacity-0 scale-95"
-         x-transition:enter-end="opacity-100 scale-100"
-         class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-
-        {{-- Header --}}
-        <div class="px-6 py-4 flex items-center justify-between" style="background:#0F4C75;">
-            <h3 class="font-bold text-white flex items-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-5 5a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a2 2 0 014-4z"/></svg>
-                توحيد سعر الغرف
-            </h3>
-            <button @click="bulkPriceModal=false" class="text-white/70 hover:text-white transition">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
-        </div>
-
-        <form method="POST" action="{{ route('rooms.bulkPrice') }}" class="p-6 space-y-5">
-            @csrf
-
-            {{-- التطبيق بالنوع فقط — لا تحديد يدوي للغرف تفادياً للخطأ --}}
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">تطبيق على</label>
-                    <select name="sub_type" x-model="bulkSubType"
-                            class="w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-gray-50 focus:bg-white focus:border-blue-400 outline-none transition">
-                        <option value="">جميع الغرف ({{ $total }})</option>
-                        <option value="regular">عادية فقط</option>
-                        <option value="double">زوجية فقط</option>
-                        <option value="suite">جناح (A+B معاً)</option>
-                        <option value="suite_a">جناح A فقط</option>
-                        <option value="suite_b">جناح B فقط</option>
-                        <option value="hall">صالة فقط</option>
-                        <option value="apartment">شقة فقط</option>
-                    </select>
-                </div>
-
-            {{-- ─── حقل السعر العادي (لجميع الأنواع) ─── --}}
-            <div>
-                <label class="block text-xs font-bold text-gray-600 mb-1.5">
-                    <span x-show="!hasSuiteInSelection">سعر الليلة (ر.ي)</span>
-                    <span x-show="hasSuiteInSelection">سعر القسم المستقل — كل قسم A أو B على حدة (ر.ي)</span>
-                </label>
-                <div class="relative">
-                    <input type="number" name="price_yer" min="0" step="1" placeholder="0"
-                           class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-2xl font-black text-center text-gray-800 outline-none focus:border-amber-400 transition bg-gray-50 focus:bg-white">
-                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400">ر.ي</span>
-                </div>
-                <p class="text-xs text-gray-400 mt-1 text-center" x-show="!hasSuiteInSelection">اتركه فارغاً لعدم تغييره</p>
-                <p class="text-xs text-amber-600 mt-1 text-center" x-show="hasSuiteInSelection">يُستخدم عند تأجير القسم بشكل مستقل</p>
-            </div>
-
-            {{-- سعر الجناح الكامل محسوب تلقائياً = مجموع القسمين، فلا حقل يدوي له --}}
-            <div x-show="hasSuiteInSelection" x-cloak>
-                <p class="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 leading-relaxed text-center">
-                    سعر الجناح كاملاً (A+B) يُحتسب تلقائياً بمجموع سعرَي القسمين —
-                    يكفي ضبط سعر القسم أعلاه.
-                </p>
-            </div>
-
-            {{-- رسالة خطأ --}}
-            @error('price_yer')
-            <p class="text-xs text-red-600 text-center">{{ $message }}</p>
-            @enderror
-
-            <button type="submit"
-                    class="w-full py-3 text-white font-bold text-sm rounded-xl transition hover:opacity-90 shadow-sm"
-                    style="background:#0F4C75;">
-                تحديث الأسعار الآن
-            </button>
-        </form>
-    </div>
-</div>
-@endcan
 
 {{-- ════════ Delete Modal ════════ --}}
 @can('rooms.delete')
@@ -560,9 +472,6 @@ function roomsPage() {
         selectedRoom: {},
         selectedRoomType: '',
         selectedRoomPrice: 0,
-        bulkPriceModal: false,
-        bulkSubType: '',
-        roomSubTypes: @json($rooms->pluck('room_sub_type', 'id')),
         statusLabels: {
             available: 'متاحة', occupied: 'مشغولة',
             under_inspection: 'تحت الفحص', maintenance: 'صيانة'
@@ -570,10 +479,6 @@ function roomsPage() {
         subTypeLabels: {
             regular: 'عادية', double: 'زوجية', suite_a: 'جناح A',
             suite_b: 'جناح B', hall: 'صالة', apartment: 'شقة'
-        },
-        // التوحيد يتم بالنوع فقط (لا تحديد يدوي للغرف)
-        get hasSuiteInSelection() {
-            return ['suite','suite_a','suite_b',''].includes(this.bulkSubType);
         },
         init() {},
         openRoom(room, type, price) {
@@ -587,7 +492,7 @@ function roomsPage() {
             this.deleteRoomNumber = number;
             this.deleteModal = true;
         },
-        openBulkPrice() { this.bulkPriceModal = true; }
+
     }
 }
 </script>

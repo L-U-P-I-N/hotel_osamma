@@ -94,7 +94,15 @@ class CheckInController extends Controller
         // نطاق الجناح كاملاً: إعداد واحد على مستوى الفندق يسري على كل الأجنحة
         $suiteRange = \App\Models\Setting::suitePriceRange();
 
-        return view('checkin.create', compact('availableRooms', 'displayRooms', 'floors', 'linkedAvailability', 'admins', 'nationalities', 'mode', 'upcomingByRoom', 'hasActiveShift', 'suiteRange'));
+        // غرف غير متاحة يمكن للموظف تحريرها أثناء التسجيل (تحت الفحص/صيانة).
+        // لا تشمل المشغولة والمحجوزة لأن حالتهما تتبع الحجوزات لا الإدخال اليدوي.
+        $blockedRooms = Room::with('roomType')
+            ->whereIn('status', ['under_inspection', 'maintenance'])
+            ->orderBy('floor')
+            ->orderBy('room_number')
+            ->get();
+
+        return view('checkin.create', compact('availableRooms', 'displayRooms', 'floors', 'linkedAvailability', 'admins', 'nationalities', 'mode', 'upcomingByRoom', 'hasActiveShift', 'suiteRange', 'blockedRooms'));
     }
 
     public function store(Request $request)
