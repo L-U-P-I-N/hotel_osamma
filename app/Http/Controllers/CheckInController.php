@@ -138,7 +138,11 @@ class CheckInController extends Controller
         // id_number مُشفَّر (غير قابل للمطابقة المباشرة بـ WHERE)، فنبحث عبر بصمته —
         // كان Guest::where('id_number', ...) يفشل دائماً فيُلزم كل نزيل عائد برفع صورة
         // جديدة حتى لو كانت محفوظة لديه مسبقاً.
-        $existingGuest = Guest::searchByIdNumber($request->input('id_number'))->first();
+        // البحث يسبق التحقق، فرقم هوية فارغ كان يرمي TypeError (خطأ 500) بدل
+        // رسالة "رقم الهوية مطلوب" — فيبدو للموظف أن الزر لم ينفّذ شيئاً.
+        $existingGuest = $request->filled('id_number')
+            ? Guest::searchByIdNumber((string) $request->input('id_number'))->first()
+            : null;
         $idImageRule = ($existingGuest && $existingGuest->id_image_path)
             ? "nullable|file|mimes:{$imgMimes}|max:5120"
             : "required|file|mimes:{$imgMimes}|max:5120";

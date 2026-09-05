@@ -931,20 +931,18 @@ html.dark [style*="background:var(--gold-l)"] {
                         </div>
 
                         <div class="flex items-center gap-1.5">
+                            {{-- الأزرار هنا، ونماذجها خارج نموذج التسجيل عبر خاصية form:
+                                 النماذج المتداخلة غير صالحة في HTML ويُسقطها المتصفح
+                                 فيتعطّل زر تسجيل الدخول نفسه. --}}
                             @foreach(['available' => 'متاحة', 'under_inspection' => 'تحت الفحص', 'maintenance' => 'صيانة'] as $value => $label)
                             @if($room->status !== $value)
-                            <form method="POST" action="{{ route('rooms.updateStatus', $room) }}" class="inline">
-                                @csrf
-                                <input type="hidden" name="status" value="{{ $value }}">
-                                <input type="hidden" name="redirect_to" value="checkin">
-                                <button type="submit"
-                                        class="px-2.5 py-1 rounded-lg text-xs font-semibold border transition
-                                        {{ $value === 'available'
-                                            ? 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'
-                                            : 'border-gray-300 text-gray-600 hover:bg-gray-50' }}">
-                                    {{ $label }}
-                                </button>
-                            </form>
+                            <button type="submit" form="roomStatus-{{ $room->id }}-{{ $value }}"
+                                    class="px-2.5 py-1 rounded-lg text-xs font-semibold border transition
+                                    {{ $value === 'available'
+                                        ? 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'
+                                        : 'border-gray-300 text-gray-600 hover:bg-gray-50' }}">
+                                {{ $label }}
+                            </button>
                             @endif
                             @endforeach
                         </div>
@@ -1404,6 +1402,25 @@ html.dark [style*="background:var(--gold-l)"] {
 </div>
 
 </form>
+
+@can('rooms.maintenance')
+@if($blockedRooms->isNotEmpty())
+{{-- نماذج تغيير حالة الغرفة — خارج نموذج التسجيل عمداً (لا نماذج متداخلة).
+     ترتبط بأزرارها داخل اللوحة عبر خاصية form في HTML5. --}}
+@foreach($blockedRooms as $room)
+@foreach(['available', 'under_inspection', 'maintenance'] as $value)
+@if($room->status !== $value)
+<form id="roomStatus-{{ $room->id }}-{{ $value }}" method="POST"
+      action="{{ route('rooms.updateStatus', $room) }}" class="hidden">
+    @csrf
+    <input type="hidden" name="status" value="{{ $value }}">
+    <input type="hidden" name="redirect_to" value="checkin">
+</form>
+@endif
+@endforeach
+@endforeach
+@endif
+@endcan
 
 {{-- ════════ نافذة تصحيح سريع: أعد رفع صورة الهوية وأكمل دون العودة للخطوات ════════ --}}
 @if($errors->has('id_image'))
