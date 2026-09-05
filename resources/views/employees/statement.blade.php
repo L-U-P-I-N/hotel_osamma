@@ -16,11 +16,36 @@
     <div class="flex items-start justify-between flex-wrap gap-3">
         <div>
             <h2 class="text-2xl font-black text-gray-800">{{ $employee->name }}</h2>
+            {{-- البيانات الفعلية للموظف: ما لم يُضبط يُحذف بدل طباعة شرطة --}}
             <p class="text-gray-500 text-sm mt-1">
-                {{ $employee->position ?? '—' }}
+                {{ $employee->position ?: 'بلا مسمى وظيفي' }}
                 @if($employee->hire_date) · تاريخ التعيين {{ $employee->hire_date->format('d/m/Y') }} @endif
-                · الراتب الأساسي <b class="text-gray-700">{{ number_format((float) $employee->base_salary, 0) }} ر.ي</b>
             </p>
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-sm">
+                <span class="text-gray-500">
+                    الراتب الأساسي
+                    <b class="text-gray-800">{{ number_format((float) $employee->base_salary, 0) }} ر.ي</b>
+                </span>
+                @if((float) $employee->food_allowance > 0)
+                <span class="text-gray-500">
+                    صرفية طعام وشراب
+                    <b class="text-indigo-700">{{ number_format((float) $employee->food_allowance, 0) }} ر.ي</b>
+                    <span class="text-xs text-gray-400">/ شهرياً</span>
+                </span>
+                @endif
+                @if($employee->phone)
+                <span class="text-gray-500">
+                    الجوال
+                    <b class="text-gray-800" dir="ltr" style="unicode-bidi:embed;">{{ $employee->phone }}</b>
+                </span>
+                @endif
+                @if($employee->national_id)
+                <span class="text-gray-500">
+                    رقم الهوية
+                    <b class="text-gray-800" dir="ltr" style="unicode-bidi:embed;">{{ $employee->national_id }}</b>
+                </span>
+                @endif
+            </div>
         </div>
         <a href="{{ route('employees.statement.pdf', ['employee' => $employee->id, 'from' => $from, 'to' => $to]) }}" target="_blank"
            class="flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 transition">

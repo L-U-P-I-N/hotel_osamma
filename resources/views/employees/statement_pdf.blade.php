@@ -76,6 +76,10 @@
     <tr>
         <td class="lbl">الراتب الأساسي</td>
         <td class="val">{{ number_format((float) $employee->base_salary, 0) }} ر.ي</td>
+    </tr>
+    <tr>
+        <td class="lbl">صرفية طعام وشراب</td>
+        <td class="val">{{ (float) $employee->food_allowance > 0 ? number_format((float) $employee->food_allowance, 0) . ' ر.ي / شهرياً' : 'لا يوجد' }}</td>
         <td class="lbl">تاريخ التعيين</td>
         <td class="val">{{ $employee->hire_date?->format('Y/m/d') ?: '—' }}</td>
     </tr>

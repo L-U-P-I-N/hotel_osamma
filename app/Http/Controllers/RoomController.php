@@ -274,34 +274,6 @@ class RoomController extends Controller
         return redirect()->back()->with('success', 'تم حذف الغرفة ' . $room->room_number . ' بنجاح');
     }
 
-    public function bulkDelete(Request $request)
-    {
-        $request->validate([
-            'room_ids'   => 'required|array|min:1',
-            'room_ids.*' => 'integer|exists:rooms,id',
-        ], [
-            'room_ids.required' => 'اختر غرفة واحدة على الأقل للحذف',
-        ]);
-
-        $rooms = Room::whereIn('id', $request->room_ids)->get();
-
-        $blocked = $rooms->filter(fn(Room $room) => $room->reservations()->where('status', 'checked_in')->exists());
-        $deletable = $rooms->diff($blocked);
-
-        foreach ($deletable as $room) {
-            AuditLogService::log('delete', $room, $room->toArray(), [], auth()->user());
-            $room->delete();
-        }
-
-        $message = "تم حذف {$deletable->count()} غرفة بنجاح";
-        if ($blocked->isNotEmpty()) {
-            $message .= '. تعذّر حذف ' . $blocked->count() . ' غرفة لوجود حجوزات نشطة عليها: '
-                . $blocked->pluck('room_number')->implode('، ');
-        }
-
-        return redirect()->back()->with('success', $message);
-    }
-
     public function available()
     {
         $rooms = Room::with('roomType')->available()->orderBy('floor')->orderBy('room_number')->get();
@@ -313,8 +285,6 @@ class RoomController extends Controller
         $request->validate([
             'price_yer'       => 'nullable|numeric|min:0',
             'sub_type'        => 'nullable|string',
-            'room_ids'        => 'nullable|array',
-            'room_ids.*'      => 'integer|exists:rooms,id',
         ], [
             'price_yer.numeric'       => 'السعر يجب أن يكون رقماً',
         ]);
@@ -324,11 +294,10 @@ class RoomController extends Controller
         }
 
         // بناء الاستعلام حسب التحديد
+        // التوحيد بالنوع فقط: أُلغي تحديد غرف بعينها لأنه كان مصدر أخطاء
         $buildQuery = function (array $additionalSubTypes = []) use ($request) {
             $q = Room::query();
-            if ($request->filled('room_ids')) {
-                $q->whereIn('id', $request->room_ids);
-            } elseif ($request->filled('sub_type')) {
+            if ($request->filled('sub_type')) {
                 $subType = $request->sub_type;
                 // 'suite' يعني كلا القسمين
                 $subType === 'suite'

@@ -203,56 +203,6 @@ html.dark .filter-chip.bg-white { background: #1e293b !important; }
 </div>
 
 {{-- ════════ Bulk Select Toolbar ════════ --}}
-<div x-show="selectMode" x-cloak
-     x-transition:enter="transition ease-out duration-200"
-     x-transition:enter-start="opacity-0 -translate-y-2"
-     x-transition:enter-end="opacity-100 translate-y-0"
-     class="rounded-2xl p-3.5 mb-4 flex items-center gap-3 flex-wrap"
-     style="background:#eff6ff; border:1.5px solid #bfdbfe;">
-    <button @click="toggleAll()"
-            class="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl transition"
-            :class="allSelected ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-blue-700 border border-blue-300 hover:bg-blue-50'">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        <span x-text="allSelected ? 'إلغاء الكل' : 'تحديد الكل'"></span>
-    </button>
-
-    <div class="h-5 w-px bg-blue-200 hidden sm:block"></div>
-
-    <div class="flex gap-2 flex-wrap">
-        @foreach(['regular'=>'عادية','double'=>'زوجية','suite_a'=>'جناح A','suite_b'=>'جناح B','hall'=>'صالة','apartment'=>'شقة'] as $val=>$label)
-        <button @click="selectBySubType('{{ $val }}')"
-                class="filter-chip bg-white border-blue-200 text-blue-700 hover:bg-blue-600 hover:text-white hover:border-blue-600">
-            {{ $label }}
-        </button>
-        @endforeach
-    </div>
-
-    <div class="flex items-center gap-3 mr-auto">
-        <span class="text-sm font-bold text-blue-800 bg-blue-100 px-3 py-1 rounded-lg">
-            <span x-text="selectedIds.length"></span> محددة
-        </span>
-        @can('rooms.edit')
-        <button x-show="selectedIds.length > 0" @click="openBulkPrice()"
-                class="flex items-center gap-2 px-4 py-2 text-white text-sm font-semibold rounded-xl shadow-sm transition hover:opacity-90"
-                style="background:#0F4C75;">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-            تحديث السعر
-        </button>
-        @endcan
-        @can('rooms.delete')
-        <button x-show="selectedIds.length > 0" @click="bulkDeleteModal=true"
-                class="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl shadow-sm transition">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-            حذف المحدد
-        </button>
-        @endcan
-        <button @click="selectMode=false; selectedIds=[]"
-                class="text-sm text-blue-500 hover:text-blue-700 font-medium px-2 py-2 rounded-lg hover:bg-blue-50 transition">
-            إلغاء
-        </button>
-    </div>
-</div>
-
 {{-- ════════ Grid Header ════════ --}}
 <div class="flex items-center justify-between mb-3">
     <p class="text-sm text-gray-500 font-medium">
@@ -261,19 +211,7 @@ html.dark .filter-chip.bg-white { background: #1e293b !important; }
         <span class="text-xs text-blue-500 mr-1">· فلترة مفعّلة</span>
         @endif
     </p>
-    @canany(['rooms.edit', 'rooms.delete'])
-    <button @click="selectMode=!selectMode; if(!selectMode) selectedIds=[]"
-            class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition"
-            :class="selectMode
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-white border border-gray-200 text-gray-600 hover:border-blue-400 hover:text-blue-600'">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-        </svg>
-        <span x-text="selectMode ? 'إلغاء التحديد' : 'تحديد متعدد'"></span>
-    </button>
-    @endcanany
+
 </div>
 
 {{-- ════════ Rooms Grid ════════ --}}
@@ -291,29 +229,13 @@ html.dark .filter-chip.bg-white { background: #1e293b !important; }
 
     <div class="room-card"
          x-show="!search || @js((string) $room->room_number).toLowerCase().includes(search.trim().toLowerCase())"
-         x-cloak
-         :class="selectedIds.includes({{ $room->id }}) ? 'selected' : ''">
+         x-cloak>
 
         {{-- Status bar --}}
         <span class="status-bar {{ $meta['bar'] }}"></span>
 
-        {{-- Checkbox (select mode) --}}
-        <div x-show="selectMode"
-             class="absolute top-3 right-3 z-10"
-             @click.stop="toggleSelect({{ $room->id }})">
-            <div class="w-5 h-5 rounded-md border-2 flex items-center justify-center cursor-pointer shadow-sm transition-all"
-                 :class="selectedIds.includes({{ $room->id }})
-                     ? 'bg-blue-600 border-blue-600'
-                     : 'bg-white border-gray-300 hover:border-blue-400'">
-                <svg x-show="selectedIds.includes({{ $room->id }})"
-                     class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
-                </svg>
-            </div>
-        </div>
-
         {{-- Card Body --}}
-        <div @click="selectMode ? toggleSelect({{ $room->id }}) : openRoom(@js($room->only(['id','room_number','floor','beds_count','status','room_sub_type','price_yer'])), @js($room->roomType?->name ?? ''), {{ (float)($room->price_yer ?? 0) }})"
+        <div @click="openRoom(@js($room->only(['id','room_number','floor','beds_count','status','room_sub_type','price_yer'])), @js($room->roomType?->name ?? ''), {{ (float)($room->price_yer ?? 0) }})"
              class="p-4 pb-3 cursor-pointer select-none">
 
             {{-- Top row: room number + status badge --}}
@@ -374,8 +296,7 @@ html.dark .filter-chip.bg-white { background: #1e293b !important; }
 
         {{-- Actions --}}
         @canany(['rooms.edit','rooms.delete'])
-        <div x-show="!selectMode"
-             class="flex border-t border-gray-100 divide-x divide-x-reverse divide-gray-100">
+        <div class="flex border-t border-gray-100 divide-x divide-x-reverse divide-gray-100">
             @can('rooms.edit')
             <a href="{{ route('rooms.edit', array_merge(['room' => $room->id], request()->only(['status', 'type', 'sub_type', 'floor']))) }}"
                class="room-action-btn hover:bg-blue-50 font-semibold"
@@ -436,30 +357,7 @@ html.dark .filter-chip.bg-white { background: #1e293b !important; }
         <form method="POST" action="{{ route('rooms.bulkPrice') }}" class="p-6 space-y-5">
             @csrf
 
-            {{-- إذا كانت هناك غرف محددة يدوياً --}}
-            <template x-if="selectedIds.length > 0">
-                <div>
-                    <template x-for="id in selectedIds" :key="id">
-                        <input type="hidden" name="room_ids[]" :value="id">
-                    </template>
-                    <div class="flex items-center gap-3 p-3.5 rounded-xl bg-blue-50 border border-blue-100">
-                        <div class="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0">
-                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        </div>
-                        <div>
-                            <p class="text-sm font-bold text-blue-800">
-                                <span x-text="selectedIds.length"></span> غرفة محددة يدوياً
-                            </p>
-                            <p class="text-xs text-blue-600 mt-0.5" x-show="hasSuiteInSelection">
-                                يشمل التحديد أجنحة — ستظهر حقول سعر الجناح
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </template>
-
-            {{-- إذا لم تكن هناك غرف محددة — اختر النوع --}}
-            <template x-if="selectedIds.length === 0">
+            {{-- التطبيق بالنوع فقط — لا تحديد يدوي للغرف تفادياً للخطأ --}}
                 <div>
                     <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">تطبيق على</label>
                     <select name="sub_type" x-model="bulkSubType"
@@ -474,7 +372,6 @@ html.dark .filter-chip.bg-white { background: #1e293b !important; }
                         <option value="apartment">شقة فقط</option>
                     </select>
                 </div>
-            </template>
 
             {{-- ─── حقل السعر العادي (لجميع الأنواع) ─── --}}
             <div>
@@ -539,42 +436,6 @@ html.dark .filter-chip.bg-white { background: #1e293b !important; }
                 نعم، احذف
             </button>
             <button type="button" @click="deleteModal=false"
-                    class="flex-1 border-2 border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition">
-                إلغاء
-            </button>
-        </form>
-    </div>
-</div>
-@endcan
-
-{{-- ════════ Bulk Delete Modal ════════ --}}
-@can('rooms.delete')
-<div x-show="bulkDeleteModal" x-cloak
-     class="fixed inset-0 z-50 flex items-center justify-center p-4"
-     style="background:rgba(15,30,50,0.6); backdrop-filter:blur(4px);"
-     @click.self="bulkDeleteModal=false">
-    <div x-transition:enter="transition ease-out duration-200"
-         x-transition:enter-start="opacity-0 scale-95"
-         x-transition:enter-end="opacity-100 scale-100"
-         class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
-        <div class="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <svg class="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-        </div>
-        <h3 class="font-bold text-gray-800 text-lg mb-1">حذف الغرف المحددة</h3>
-        <p class="text-sm text-gray-500 mb-5">
-            هل تريد حذف <strong class="text-gray-800" x-text="selectedIds.length"></strong> غرفة نهائياً؟<br>
-            <span class="text-xs text-red-400 mt-1 block">لا يمكن التراجع عن هذا الإجراء — الغرف التي بها نزلاء حالياً لن تُحذف</span>
-        </p>
-        <form action="{{ route('rooms.bulkDelete') }}" method="POST" class="flex gap-3">
-            @csrf
-            <template x-for="id in selectedIds" :key="id">
-                <input type="hidden" name="room_ids[]" :value="id">
-            </template>
-            <button type="submit"
-                    class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl text-sm font-bold transition">
-                نعم، احذف
-            </button>
-            <button type="button" @click="bulkDeleteModal=false"
                     class="flex-1 border-2 border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition">
                 إلغاء
             </button>
@@ -694,17 +555,13 @@ function roomsPage() {
         },
         modalOpen: false,
         deleteModal: false,
-        bulkDeleteModal: false,
         deleteRoomId: null,
         deleteRoomNumber: '',
         selectedRoom: {},
         selectedRoomType: '',
         selectedRoomPrice: 0,
-        selectMode: false,
-        selectedIds: [],
         bulkPriceModal: false,
         bulkSubType: '',
-        allRoomIds: @json($rooms->pluck('id')),
         roomSubTypes: @json($rooms->pluck('room_sub_type', 'id')),
         statusLabels: {
             available: 'متاحة', occupied: 'مشغولة',
@@ -714,18 +571,12 @@ function roomsPage() {
             regular: 'عادية', double: 'زوجية', suite_a: 'جناح A',
             suite_b: 'جناح B', hall: 'صالة', apartment: 'شقة'
         },
-        get allSelected() {
-            return this.allRoomIds.length > 0 && this.selectedIds.length === this.allRoomIds.length;
-        },
+        // التوحيد يتم بالنوع فقط (لا تحديد يدوي للغرف)
         get hasSuiteInSelection() {
-            if (this.selectedIds.length > 0) {
-                return this.selectedIds.some(id => ['suite_a','suite_b'].includes(this.roomSubTypes[String(id)]));
-            }
             return ['suite','suite_a','suite_b',''].includes(this.bulkSubType);
         },
         init() {},
         openRoom(room, type, price) {
-            if (this.selectMode) { this.toggleSelect(room.id); return; }
             this.selectedRoom = room;
             this.selectedRoomType = type;
             this.selectedRoomPrice = price;
@@ -735,22 +586,6 @@ function roomsPage() {
             this.deleteRoomId = id;
             this.deleteRoomNumber = number;
             this.deleteModal = true;
-        },
-        toggleSelect(id) {
-            const idx = this.selectedIds.indexOf(id);
-            if (idx === -1) this.selectedIds.push(id);
-            else this.selectedIds.splice(idx, 1);
-        },
-        toggleAll() {
-            this.allSelected ? this.selectedIds = [] : this.selectedIds = [...this.allRoomIds];
-        },
-        selectBySubType(subType) {
-            const ids = Object.entries(this.roomSubTypes)
-                .filter(([id, st]) => st === subType || (!st && subType === 'regular'))
-                .map(([id]) => parseInt(id));
-            const allIn = ids.every(id => this.selectedIds.includes(id));
-            if (allIn) this.selectedIds = this.selectedIds.filter(id => !ids.includes(id));
-            else ids.forEach(id => { if (!this.selectedIds.includes(id)) this.selectedIds.push(id); });
         },
         openBulkPrice() { this.bulkPriceModal = true; }
     }
