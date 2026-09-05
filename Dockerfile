@@ -57,7 +57,7 @@ RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html/bootstrap/cache \
     && mkdir -p storage/app/private/{id_images/guests,id_images/companions,marriage_docs,bank_receipts,inspection_images,government_exports} \
     && chown -R www-data:www-data storage/app/private \
-    && chmod +x docker/entrypoint.sh
+    && chmod +x docker/entrypoint.sh docker/deploy.sh
 
 # Nginx config
 RUN echo 'server { \

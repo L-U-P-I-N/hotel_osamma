@@ -8,8 +8,9 @@ class HotelSeeder extends Seeder
 {
     public function run(): void
     {
-        Hotel::create([
-            'name' => 'فندق السعودي',
+        // firstOrCreate لا create: الاستدعاء المتكرر كان يضيف فندقاً جديداً
+        // في كل مرة، وكل التقارير تقرأ Hotel::first().
+        Hotel::firstOrCreate(['name' => 'فندق السعودي'], [
             'address' => 'صنعاء، الجمهورية اليمنية',
             'phone' => '+967 1 234567',
             'email' => 'info@hotel-saudi.com',
