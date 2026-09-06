@@ -84,6 +84,50 @@ class ProductionSeederTest extends TestCase
         $this->assertGreaterThan(0, \App\Models\RoomType::count());
     }
 
+    /** الغرف تُنشأ بأرقامها وأجنحتها مرتبطة */
+    public function test_rooms_are_created_with_linked_suites(): void
+    {
+        \Illuminate\Support\Facades\DB::table('rooms')->delete();
+
+        $this->seed(ProductionSeeder::class);
+
+        $a = Room::where('room_number', '201A')->first();
+        $b = Room::where('room_number', '201B')->first();
+
+        $this->assertNotNull($a, 'قسم الجناح A');
+        $this->assertNotNull($b, 'قسم الجناح B');
+        $this->assertSame($b->id, $a->linked_room_id, 'الربط من A إلى B');
+        $this->assertSame($a->id, $b->linked_room_id, 'الربط من B إلى A');
+
+        $this->assertNotNull(Room::where('room_number', '202')->first(), 'غرفة عادية');
+        $this->assertSame('regular', Room::where('room_number', '202')->value('room_sub_type'));
+    }
+
+    /** كلمة مرور المستخدم القائم لا تُستبدل */
+    public function test_it_does_not_reset_an_existing_user_password(): void
+    {
+        $admin = \App\Models\User::where('username', 'admin')->firstOrFail();
+        $admin->update(['password' => \Illuminate\Support\Facades\Hash::make('MyOwnPassword#9')]);
+        $hash = $admin->fresh()->password;
+
+        $this->seed(ProductionSeeder::class);
+
+        $this->assertSame($hash, $admin->fresh()->password, 'كلمة المرور تغيّرت');
+    }
+
+    /** الطوابق لا تُمسح — كان truncate يفرغ الجدول */
+    public function test_it_preserves_customised_floors(): void
+    {
+        $floor = \App\Models\Floor::firstOrFail();
+        $floor->update(['name' => 'طابق باسم مخصص', 'door_count' => 12]);
+
+        $this->seed(ProductionSeeder::class);
+
+        $floor->refresh();
+        $this->assertSame('طابق باسم مخصص', $floor->name);
+        $this->assertSame(12, (int) $floor->door_count);
+    }
+
     /** سكربت النشر يستدعي البذرة الآمنة لا البذرة الكاملة */
     public function test_deploy_script_uses_the_safe_seeder(): void
     {

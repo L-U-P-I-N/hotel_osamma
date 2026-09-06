@@ -33,6 +33,13 @@ return new class extends Migration
 
     public function down(): void
     {
+        // sqlite يربط فهرس id_number_hash بالعمود ضمن نفس تعريف الجدول، فحذف
+        // العمود مباشرة يفشل بخطأ "no such column" لأن الفهرس يُحذف أولاً في
+        // خطوة إعادة بناء الجدول الداخلية. حذف الفهرس صراحةً قبل العمود يتجنّب ذلك.
+        Schema::table('guests', function (Blueprint $table) {
+            $table->dropIndex(['id_number_hash']);
+        });
+
         Schema::table('guests', function (Blueprint $table) {
             $table->dropColumn('id_number_hash');
         });

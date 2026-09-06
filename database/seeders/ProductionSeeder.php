@@ -2,41 +2,78 @@
 
 namespace Database\Seeders;
 
+use App\Models\ChartOfAccount;
+use App\Models\Floor;
 use App\Models\Hotel;
+use App\Models\Room;
+use App\Models\RoomType;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 
 /**
- * بذرة النشر: تُشغَّل تلقائياً عند كل رفع للاستضافة.
+ * بذرة النشر: تُنفَّذ تلقائياً عند كل رفع للاستضافة.
  *
- * تقتصر على البيانات المرجعية التي لا غنى عنها لتشغيل النظام (الأدوار،
- * شجرتا الحسابات، أنواع الغرف، وسجل الفندق إن غاب)، وكلها idempotent
- * فإعادة تشغيلها لا تكرّر صفاً ولا تمسّ بيانات التشغيل.
+ * ذكية بمعنيين:
+ *   1) كل بذرة تُستدعى فقط إن كان ما تُنشئه غائباً فعلاً — فالرفع المتكرر
+ *      لا يعيد تركيب ما هو قائم ولا يهدر وقت النشر.
+ *   2) البذور نفسها idempotent، فحتى لو استُدعيت مرتين لا تكرّر صفاً ولا
+ *      تمسّ بيانات التشغيل (حالات الغرف، أسعارها، كلمات المرور).
  *
- * تستبعد عمداً:
- *   - RoomSeeder / FloorSeeder: يحذفان الغرف والطوابق ثم يعيدان إنشاءها،
- *     فتضيع حالات الغرف وأسعارها وارتباط الحجوزات بها.
- *   - TestDataSeeder: يُنشئ نزلاء وحجوزات ومدفوعات وهمية بـcreate() بلا
- *     حارس، فتتراكم بيانات مالية غير حقيقية مع كل نشر.
- *   - UserSeeder: كلمات مرور افتراضية لا يصح فرضها على نظام قائم.
- *
- * تُنشأ هذه الأربعة يدوياً مرة واحدة عند التركيب الأول:
- *   php artisan db:seed --class=RoomSeeder   (وهكذا)
+ * تستبعد TestDataSeeder وحده: يُنشئ نزلاء وحجوزات ومدفوعات وهمية بلا حارس،
+ * فلا مكان له في نظام حقيقي.
  */
 class ProductionSeeder extends Seeder
 {
     public function run(): void
     {
-        // سجل الفندق: يُنشأ مرة واحدة فقط، ولا يُلمس إن كان موجوداً حتى لا
-        // تُستبدل بيانات المالك الفعلية ببيانات افتراضية.
-        if (Hotel::count() === 0) {
-            $this->call(HotelSeeder::class);
+        // ① سجل الفندق — يُنشأ مرة واحدة، ولا تُستبدل بيانات المالك أبداً
+        $this->runIfMissing('بيانات الفندق', HotelSeeder::class, fn () => Hotel::exists());
+
+        // ② الأدوار والصلاحيات — لا بد منها قبل إنشاء المستخدمين
+        $this->runIfMissing(
+            'الأدوار',
+            RolesSeeder::class,
+            fn () => \Spatie\Permission\Models\Role::where('name', 'admin')->exists()
+        );
+
+        // ③ المستخدمون الافتراضيون — firstOrCreate فلا يمسّ كلمة مرور قائمة
+        $this->runIfMissing('المستخدمين', UserSeeder::class, fn () => User::exists());
+
+        // ④ دليل الحسابات التشغيلي المستخدم في ترحيل القيود
+        $this->runIfMissing(
+            'دليل الحسابات',
+            AccountsSeeder::class,
+            fn () => \App\Models\Account::exists()
+        );
+
+        // ⑤ شجرة حسابات USALI — تُحدَّث دائماً لأنها بيانات مرجعية بحتة،
+        //    فأي حساب جديد يضيفه التحديث يصل تلقائياً دون تدخل.
+        $this->call(ChartOfAccountsSeeder::class);
+        $this->command?->info('  ✔ شجرة الحسابات: ' . ChartOfAccount::count() . ' حساباً');
+
+        // ⑥ أنواع الغرف — لازمة قبل بذر الغرف
+        $this->runIfMissing('أنواع الغرف', RoomTypeSeeder::class, fn () => RoomType::exists());
+
+        // ⑦ الطوابق ثم الغرف — الهيكل الأساسي للفندق
+        $this->runIfMissing('الطوابق', FloorSeeder::class, fn () => Floor::exists());
+        $this->runIfMissing('الغرف',   RoomSeeder::class,  fn () => Room::exists());
+    }
+
+    /**
+     * تُشغّل البذرة فقط إن كان شرط الوجود غير محقَّق.
+     *
+     * @param  string    $label   اسم يظهر في سجل النشر
+     * @param  string    $seeder  صنف البذرة
+     * @param  callable  $exists  يعيد true إذا كانت البيانات موجودة مسبقاً
+     */
+    private function runIfMissing(string $label, string $seeder, callable $exists): void
+    {
+        if ($exists()) {
+            $this->command?->line("  – {$label}: موجودة مسبقاً، تم التخطي");
+            return;
         }
 
-        $this->call([
-            RolesSeeder::class,            // الأدوار والصلاحيات
-            AccountsSeeder::class,         // دليل الحسابات التشغيلي (updateOrCreate)
-            ChartOfAccountsSeeder::class,  // شجرة حسابات USALI (updateOrCreate)
-            RoomTypeSeeder::class,         // أنواع الغرف ونطاقات أسعارها (firstOrCreate)
-        ]);
+        $this->call($seeder);
+        $this->command?->info("  ✔ {$label}: تم التركيب");
     }
 }

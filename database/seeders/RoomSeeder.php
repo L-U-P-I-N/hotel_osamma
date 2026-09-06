@@ -1,101 +1,99 @@
 <?php
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Hotel;
 use App\Models\Room;
 use App\Models\RoomType;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
+/**
+ * غرف الفندق الافتراضية. idempotent عبر updateOrCreate على رقم الغرفة.
+ *
+ * كان يحذف كل غرف الفندق ثم يعيد إنشاءها، فتضيع حالات الغرف وأسعارها
+ * المضبوطة يدوياً وتُكسر إشارات الحجوزات إليها — لا يصلح للتنفيذ التلقائي.
+ *
+ * ما يُنشئه هنا هو الهيكل فقط (رقم الغرفة، الطابق، النوع، الارتباط)؛
+ * الحالة والسعر لا يُلمسان إن كانت الغرفة موجودة مسبقاً.
+ */
 class RoomSeeder extends Seeder
 {
     public function run(): void
     {
         $hotel = Hotel::first();
 
-        $driver = \DB::getDriverName();
-        if ($driver === 'sqlite') {
-            \DB::statement('PRAGMA foreign_keys = OFF');
-            \DB::table('rooms')->where('hotel_id', $hotel->id)->delete();
-            \DB::statement('PRAGMA foreign_keys = ON');
-        } else {
-            \DB::statement('SET FOREIGN_KEY_CHECKS=0');
-            \DB::table('rooms')->where('hotel_id', $hotel->id)->delete();
-            \DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        if (!$hotel) {
+            return;
         }
 
         $regular = RoomType::where('hotel_id', $hotel->id)->where('name', 'غرفة عادية')->first();
         $suite   = RoomType::where('hotel_id', $hotel->id)->where('name', 'جناح')->first();
         $hall    = RoomType::where('hotel_id', $hotel->id)->where('name', 'صالة')->first();
 
-        // Floor 1: hall only
-        Room::create([
-            'hotel_id'      => $hotel->id,
-            'room_type_id'  => $hall->id,
-            'room_number'   => '101',
-            'floor'         => 1,
-            'room_sub_type' => 'hall',
-            'status'        => 'available',
+        if (!$regular || !$suite || !$hall) {
+            return; // أنواع الغرف لم تُبذر بعد
+        }
+
+        DB::transaction(function () use ($hotel, $regular, $suite, $hall) {
+            // الطابق الأول: صالة واحدة
+            $this->ensureRoom($hotel->id, $hall->id, '101', 1, 'hall');
+
+            // الطوابق 2-6: 8 أبواب — الباب 1 و8 جناحان (A+B)، والأبواب 2-7 غرف عادية
+            for ($floor = 2; $floor <= 6; $floor++) {
+                $f = (string) $floor;
+
+                foreach (['01', '08'] as $door) {
+                    $a = $this->ensureRoom($hotel->id, $suite->id, $f . $door . 'A', $floor, 'suite_a');
+                    $b = $this->ensureRoom($hotel->id, $suite->id, $f . $door . 'B', $floor, 'suite_b');
+
+                    // الربط يُضبط في الاتجاهين، ولا يُعاد كتابته إن كان صحيحاً
+                    if ($a->linked_room_id !== $b->id) {
+                        $a->update(['linked_room_id' => $b->id]);
+                    }
+                    if ($b->linked_room_id !== $a->id) {
+                        $b->update(['linked_room_id' => $a->id]);
+                    }
+                }
+
+                for ($door = 2; $door <= 7; $door++) {
+                    $this->ensureRoom(
+                        $hotel->id,
+                        $regular->id,
+                        $f . str_pad((string) $door, 2, '0', STR_PAD_LEFT),
+                        $floor,
+                        'regular'
+                    );
+                }
+            }
+        });
+    }
+
+    /**
+     * تُنشئ الغرفة إن غابت، وتصحّح هيكلها إن وُجدت — دون المساس بحالتها
+     * أو سعرها، فهما بيانات تشغيل يضبطها الفندق لا البذرة.
+     */
+    private function ensureRoom(int $hotelId, int $typeId, string $number, int $floor, string $subType): Room
+    {
+        $room = Room::where('room_number', $number)->first();
+
+        if ($room === null) {
+            return Room::create([
+                'hotel_id'      => $hotelId,
+                'room_type_id'  => $typeId,
+                'room_number'   => $number,
+                'floor'         => $floor,
+                'room_sub_type' => $subType,
+                'status'        => 'available',
+            ]);
+        }
+
+        $room->update([
+            'hotel_id'      => $hotelId,
+            'room_type_id'  => $room->room_type_id ?: $typeId,
+            'floor'         => $floor,
+            'room_sub_type' => $subType,
         ]);
 
-        // Floors 2-6: 8 doors each
-        // Door 1  → Suite A/B pair  (X01A + X01B)
-        // Doors 2-7 → 6 regular rooms (X02 … X07)
-        // Door 8  → Suite A/B pair  (X08A + X08B)
-        for ($floor = 2; $floor <= 6; $floor++) {
-            $f = (string)$floor;
-
-            // Door 1 — Suite A
-            $suiteA1 = Room::create([
-                'hotel_id'      => $hotel->id,
-                'room_type_id'  => $suite->id,
-                'room_number'   => $f . '01A',
-                'floor'         => $floor,
-                'room_sub_type' => 'suite_a',
-                'status'        => 'available',
-            ]);
-            // Door 1 — Suite B
-            $suiteB1 = Room::create([
-                'hotel_id'       => $hotel->id,
-                'room_type_id'   => $suite->id,
-                'room_number'    => $f . '01B',
-                'floor'          => $floor,
-                'room_sub_type'  => 'suite_b',
-                'linked_room_id' => $suiteA1->id,
-                'status'         => 'available',
-            ]);
-            $suiteA1->update(['linked_room_id' => $suiteB1->id]);
-
-            // Doors 2-7 — regular rooms
-            for ($door = 2; $door <= 7; $door++) {
-                Room::create([
-                    'hotel_id'     => $hotel->id,
-                    'room_type_id' => $regular->id,
-                    'room_number'  => $f . str_pad($door, 2, '0', STR_PAD_LEFT),
-                    'floor'        => $floor,
-                    'status'       => 'available',
-                ]);
-            }
-
-            // Door 8 — Suite A
-            $suiteA8 = Room::create([
-                'hotel_id'      => $hotel->id,
-                'room_type_id'  => $suite->id,
-                'room_number'   => $f . '08A',
-                'floor'         => $floor,
-                'room_sub_type' => 'suite_a',
-                'status'        => 'available',
-            ]);
-            // Door 8 — Suite B
-            $suiteB8 = Room::create([
-                'hotel_id'       => $hotel->id,
-                'room_type_id'   => $suite->id,
-                'room_number'    => $f . '08B',
-                'floor'          => $floor,
-                'room_sub_type'  => 'suite_b',
-                'linked_room_id' => $suiteA8->id,
-                'status'         => 'available',
-            ]);
-            $suiteA8->update(['linked_room_id' => $suiteB8->id]);
-        }
+        return $room;
     }
 }

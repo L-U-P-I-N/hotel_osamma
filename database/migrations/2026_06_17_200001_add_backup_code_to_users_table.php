@@ -15,6 +15,12 @@ return new class extends Migration
 
     public function down(): void
     {
+        // نفس مشكلة sqlite: حذف عمود عليه فهرس فريد مباشرة يفشل بخطأ
+        // "no such column" أثناء إعادة بناء الجدول الداخلية — يُحذف الفهرس أولاً.
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropUnique(['backup_code']);
+        });
+
         Schema::table('users', function (Blueprint $table) {
             $table->dropColumn('backup_code');
         });
