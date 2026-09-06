@@ -3,16 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>فاتورة جزئية #{{ str_pad($reservation->id, 6, '0', STR_PAD_LEFT) }} — الفندق السعودي</title>
+<title>فاتورة #{{ str_pad($reservation->id, 6, '0', STR_PAD_LEFT) }} — الفندق السعودي</title>
 <style>
 :root {
   --color-navy:          #0F4C75;
   --color-gold:          #C9A84E;
   --color-text-primary:     #333333;
   --color-text-secondary:   #666666;
-  --color-text-warning:     #7a5c00;
+  --color-text-muted:       #9ca3af;
   --color-surface:              #ffffff;
-  --color-surface-warm:         #fffaf0;
   --color-border:         #e0e0e0;
   --color-border-section: #cccccc;
 }
@@ -52,17 +51,14 @@ body {
 .inv-row-label { color: var(--color-text-secondary); }
 .inv-row-val { font-weight: 700; color: var(--color-text-primary); }
 .inv-row-val.gold { color: var(--color-gold); font-size: 10pt; }
+.pill { display: inline-block; margin-top: 10px; padding: 4px 14px; border-radius: 15px; font-size: 8.5pt; font-weight: 700; width: 100%; text-align: center; box-sizing: border-box; background: #fff7e0; color: #8a6d1f; }
 .clear { clear: both; }
 .rule  { clear: both; height: 0; border-top: 3px solid var(--color-navy); margin: 9px 0 0; }
 .rule2 { height: 0; border-top: 1px solid var(--color-gold); margin: 0 0 12px; }
 
-.banner {
-  clear: both; margin: 12px 0; padding: 8px 14px; border-radius: 6px;
-  background: #fff7e0; border: 1px solid var(--color-gold); color: var(--color-text-warning);
-  font-weight: 700; font-size: 10pt; text-align: center;
-}
-
 .card { border: 1px solid var(--color-border); background: var(--color-surface); border-radius: 8px; padding: 9px 12px; }
+.card-r { float: right; width: 49%; }
+.card-l { float: left;  width: 49%; }
 .card-h { font-size: 10pt; font-weight: 700; color: var(--color-navy); border-bottom: 2px solid var(--color-gold); padding-bottom: 5px; margin-bottom: 6px; }
 .kv { width: 100%; border-collapse: collapse; font-size: 9.5pt; }
 .kv td { padding: 1px 0; line-height: 1.4; text-align: right; }
@@ -85,11 +81,10 @@ table.items .c { text-align: center !important; white-space: nowrap; }
 .subtotal-row .lbl { font-size: 9.5pt; color: rgba(255,255,255,0.8); }
 .subtotal-row .val { font-size: 14pt; font-weight: 700; }
 
-.notes { clear: both; border-right: 5px solid var(--color-gold); background: var(--color-surface-warm); padding: 10px 15px; font-size: 9pt; color: var(--color-text-warning); margin: 16px 0 0; border-radius: 4px; }
-
 .stamp-area { margin-top: 30px; text-align: center; border-top: 1px solid var(--color-border-section); padding-top: 10px; font-size: 9pt; color: var(--color-text-secondary); width: 40%; }
 
-.foot { margin-top: 20px; padding-top: 5px; border-top: 1px solid var(--color-border-section); text-align: center; font-size: 8pt; color: #9ca3af; }
+.foot { margin-top: 20px; padding-top: 5px; border-top: 1px solid var(--color-border-section); text-align: center; font-size: 8pt; color: var(--color-text-muted); }
+.foot .scope-note { display: block; margin-top: 2px; color: var(--color-text-muted); }
 </style>
 </head>
 <body>
@@ -100,6 +95,9 @@ table.items .c { text-align: center !important; white-space: nowrap; }
     $__p       = \App\Models\Setting::hotelProfile();
     $__contact = \App\Models\Setting::contactLine();
     $totalNights = (int) $selectedSegments->sum('nights');
+    $periodFrom  = $selectedSegments->first()?->start_date;
+    $periodTo    = $selectedSegments->last()?->end_date;
+    $roomLabels  = $selectedSegments->pluck('room.room_number')->filter()->unique()->values();
 @endphp
 <div class="page">
 
@@ -118,7 +116,7 @@ table.items .c { text-align: center !important; white-space: nowrap; }
     @endif
   </div>
   <div class="invmeta">
-    <div class="inv-title">فاتورة جزئية</div>
+    <div class="inv-title">فاتورة</div>
     <hr class="inv-divider">
     <div class="inv-row">
       <span class="inv-row-label">رقم الحجز</span>
@@ -128,16 +126,13 @@ table.items .c { text-align: center !important; white-space: nowrap; }
       <span class="inv-row-label">تاريخ الإصدار</span>
       <span class="inv-row-val">{{ now()->format('Y/m/d') }}</span>
     </div>
+    <span class="pill">فترة محدَّدة من الإقامة</span>
   </div>
   <div class="rule"></div>
   <div class="rule2"></div>
 
-  <div class="banner">
-    هذه فاتورة جزئية تغطي فترة/فترات محدَّدة من إقامة النزيل فقط — وليست فاتورة كامل الإقامة
-  </div>
-
-  <!-- GUEST INFO -->
-  <div class="card">
+  <!-- INFO CARDS -->
+  <div class="card card-r">
     <div class="card-h">بيانات النزيل</div>
     <table class="kv" dir="rtl">
       <tr><td class="v">{{ $reservation->guest?->full_name ?? '—' }}</td><td class="k">الاسم:</td></tr>
@@ -149,9 +144,19 @@ table.items .c { text-align: center !important; white-space: nowrap; }
       @endif
     </table>
   </div>
+  <div class="card card-l">
+    <div class="card-h">الفترة المحتسَبة</div>
+    <table class="kv" dir="rtl">
+      <tr><td class="v">{{ $roomLabels->map(fn($n) => 'غرفة '.$n)->implode('، ') ?: '—' }}</td><td class="k">الغرفة:</td></tr>
+      <tr><td class="v">{{ $periodFrom?->format('Y/m/d') }}</td><td class="k">من:</td></tr>
+      <tr><td class="v">{{ $periodTo?->format('Y/m/d') }}</td><td class="k">إلى:</td></tr>
+      <tr><td class="v">{{ $totalNights }} {{ $totalNights == 1 ? 'ليلة' : 'ليالٍ' }}</td><td class="k">المدة:</td></tr>
+    </table>
+  </div>
+  <div class="clear"></div>
 
   <!-- SELECTED SEGMENTS -->
-  <div class="sec">الأيام المحتسَبة في هذه الفاتورة ({{ $totalNights }} {{ $totalNights == 1 ? 'ليلة' : 'ليالٍ' }})</div>
+  <div class="sec">تفصيل الأيام المحتسَبة</div>
   <table class="items">
     <thead>
       <tr>
@@ -183,19 +188,17 @@ table.items .c { text-align: center !important; white-space: nowrap; }
     </tbody>
   </table>
   <div class="subtotal-row">
-    <span class="lbl">إجمالي الفترات المختارة</span>
+    <span class="lbl">إجمالي هذه الفترة</span>
     <span class="val">{{ number_format($subtotal, 0) }} {{ $cur }}</span>
-  </div>
-
-  <div class="notes">
-    ملاحظة: هذه الفاتورة توثّق فقط الأيام/الغرفة المحدَّدة أعلاه من إقامة النزيل، ولا تعكس
-    بالضرورة حالة السداد الكاملة للحجز. لبيان الحساب الكامل يُرجى طلب "الفاتورة" العامة للحجز.
   </div>
 
   <div class="stamp-area">ختم وتوقيع الفندق</div>
 
   <!-- FOOTER -->
-  <div class="foot">الفندق السعودي · فاتورة جزئية للحجز رقم #{{ $invNo }} · صدرت بتاريخ {{ now()->format('Y/m/d H:i') }}</div>
+  <div class="foot">
+    الفندق السعودي · فاتورة للحجز رقم #{{ $invNo }} · صدرت بتاريخ {{ now()->format('Y/m/d H:i') }}
+    <span class="scope-note">تغطي هذه الفاتورة الفترة المذكورة أعلاه فقط من الإقامة</span>
+  </div>
 </div>
 
 </body>

@@ -126,6 +126,26 @@ class RoomTransferInvoiceTest extends TestCase
         $this->assertSame('application/pdf', $response->headers->get('Content-Type'));
     }
 
+    /**
+     * اختيار كل فترات الإقامة عبر الفاتورة الجزئية يجب أن يصدر الفاتورة العامة
+     * نفسها (بلا ملاحظة "جزئية")، لا قالباً مختلفاً يحمل تنبيهات لا محل لها هنا.
+     */
+    public function test_selecting_all_segments_returns_the_general_invoice(): void
+    {
+        $admin = $this->admin();
+        $r = $this->checkedInGuest(nightly: 20000, nights: 4);
+        app(ReservationSegmentService::class)->recordInitial($r, 20000, 20000, 4, $admin->id);
+
+        $allIds = $r->segments()->pluck('id')->all();
+
+        $response = $this->actingAs($admin)
+            ->get("/reservations/{$r->id}/invoice/partial?" . http_build_query(['segment_ids' => $allIds]));
+
+        $response->assertOk();
+        $expectedFilename = 'invoice-' . str_pad($r->id, 6, '0', STR_PAD_LEFT) . '.pdf';
+        $this->assertStringContainsString($expectedFilename, $response->headers->get('Content-Disposition'));
+    }
+
     public function test_partial_invoice_requires_at_least_one_segment(): void
     {
         $admin = $this->admin();

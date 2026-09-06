@@ -1242,6 +1242,8 @@ class ReservationController extends Controller
             app(\App\Services\ReservationSegmentService::class)->backfillFromHistory($reservation);
         }
 
+        $allSegmentIds = $reservation->segments()->pluck('id');
+
         $selectedSegments = $reservation->segments()
             ->with('room.roomType')
             ->whereIn('id', $validated['segment_ids'])
@@ -1250,6 +1252,14 @@ class ReservationController extends Controller
 
         if ($selectedSegments->isEmpty()) {
             abort(404, 'الفترات المختارة غير موجودة لهذا الحجز');
+        }
+
+        // إذا اختار المستخدم كل فترات الإقامة فهذه فعلياً الفاتورة العامة نفسها —
+        // تُصدَر بنفس قالبها الرسمي (بيانات السداد والرصيد) بدل قالب الفاتورة
+        // الجزئية، حتى لا تظهر ملاحظات "جزئية" على فاتورة تغطي الإقامة كاملة.
+        if ($selectedSegments->count() === $allSegmentIds->count()
+            && $selectedSegments->pluck('id')->diff($allSegmentIds)->isEmpty()) {
+            return $this->invoice($reservation);
         }
 
         $reservation->load(['guest']);
