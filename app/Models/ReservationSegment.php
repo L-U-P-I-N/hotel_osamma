@@ -14,7 +14,7 @@ class ReservationSegment extends Model
     use HasFactory;
 
     protected $fillable = [
-        'reservation_id', 'type', 'start_date', 'end_date',
+        'reservation_id', 'room_id', 'type', 'start_date', 'end_date',
         'nights', 'price_per_night', 'amount', 'created_by', 'shift_id',
     ];
 
@@ -31,6 +31,11 @@ class ReservationSegment extends Model
         return $this->belongsTo(Reservation::class);
     }
 
+    public function room()
+    {
+        return $this->belongsTo(Room::class);
+    }
+
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -41,9 +46,35 @@ class ReservationSegment extends Model
         return $this->belongsTo(Shift::class);
     }
 
+    /**
+     * "تجديد" في القاعدة قد يكون تمديداً فعلياً لنفس الغرفة، أو استمراراً بعد
+     * نقل النزيل لغرفة أخرى (لم نُضِف نوعاً جديداً في القاعدة تفادياً لتعقيد
+     * تعديل enum عبر محرّكات قواعد بيانات مختلفة) — فنميّز التسمية بمقارنة
+     * غرفة هذه الفترة بغرفة الفترة التي قبلها مباشرة.
+     */
     public function getTypeLabelAttribute(): string
     {
-        return $this->type === 'renewal' ? 'تجديد' : 'الحجز الأولي';
+        if ($this->type !== 'renewal') {
+            return 'الحجز الأولي';
+        }
+
+        return $this->isRoomChange() ? 'تغيير غرفة' : 'تجديد';
+    }
+
+    /** هل غرفة هذه الفترة مختلفة عن غرفة الفترة السابقة لها مباشرة؟ */
+    public function isRoomChange(): bool
+    {
+        if ($this->room_id === null) {
+            return false;
+        }
+
+        $previous = static::where('reservation_id', $this->reservation_id)
+            ->where('start_date', '<', $this->start_date)
+            ->orderByDesc('start_date')
+            ->orderByDesc('id')
+            ->first();
+
+        return $previous !== null && $previous->room_id !== null && $previous->room_id !== $this->room_id;
     }
 
     /**

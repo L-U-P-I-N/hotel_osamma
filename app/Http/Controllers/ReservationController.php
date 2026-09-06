@@ -76,7 +76,7 @@ class ReservationController extends Controller
             app(\App\Services\ReservationSegmentService::class)->backfillFromHistory($reservation);
         }
 
-        $reservation->load(['guest', 'room.roomType', 'companions', 'payments', 'refunds.processedBy', 'extraCharges', 'roomInspections.images', 'createdBy', 'adminApproval', 'segments']);
+        $reservation->load(['guest', 'room.roomType', 'companions', 'payments', 'refunds.processedBy', 'extraCharges', 'roomInspections.images', 'createdBy', 'adminApproval', 'segments.room']);
         $availableRooms = $reservation->status === 'checked_in'
             ? Room::with('roomType')->where('status', 'available')->orderBy('floor')->orderBy('room_number')->get()
             : collect();
@@ -881,6 +881,23 @@ class ReservationController extends Controller
         ]);
         $reservation->refresh()->updatePaymentStatus();
 
+        // تقسيم فترة المحاسبة عند تاريخ النقل: ما قبله يبقى بالغرفة القديمة وسعرها —
+        // هذا ما يتيح لاحقاً طباعة فاتورة للغرفة السابقة وحدها لمن نُقل عن غرفته.
+        // إن لم تكن الفترات مُسجَّلة بعد (حجز قديم) نبنيها أولاً من التاريخ.
+        $segmentService = app(\App\Services\ReservationSegmentService::class);
+        if ($reservation->segments()->count() === 0) {
+            $segmentService->backfillFromHistory($reservation);
+        }
+        $shift = app(ShiftService::class)->getActiveShift(auth()->user());
+        $segmentService->recordTransfer(
+            $reservation,
+            today(),
+            $newRoom->id,
+            $newPricePerNight,
+            auth()->id(),
+            $shift?->id
+        );
+
         // الغرف الجديدة تصبح مشغولة، والقديمة (غير المشمولة بالحجز الجديد) تذهب للفحص
         $newIds = array_filter([$newRoom->id, $partner?->id]);
         foreach (array_filter([$oldRoom, $oldLinkedRoom]) as $released) {
@@ -1203,6 +1220,51 @@ class ReservationController extends Controller
         $dompdf->setOptions($opts);
 
         $filename = 'invoice-' . str_pad($reservation->id, 6, '0', STR_PAD_LEFT) . '.pdf';
+        return $pdf->stream($filename);
+    }
+
+    /**
+     * فاتورة جزئية لأيام/غرفة محدَّدة من الإقامة (بدل كل الإقامة): يختار المستخدم
+     * فترة أو أكثر من فترات محاسبة الغرفة (كل فترة لها تاريخ وغرفة وسعر مسجَّلَين).
+     * هذا يغطي حالتين معاً: طلب فاتورة لأيام معيّنة فقط، أو طلب فاتورة للغرفة
+     * التي كان فيها النزيل قبل نقله لغرفة أخرى.
+     */
+    public function partialInvoice(Request $request, Reservation $reservation)
+    {
+        $validated = $request->validate([
+            'segment_ids'   => 'required|array|min:1',
+            'segment_ids.*' => 'integer',
+        ], [
+            'segment_ids.required' => 'يرجى اختيار فترة واحدة على الأقل',
+        ]);
+
+        if (!$reservation->segments()->exists() && in_array($reservation->status, ['checked_in', 'checked_out'])) {
+            app(\App\Services\ReservationSegmentService::class)->backfillFromHistory($reservation);
+        }
+
+        $selectedSegments = $reservation->segments()
+            ->with('room.roomType')
+            ->whereIn('id', $validated['segment_ids'])
+            ->orderBy('start_date')
+            ->get();
+
+        if ($selectedSegments->isEmpty()) {
+            abort(404, 'الفترات المختارة غير موجودة لهذا الحجز');
+        }
+
+        $reservation->load(['guest']);
+        $subtotal = round((float) $selectedSegments->sum('amount'), 2);
+
+        $pdf = pdf_load_view('reservations.invoice-partial', compact('reservation', 'selectedSegments', 'subtotal'));
+        $pdf->setPaper('a4', 'portrait');
+
+        $dompdf = $pdf->getDomPDF();
+        $opts   = $dompdf->getOptions();
+        $opts->setFontDir(storage_path('fonts'));
+        $opts->setFontCache(storage_path('fonts'));
+        $dompdf->setOptions($opts);
+
+        $filename = 'invoice-partial-' . str_pad($reservation->id, 6, '0', STR_PAD_LEFT) . '.pdf';
         return $pdf->stream($filename);
     }
 

@@ -287,6 +287,12 @@
                         <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
                         الفاتورة
                     </a>
+                    @if($reservation->segments->count() > 0)
+                    <button type="button" onclick="document.getElementById('partialInvoiceModal').classList.remove('hidden')" class="w-full flex items-center gap-2.5 px-4 py-2 text-gray-700 hover:bg-gray-50 transition">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        فاتورة لأيام/غرفة محدَّدة
+                    </button>
+                    @endif
                     @endcan
                     @can('government.export')
                     <a href="{{ route('checkin.exportGov', ['reservation'=>$reservation->id,'format'=>'pdf']) }}" class="flex items-center gap-2.5 px-4 py-2 text-gray-700 hover:bg-gray-50 transition">
@@ -2361,6 +2367,60 @@
      سبب الإلغاء إجباري حتى تبقى بياناته قابلة للمراجعة --}}
 @can('checkin.view')
 @if(in_array($reservation->status, ['confirmed', 'checked_in']))
+@if($reservation->segments->count() > 0)
+<div id="partialInvoiceModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto"
+     onclick="if(event.target===this) this.classList.add('hidden')">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto my-auto" onclick="event.stopPropagation()">
+        <div class="px-6 py-5 rounded-t-2xl flex items-center justify-between" style="background:#0F4C75;">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                </div>
+                <h3 class="font-bold text-white text-lg">فاتورة لأيام/غرفة محدَّدة</h3>
+            </div>
+            <button onclick="document.getElementById('partialInvoiceModal').classList.add('hidden')"
+                    class="w-8 h-8 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <form method="GET" action="{{ route('reservations.invoice.partial', $reservation) }}" target="_blank">
+            <div class="p-6 space-y-3">
+                <p class="text-sm text-gray-600">
+                    اختر الفترة أو الفترات التي تريد إصدار فاتورة لها فقط — مفيد لمن يطلب فاتورة لأيام معيّنة،
+                    أو لمن نُقل من غرفة إلى أخرى ويريد فاتورة للغرفة التي كان فيها سابقاً.
+                </p>
+                <div class="space-y-2 max-h-72 overflow-y-auto border border-gray-200 rounded-xl p-3">
+                    @foreach($reservation->segments->sortBy('start_date') as $seg)
+                    <label class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer">
+                        <input type="checkbox" name="segment_ids[]" value="{{ $seg->id }}" class="w-4 h-4 text-blue-600 rounded">
+                        <div class="flex-1 text-sm">
+                            <div class="font-semibold text-gray-800">
+                                {{ $seg->room ? 'غرفة '.$seg->room->room_number : '—' }}
+                                <span class="text-xs font-normal text-gray-500">({{ $seg->type_label }})</span>
+                            </div>
+                            <div class="text-xs text-gray-500">
+                                {{ $seg->start_date?->format('Y/m/d') }} — {{ $seg->end_date?->format('Y/m/d') }}
+                                · {{ $seg->nights }} {{ $seg->nights == 1 ? 'ليلة' : 'ليالٍ' }}
+                                · {{ number_format((float) $seg->amount, 0) }} {{ $reservation->currency_symbol }}
+                            </div>
+                        </div>
+                    </label>
+                    @endforeach
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-100 flex gap-3">
+                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl transition">
+                    طباعة الفاتورة الجزئية
+                </button>
+                <button type="button" onclick="document.getElementById('partialInvoiceModal').classList.add('hidden')" class="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50 transition">
+                    إلغاء
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
+
 <div id="cancelReservationModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
      onclick="if(event.target===this) this.classList.add('hidden')">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md" onclick="event.stopPropagation()">

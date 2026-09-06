@@ -421,6 +421,7 @@ Route::middleware(['auth'])->group(function () {
     // ===== Reservations: Discount + Invoice =====
     Route::middleware('permission:checkin.view')->group(function () {
         Route::get('/reservations/{reservation}/invoice', [\App\Http\Controllers\ReservationController::class, 'invoice'])->name('reservations.invoice');
+        Route::get('/reservations/{reservation}/invoice/partial', [\App\Http\Controllers\ReservationController::class, 'partialInvoice'])->name('reservations.invoice.partial');
     });
     Route::middleware('permission:checkin.create')->group(function () {
         Route::post('/reservations/{reservation}/discount', [\App\Http\Controllers\ReservationController::class, 'applyDiscount'])->name('reservations.applyDiscount')->middleware('permission:reservation.discount');

@@ -34,7 +34,7 @@ class ReservationSegmentService
             );
             foreach ($periods as $i => $period) {
                 $price = $i === 0 ? $firstNight : $restPrice;
-                $this->create($reservation, 'initial', $period['start'], $period['end'], 1, $price, round($price, 2), $userId, $shiftId);
+                $this->create($reservation, 'initial', $period['start'], $period['end'], 1, $price, round($price, 2), $userId, $shiftId, $reservation->room_id);
             }
         } else {
             // سعر موحّد لكل ليالي الحجز الأولي (أو ليلة واحدة/يوم الوصول) — فترة واحدة
@@ -45,7 +45,7 @@ class ReservationSegmentService
             }
             $price  = $nights === 1 ? $firstNight : $restPrice;
             $amount = round($firstNight + max(0, $nights - 1) * $restPrice, 2);
-            $this->create($reservation, 'initial', $start, $end, $nights, $price, $amount, $userId, $shiftId);
+            $this->create($reservation, 'initial', $start, $end, $nights, $price, $amount, $userId, $shiftId, $reservation->room_id);
         }
     }
 
@@ -54,7 +54,7 @@ class ReservationSegmentService
      * تُربط بالوردية المفتوحة وقت التجديد (إن وُجدت) حتى يُمنَع لاحقاً تعديل/حذف
      * تجديدٍ يخصّ وردية أُقفلت بالفعل، فلا تتغيّر أرقام عمل وردية سابقة منتهية.
      */
-    public function recordRenewal(Reservation $reservation, $start, $end, int $nights, float $price, float $amount, ?int $userId = null, ?int $shiftId = null): void
+    public function recordRenewal(Reservation $reservation, $start, $end, int $nights, float $price, float $amount, ?int $userId = null, ?int $shiftId = null, ?int $roomId = null): void
     {
         $this->create(
             $reservation,
@@ -65,7 +65,8 @@ class ReservationSegmentService
             $price,
             round($amount, 2),
             $userId,
-            $shiftId
+            $shiftId,
+            $roomId ?? $reservation->room_id
         );
     }
 
@@ -88,6 +89,86 @@ class ReservationSegmentService
 
         $reservation->segments()->delete();
         $this->recordInitial($reservation, $firstNight, $restPrice, $nights, $userId);
+    }
+
+    /**
+     * يسجّل نقل النزيل إلى غرفة أخرى: يقسم آخر فترة مفتوحة عند تاريخ النقل —
+     * ما قبله يبقى بغرفته وسعره القديمَين، وما بعده يُسجَّل بالغرفة والسعر
+     * الجديدَين كفترة مستقلة. هذا ما يتيح لاحقاً طباعة فاتورة لغرفة سابقة وحدها.
+     *
+     * فترة مقفلة بوردية أُقفلت لا تُعدَّل — تُترك كما هي وتُضاف فترة جديدة من
+     * تاريخ النقل فصاعداً، فلا تتغيّر أرقام عمل وردية سابقة منتهية.
+     */
+    public function recordTransfer(
+        Reservation $reservation,
+        Carbon $transferDate,
+        int $newRoomId,
+        float $newPricePerNight,
+        ?int $userId = null,
+        ?int $shiftId = null
+    ): void {
+        $transferDate = $transferDate->copy()->startOfDay();
+
+        $last = $reservation->segments()->with('shift')->orderByDesc('start_date')->orderByDesc('id')->first();
+
+        if ($last === null) {
+            // لا فترات مسجَّلة بعد — لا شيء يُقسَم، أي فترة تُسجَّل لاحقاً ستأخذ الغرفة الجديدة تلقائياً
+            return;
+        }
+
+        $end = $last->end_date->copy()->startOfDay();
+
+        if ($last->isLocked()) {
+            $nights = max(1, (int) $transferDate->diffInDays($end));
+            $this->create($reservation, 'renewal', $transferDate->copy(), $end->copy(), $nights,
+                $newPricePerNight, round($newPricePerNight * $nights, 2), $userId, $shiftId, $newRoomId);
+            return;
+        }
+
+        $start = $last->start_date->copy()->startOfDay();
+
+        // النقل يقع في بداية الفترة أو قبلها — تُنقَل الفترة كاملةً دون تقسيم
+        if ($transferDate->lte($start)) {
+            $nights = max(1, $last->nights);
+            $last->update([
+                'room_id'         => $newRoomId,
+                'price_per_night' => round($newPricePerNight, 2),
+                'amount'          => round($newPricePerNight * $nights, 2),
+            ]);
+            return;
+        }
+
+        // النقل بعد نهاية آخر فترة مسجَّلة (حالة نادرة) — فترة جديدة مستقلة
+        if ($transferDate->gte($end)) {
+            $this->create($reservation, 'renewal', $transferDate->copy(), $transferDate->copy()->addDay(), 1,
+                $newPricePerNight, round($newPricePerNight, 2), $userId, $shiftId, $newRoomId);
+            return;
+        }
+
+        // التاريخ يقع داخل الفترة → تُقسَم: ما قبله بالغرفة القديمة، وما بعده بالجديدة
+        $nightsBefore = (int) $start->diffInDays($transferDate);
+        $nightsAfter  = max(1, $last->nights - $nightsBefore);
+
+        if ($nightsBefore < 1) {
+            $last->update([
+                'room_id'         => $newRoomId,
+                'price_per_night' => round($newPricePerNight, 2),
+                'amount'          => round($newPricePerNight * $last->nights, 2),
+            ]);
+            return;
+        }
+
+        $beforeAmount = round((float) $last->price_per_night * $nightsBefore, 2);
+
+        $last->update([
+            'end_date' => $transferDate->toDateString(),
+            'nights'   => $nightsBefore,
+            'amount'   => $beforeAmount,
+        ]);
+
+        $afterAmount = round($newPricePerNight * $nightsAfter, 2);
+        $this->create($reservation, 'renewal', $transferDate->copy(), $end->copy(), $nightsAfter,
+            $newPricePerNight, $afterAmount, $userId, $shiftId, $newRoomId);
     }
 
     /** هل بالحجز فترة مرتبطة بوردية أُقفلت (فلا يجوز المساس بها)؟ */
@@ -271,10 +352,11 @@ class ReservationSegmentService
         return abs($sum - (float) $reservation->gross_total) <= self::TOLERANCE;
     }
 
-    private function create(Reservation $reservation, string $type, Carbon $start, Carbon $end, int $nights, float $price, float $amount, ?int $userId, ?int $shiftId = null): void
+    private function create(Reservation $reservation, string $type, Carbon $start, Carbon $end, int $nights, float $price, float $amount, ?int $userId, ?int $shiftId = null, ?int $roomId = null): void
     {
         ReservationSegment::create([
             'reservation_id'  => $reservation->id,
+            'room_id'         => $roomId ?? $reservation->room_id,
             'type'            => $type,
             'start_date'      => $start->toDateString(),
             'end_date'        => $end->toDateString(),
