@@ -1906,20 +1906,27 @@ class ReservationController extends Controller
                 'required', 'numeric', 'min:0',
                 new WithinPriceBounds($reservation->room, auth()->user(), $reservation->suite_booking_type),
             ],
+            'room_id' => 'nullable|integer|exists:rooms,id',
         ], [
             'price_per_night.required' => 'سعر الليلة مطلوب',
             'price_per_night.numeric'  => 'سعر الليلة يجب أن يكون رقماً',
+            'room_id.exists'           => 'الغرفة المختارة غير موجودة',
         ]);
 
         $newPrice  = (float) $validated['price_per_night'];
         $oldAmount = (float) $segment->amount;
         $newAmount = round($newPrice * $segment->nights, 2);
         $delta     = round($newAmount - $oldAmount, 2);
+        // تصحيح يدوي لغرفة الفترة: مفيد للفترات القديمة التي لم يلتقط سجل المراجعة
+        // نقل غرفتها بدقة (تحويل تم قبل هذه الميزة، أو بطريقة أخرى غير شاشة النقل)
+        $oldRoomId = $segment->room_id;
+        $newRoomId = isset($validated['room_id']) ? (int) $validated['room_id'] : $oldRoomId;
 
-        DB::transaction(function () use ($reservation, $segment, $newPrice, $newAmount, $oldAmount, $delta, $wasLocked) {
+        DB::transaction(function () use ($reservation, $segment, $newPrice, $newAmount, $oldAmount, $delta, $wasLocked, $oldRoomId, $newRoomId) {
             $segment->update([
                 'price_per_night' => $newPrice,
                 'amount'          => $newAmount,
+                'room_id'         => $newRoomId,
             ]);
 
             if ($delta !== 0.0) {
@@ -1928,12 +1935,13 @@ class ReservationController extends Controller
             }
             $reservation->refresh()->updatePaymentStatus();
 
-            AuditLogService::log('update', $reservation, ['segment_amount' => $oldAmount], [
+            AuditLogService::log('update', $reservation, ['segment_amount' => $oldAmount, 'segment_room_id' => $oldRoomId], [
                 'action'          => 'segment_updated',
                 'segment_id'      => $segment->id,
                 'segment_type'    => $segment->type,
                 'price_per_night' => $newPrice,
                 'amount'          => $newAmount,
+                'room_id'         => $newRoomId,
                 'locked_override' => $wasLocked, // تعديل على وردية مقفلة — يلزم تتبّعه
             ], auth()->user());
         });

@@ -48,6 +48,11 @@
     $roomSegments = $reservation->segments;
     $showSegments = $roomSegments->isNotEmpty()
         && abs(round((float) $roomSegments->sum('amount'), 2) - (float) $grossTotal) <= 1.0;
+    // كل الغرف (لا المتاحة فقط) لاختيار غرفة الفترة يدوياً — بعض الفترات القديمة
+    // قد تخصّ غرفة لم يلتقط سجل المراجعة نقلها بدقة، فيصحّحها الموظف يدوياً هنا.
+    $allRoomsForSegments = $showSegments
+        ? \App\Models\Room::orderBy('room_number')->get(['id', 'room_number'])
+        : collect();
 
     // معاينة "تصحيح: إعادة احتساب الفترات" — تُقارن ما هو محفوظ حالياً بما ستنتجه
     // الصيغة الحالية لحساب الليالي (حد 1 ظهراً بلحظتي الوصول والخروج)، فيظهر الزر
@@ -671,6 +676,7 @@
                                         data-segment-label="{{ $seg->type_label }}@if($seg->type === 'renewal' && $roomSegments->where('type','renewal')->count() > 1) {{ $renewalNo }}@endif"
                                         data-segment-nights="{{ $seg->nights }}"
                                         data-segment-price="{{ (float) $seg->price_per_night }}"
+                                        data-segment-room="{{ $seg->room_id }}"
                                         onclick="openEditSegment(this)"
                                         class="p-1 rounded-lg {{ $seg->isLocked() ? 'text-amber-600 hover:bg-amber-50' : 'text-blue-600 hover:bg-blue-50' }} transition"
                                         title="{{ $seg->isLocked() ? 'تعديل السعر رغم أن الفترة تخصّ وردية مقفلة — سيُسجَّل في سجل المراجعة' : 'تعديل السعر' }}">
@@ -1667,6 +1673,17 @@
                        class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-400 outline-none">
             </div>
 
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">الغرفة التي كان فيها النزيل في هذه الفترة</label>
+                <select id="editSegmentRoom" name="room_id"
+                        class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-400 outline-none">
+                    @foreach($allRoomsForSegments as $roomOption)
+                    <option value="{{ $roomOption->id }}">غرفة {{ $roomOption->room_number }}</option>
+                    @endforeach
+                </select>
+                <p class="text-xs text-gray-400 mt-1">صحِّحها إن كانت خاطئة — مفيد لطباعة فاتورة جزئية دقيقة لغرفة سابقة.</p>
+            </div>
+
             <div class="rounded-xl bg-blue-50 border border-blue-100 p-3 flex justify-between items-center">
                 <span class="text-blue-800 font-semibold text-sm">مبلغ هذا التجديد بعد التعديل</span>
                 <span id="editSegmentPreview" class="font-black text-blue-700">—</span>
@@ -1694,6 +1711,8 @@
         _editSegmentNights = parseInt(btn.dataset.segmentNights) || 1;
         document.getElementById('editSegmentNights').textContent = _editSegmentNights + (_editSegmentNights === 1 ? ' ليلة' : ' ليالٍ');
         document.getElementById('editSegmentPrice').value = btn.dataset.segmentPrice;
+        var roomSelect = document.getElementById('editSegmentRoom');
+        if (roomSelect) { roomSelect.value = btn.dataset.segmentRoom || ''; }
         updateSegmentPreview();
         document.getElementById('editSegmentModal').classList.remove('hidden');
     }

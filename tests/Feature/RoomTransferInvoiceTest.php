@@ -136,4 +136,30 @@ class RoomTransferInvoiceTest extends TestCase
             ->get("/reservations/{$r->id}/invoice/partial")
             ->assertSessionHasErrors('segment_ids');
     }
+
+    /**
+     * تصحيح يدوي لغرفة فترة قديمة لا يوجد لها سجل مراجعة دقيق (نقل تم قبل هذه
+     * الميزة، أو بطريقة أخرى لم تُسجَّل) — الموظف يختار الغرفة الصحيحة يدوياً.
+     */
+    public function test_staff_can_manually_correct_a_segments_room(): void
+    {
+        $admin = $this->admin();
+        $this->openShift($admin);
+        $r = $this->checkedInGuest(nightly: 20000, nights: 4);
+        app(ReservationSegmentService::class)->recordInitial($r, 20000, 20000, 4, $admin->id);
+
+        $segment = $r->segments()->firstOrFail();
+        $this->assertSame($r->room_id, $segment->room_id);
+
+        $correctRoomId = Room::where('id', '!=', $r->room_id)->value('id');
+
+        $this->actingAs($admin)
+            ->put("/reservations/segment/{$segment->id}", [
+                'price_per_night' => (float) $segment->price_per_night,
+                'room_id'         => $correctRoomId,
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame($correctRoomId, $segment->fresh()->room_id);
+    }
 }
