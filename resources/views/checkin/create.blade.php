@@ -959,6 +959,7 @@ html.dark [style*="background:var(--gold-l)"] {
                             @foreach(['available' => 'متاحة', 'under_inspection' => 'تحت الفحص', 'maintenance' => 'صيانة'] as $value => $label)
                             @if($room->status !== $value)
                             <button type="submit" form="roomStatus-{{ $room->id }}-{{ $value }}"
+                                    @click="saveToSession()"
                                     class="px-2.5 py-1 rounded-lg text-xs font-semibold border transition
                                     {{ $value === 'available'
                                         ? 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'
@@ -1488,13 +1489,22 @@ html.dark [style*="background:var(--gold-l)"] {
 @endsection
 
 @push('scripts')
-@if(session('success'))
+{{--
+    عودة بنجاح إلى نفس الصفحة (session('success')) تعني عادةً تسجيل دخول ناجحاً
+    فتُمسح المسودة، لكن العودة من تحرير حالة غرفة (علامة resume في الرابط) تحمل
+    رسالة نجاح أيضاً رغم أن الموظف لم يُكمل تسجيل الدخول بعد — فلا تُمسح هنا،
+    بل يمسحها Alpine بنفسه بعد استعادتها فعلاً (init() في السكربت التالي).
+--}}
+@if(session('success') && !request()->has('resume'))
 <script>sessionStorage.removeItem('hotel_checkin_form');</script>
 @endif
 <script>
 const CHECKIN_SESSION_KEY = 'hotel_checkin_form';
 const HAS_BACKEND_ERRORS  = {{ $errors->any() ? 'true' : 'false' }};
 const BOOKING_MODE        = '{{ $mode }}';
+// علامة "resume" في الرابط: عاد الموظف من تحرير حالة غرفة (شاشة منفصلة عبر
+// تنقّل كامل)، فتُستعاد بيانات النزيل/المرافقين التي كان يكتبها بدل ضياعها
+const RESUME_AFTER_ROOM_STATUS = new URLSearchParams(location.search).has('resume');
 
 // نافذة التصحيح السريع: تنقل الصورة المُعاد رفعها إلى النموذج وتُعيد الإرسال فوراً
 function resubmitWithFixes() {
@@ -1576,6 +1586,15 @@ function checkInForm() {
                     const box = document.getElementById('backendErrorBox');
                     if (box) box.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 });
+            } else if (RESUME_AFTER_ROOM_STATUS) {
+                this.restoreFromSession();
+                // تحرير حالة الغرفة يتم من الخطوة الثانية (الغرفة والدفع) — نعيده إليها
+                this.currentStep = this.roomId ? 3 : 2;
+                // تنظيف علامة "resume" من الرابط كي لا تُعاد الاستعادة عند تحديث يدوي للصفحة
+                const params = new URLSearchParams(location.search);
+                params.delete('resume');
+                const cleanUrl = location.pathname + (params.toString() ? '?' + params.toString() : '');
+                history.replaceState({}, '', cleanUrl);
             } else {
                 sessionStorage.removeItem(CHECKIN_SESSION_KEY);
             }

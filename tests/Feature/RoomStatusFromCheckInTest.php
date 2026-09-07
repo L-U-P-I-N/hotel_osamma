@@ -67,11 +67,32 @@ class RoomStatusFromCheckInTest extends TestCase
         $room = Room::where('status', 'available')->firstOrFail();
         $room->update(['status' => 'under_inspection']);
 
+        // علامة resume تخبر الصفحة أن تستعيد ما كان الموظف يكتبه بدل ضياعه
         $this->actingAs($this->receptionist())
             ->post("/rooms/{$room->id}/status", ['status' => 'available', 'redirect_to' => 'checkin'])
-            ->assertRedirect(route('checkin.create'));
+            ->assertRedirect(route('checkin.create', ['resume' => 1]));
 
         $this->assertSame('available', $room->fresh()->status);
+    }
+
+    /** استئناف الصفحة بعد تحرير الغرفة لا يمسح مسودة النزيل/المرافقين المحفوظة محلياً */
+    public function test_resume_marker_keeps_the_draft_and_does_not_clear_it_on_reload(): void
+    {
+        $room = Room::where('status', 'available')->firstOrFail();
+        $room->update(['status' => 'under_inspection']);
+
+        $response = $this->actingAs($this->receptionist())
+            ->from('/checkin')
+            ->post("/rooms/{$room->id}/status", ['status' => 'available', 'redirect_to' => 'checkin']);
+
+        $response->assertRedirect('/checkin?resume=1');
+
+        // الصفحة عند resume=1 يجب ألا تحمل سكربت مسح المسودة، وتحمل بدلاً منه
+        // منطق الاستعادة (RESUME_AFTER_ROOM_STATUS)
+        $page = $this->actingAs($this->receptionist())->get('/checkin?resume=1');
+        $page->assertOk();
+        $page->assertDontSee("sessionStorage.removeItem('hotel_checkin_form');", false);
+        $page->assertSee('RESUME_AFTER_ROOM_STATUS', false);
     }
 
     public function test_room_can_be_sent_to_maintenance_and_back(): void

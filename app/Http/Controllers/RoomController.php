@@ -320,7 +320,9 @@ class RoomController extends Controller
         // التحرير من شاشة تسجيل الدخول يعود إليها لا لصفحة الغرف، حتى يكمل
         // الموظف تسجيل النزيل على الغرفة التي حرّرها للتو.
         if ($request->input('redirect_to') === 'checkin') {
-            return redirect()->route('checkin.create')
+            // علامة "resume" تخبر صفحة التسجيل أن تستعيد بيانات النزيل/المرافقين
+            // التي كان يكتبها الموظف قبل تحرير الغرفة، بدل إعادة كتابتها من الصفر
+            return redirect()->route('checkin.create', ['resume' => 1])
                 ->with('success', 'تم تحديث حالة الغرفة ' . $room->room_number . ' إلى "' . $room->status_label . '"');
         }
 
