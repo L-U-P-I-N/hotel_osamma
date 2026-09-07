@@ -835,10 +835,19 @@ class ReservationController extends Controller
         $remainingNights = $nights - $stayedNights;
 
         $oldPricePerNight = round((float) $reservation->gross_total / $nights, 2);
-        $newPricePerNight = $wantsFullSuite ? $newRoom->fullSuitePrice() : $newRoom->priceFor('YER');
-        if ($newPricePerNight <= 0) {
-            // لا سعر معرّف للغرفة الجديدة → نُبقي السعر الحالي دون تغيير
+
+        // نفس نوع الحجز (غرفة إلى غرفة، أو جناح كامل إلى جناح كامل) → يبقى السعر
+        // المتّفَق عليه مع النزيل دون تغيير، فالنقل هنا لسبب آخر (عطل بالغرفة
+        // مثلاً) لا ترقية/تخفيضاً يستحق سعراً مختلفاً. يتغيّر السعر فقط عند تغيّر
+        // نوع الحجز فعلاً (من غرفة إلى جناح كامل أو العكس).
+        if ($wantsFullSuite === $wasFullSuite) {
             $newPricePerNight = $oldPricePerNight;
+        } else {
+            $newPricePerNight = $wantsFullSuite ? $newRoom->fullSuitePrice() : $newRoom->priceFor('YER');
+            if ($newPricePerNight <= 0) {
+                // لا سعر معرّف للغرفة الجديدة → نُبقي السعر الحالي دون تغيير
+                $newPricePerNight = $oldPricePerNight;
+            }
         }
         // إجمالي الغرفة قبل الخصم ثم الخصم ثم إعادة الرسوم الإضافية (تفادي فقدها)
         $grossTotal     = round($stayedNights * $oldPricePerNight + $remainingNights * $newPricePerNight, 2);

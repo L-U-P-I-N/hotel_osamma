@@ -108,6 +108,37 @@ class RoomTransferInvoiceTest extends TestCase
         $this->assertSame($oldRoom->id, $segments->first()->room_id);
     }
 
+    /**
+     * نقل نزيل بين غرفتين عاديتين (نفس نوع الحجز — لا ترقية لجناح ولا العكس)
+     * يجب أن يبقي السعر المتّفَق عليه معه دون تغيير، لا سعر الغرفة الجديدة
+     * المدرَج، حتى لا يُفاجَأ بزيادة/نقصان غير مبرَّرة لمجرد نقله لسبب إداري.
+     */
+    public function test_transfer_between_two_regular_rooms_keeps_the_guests_negotiated_price(): void
+    {
+        $admin = $this->admin();
+        $this->openShift($admin);
+        $r = $this->checkedInGuest(nightly: 20000, nights: 4);
+        // نُثبِّت الإجمالي على سعر الليلة × عدد الليالي الفعلي (وفق حساب حدّ 1
+        // ظهراً) حتى يطابق سعر الليلة القديم المشتقّ من gross_total بالضبط 20,000
+        $r->update(['total_amount' => 20000 * $r->nights]);
+        app(ReservationSegmentService::class)->recordInitial($r, 20000, 20000, 4, $admin->id);
+
+        $oldRoom = $r->room;
+        $newRoom = Room::with('roomType')->where('status', 'available')->where('id', '!=', $oldRoom->id)->firstOrFail();
+        // الغرفة الجديدة مسعَّرة بسعر مختلف تماماً — يجب ألا يُطبَّق على النزيل
+        $newRoom->roomType->update(['min_price' => 40000, 'base_price' => 60000, 'max_price' => 80000]);
+        $newRoom->update(['price_yer' => 60000]);
+
+        $this->actingAs($admin)
+            ->post("/reservations/{$r->id}/transfer-room", ['new_room_selection' => (string) $newRoom->id])
+            ->assertSessionHasNoErrors();
+
+        $r->refresh();
+        $newSegment = $r->segments()->where('room_id', $newRoom->id)->firstOrFail();
+        $this->assertEqualsWithDelta(20000, (float) $newSegment->price_per_night, 0.01,
+            'يجب أن يبقى سعر النزيل الأصلي 20,000 لا سعر الغرفة الجديدة 60,000');
+    }
+
     public function test_partial_invoice_can_be_printed_for_the_old_room_only_after_transfer(): void
     {
         $admin = $this->admin();
