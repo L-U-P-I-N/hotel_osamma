@@ -58,17 +58,22 @@
     // واحد بحسب فترة التاريخ المختارة — بنفس شكل الأعمدة والقالب الورقي.
     $sections = ($mode ?? 'range') === 'today'
         ? [
-            ['title' => 'النزلاء المتواجدون اليوم (' . $presentToday->count() . ')', 'rows' => $presentToday],
-            ['title' => 'النزلاء الذين غادروا اليوم (' . $departedToday->count() . ')', 'rows' => $departedToday],
+            ['title' => 'النزلاء المتواجدون اليوم', 'count' => $presentToday->count(), 'rows' => $presentToday],
+            ['title' => 'النزلاء الذين غادروا اليوم', 'count' => $departedToday->count(), 'rows' => $departedToday],
         ]
         : [
-            ['title' => null, 'rows' => $reservations],
+            ['title' => null, 'count' => null, 'rows' => $reservations],
         ];
 @endphp
 
 @foreach($sections as $section)
     @if($section['title'])
-        <h2 class="section-title">{{ $section['title'] }}</h2>
+        {{--
+            الرقم بين قوسين بعد عنوان عربي يظهر معكوساً ")16(" بدل "(16)" في dompdf
+            (خلل معروف في محرّك bidi الخاص به مع الأقواس المحايدة داخل سياق RTL) —
+            عزل الجزء بالكامل كاتجاه LTR صريح يمنع انعكاس الأقواس.
+        --}}
+        <h2 class="section-title">{{ $section['title'] }} <span dir="ltr" style="unicode-bidi:bidi-override;">({{ $section['count'] }})</span></h2>
     @endif
 
     @if($section['rows']->isEmpty())
@@ -113,12 +118,12 @@
                         <div>{{ $line }}</div>
                     @endforeach
                 </td>
-                <td class="c">{{ $res->guest?->id_issue_date?->format('Y/n/j') ?? '—' }}</td>
+                <td class="c" dir="ltr" style="unicode-bidi:bidi-override;">{{ $res->guest?->id_issue_date?->format('Y/n/j') ?? '—' }}</td>
                 <td>{{ $res->guest?->id_issuer ?? '—' }}</td>
                 <td>{{ $res->guest?->id_number ?? '—' }}</td>
                 <td>{{ $res->guest?->getIdTypeLabel() ?? '—' }}</td>
                 <td>{{ $res->purpose ?? '—' }}</td>
-                <td class="c">{{ $res->check_in_date?->format('n/j') ?? '—' }}</td>
+                <td class="c" dir="ltr" style="unicode-bidi:bidi-override;">{{ $res->check_in_date?->format('Y/n/j') ?? '—' }}</td>
                 <td>{{ $res->origin ?? '—' }}</td>
                 <td>{{ $res->guest?->occupation ?? '—' }}</td>
                 <td>{{ $res->guest?->nationality ?? '—' }}</td>

@@ -1127,9 +1127,12 @@ class ReportController extends Controller
         $to     = $request->input('to', now()->toDateString());
         $search = $request->input('search', '');
 
+        // تقاطع فترة الإقامة مع المدى المطلوب (لا تاريخ الدخول وحده) — نزيل دخل قبل
+        // "من" وما زال مقيماً أو خرج بعدها يجب أن يظهر أيضاً، فهو موجود فعلياً
+        // خلال المدى المطلوب.
         $query = Reservation::with(['guest', 'room', 'companions'])
-            ->whereDate('check_in_date', '>=', $from)
-            ->whereDate('check_in_date', '<=', $to);
+            ->whereDate('check_in_date', '<=', $to)
+            ->whereDate('check_out_date', '>=', $from);
 
         if ($search) {
             $query->where(function ($q) use ($search) {

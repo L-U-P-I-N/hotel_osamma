@@ -34,7 +34,7 @@
 
     <div class="bg-white rounded-xl border border-gray-100 overflow-hidden">
         <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2">
-            <h3 class="font-semibold text-gray-700 text-sm">تقرير اليوم ({{ now()->format('Y/m/d') }})</h3>
+            <h3 class="font-semibold text-gray-700 text-sm">تقرير اليوم <span dir="ltr" style="unicode-bidi:isolate;">({{ now()->format('Y/m/d') }})</span></h3>
             <a href="{{ route('reports.government.pdf', ['mode' => 'today']) }}"
                class="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
@@ -46,7 +46,7 @@
         <div class="px-5 py-3 border-b border-gray-100">
             <h4 class="text-sm font-semibold text-gray-600 mb-2">
                 {{ $todaySection['title'] }}
-                <span class="text-gray-400 font-normal mr-2 text-xs">({{ $todaySection['rows']->count() }})</span>
+                <span class="text-gray-400 font-normal mr-2 text-xs" dir="ltr" style="unicode-bidi:isolate;">({{ $todaySection['rows']->count() }})</span>
             </h4>
             @if($todaySection['rows']->isEmpty())
             <div class="py-6 text-center text-gray-400 text-sm">لا يوجد</div>
