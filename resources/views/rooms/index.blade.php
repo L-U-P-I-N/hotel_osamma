@@ -181,6 +181,14 @@ html.dark .filter-chip.bg-white { background: #1e293b !important; }
             @endif
 
             <div class="flex items-center gap-2 mr-auto">
+                @canany(['rooms.edit','rooms.maintenance'])
+                <button type="button" @click="toggleBulkMode()"
+                        class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition border"
+                        :class="bulkMode ? 'bg-blue-50 border-blue-300 text-blue-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span x-text="bulkMode ? 'إلغاء التحديد المتعدد' : 'تحديد عدة غرف'"></span>
+                </button>
+                @endcanany
                 @can('rooms.create')
                 <a href="{{ route('rooms.create') }}"
                    class="flex items-center gap-2 px-4 py-2.5 text-white rounded-xl text-sm font-medium transition"
@@ -218,15 +226,26 @@ html.dark .filter-chip.bg-white { background: #1e293b !important; }
         $meta = $statusMeta[$room->status] ?? $statusMeta['maintenance'];
     @endphp
 
-    <div class="room-card"
+    <div class="room-card relative"
+         :class="bulkMode && selectedIds.includes({{ $room->id }}) ? 'selected' : ''"
          x-show="!search || @js((string) $room->room_number).toLowerCase().includes(search.trim().toLowerCase())"
          x-cloak>
 
         {{-- Status bar --}}
         <span class="status-bar {{ $meta['bar'] }}"></span>
 
+        {{-- مربّع تحديد التحديد المتعدد — يظهر فقط في وضع التحديد --}}
+        @canany(['rooms.edit','rooms.maintenance'])
+        <button type="button" x-show="bulkMode" x-cloak
+                @click.stop="toggleSelect({{ $room->id }})"
+                class="absolute top-2 left-2 z-10 w-6 h-6 rounded-full border-2 flex items-center justify-center transition"
+                :class="selectedIds.includes({{ $room->id }}) ? 'bg-blue-600 border-blue-600' : 'bg-white/90 border-gray-300'">
+            <svg x-show="selectedIds.includes({{ $room->id }})" class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+        </button>
+        @endcanany
+
         {{-- Card Body --}}
-        <div @click="openRoom(@js($room->only(['id','room_number','floor','beds_count','status','room_sub_type','price_yer'])), @js($room->roomType?->name ?? ''), {{ (float)($room->price_yer ?? 0) }})"
+        <div @click="bulkMode ? toggleSelect({{ $room->id }}) : openRoom(@js($room->only(['id','room_number','floor','beds_count','status','room_sub_type','price_yer'])), @js($room->roomType?->name ?? ''), {{ (float)($room->price_yer ?? 0) }})"
              class="p-4 pb-3 cursor-pointer select-none">
 
             {{-- Top row: room number + status badge --}}
@@ -451,6 +470,29 @@ html.dark .filter-chip.bg-white { background: #1e293b !important; }
     </div>
 </div>
 
+{{-- ════════ Bulk Status Bar (وضع التحديد المتعدد) ════════ --}}
+@canany(['rooms.edit','rooms.maintenance'])
+<div x-show="bulkMode && selectedIds.length > 0" x-cloak x-transition
+     class="fixed bottom-4 inset-x-0 mx-auto w-fit max-w-[95vw] z-40 bg-white rounded-2xl shadow-2xl border border-gray-200 px-5 py-3 flex items-center gap-3 flex-wrap justify-center">
+    <span class="text-sm font-bold text-gray-700 whitespace-nowrap">
+        <span x-text="selectedIds.length"></span> غرفة محدَّدة
+    </span>
+    <select x-model="bulkStatus" class="border-2 border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:bg-white focus:border-blue-400 outline-none transition">
+        <option value="available">متاحة</option>
+        <option value="under_inspection">تحت الفحص</option>
+        <option value="maintenance">صيانة</option>
+    </select>
+    <button type="button" @click="applyBulkStatus()" :disabled="bulkApplying"
+            class="px-5 py-2 text-white text-sm font-bold rounded-xl transition hover:opacity-90 shadow-sm disabled:opacity-50"
+            style="background:#0F4C75;">
+        <span x-text="bulkApplying ? 'جارٍ التطبيق...' : 'تطبيق على المحدَّد'"></span>
+    </button>
+    <button type="button" @click="selectedIds = []" class="px-3 py-2 text-sm text-gray-500 hover:text-gray-700">
+        إلغاء التحديد
+    </button>
+</div>
+@endcanany
+
 </div>
 @endsection
 
@@ -469,6 +511,11 @@ function roomsPage() {
         deleteModal: false,
         deleteRoomId: null,
         deleteRoomNumber: '',
+        // تحديد عدة غرف دفعة واحدة لتغيير حالتها دون الضغط على كل غرفة على حدة
+        bulkMode: false,
+        selectedIds: [],
+        bulkStatus: 'available',
+        bulkApplying: false,
         selectedRoom: {},
         selectedRoomType: '',
         selectedRoomPrice: 0,
@@ -491,6 +538,42 @@ function roomsPage() {
             this.deleteRoomId = id;
             this.deleteRoomNumber = number;
             this.deleteModal = true;
+        },
+
+        toggleBulkMode() {
+            this.bulkMode = !this.bulkMode;
+            this.selectedIds = [];
+        },
+        toggleSelect(id) {
+            const i = this.selectedIds.indexOf(id);
+            if (i === -1) this.selectedIds.push(id); else this.selectedIds.splice(i, 1);
+        },
+        applyBulkStatus() {
+            if (this.bulkApplying || this.selectedIds.length === 0) return;
+            this.bulkApplying = true;
+            fetch(@json(route('rooms.bulkStatus')), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}',
+                },
+                body: JSON.stringify({ room_ids: this.selectedIds, status: this.bulkStatus }),
+            })
+                .then(r => r.json().then(data => ({ ok: r.ok, data })))
+                .then(({ ok, data }) => {
+                    this.bulkApplying = false;
+                    if (ok && data.success) {
+                        alert(data.message);
+                        window.location.reload();
+                    } else {
+                        alert(data.message || 'تعذّر تنفيذ التحديث');
+                    }
+                })
+                .catch(() => {
+                    this.bulkApplying = false;
+                    alert('تعذّر الاتصال بالخادم — تحقّق من الإنترنت وحاول مرة أخرى');
+                });
         },
 
     }

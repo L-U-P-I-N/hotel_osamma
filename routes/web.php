@@ -81,6 +81,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/rooms/{room}/status', [RoomController::class, 'updateStatus'])
         ->name('rooms.updateStatus')
         ->middleware('permission:rooms.edit|rooms.maintenance');
+    Route::post('/rooms/bulk-status', [RoomController::class, 'bulkUpdateStatus'])
+        ->name('rooms.bulkStatus')
+        ->middleware('permission:rooms.edit|rooms.maintenance');
     Route::middleware('permission:rooms.edit|rooms.maintenance')->group(function () {
         Route::post('/floors/{floor}/maintenance', [FloorController::class, 'maintenance'])->name('floors.maintenance');
         Route::post('/floors/{floor}/end-maintenance', [FloorController::class, 'endMaintenance'])->name('floors.endMaintenance');

@@ -329,4 +329,61 @@ class RoomController extends Controller
         return redirect()->route('rooms.index', $this->returnFilters($request))
             ->with('success', 'تم تحديث حالة الغرفة بنجاح');
     }
+
+    /**
+     * تغيير حالة عدة غرف/أقسام جناح دفعة واحدة (متاحة/تحت الفحص/صيانة) دون
+     * مغادرة صفحة الغرف — يختار الموظف عدة غرف بدل تكرار الضغط على كل واحدة
+     * على حدة. لا حذف جماعياً هنا عمداً (أُزيل سابقاً لأسباب أمان وبقي مقصوداً).
+     * غرفة بها نزيل فعلي تُستثنى بصمت من التحديث بدل رفض الطلب كله.
+     */
+    public function bulkUpdateStatus(Request $request)
+    {
+        $validated = $request->validate([
+            'room_ids'   => 'required|array|min:1',
+            'room_ids.*' => 'integer|exists:rooms,id',
+            'status'     => 'required|in:available,under_inspection,maintenance',
+        ], [
+            'room_ids.required' => 'يرجى تحديد غرفة واحدة على الأقل',
+            'status.required'   => 'الحالة مطلوبة',
+            'status.in'         => 'لا يمكن تعيين هذه الحالة يدوياً',
+        ]);
+
+        $occupiedRoomIds = \App\Models\Reservation::where('status', 'checked_in')
+            ->whereDate('check_in_date', '<=', today())
+            ->where(function ($q) {
+                $q->whereNotNull('room_id')->orWhereNotNull('linked_room_id');
+            })
+            ->get(['room_id', 'linked_room_id'])
+            ->flatMap(fn ($r) => [$r->room_id, $r->linked_room_id])
+            ->filter()
+            ->unique();
+
+        $rooms = Room::whereIn('id', $validated['room_ids'])->get();
+
+        $updated = 0;
+        $skipped = [];
+        foreach ($rooms as $room) {
+            if ($occupiedRoomIds->contains($room->id)) {
+                $skipped[] = $room->room_number;
+                continue;
+            }
+            $old = ['status' => $room->status];
+            $room->update(['status' => $validated['status']]);
+            AuditLogService::log('update', $room, $old, ['status' => $validated['status']], auth()->user());
+            $updated++;
+        }
+
+        $statusLabel = (new Room(['status' => $validated['status']]))->status_label;
+        $message = "تم تحديث حالة {$updated} غرفة إلى \"{$statusLabel}\"";
+        if (!empty($skipped)) {
+            $message .= ' — تُخطّيت الغرف المشغولة بنزيل: ' . implode('، ', $skipped);
+        }
+
+        return response()->json([
+            'success' => true,
+            'updated' => $updated,
+            'skipped' => $skipped,
+            'message' => $message,
+        ]);
+    }
 }
