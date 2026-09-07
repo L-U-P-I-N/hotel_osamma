@@ -596,9 +596,31 @@ html.dark [style*="background:var(--gold-l)"] {
                             <span class="text-sm font-semibold text-gray-700" x-text="`مرافق ${idx+1}`"></span>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <div class="md:col-span-2">
+                            <div class="md:col-span-2 relative">
                                 <label class="fl text-xs">الاسم الكامل <span class="freq">*</span></label>
-                                <input type="text" :name="`companions[${idx}][full_name]`" x-model="comp.full_name" required class="fi text-sm">
+                                <input type="text" :name="`companions[${idx}][full_name]`" x-model="comp.full_name" required autocomplete="off"
+                                       @input.debounce.350ms="searchCompanionGuests(idx)"
+                                       @focus="if ((comp._suggestions || []).length) comp._showSuggestions = true"
+                                       @blur="setTimeout(() => comp._showSuggestions = false, 200)"
+                                       placeholder="قد يكون المرافق نزيلاً سابقاً — ابدأ بالكتابة" class="fi text-sm">
+
+                                {{-- المرافق قد يكون هو نفسه نزيلاً مسجَّلاً لدينا سابقاً --}}
+                                <div x-show="comp._showSuggestions && (comp._suggestions || []).length" x-transition x-cloak
+                                     class="absolute z-30 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl max-h-56 overflow-y-auto">
+                                    <template x-for="g in (comp._suggestions || [])" :key="g.id">
+                                        <button type="button" @click="selectCompanionGuest(idx, g)"
+                                                class="w-full text-right px-4 py-2 hover:bg-blue-50 transition border-b border-gray-50 last:border-0 flex items-center justify-between gap-3">
+                                            <div class="min-w-0">
+                                                <div class="font-semibold text-gray-800 text-xs truncate" x-text="g.full_name"></div>
+                                                <div class="text-[11px] text-gray-400 truncate" x-text="(g.nationality || '—') + (g.id_number ? ' • ' + g.id_number : '')"></div>
+                                            </div>
+                                            <span class="text-[10px] text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0">نزيل مسجَّل</span>
+                                        </button>
+                                    </template>
+                                </div>
+                                <div x-show="comp._existingGuestId" x-cloak class="mt-1 text-[11px] text-emerald-600">
+                                    تم تعبئة البيانات من سجل نزيل سابق ✓
+                                </div>
                             </div>
                             <div>
                                 <label class="fl text-xs">صلة القرابة <span class="freq">*</span></label>
@@ -1504,6 +1526,10 @@ function checkInForm() {
         existingGuestId: null,
         existingGuestHasImage: false,
         companions: [],
+        // مصدر قائمة المرافقين الحالية: null (فارغة)، 'manual' (أضافها/عدّلها
+        // الموظف يدوياً)، أو رقم نزيل (عُبّئت تلقائياً من سجل ذلك النزيل العائد) —
+        // يمنع بقاء مرافقي نزيل سابق ظاهرين خطأً بعد اختيار نزيل عائد آخر.
+        _companionsSource: null,
         selectedRoom: null,
         linkedInfo: null,
         roomId: '',
@@ -1600,6 +1626,7 @@ function checkInForm() {
                     existingGuestId: this.existingGuestId,
                     existingGuestHasImage: this.existingGuestHasImage,
                     companions:      this.companions.map(c => ({ ...c, id_preview: null })),
+                    _companionsSource: this._companionsSource,
                     roomId:          this.roomId,
                     selectedRoom:    this.selectedRoom,
                     linkedInfo:      this.linkedInfo,
@@ -1631,6 +1658,7 @@ function checkInForm() {
                 this.existingGuestId   = s.existingGuestId    ?? null;
                 this.existingGuestHasImage = s.existingGuestHasImage ?? false;
                 this.companions        = s.companions         ?? [];
+                this._companionsSource = s._companionsSource  ?? null;
                 this.roomId            = s.roomId             ?? '';
                 this.selectedRoom      = s.selectedRoom       ?? null;
                 this.linkedInfo        = s.linkedInfo         ?? null;
@@ -1785,10 +1813,20 @@ function checkInForm() {
             this.guestData.phone         = g.phone || '';
             this.existingGuestId         = g.id;
             this.existingGuestHasImage   = !!g.has_id_image;
-            // مرافقو آخر حجز لهذا النزيل العائد — تُعبَّأ تلقائياً (لا نستبدل
-            // مرافقين أضافهم الموظف يدوياً بالفعل قبل اختياره من الاقتراحات).
-            if (this.companions.length === 0 && Array.isArray(g.companions) && g.companions.length) {
-                this.companions = g.companions.map(c => ({ ...c, id_preview: null }));
+            // مرافقو آخر حجز لهذا النزيل العائد — تُعبَّأ تلقائياً. لا نستبدل
+            // مرافقين أضافهم/عدَّلهم الموظف يدوياً (_companionsSource === 'manual')،
+            // لكن نستبدل دائماً مرافقين كانوا معبَّئين تلقائياً من نزيل عائد آخر
+            // سابق — وإلا بقي مرافقو النزيل الأول ظاهرين خطأً بعد تغيير الاختيار.
+            if (this._companionsSource !== 'manual') {
+                if (Array.isArray(g.companions) && g.companions.length) {
+                    this.companions = g.companions.map(c => ({ ...c, id_preview: null }));
+                    this._companionsSource = g.id;
+                } else if (this.companions.length > 0) {
+                    // النزيل الجديد لا مرافقين مسجَّلين له — تُفرَّغ قائمة مرافقي
+                    // النزيل السابق بدل أن تبقى معروضة خطأً معه.
+                    this.companions = [];
+                    this._companionsSource = null;
+                }
             }
             this.guestSuggestions = [];
             this.showSuggestions  = false;
@@ -1808,6 +1846,12 @@ function checkInForm() {
             this.guestData.phone = '';
             this.guestSuggestions = [];
             this.showSuggestions = false;
+            // إفراغ مرافقين كانوا معبَّئين تلقائياً من هذا النزيل — لا مرافقين
+            // أضافهم/عدَّلهم الموظف يدوياً بنفسه
+            if (this._companionsSource !== 'manual') {
+                this.companions = [];
+                this._companionsSource = null;
+            }
             this.saveToSession();
         },
 
@@ -1907,6 +1951,40 @@ function checkInForm() {
 
         addCompanion() {
             this.companions.push({ full_name:'', nationality:'', id_type:'national_id', id_number:'', id_issuer:'', id_issue_date:'', relationship:'other', id_preview:null });
+            // إضافة يدوية — لا تُستبدَل القائمة تلقائياً بعدها عند اختيار نزيل عائد
+            this._companionsSource = 'manual';
+        },
+
+        // البحث عن نزيل مسجَّل مسبقاً باسمه لتعبئة بيانات مرافق منه (قد يكون
+        // المرافق نفسه نزيلاً محفوظاً لدينا).
+        searchCompanionGuests(idx) {
+            const comp = this.companions[idx];
+            if (!comp) return;
+            const q = (comp.full_name || '').trim();
+            if (q.length < 2) { comp._suggestions = []; comp._showSuggestions = false; return; }
+            fetch(@json(route('guests.search')) + '?q=' + encodeURIComponent(q), { headers: { 'Accept': 'application/json' } })
+                .then(r => r.ok ? r.json() : [])
+                .then(list => {
+                    comp._suggestions = Array.isArray(list) ? list : [];
+                    comp._showSuggestions = comp._suggestions.length > 0;
+                })
+                .catch(() => { comp._suggestions = []; comp._showSuggestions = false; });
+        },
+
+        selectCompanionGuest(idx, g) {
+            const comp = this.companions[idx];
+            if (!comp) return;
+            comp.full_name     = g.full_name || '';
+            comp.nationality    = g.nationality || '';
+            comp.id_type         = g.id_type || 'national_id';
+            comp.id_number       = g.id_number || '';
+            comp.id_issuer       = g.id_issuer || '';
+            comp.id_issue_date   = g.id_issue_date || '';
+            comp._existingGuestId = g.id;
+            comp._suggestions      = [];
+            comp._showSuggestions  = false;
+            // مرافق مُعبَّأ من سجل نزيل — يُحتسَب كتعديل يدوي فلا يُستبدَل لاحقاً
+            this._companionsSource = 'manual';
         },
 
         removeCompanion(idx) {
