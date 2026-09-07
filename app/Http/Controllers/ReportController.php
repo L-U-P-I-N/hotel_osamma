@@ -1274,6 +1274,10 @@ class ReportController extends Controller
      */
     private function amAliData(string $date): array
     {
+        // تصحيح أي غرفة عالقة على "مشغولة" دون حجز نشط فعلي فعلاً يطابقها —
+        // اتساقاً مع صفحة الغرف، حتى لا يُعرض التقرير بيانات غرفة قديمة خاطئة.
+        \App\Models\Reservation::syncRoomOccupancy();
+
         $rooms = Room::orderBy('room_number')->get()->sortBy(fn($r) => $r->room_number, SORT_NATURAL)->values();
 
         $rows = $rooms->map(function ($room) use ($date) {
@@ -1284,11 +1288,37 @@ class ReportController extends Controller
                 // فغرفة فيها نزيل اليوم قد تكون مثلاً تحت الفحص بعد مغادرته.
                 'status'       => $room->status_label,
                 'status_color' => $room->status_color,
+                // نطابق على room_id أو linked_room_id — نزيل حاجز جناحاً كاملاً
+                // (A+B) يُسجَّل حجزه بغرفة واحدة فقط (room_id) والأخرى مرتبطة
+                // (linked_room_id)، فبلا هذا كانت بيانات القسم الآخر تظهر فارغة
+                // رغم أنه فعلاً "مشغول" بنفس النزيل.
                 'today'        => $this->amAliRoomOccupant($room->id, $date),
             ];
-        });
+        })->values()->all();
 
-        return compact('rows', 'date');
+        // دمج عرض بيانات النزيل عبر قسمَي الجناح الكامل (A+B) في صفّ واحد
+        // منطقياً (rowspan) بدل تكرارها — الغرفتان لنزيل واحد بحجز واحد.
+        // نعمل على مصفوفة عادية (لا Collection) لأن التعديل المتداخل
+        // ($rows[$i]['x'] = ..) على عناصر Collection لا يُحفَظ فعلياً.
+        for ($i = 0; $i < count($rows) - 1; $i++) {
+            $row  = $rows[$i];
+            $next = $rows[$i + 1];
+            $isPair = $row['room']->isSuiteA()
+                && $next['room']->room_sub_type === 'suite_b'
+                && $row['room']->linked_room_id === $next['room']->id;
+
+            if ($isPair
+                && $row['today']
+                && $next['today']
+                && $row['today']['reservation_id'] === $next['today']['reservation_id']
+                && $row['today']['suite_booking_type'] === 'both') {
+                $rows[$i]['rowspan'] = 2;
+                $rows[$i + 1]['merged'] = true;
+                $i++; // القسم التالي عولج ضمن الدمج — لا داعٍ لفحصه كبداية زوج
+            }
+        }
+
+        return ['rows' => collect($rows), 'date' => $date];
     }
 
     /**
@@ -1299,8 +1329,13 @@ class ReportController extends Controller
      */
     private function amAliRoomOccupant(int $roomId, string $date): ?array
     {
+        // نطابق room_id أو linked_room_id: نزيل حاجز جناحاً كاملاً (A+B) يُسجَّل
+        // حجزه بغرفة واحدة فقط (room_id)، والقسم الآخر مرتبط عبر linked_room_id
+        // فقط — فبلا هذا الشرط الإضافي لا يظهر أي نزيل لقسم الجناح غير الأساسي.
         $res = Reservation::with(['guest', 'payments.receivedBy'])
-            ->where('room_id', $roomId)
+            ->where(function ($q) use ($roomId) {
+                $q->where('room_id', $roomId)->orWhere('linked_room_id', $roomId);
+            })
             ->where(function ($q) use ($date) {
                 $q->where(function ($q2) use ($date) {
                     $q2->where('status', 'checked_in')
@@ -1359,6 +1394,9 @@ class ReportController extends Controller
             'todays_payments' => $todaysPayments,
             'remaining'       => $remaining,
             'currency'        => $res->currency_symbol,
+            // لدمج صفَّي قسمَي الجناح الكامل في التقرير حين يخصّان نفس الحجز
+            'reservation_id'      => $res->id,
+            'suite_booking_type'  => $res->suite_booking_type,
         ];
     }
 

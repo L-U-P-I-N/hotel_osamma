@@ -48,23 +48,33 @@
 <table class="data" dir="rtl">
     <thead>
         <tr>
-            <th style="width:13%;">مديونيته</th>
-            <th style="width:18%;">من استلمها وتاريخها</th>
-            <th style="width:11%;">دفعات اليوم</th>
-            <th style="width:11%;">متى موعد خروجه</th>
-            <th style="width:11%;">متى دخل</th>
-            <th style="width:16%;">من حاجزها اليوم</th>
+            <th style="width:12%;">مديونيته</th>
+            <th style="width:16%;">من استلمها وتاريخها</th>
+            <th style="width:10%;">دفعات اليوم</th>
+            <th style="width:10%;">متى موعد خروجه</th>
+            <th style="width:10%;">متى دخل</th>
+            <th style="width:14%;">من حاجزها اليوم</th>
             <th style="width:10%;">حالة الغرفة</th>
+            <th style="width:10%;">أين القفل</th>
             <th style="width:8%;">الغرفة</th>
         </tr>
     </thead>
     <tbody>
         @foreach($rows as $row)
+        {{-- قسم الجناح الملحَق (B) بحجز جناح كامل: بيانات النزيل مدموجة بالفعل
+             في صف القسم الأول (rowspan) فلا تُكرَّر هنا — فقط الغرفة/الحالة/القفل --}}
+        @if($row['merged'] ?? false)
         <tr>
-            <td class="c" style="font-weight:bold;color:{{ ($row['today']['remaining'] ?? 0) > 0 ? '#dc2626' : '#888' }};">
+            <td class="c">{{ $row['status'] }}</td>
+            <td></td>
+            <td class="c" style="font-weight:bold;">{{ $row['room']->room_number }}</td>
+        </tr>
+        @else
+        <tr>
+            <td class="c" style="font-weight:bold;color:{{ ($row['today']['remaining'] ?? 0) > 0 ? '#dc2626' : '#888' }};" @if($row['rowspan'] ?? false) rowspan="{{ $row['rowspan'] }}" @endif>
                 {{ $row['today'] ? number_format($row['today']['remaining'], 0) . ' ' . $row['today']['currency'] : '—' }}
             </td>
-            <td class="c">
+            <td class="c" @if($row['rowspan'] ?? false) rowspan="{{ $row['rowspan'] }}" @endif>
                 @if($row['today'])
                     @forelse($row['today']['todays_payments'] as $tp)
                         @if(!$loop->first)<hr style="border:none;border-top:1px solid #ddd;margin:3px 0;">@endif
@@ -75,7 +85,7 @@
                     @endforelse
                 @else — @endif
             </td>
-            <td class="c" style="font-weight:bold;color:#16a34a;">
+            <td class="c" style="font-weight:bold;color:#16a34a;" @if($row['rowspan'] ?? false) rowspan="{{ $row['rowspan'] }}" @endif>
                 @if($row['today'])
                     @forelse($row['today']['todays_payments'] as $tp)
                         @if(!$loop->first)<hr style="border:none;border-top:1px solid #ddd;margin:3px 0;">@endif
@@ -85,20 +95,22 @@
                     @endforelse
                 @else — @endif
             </td>
-            <td class="c">
+            <td class="c" @if($row['rowspan'] ?? false) rowspan="{{ $row['rowspan'] }}" @endif>
                 @if($row['today'])
                     {{ $row['today']['check_out_date']?->format('d/m/Y') ?? '—' }}
                 @else — @endif
             </td>
-            <td class="c">
+            <td class="c" @if($row['rowspan'] ?? false) rowspan="{{ $row['rowspan'] }}" @endif>
                 @if($row['today'])
                     {{ $row['today']['check_in_date']?->format('d/m/Y') }}<br>{{ $row['today']['check_in_time'] ?? '—' }}
                 @else — @endif
             </td>
-            <td>{{ $row['today']['guest_name'] ?? '—' }}</td>
+            <td @if($row['rowspan'] ?? false) rowspan="{{ $row['rowspan'] }}" @endif>{{ $row['today']['guest_name'] ?? '—' }}</td>
             <td class="c">{{ $row['status'] }}</td>
+            <td></td>
             <td class="c" style="font-weight:bold;">{{ $row['room']->room_number }}</td>
         </tr>
+        @endif
         @endforeach
     </tbody>
 </table>

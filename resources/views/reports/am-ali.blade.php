@@ -41,6 +41,7 @@
             <thead>
                 <tr class="bg-gray-800 text-white text-sm">
                     <th class="border border-gray-300 px-3 py-3 font-bold">الغرفة</th>
+                    <th class="border border-gray-300 px-3 py-3 font-bold">أين القفل</th>
                     <th class="border border-gray-300 px-3 py-3 font-bold">حالة الغرفة</th>
                     <th class="border border-gray-300 px-3 py-3 font-bold">من حاجزها اليوم</th>
                     <th class="border border-gray-300 px-3 py-3 font-bold">متى دخل</th>
@@ -54,6 +55,7 @@
                 @forelse($rows as $i => $row)
                 <tr class="{{ $i % 2 === 0 ? 'bg-white' : 'bg-gray-50' }}">
                     <td class="border border-gray-300 px-3 py-3 font-black text-primary-800">{{ $row['room']->room_number }}</td>
+                    <td class="border border-gray-300 px-3 py-3"></td>
                     @php
                         $statusClasses = match($row['status_color']) {
                             'green'  => 'bg-green-100 text-green-700',
@@ -68,11 +70,16 @@
                             {{ $row['status'] }}
                         </span>
                     </td>
-                    @if($row['today'])
-                    <td class="border border-gray-300 px-3 py-3 font-bold">{{ $row['today']['guest_name'] }}</td>
-                    <td class="border border-gray-300 px-3 py-3 text-xs text-gray-500 whitespace-nowrap">{{ $row['today']['check_in_date']?->format('d/m/Y') }} — {{ $row['today']['check_in_time'] ?? '—' }}</td>
-                    <td class="border border-gray-300 px-3 py-3 text-xs text-gray-500 whitespace-nowrap">{{ $row['today']['check_out_date']?->format('d/m/Y') ?? '—' }}</td>
-                    <td class="border border-gray-300 px-3 py-3 font-bold text-green-700">
+                    {{-- قسم الجناح الملحَق (B) بحجز جناح كامل: بيانات النزيل مدموجة
+                         في صف القسم الأول (rowspan) فلا تُكرَّر هنا --}}
+                    @if($row['merged'] ?? false)
+                    {{-- لا خلايا إضافية — الأعمدة التالية مغطّاة بـ rowspan من الصف السابق --}}
+                    @elseif($row['today'])
+                    @php $rs = $row['rowspan'] ?? null; @endphp
+                    <td class="border border-gray-300 px-3 py-3 font-bold" @if($rs) rowspan="{{ $rs }}" @endif>{{ $row['today']['guest_name'] }}</td>
+                    <td class="border border-gray-300 px-3 py-3 text-xs text-gray-500 whitespace-nowrap" @if($rs) rowspan="{{ $rs }}" @endif>{{ $row['today']['check_in_date']?->format('d/m/Y') }} — {{ $row['today']['check_in_time'] ?? '—' }}</td>
+                    <td class="border border-gray-300 px-3 py-3 text-xs text-gray-500 whitespace-nowrap" @if($rs) rowspan="{{ $rs }}" @endif>{{ $row['today']['check_out_date']?->format('d/m/Y') ?? '—' }}</td>
+                    <td class="border border-gray-300 px-3 py-3 font-bold text-green-700" @if($rs) rowspan="{{ $rs }}" @endif>
                         @forelse($row['today']['todays_payments'] as $tp)
                         <div class="{{ !$loop->first ? 'mt-1.5 pt-1.5 border-t border-gray-100' : '' }}">
                             {{ number_format($tp['amount'], 0) }} {{ $row['today']['currency'] }}
@@ -81,7 +88,7 @@
                         <span class="text-gray-300 font-normal">—</span>
                         @endforelse
                     </td>
-                    <td class="border border-gray-300 px-3 py-3">
+                    <td class="border border-gray-300 px-3 py-3" @if($rs) rowspan="{{ $rs }}" @endif>
                         @forelse($row['today']['todays_payments'] as $tp)
                         <div class="{{ !$loop->first ? 'mt-1.5 pt-1.5 border-t border-gray-100' : '' }}">
                             <div class="font-semibold">{{ $tp['received_by'] ?? '—' }}</div>
@@ -91,14 +98,14 @@
                         <span class="text-gray-300">—</span>
                         @endforelse
                     </td>
-                    <td class="border border-gray-300 px-3 py-3 font-black {{ $row['today']['remaining'] > 0 ? 'text-red-700' : 'text-gray-400' }}">{{ number_format($row['today']['remaining'], 0) }} {{ $row['today']['currency'] }}</td>
+                    <td class="border border-gray-300 px-3 py-3 font-black {{ $row['today']['remaining'] > 0 ? 'text-red-700' : 'text-gray-400' }}" @if($rs) rowspan="{{ $rs }}" @endif>{{ number_format($row['today']['remaining'], 0) }} {{ $row['today']['currency'] }}</td>
                     @else
                     <td class="border border-gray-300 px-3 py-3 text-gray-300 text-center" colspan="6">—</td>
                     @endif
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="8" class="border border-gray-300 px-4 py-10 text-center text-gray-400 text-lg">لا توجد غرف</td>
+                    <td colspan="9" class="border border-gray-300 px-4 py-10 text-center text-gray-400 text-lg">لا توجد غرف</td>
                 </tr>
                 @endforelse
             </tbody>
