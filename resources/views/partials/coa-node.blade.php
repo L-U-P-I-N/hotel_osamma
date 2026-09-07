@@ -4,14 +4,17 @@
 --}}
 @php
     $hasChildren = !empty($node['children']);
+    // فئات Tailwind بدل الألوان الثابتة (inline hex) — تُظلَّم تلقائياً في
+    // الوضع الليلي عبر app-theme.css العام، بدل ألوان زاهية ثابتة تؤذي العين
+    // على خلفية داكنة.
     $typeStyles  = [
-        'asset'     => ['bg' => '#eff6ff', 'fg' => '#1d4ed8', 'label' => 'أصول'],
-        'liability' => ['bg' => '#fef2f2', 'fg' => '#b91c1c', 'label' => 'خصوم'],
-        'equity'    => ['bg' => '#f5f3ff', 'fg' => '#6d28d9', 'label' => 'حقوق ملكية'],
-        'revenue'   => ['bg' => '#ecfdf5', 'fg' => '#047857', 'label' => 'إيرادات'],
-        'expense'   => ['bg' => '#fff7ed', 'fg' => '#c2410c', 'label' => 'مصروفات'],
+        'asset'     => ['cls' => 'bg-blue-100 text-blue-700',       'label' => 'أصول'],
+        'liability' => ['cls' => 'bg-red-100 text-red-700',         'label' => 'خصوم'],
+        'equity'    => ['cls' => 'bg-violet-100 text-violet-700',   'label' => 'حقوق ملكية'],
+        'revenue'   => ['cls' => 'bg-emerald-100 text-emerald-700', 'label' => 'إيرادات'],
+        'expense'   => ['cls' => 'bg-orange-100 text-orange-700',   'label' => 'مصروفات'],
     ];
-    $style = $typeStyles[$node['type']] ?? ['bg' => '#f3f4f6', 'fg' => '#374151', 'label' => $node['type']];
+    $style = $typeStyles[$node['type']] ?? ['cls' => 'bg-gray-100 text-gray-600', 'label' => $node['type']];
 @endphp
 
 <li x-data="{ open: {{ $node['level'] <= 1 ? 'true' : 'false' }} }" class="coa-node">
@@ -33,11 +36,11 @@
 
         <span class="coa-code">{{ $node['code'] }}</span>
 
-        <span class="coa-name-ar {{ $node['level'] <= 2 ? 'font-bold' : '' }}">{{ $node['name_ar'] }}</span>
-        <span class="coa-name-en" dir="ltr">{{ $node['name_en'] }}</span>
+        <span class="coa-name-ar text-gray-800 {{ $node['level'] <= 2 ? 'font-bold' : '' }}">{{ $node['name_ar'] }}</span>
+        <span class="coa-name-en text-gray-400" dir="ltr">{{ $node['name_en'] }}</span>
 
         <span class="coa-badges">
-            <span class="coa-chip" style="background:{{ $style['bg'] }};color:{{ $style['fg'] }};">
+            <span class="coa-chip {{ $style['cls'] }}">
                 {{ $style['label'] }}
             </span>
 
@@ -46,13 +49,13 @@
             </span>
 
             @if($node['is_posting'])
-            <span class="coa-chip" style="background:#ecfdf5;color:#047857;" title="يقبل القيود">قابل للترحيل</span>
+            <span class="coa-chip bg-emerald-100 text-emerald-700" title="يقبل القيود">قابل للترحيل</span>
             @else
             <span class="coa-chip coa-chip-muted" title="حساب تجميعي">تجميعي</span>
             @endif
 
             @unless($node['is_active'])
-            <span class="coa-chip" style="background:#fef2f2;color:#b91c1c;">موقوف</span>
+            <span class="coa-chip bg-red-100 text-red-700">موقوف</span>
             @endunless
         </span>
     </div>

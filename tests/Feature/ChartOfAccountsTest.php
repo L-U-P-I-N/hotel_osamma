@@ -364,6 +364,23 @@ class ChartOfAccountsTest extends TestCase
             ->assertSee('Rooms Revenue', false);
     }
 
+    /**
+     * الشارات يجب أن تستخدم فئات Tailwind (bg-blue-100 إلخ) لا ألوان hex
+     * ثابتة inline — وإلا تبقى زاهية على خلفية داكنة رغم تبديل الوضع الليلي،
+     * لأن ورقة الأنماط العامة app-theme.css لا تعرف كيف تُظلِّم inline style.
+     */
+    public function test_type_badges_use_dark_mode_safe_tailwind_classes_not_inline_hex(): void
+    {
+        $admin = User::role('admin')->firstOrFail();
+
+        $html = $this->actingAs($admin)->get('/accounting/chart-of-accounts')->getContent();
+
+        $this->assertStringContainsString('bg-blue-100', $html);
+        $this->assertStringNotContainsString('style="background:#eff6ff', $html);
+        $this->assertStringNotContainsString('style="background:#ecfdf5', $html);
+        $this->assertStringNotContainsString('style="background:#fef2f2', $html);
+    }
+
     public function test_tree_json_endpoint_returns_nested_children(): void
     {
         $admin = User::role('admin')->firstOrFail();

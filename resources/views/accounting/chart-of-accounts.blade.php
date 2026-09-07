@@ -4,8 +4,15 @@
 
 @push('styles')
 <style>
+    /*
+        الألوان هنا محايدة (رمادي) لتعمل تلقائياً على الوضعين — الوضع الليلي
+        يُعتِم هذه الظلال عبر app-theme.css العام (html.dark .border-gray-200
+        ونحوها)، والألوان الدلالية (نوع الحساب/الشارات) تستخدم فئات Tailwind
+        (bg-blue-100 إلخ) بدل قيم hex ثابتة لنفس السبب — راجع coa-node.blade.php.
+    */
     .coa-tree, .coa-children { list-style:none; margin:0; padding:0; }
     .coa-children { border-right:1px dashed #e5e7eb; margin-right:0.75rem; }
+    html.dark .coa-children { border-right-color:#33383f; }
 
     .coa-row {
         display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;
@@ -13,6 +20,8 @@
         border-bottom:1px solid #f3f4f6; transition:background .15s;
     }
     .coa-row:hover { background:#f9fafb; }
+    html.dark .coa-row { border-bottom-color:#33383f; }
+    html.dark .coa-row:hover { background:#2d323a; }
 
     .coa-toggle {
         width:1.5rem; height:1.5rem; flex-shrink:0;
@@ -20,6 +29,8 @@
         border-radius:0.5rem; border:1px solid #e5e7eb; background:#fff; color:#6b7280;
     }
     .coa-toggle:hover { background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; }
+    html.dark .coa-toggle { background:#1b1e23; border-color:#414751; color:#a1a6ae; }
+    html.dark .coa-toggle:hover { background:#2d323a; color:#7fb0dd; border-color:#7fb0dd; }
 
     .coa-leaf-dot {
         width:1.5rem; height:1.5rem; flex-shrink:0; position:relative;
@@ -28,19 +39,22 @@
         content:''; position:absolute; top:50%; right:50%;
         width:5px; height:5px; border-radius:9999px; background:#d1d5db; transform:translate(50%,-50%);
     }
+    html.dark .coa-leaf-dot::after { background:#5b606a; }
 
     .coa-code {
         font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
         font-size:0.8125rem; font-weight:700; color:#0F4C75;
         background:#f1f5f9; border-radius:0.375rem; padding:0.125rem 0.5rem; flex-shrink:0;
     }
-    .coa-name-ar { font-size:0.875rem; color:#111827; }
-    .coa-name-en { font-size:0.75rem; color:#9ca3af; }
+    html.dark .coa-code { color:#7fb0dd; background:#1b1e23; }
+    .coa-name-ar { font-size:0.875rem; }
+    .coa-name-en { font-size:0.75rem; }
     .coa-badges  { display:flex; gap:0.375rem; margin-right:auto; flex-wrap:wrap; }
     .coa-chip {
         font-size:0.6875rem; font-weight:600; border-radius:9999px; padding:0.125rem 0.5rem; white-space:nowrap;
     }
     .coa-chip-muted { background:#f3f4f6; color:#6b7280; }
+    html.dark .coa-chip-muted { background:#1b1e23; color:#a1a6ae; }
 
     @media (max-width: 640px) {
         .coa-name-en { display:none; }
