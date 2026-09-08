@@ -21,7 +21,11 @@
     $wa     = $p['hotel_whatsapp'] ?? null;
 @endphp
 
-<table style="width:100%;border-collapse:collapse;margin-bottom:6px;">
+{{-- إطار مستطيل حول الرأس — يعطيه شكل ترويسة رسمية (letterhead) بدل نص عائم
+     بلا حدود، متسق عبر كل مستندات الفندق المصدَّرة (فواتير، تقارير، إيصالات). --}}
+<table style="width:100%;border-collapse:collapse;margin-bottom:10px;border:1.5px solid #0F4C75;border-radius:6px;background:#fbfdff;">
+    <tr><td style="padding:10px 16px;">
+<table style="width:100%;border-collapse:collapse;">
     <tr>
         {{-- ————— عربي (يمين) ————— --}}
         <td style="width:36%;vertical-align:top;text-align:right;direction:rtl;">
@@ -70,4 +74,6 @@
             @endif
         </td>
     </tr>
+</table>
+    </td></tr>
 </table>

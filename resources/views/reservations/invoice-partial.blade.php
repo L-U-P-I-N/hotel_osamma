@@ -40,20 +40,10 @@ body {
   padding: 10mm 14mm;
 }
 
-.brand { float: right; width: 55%; display: flex; flex-direction: column; align-items: flex-start; }
-.brand-logo { height: 72px; width: auto; margin-bottom: 4px; }
-.brand .hotel-ar { font-size: 16pt; font-weight: 700; color: var(--color-navy); line-height: 1.15; }
-.brand .hotel-en { font-size: 8pt; color: var(--color-gold); letter-spacing: 2px; margin-top: 2px; }
-.invmeta { float: left; width: 43%; direction: rtl; background: #f7f9fc; border: 1px solid var(--color-border); border-radius: 10px; padding: 10px 13px; }
-.inv-title { font-size: 16pt; font-weight: 700; color: var(--color-navy); line-height: 1; margin-bottom: 6px; }
-.inv-divider { border: none; border-top: 2px solid var(--color-gold); margin: 0 0 7px; }
-.inv-row { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; font-size: 9pt; }
-.inv-row-label { color: var(--color-text-secondary); }
-.inv-row-val { font-weight: 700; color: var(--color-text-primary); }
-.inv-row-val.gold { color: var(--color-gold); font-size: 10pt; }
-.pill { display: inline-block; margin-top: 10px; padding: 4px 14px; border-radius: 15px; font-size: 8.5pt; font-weight: 700; width: 100%; text-align: center; box-sizing: border-box; background: #fff7e0; color: #8a6d1f; }
+.invmeta-bar { display: flex; justify-content: space-between; align-items: center; margin: 4px 0 8px; }
+.inv-title { font-size: 13pt; font-weight: 700; color: var(--color-navy); }
+.pill { display: inline-block; padding: 4px 16px; border-radius: 15px; font-size: 8.5pt; font-weight: 700; background: #fff7e0; color: #8a6d1f; }
 .clear { clear: both; }
-.rule  { clear: both; height: 0; border-top: 3px solid var(--color-navy); margin: 9px 0 0; }
 .rule2 { height: 0; border-top: 1px solid var(--color-gold); margin: 0 0 12px; }
 
 .card { border: 1px solid var(--color-border); background: var(--color-surface); border-radius: 8px; padding: 9px 12px; }
@@ -91,9 +81,6 @@ table.items .c { text-align: center !important; white-space: nowrap; }
 @php
     $cur   = $reservation->currency_symbol;
     $invNo = str_pad($reservation->id, 6, '0', STR_PAD_LEFT);
-    $logo  = \App\Models\Setting::hotelLogo();
-    $__p       = \App\Models\Setting::hotelProfile();
-    $__contact = \App\Models\Setting::contactLine();
     $totalNights = (int) $selectedSegments->sum('nights');
     $periodFrom  = $selectedSegments->first()?->start_date;
     $periodTo    = $selectedSegments->last()?->end_date;
@@ -101,34 +88,13 @@ table.items .c { text-align: center !important; white-space: nowrap; }
 @endphp
 <div class="page">
 
-  <!-- HEADER -->
-  <div class="brand">
-    @if($logo)
-    <img class="brand-logo" src="{{ $logo }}" alt="شعار الفندق">
-    @endif
-    <div class="hotel-ar">{{ $__p['hotel_name_ar'] ?: 'الفندق السعودي' }}</div>
-    <div class="hotel-en">{{ $__p['hotel_name_en'] ?: 'THE SAUDI HOTEL' }}</div>
-    @if($__p['hotel_address_ar'] ?? null)
-    <div style="font-size:8.5px;color:#777;margin-top:3px;">{{ $__p['hotel_address_ar'] }}</div>
-    @endif
-    @if($__contact)
-    <div style="font-size:8px;color:#888;margin-top:2px;">{{ $__contact }}</div>
-    @endif
-  </div>
-  <div class="invmeta">
-    <div class="inv-title">فاتورة</div>
-    <hr class="inv-divider">
-    <div class="inv-row">
-      <span class="inv-row-label">رقم الحجز</span>
-      <span class="inv-row-val gold">#{{ $invNo }}</span>
-    </div>
-    <div class="inv-row">
-      <span class="inv-row-label">تاريخ الإصدار</span>
-      <span class="inv-row-val">{{ now()->format('Y/m/d') }}</span>
-    </div>
+  <!-- HEADER: ترويسة رسمية موحّدة (عربي يمين / الشعار وسطاً / إنجليزي يسار) -->
+  @include('partials.pdf-hotel-header-full', ['logoHeight' => 56])
+
+  <div class="invmeta-bar">
+    <div class="inv-title">فاتورة #{{ $invNo }}</div>
     <span class="pill">فترة محدَّدة من الإقامة</span>
   </div>
-  <div class="rule"></div>
   <div class="rule2"></div>
 
   <!-- INFO CARDS -->

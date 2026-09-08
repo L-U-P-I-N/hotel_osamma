@@ -157,22 +157,12 @@ body {
 }
 
 /* Header */
-.brand { float: right; width: 55%; display: flex; flex-direction: column; align-items: flex-start; }
-.brand-logo { height: 72px; width: auto; margin-bottom: 4px; }
-.brand .hotel-ar { font-size: 16pt; font-weight: var(--font-bold); color: var(--color-navy); line-height: var(--leading-tight); }
-.brand .hotel-en { font-size: var(--text-xs); color: var(--color-gold); letter-spacing: var(--tracking-wide); margin-top: 2px; }
-.invmeta { float: left; width: 43%; direction: rtl; background: #f7f9fc; border: 1px solid var(--color-border); border-radius: 10px; padding: 10px 13px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
-.inv-title { font-size: 16pt; font-weight: var(--font-bold); color: var(--color-navy); line-height: 1; margin-bottom: 6px; }
-.inv-divider { border: none; border-top: 2px solid var(--color-gold); margin: 0 0 7px; }
-.inv-row { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; font-size: 9pt; }
-.inv-row-label { color: var(--color-text-secondary); }
-.inv-row-val { font-weight: var(--font-bold); color: var(--color-text-primary); }
-.inv-row-val.gold { color: var(--color-gold); font-size: 10pt; }
-.pill { display: inline-block; margin-top: 10px; padding: 4px 14px; border-radius: var(--radius-pill); font-size: var(--text-sm); font-weight: var(--font-bold); width: 100%; text-align: center; box-sizing: border-box; }
+.invmeta-bar { display: flex; justify-content: space-between; align-items: center; margin: 4px 0 8px; }
+.inv-title { font-size: 14pt; font-weight: var(--font-bold); color: var(--color-navy); }
+.pill { display: inline-block; padding: 4px 16px; border-radius: var(--radius-pill); font-size: var(--text-sm); font-weight: var(--font-bold); }
 .pill-paid { background: var(--color-success-bg); color: var(--color-success); }
 .pill-due  { background: var(--color-error-bg);   color: var(--color-error); }
 .clear { clear: both; }
-.rule  { clear: both; height: 0; border-top: 3px solid var(--color-navy); margin: 9px 0 0; }
 .rule2 { height: 0; border-top: 1px solid var(--color-gold); margin: 0 0 12px; }
 
 /* Info cards */
@@ -275,41 +265,18 @@ table.mini tr { page-break-inside: avoid; }
     $invNo         = str_pad($reservation->id, 6, '0', STR_PAD_LEFT);
     $methodMap = ['cash'=>'نقدي','pos'=>'POS','bank_transfer'=>'تحويل بنكي'];
     $typeMap   = ['reservation'=>'دفعة حجز','renewal'=>'تجديد','compensation'=>'تعويض','extra_service'=>'خدمة إضافية'];
-    $logo      = \App\Models\Setting::hotelLogo();
 @endphp
 <div class="page">
 
-  <!-- HEADER -->
-  @php $__p = \App\Models\Setting::hotelProfile(); $__contact = \App\Models\Setting::contactLine(); @endphp
-  <div class="brand">
-    @if($logo)
-    <img class="brand-logo" src="{{ $logo }}" alt="شعار الفندق">
-    @endif
-    <div class="hotel-ar">{{ $__p['hotel_name_ar'] ?: 'الفندق السعودي' }}</div>
-    <div class="hotel-en">{{ $__p['hotel_name_en'] ?: 'THE SAUDI HOTEL' }}</div>
-    @if($__p['hotel_address_ar'] ?? null)
-    <div style="font-size:8.5px;color:#777;margin-top:3px;">{{ $__p['hotel_address_ar'] }}</div>
-    @endif
-    @if($__contact)
-    <div style="font-size:8px;color:#888;margin-top:2px;">{{ $__contact }}</div>
-    @endif
-  </div>
-  <div class="invmeta">
-    <div class="inv-title">فاتورة</div>
-    <hr class="inv-divider">
-    <div class="inv-row">
-      <span class="inv-row-label">رقم الفاتورة</span>
-      <span class="inv-row-val gold">#{{ $invNo }}</span>
-    </div>
-    <div class="inv-row">
-      <span class="inv-row-label">تاريخ الإصدار</span>
-      <span class="inv-row-val">{{ now()->format('Y/m/d') }}</span>
-    </div>
+  <!-- HEADER: ترويسة رسمية موحّدة (عربي يمين / الشعار وسطاً / إنجليزي يسار) -->
+  @include('partials.pdf-hotel-header-full', ['logoHeight' => 56])
+
+  <div class="invmeta-bar">
+    <div class="inv-title">فاتورة #{{ $invNo }}</div>
     <span class="pill {{ $isPaid ? 'pill-paid' : 'pill-due' }}">
         {{ $isPaid ? 'مسدّدة بالكامل' : 'متبقي مبلغ' }}
     </span>
   </div>
-  <div class="rule"></div>
   <div class="rule2"></div>
 
   <!-- INFO CARDS -->
