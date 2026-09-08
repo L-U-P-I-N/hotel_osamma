@@ -333,8 +333,7 @@ class RoomController extends Controller
     /**
      * تغيير حالة عدة غرف/أقسام جناح دفعة واحدة (متاحة/تحت الفحص/صيانة) دون
      * مغادرة صفحة الغرف — يختار الموظف عدة غرف بدل تكرار الضغط على كل واحدة
-     * على حدة. لا حذف جماعياً هنا عمداً (أُزيل سابقاً لأسباب أمان وبقي مقصوداً).
-     * غرفة بها نزيل فعلي تُستثنى بصمت من التحديث بدل رفض الطلب كله.
+     * على حدة. غرفة بها نزيل فعلي تُستثنى بصمت من التحديث بدل رفض الطلب كله.
      */
     public function bulkUpdateStatus(Request $request)
     {
@@ -348,16 +347,7 @@ class RoomController extends Controller
             'status.in'         => 'لا يمكن تعيين هذه الحالة يدوياً',
         ]);
 
-        $occupiedRoomIds = \App\Models\Reservation::where('status', 'checked_in')
-            ->whereDate('check_in_date', '<=', today())
-            ->where(function ($q) {
-                $q->whereNotNull('room_id')->orWhereNotNull('linked_room_id');
-            })
-            ->get(['room_id', 'linked_room_id'])
-            ->flatMap(fn ($r) => [$r->room_id, $r->linked_room_id])
-            ->filter()
-            ->unique();
-
+        $occupiedRoomIds = $this->currentlyOccupiedRoomIds();
         $rooms = Room::whereIn('id', $validated['room_ids'])->get();
 
         $updated = 0;
@@ -385,5 +375,94 @@ class RoomController extends Controller
             'skipped' => $skipped,
             'message' => $message,
         ]);
+    }
+
+    /**
+     * تعديل سعر عدة غرف/أقسام محدَّدة يدوياً دفعة واحدة — بخلاف ميزة "توحيد
+     * سعر كل غرف نوع معيّن" القديمة (أُزيلت لأنها كانت تُغيّر غرفاً لم يقصدها
+     * الموظف)، هنا يختار الموظف الغرف بنفسه بالضبط (نفس تحديد تغيير الحالة)
+     * فالنطاق مقصود دائماً. لا قيود نطاق سعري هنا (كسعر الغرفة الفردية تماماً)
+     * — قيود النطاق تخصّ سعر الحجز عند تسجيل الدخول لا سعر الغرفة الأساسي.
+     */
+    public function bulkUpdatePrice(Request $request)
+    {
+        $validated = $request->validate([
+            'room_ids'   => 'required|array|min:1',
+            'room_ids.*' => 'integer|exists:rooms,id',
+            'price_yer'  => 'required|numeric|min:0',
+        ], [
+            'room_ids.required' => 'يرجى تحديد غرفة واحدة على الأقل',
+            'price_yer.required' => 'السعر مطلوب',
+            'price_yer.numeric'  => 'السعر يجب أن يكون رقماً',
+        ]);
+
+        $rooms = Room::whereIn('id', $validated['room_ids'])->get();
+
+        foreach ($rooms as $room) {
+            $old = ['price_yer' => $room->price_yer];
+            $room->update(['price_yer' => $validated['price_yer']]);
+            AuditLogService::log('update', $room, $old, ['price_yer' => $validated['price_yer']], auth()->user());
+        }
+
+        return response()->json([
+            'success' => true,
+            'updated' => $rooms->count(),
+            'message' => 'تم تحديث سعر ' . $rooms->count() . ' غرفة إلى ' . number_format($validated['price_yer'], 0) . ' ر.ي',
+        ]);
+    }
+
+    /**
+     * حذف عدة غرف/أقسام محدَّدة دفعة واحدة. غرفة بها نزيل فعلي حالياً تُستثنى
+     * بصمت من الحذف (لا تُرفَض العملية كلها) ويُعلَم المستخدم بأيّ غرف تُخطَّت.
+     */
+    public function bulkDestroy(Request $request)
+    {
+        $validated = $request->validate([
+            'room_ids'   => 'required|array|min:1',
+            'room_ids.*' => 'integer|exists:rooms,id',
+        ], [
+            'room_ids.required' => 'يرجى تحديد غرفة واحدة على الأقل',
+        ]);
+
+        $occupiedRoomIds = $this->currentlyOccupiedRoomIds();
+        $rooms = Room::whereIn('id', $validated['room_ids'])->get();
+
+        $deleted = 0;
+        $skipped = [];
+        foreach ($rooms as $room) {
+            if ($occupiedRoomIds->contains($room->id) || $room->reservations()->where('status', 'checked_in')->exists()) {
+                $skipped[] = $room->room_number;
+                continue;
+            }
+            AuditLogService::log('delete', $room, $room->toArray(), [], auth()->user());
+            $room->delete();
+            $deleted++;
+        }
+
+        $message = "تم حذف {$deleted} غرفة";
+        if (!empty($skipped)) {
+            $message .= ' — تُخطّيت الغرف المشغولة بنزيل: ' . implode('، ', $skipped);
+        }
+
+        return response()->json([
+            'success' => true,
+            'deleted' => $deleted,
+            'skipped' => $skipped,
+            'message' => $message,
+        ]);
+    }
+
+    /** كل غرفة (بذاتها أو كقسم جناح مرتبط) عليها نزيل مسجَّل دخوله فعلاً حالياً. */
+    private function currentlyOccupiedRoomIds(): \Illuminate\Support\Collection
+    {
+        return \App\Models\Reservation::where('status', 'checked_in')
+            ->whereDate('check_in_date', '<=', today())
+            ->where(function ($q) {
+                $q->whereNotNull('room_id')->orWhereNotNull('linked_room_id');
+            })
+            ->get(['room_id', 'linked_room_id'])
+            ->flatMap(fn ($r) => [$r->room_id, $r->linked_room_id])
+            ->filter()
+            ->unique();
     }
 }

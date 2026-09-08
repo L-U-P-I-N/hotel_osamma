@@ -470,26 +470,82 @@ html.dark .filter-chip.bg-white { background: #1e293b !important; }
     </div>
 </div>
 
-{{-- ════════ Bulk Status Bar (وضع التحديد المتعدد) ════════ --}}
-@canany(['rooms.edit','rooms.maintenance'])
+{{-- ════════ Bulk Actions Bar (وضع التحديد المتعدد) ════════ --}}
+@canany(['rooms.edit','rooms.maintenance','room.price.edit','rooms.delete'])
 <div x-show="bulkMode && selectedIds.length > 0" x-cloak x-transition
-     class="fixed bottom-4 inset-x-0 mx-auto w-fit max-w-[95vw] z-40 bg-white rounded-2xl shadow-2xl border border-gray-200 px-5 py-3 flex items-center gap-3 flex-wrap justify-center">
-    <span class="text-sm font-bold text-gray-700 whitespace-nowrap">
-        <span x-text="selectedIds.length"></span> غرفة محدَّدة
-    </span>
-    <select x-model="bulkStatus" class="border-2 border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:bg-white focus:border-blue-400 outline-none transition">
-        <option value="available">متاحة</option>
-        <option value="under_inspection">تحت الفحص</option>
-        <option value="maintenance">صيانة</option>
-    </select>
-    <button type="button" @click="applyBulkStatus()" :disabled="bulkApplying"
-            class="px-5 py-2 text-white text-sm font-bold rounded-xl transition hover:opacity-90 shadow-sm disabled:opacity-50"
-            style="background:#0F4C75;">
-        <span x-text="bulkApplying ? 'جارٍ التطبيق...' : 'تطبيق على المحدَّد'"></span>
-    </button>
-    <button type="button" @click="selectedIds = []" class="px-3 py-2 text-sm text-gray-500 hover:text-gray-700">
-        إلغاء التحديد
-    </button>
+     class="fixed bottom-4 inset-x-0 mx-auto w-fit max-w-[95vw] z-40 bg-white rounded-2xl shadow-2xl border border-gray-200 px-5 py-3 flex flex-col gap-2.5">
+    <div class="flex items-center gap-3 flex-wrap justify-center">
+        <span class="text-sm font-bold text-gray-700 whitespace-nowrap">
+            <span x-text="selectedIds.length"></span> غرفة محدَّدة
+        </span>
+
+        <div class="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
+            @canany(['rooms.edit','rooms.maintenance'])
+            <button type="button" @click="bulkAction = 'status'"
+                    class="px-3 py-1.5 rounded-lg text-xs font-semibold transition"
+                    :class="bulkAction === 'status' ? 'bg-white shadow-sm text-blue-700' : 'text-gray-500'">
+                الحالة
+            </button>
+            @endcanany
+            @can('room.price.edit')
+            <button type="button" @click="bulkAction = 'price'"
+                    class="px-3 py-1.5 rounded-lg text-xs font-semibold transition"
+                    :class="bulkAction === 'price' ? 'bg-white shadow-sm text-blue-700' : 'text-gray-500'">
+                السعر
+            </button>
+            @endcan
+            @can('rooms.delete')
+            <button type="button" @click="bulkAction = 'delete'"
+                    class="px-3 py-1.5 rounded-lg text-xs font-semibold transition"
+                    :class="bulkAction === 'delete' ? 'bg-white shadow-sm text-red-700' : 'text-gray-500'">
+                حذف
+            </button>
+            @endcan
+        </div>
+
+        <button type="button" @click="selectedIds = []" class="px-3 py-2 text-sm text-gray-500 hover:text-gray-700">
+            إلغاء التحديد
+        </button>
+    </div>
+
+    <div class="flex items-center gap-3 flex-wrap justify-center">
+        <template x-if="bulkAction === 'status'">
+            <div class="flex items-center gap-2">
+                <select x-model="bulkStatus" class="border-2 border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:bg-white focus:border-blue-400 outline-none transition">
+                    <option value="available">متاحة</option>
+                    <option value="under_inspection">تحت الفحص</option>
+                    <option value="maintenance">صيانة</option>
+                </select>
+                <button type="button" @click="applyBulkStatus()" :disabled="bulkApplying"
+                        class="px-5 py-2 text-white text-sm font-bold rounded-xl transition hover:opacity-90 shadow-sm disabled:opacity-50"
+                        style="background:#0F4C75;">
+                    <span x-text="bulkApplying ? 'جارٍ التطبيق...' : 'تطبيق على المحدَّد'"></span>
+                </button>
+            </div>
+        </template>
+
+        <template x-if="bulkAction === 'price'">
+            <div class="flex items-center gap-2">
+                <input type="number" x-model="bulkPrice" min="0" step="1" placeholder="السعر الجديد (ر.ي)"
+                       class="border-2 border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:bg-white focus:border-blue-400 outline-none transition w-40">
+                <button type="button" @click="applyBulkPrice()" :disabled="bulkApplying || !bulkPrice"
+                        class="px-5 py-2 text-white text-sm font-bold rounded-xl transition hover:opacity-90 shadow-sm disabled:opacity-50"
+                        style="background:#0F4C75;">
+                    <span x-text="bulkApplying ? 'جارٍ التطبيق...' : 'تطبيق على المحدَّد'"></span>
+                </button>
+            </div>
+        </template>
+
+        <template x-if="bulkAction === 'delete'">
+            <div class="flex items-center gap-2">
+                <span class="text-xs text-red-600 font-semibold">حذف نهائي لا يمكن التراجع عنه</span>
+                <button type="button" @click="applyBulkDelete()" :disabled="bulkApplying"
+                        class="px-5 py-2 text-white text-sm font-bold rounded-xl transition hover:opacity-90 shadow-sm disabled:opacity-50 bg-red-600">
+                    <span x-text="bulkApplying ? 'جارٍ الحذف...' : 'حذف المحدَّد نهائياً'"></span>
+                </button>
+            </div>
+        </template>
+    </div>
 </div>
 @endcanany
 
@@ -511,10 +567,12 @@ function roomsPage() {
         deleteModal: false,
         deleteRoomId: null,
         deleteRoomNumber: '',
-        // تحديد عدة غرف دفعة واحدة لتغيير حالتها دون الضغط على كل غرفة على حدة
+        // تحديد عدة غرف دفعة واحدة (حالة/سعر/حذف) دون الضغط على كل غرفة على حدة
         bulkMode: false,
         selectedIds: [],
+        bulkAction: 'status',
         bulkStatus: 'available',
+        bulkPrice: '',
         bulkApplying: false,
         selectedRoom: {},
         selectedRoomType: '',
@@ -548,17 +606,17 @@ function roomsPage() {
             const i = this.selectedIds.indexOf(id);
             if (i === -1) this.selectedIds.push(id); else this.selectedIds.splice(i, 1);
         },
-        applyBulkStatus() {
+        _postBulk(url, body) {
             if (this.bulkApplying || this.selectedIds.length === 0) return;
             this.bulkApplying = true;
-            fetch(@json(route('rooms.bulkStatus')), {
+            fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}',
                 },
-                body: JSON.stringify({ room_ids: this.selectedIds, status: this.bulkStatus }),
+                body: JSON.stringify(body),
             })
                 .then(r => r.json().then(data => ({ ok: r.ok, data })))
                 .then(({ ok, data }) => {
@@ -567,13 +625,24 @@ function roomsPage() {
                         alert(data.message);
                         window.location.reload();
                     } else {
-                        alert(data.message || 'تعذّر تنفيذ التحديث');
+                        alert(data.message || 'تعذّر تنفيذ الطلب');
                     }
                 })
                 .catch(() => {
                     this.bulkApplying = false;
                     alert('تعذّر الاتصال بالخادم — تحقّق من الإنترنت وحاول مرة أخرى');
                 });
+        },
+        applyBulkStatus() {
+            this._postBulk(@json(route('rooms.bulkStatus')), { room_ids: this.selectedIds, status: this.bulkStatus });
+        },
+        applyBulkPrice() {
+            if (!this.bulkPrice) return;
+            this._postBulk(@json(route('rooms.bulkPrice')), { room_ids: this.selectedIds, price_yer: this.bulkPrice });
+        },
+        applyBulkDelete() {
+            if (!confirm(`هل تريد حذف ${this.selectedIds.length} غرفة نهائياً؟ لا يمكن التراجع عن هذا الإجراء.`)) return;
+            this._postBulk(@json(route('rooms.bulkDelete')), { room_ids: this.selectedIds });
         },
 
     }

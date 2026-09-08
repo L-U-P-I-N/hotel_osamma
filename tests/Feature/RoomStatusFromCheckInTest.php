@@ -27,25 +27,25 @@ class RoomStatusFromCheckInTest extends TestCase
         ]);
     }
 
-    /** توحيد السعر بالنوع أُزيل بالكامل */
-    public function test_bulk_price_feature_is_gone(): void
+    /**
+     * "توحيد سعر كل غرف نوع معيّن" القديمة (تُغيّر غرفاً لم يقصدها الموظف)
+     * أُزيلت — لا يوجد منفذ يقبل sub_type بلا تحديد غرف بالضبط. الميزة
+     * الحالية تتطلب room_ids صريحة (تحديد يدوي من الموظف)، فلا خطر مماثل.
+     */
+    public function test_the_old_unify_by_subtype_mechanic_no_longer_exists(): void
     {
-        $this->assertFalse(\Illuminate\Support\Facades\Route::has('rooms.bulkPrice'));
-        $this->assertFalse(\Illuminate\Support\Facades\Route::has('rooms.bulkDelete'));
-
         $this->actingAs($this->admin())->get('/rooms')
             ->assertOk()
             ->assertDontSee('توحيد سعر الغرف', false);
 
-        // المسار لم يعد يقبل POST، والأهم: لا سعر يتغيّر
         $room = Room::where('room_sub_type', 'regular')->firstOrFail();
         $before = (float) $room->price_yer;
 
         $this->actingAs($this->admin())
-            ->post('/rooms/bulk-price', ['sub_type' => 'regular', 'price_yer' => 999]);
+            ->postJson('/rooms/bulk-price', ['sub_type' => 'regular', 'price_yer' => 999]);
 
         $this->assertEqualsWithDelta($before, (float) $room->fresh()->price_yer, 0.01,
-            'لا يجوز أن يبقى أي منفذ لتوحيد الأسعار');
+            'بلا room_ids صريحة يجب ألا يتغيّر أي سعر');
     }
 
     /** الغرف غير المتاحة تظهر في شاشة التسجيل مع أزرار تغيير الحالة */

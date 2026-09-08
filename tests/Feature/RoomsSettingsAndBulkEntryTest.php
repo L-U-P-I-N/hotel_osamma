@@ -5,7 +5,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-class RoomsNoBulkSelectTest extends TestCase
+class RoomsSettingsAndBulkEntryTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -13,23 +13,21 @@ class RoomsNoBulkSelectTest extends TestCase
 
     private function admin(): User { return User::role('admin')->firstOrFail(); }
 
-    /** أُلغي تحديد الغرف المتعدد لأنه كان مصدر أخطاء */
-    public function test_rooms_page_has_no_multi_select_or_bulk_delete(): void
+    /**
+     * التحديد المتعدد للغرف (حالة/سعر/حذف دفعة واحدة) أُعيد لاحقاً بطلب صريح
+     * من صاحب الفندق رغم إزالته سابقاً — راجع RoomsBulkStatusTest للتغطية
+     * الكاملة. هنا فقط نتأكد من وجود نقطة الدخول ومسارات الحذف الجماعي.
+     */
+    public function test_rooms_page_has_the_multi_select_entry_point(): void
     {
         $this->actingAs($this->admin())->get('/rooms')
             ->assertOk()
-            ->assertDontSee('تحديد متعدد', false)
-            ->assertDontSee('حذف المحدد', false)
-            ->assertDontSee('تحديد الكل', false)
-            ->assertDontSee('selectMode', false);
+            ->assertSee('تحديد عدة غرف', false);
     }
 
-    public function test_bulk_delete_route_no_longer_exists(): void
+    public function test_bulk_delete_route_exists(): void
     {
-        $this->assertFalse(
-            \Illuminate\Support\Facades\Route::has('rooms.bulkDelete'),
-            'مسار الحذف الجماعي يجب أن يكون قد أُزيل'
-        );
+        $this->assertTrue(\Illuminate\Support\Facades\Route::has('rooms.bulkDelete'));
     }
 
     public function test_settings_page_exposes_the_hotel_profile_fields(): void
