@@ -750,6 +750,44 @@ class ReportController extends Controller
         );
     }
 
+    /**
+     * بحث موحّد عن أي شخص له علاقة مالية بالفندق — نزيل، مرافق، موظف، أو
+     * مستخدم نظام — من شاشة واحدة، كأي كشف حسابات في الأنظمة المحاسبية.
+     * كل فئة نتائج مقصورة على من يملك صلاحية الاطّلاع عليها أصلاً (لا نُسرّب
+     * بيانات موظفين لمن لا يملك hr.view مثلاً لمجرد أنه يملك accounts.view).
+     * البحث بالاسم فقط لأن حقول الهوية/الجوال للنزلاء والمرافقين مشفَّرة
+     * تشفيراً غير حتمي (encrypted) فلا يمكن مطابقتها بـ LIKE.
+     */
+    public function accountSearch(Request $request)
+    {
+        abort_unless($request->user()->can('accounts.view'), 403);
+
+        $q = trim($request->input('q', ''));
+        $guests = $companions = $employees = $users = collect();
+
+        if (mb_strlen($q) >= 2) {
+            if ($request->user()->can('checkin.view')) {
+                $guests = \App\Models\Guest::where('full_name', 'like', "%{$q}%")
+                    ->orderBy('full_name')->limit(20)->get();
+
+                $companions = \App\Models\Companion::where('full_name', 'like', "%{$q}%")
+                    ->with('reservation.guest')
+                    ->orderBy('full_name')->limit(20)->get();
+            }
+            if ($request->user()->can('hr.view')) {
+                $employees = \App\Models\Employee::where('name', 'like', "%{$q}%")
+                    ->orderBy('name')->limit(20)->get();
+            }
+            if ($request->user()->can('users.manage')) {
+                $users = User::where('name', 'like', "%{$q}%")
+                    ->orWhere('username', 'like', "%{$q}%")
+                    ->orderBy('name')->limit(20)->get();
+            }
+        }
+
+        return view('reports.account-search', compact('q', 'guests', 'companions', 'employees', 'users'));
+    }
+
     private function pdfOptions(\Barryvdh\DomPDF\PDF $pdf): \Barryvdh\DomPDF\PDF
     {
         $dompdf = $pdf->getDomPDF();

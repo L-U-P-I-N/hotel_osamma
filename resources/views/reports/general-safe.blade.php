@@ -10,11 +10,19 @@
             <h2 class="text-2xl font-black text-gray-800">الصندوق العام</h2>
             <p class="text-gray-500 text-sm mt-1">كل حركات حساب الصندوق العام (1120) — وارد وصادر، والرصيد الجاري</p>
         </div>
-        <a href="{{ route('reports.generalSafe.pdf', ['from' => $from, 'to' => $to]) }}" target="_blank"
-           class="flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 transition">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-            تصدير PDF
-        </a>
+        <div class="flex items-center gap-2">
+            <a href="{{ route('reports.accountSearch') }}"
+               class="flex items-center gap-2 px-5 py-2.5 border rounded-xl text-sm font-semibold transition hover:bg-gray-50"
+               style="border-color:#0F4C75;color:#0F4C75;">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                بحث عن نزيل/موظف/مستخدم
+            </a>
+            <a href="{{ route('reports.generalSafe.pdf', ['from' => $from, 'to' => $to]) }}" target="_blank"
+               class="flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                تصدير PDF
+            </a>
+        </div>
     </div>
 
     {{-- الموجود الفعلي: الصندوق العام + ما بأدراج الورديات المفتوحة --}}
