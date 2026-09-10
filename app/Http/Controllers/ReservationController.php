@@ -466,7 +466,6 @@ class ReservationController extends Controller
             $segmentService  = app(\App\Services\ReservationSegmentService::class);
             $datesUnchanged  = $reservation->check_in_date?->toDateString() === $validated['check_in_date']
                             && $reservation->check_out_date?->toDateString() === $validated['check_out_date'];
-            $preserveHistory = $datesUnchanged && $segmentService->reconciles($reservation);
 
             $submittedFirstNight = isset($validated['price_per_night']) && $validated['price_per_night'] > 0
                 ? (float) $validated['price_per_night']
@@ -474,6 +473,23 @@ class ReservationController extends Controller
             $submittedRenewal = isset($validated['renewal_price_per_night']) && $validated['renewal_price_per_night'] !== ''
                 ? (float) $validated['renewal_price_per_night']
                 : null;
+
+            // موظف صحّح السعر صراحةً (مثال: نزيل اتّفق مع موظف على سعر ثم دفع
+            // لموظف آخر مبلغاً مختلفاً فصحّح السعر المسجَّل) — يجب أن يُطبَّق هذا
+            // التصحيح دائماً، حتى لو كانت الفترات الحالية متطابقة داخلياً مع
+            // الإجمالي القديم (وإلا يُحفَظ الإجمالي الجديد ظاهرياً بينما تبقى
+            // الفترات وعرض السعر بلا تغيير فعلي — "تم التعديل" مع بقاء القديم).
+            $currentFirstNight = $reservation->first_night_price !== null
+                ? (float) $reservation->first_night_price
+                : ($billableNights > 0 ? round($reservation->gross_total / $billableNights, 2) : 0.0);
+            $currentRenewal = $reservation->renewal_price_per_night !== null
+                ? (float) $reservation->renewal_price_per_night
+                : $currentFirstNight;
+            $priceExplicitlyChanged =
+                ($submittedFirstNight !== null && round($submittedFirstNight, 2) !== round($currentFirstNight, 2))
+                || ($submittedRenewal !== null && round($submittedRenewal, 2) !== round($currentRenewal, 2));
+
+            $preserveHistory = $datesUnchanged && $segmentService->reconciles($reservation) && !$priceExplicitlyChanged;
 
             // عند غياب سعر مُرسَل أو محفوظ صراحةً، نشتقّه من السعر الفعّال الحالي
             // (الإجمالي ÷ الليالي) لا سعر الغرفة الافتراضي العام — فقد يكون هذا
