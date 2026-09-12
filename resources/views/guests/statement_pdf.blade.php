@@ -19,9 +19,14 @@
     .header h1 { font-size: 18px; font-weight: bold; color: #0F4C75; }
     .header p  { font-size: 11px; color: #6b7280; }
     .title { text-align: center; font-size: 15px; font-weight: bold; color: #0F4C75; margin-bottom: 18px; }
-    .guest-info { display: table; width: 100%; border-collapse: collapse; margin-bottom: 16px; background: #f9fafb; border-radius: 6px; padding: 10px 14px; }
-    .guest-info td { padding: 4px 8px; font-size: 12px; }
-    .guest-info td:first-child { font-weight: bold; color: #374151; width: 120px; }
+    /* شبكة (تسمية / قيمة) بدل سطر واحد بفواصل: كل بيان في خليّته فلا تتداخل
+       القيم عند الانتقال بين العربي والأرقام في dompdf. */
+    table.info-grid { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 11px; }
+    table.info-grid td { border: 1px solid #e5e7eb; padding: 5px 9px; }
+    table.info-grid td.lbl { background: #f8fafc; color: #64748b; font-weight: bold; white-space: nowrap; width: 1%; }
+    table.info-grid td.val { color: #1e293b; font-weight: bold; }
+    /* الأرقام اللاتينية داخل نص عربي يقلبها الـ bidi، فنثبّت اتجاهها */
+    table.info-grid td.val.ltr { direction: ltr; text-align: right; }
     .summary { display: table; width: 100%; border-collapse: separate; border-spacing: 8px; margin-bottom: 18px; }
     .summary-cell { display: table-cell; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px; text-align: center; width: 33%; }
     .summary-cell .val { font-size: 15px; font-weight: bold; }
@@ -36,26 +41,53 @@
 </head>
 <body>
 
+@php
+    // الغرفة أولاً في الكشف: أول ما يبحث عنه المحاسب. الحجز الحالي إن كان
+    // مقيماً، وإلا آخر غرفة نزل فيها.
+    $activeStay  = $reservations->firstWhere('status', 'checked_in') ?? $reservations->first();
+    $roomNumber  = $activeStay?->display_room_number;
+    $roomLabel   = $activeStay
+        ? $roomNumber . ($activeStay->status === 'checked_in' ? ' (مقيم حالياً)' : ' (آخر إقامة)')
+        : '—';
+@endphp
+
 <div class="header">
-    @include('partials.pdf-hotel-header')
-    <h1>الفندق السعودي</h1>
-    <p>نظام إدارة الفندق</p>
+    @include('partials.pdf-hotel-header-full')
 </div>
 
 <div class="title">كشف حساب النزيل</div>
 
-<table style="width:100%; border-collapse:collapse; background:#f9fafb; margin-bottom:16px;">
+{{-- البيانات الشخصية مرتَّبة "تسمية: قيمة" وبترتيب ثابت — الغرفة أولاً --}}
+<table class="info-grid" dir="rtl">
     <tr>
-        <td style="padding:6px 10px; font-weight:bold; color:#374151; width:130px;">اسم النزيل:</td>
-        <td style="padding:6px 10px;">{{ $guest->full_name }}</td>
-        <td style="padding:6px 10px; font-weight:bold; color:#374151; width:130px;">الجنسية:</td>
-        <td style="padding:6px 10px;">{{ $guest->nationality ?? '—' }}</td>
+        <td class="lbl">رقم الغرفة</td>
+        <td class="val">{{ $roomLabel }}</td>
+        <td class="lbl">الاسم</td>
+        <td class="val">{{ $guest->full_name }}</td>
     </tr>
     <tr>
-        <td style="padding:6px 10px; font-weight:bold; color:#374151;">نوع الهوية:</td>
-        <td style="padding:6px 10px;">{{ $guest->getIdTypeLabel() }}</td>
-        <td style="padding:6px 10px; font-weight:bold; color:#374151;">تاريخ الإصدار:</td>
-        <td style="padding:6px 10px;">{{ now()->format('d/m/Y') }}</td>
+        <td class="lbl">الجنسية</td>
+        <td class="val">{{ $guest->nationality ?: '—' }}</td>
+        <td class="lbl">المهنة</td>
+        <td class="val">{{ $guest->occupation ?: '—' }}</td>
+    </tr>
+    <tr>
+        <td class="lbl">نوع الهوية</td>
+        <td class="val">{{ $guest->getIdTypeLabel() }}</td>
+        <td class="lbl">رقم الهوية</td>
+        <td class="val ltr">{{ $guest->id_number ?: '—' }}</td>
+    </tr>
+    <tr>
+        <td class="lbl">جهة الإصدار</td>
+        <td class="val">{{ $guest->id_issuer ?: '—' }}</td>
+        <td class="lbl">تاريخ إصدار الهوية</td>
+        <td class="val ltr">{{ $guest->id_issue_date?->format('d/m/Y') ?: '—' }}</td>
+    </tr>
+    <tr>
+        <td class="lbl">رقم الجوال</td>
+        <td class="val ltr">{{ $guest->phone ?: '—' }}</td>
+        <td class="lbl">تاريخ الكشف</td>
+        <td class="val ltr">{{ now()->format('d/m/Y') }}</td>
     </tr>
 </table>
 

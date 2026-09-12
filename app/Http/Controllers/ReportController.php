@@ -666,7 +666,11 @@ class ReportController extends Controller
     {
         abort_unless($request->user()->can('accounts.view'), 403);
 
-        return view('reports.general-safe', $this->generalSafeData($request));
+        // البحث عن الأشخاص مدمَج في الشاشة نفسها (لا زر ينقل لصفحة أخرى)
+        return view('reports.general-safe', array_merge(
+            $this->generalSafeData($request),
+            $this->personSearchData($request)
+        ));
     }
 
     public function generalSafePdf(Request $request)
@@ -762,6 +766,15 @@ class ReportController extends Controller
     {
         abort_unless($request->user()->can('accounts.view'), 403);
 
+        return view('reports.account-search', $this->personSearchData($request));
+    }
+
+    /**
+     * نتائج البحث الموحّد عن الأشخاص — تُستعمل في شاشة كشف الحسابات وفي شاشة
+     * الصندوق العام معاً ليكون البحث في الاثنتين متطابقاً.
+     */
+    private function personSearchData(Request $request): array
+    {
         $q = trim($request->input('q', ''));
         $guests = $companions = $employees = $users = collect();
 
@@ -785,7 +798,7 @@ class ReportController extends Controller
             }
         }
 
-        return view('reports.account-search', compact('q', 'guests', 'companions', 'employees', 'users'));
+        return compact('q', 'guests', 'companions', 'employees', 'users');
     }
 
     private function pdfOptions(\Barryvdh\DomPDF\PDF $pdf): \Barryvdh\DomPDF\PDF
