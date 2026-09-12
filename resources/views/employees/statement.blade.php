@@ -74,20 +74,79 @@
     {{-- بطاقات الملخص --}}
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <div class="text-xs text-gray-500">إجمالي المسحوبات والصرفيات</div>
+            <div class="text-xl font-black text-amber-700 mt-1">{{ number_format($totals['advances'], 0) }} <span class="text-xs font-normal text-gray-400">ر.ي</span></div>
+            <div class="text-[11px] text-gray-400 mt-0.5">منها طعام وشراب: {{ number_format($totals['food_spent'], 0) }}</div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <div class="text-xs text-gray-500">المخصوم من الراتب</div>
+            <div class="text-xl font-black text-red-700 mt-1">{{ number_format($totals['chargeable'], 0) }} <span class="text-xs font-normal text-gray-400">ر.ي</span></div>
+            <div class="text-[11px] text-gray-400 mt-0.5">بلا صرفية الطعام ضمن حدّها</div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border-2 border-emerald-200 p-4" style="background:#f0fdf4;">
+            <div class="text-xs text-emerald-700 font-semibold">المتبقي من الراتب</div>
+            <div class="text-xl font-black text-emerald-800 mt-1">{{ number_format($totals['remaining'], 0) }} <span class="text-xs font-normal text-emerald-600">ر.ي</span></div>
+            <div class="text-[11px] text-emerald-600 mt-0.5">عن {{ $monthly->count() }} شهر</div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
             <div class="text-xs text-gray-500">صافي الرواتب المستحقة</div>
             <div class="text-xl font-black text-gray-800 mt-1">{{ number_format($totals['salaries_net'], 0) }} <span class="text-xs font-normal text-gray-400">ر.ي</span></div>
+            <div class="text-[11px] text-gray-400 mt-0.5">
+                مدفوع {{ number_format($totals['salaries_paid'], 0) }} · متبقٍ {{ number_format($totals['salaries_due'], 0) }}
+            </div>
         </div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-            <div class="text-xs text-gray-500">المدفوع منها</div>
-            <div class="text-xl font-black text-green-700 mt-1">{{ number_format($totals['salaries_paid'], 0) }} <span class="text-xs font-normal text-gray-400">ر.ي</span></div>
+    </div>
+
+    {{-- التفصيل الشهري: راتب الشهر، ما صُرف منه، والمتبقي له --}}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div class="px-5 py-3 border-b border-gray-100">
+            <h3 class="font-bold text-gray-800 text-sm">الراتب والمسحوبات شهرياً</h3>
         </div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-            <div class="text-xs text-gray-500">غير المدفوع (مستحق له)</div>
-            <div class="text-xl font-black text-red-700 mt-1">{{ number_format($totals['salaries_due'], 0) }} <span class="text-xs font-normal text-gray-400">ر.ي</span></div>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-            <div class="text-xs text-gray-500">السلف والمسحوبات</div>
-            <div class="text-xl font-black text-amber-700 mt-1">{{ number_format($totals['advances'], 0) }} <span class="text-xs font-normal text-gray-400">ر.ي</span></div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-right">
+                <thead class="bg-gray-50">
+                    <tr class="text-xs text-gray-500">
+                        <th class="px-4 py-2.5 font-medium">الشهر</th>
+                        <th class="px-4 py-2.5 font-medium">الراتب الأساسي</th>
+                        <th class="px-4 py-2.5 font-medium">صرفية الطعام المصروفة</th>
+                        <th class="px-4 py-2.5 font-medium">المخصوم من الراتب</th>
+                        <th class="px-4 py-2.5 font-medium">المتبقي من الراتب</th>
+                        <th class="px-4 py-2.5 font-medium">حالة الراتب</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                    @foreach($monthly as $m)
+                    <tr>
+                        <td class="px-4 py-2.5 whitespace-nowrap font-semibold text-gray-700">{{ $monthNames[$m['month']] ?? $m['month'] }} {{ $m['year'] }}</td>
+                        <td class="px-4 py-2.5 text-gray-600">{{ number_format($m['base'], 0) }}</td>
+                        <td class="px-4 py-2.5 text-indigo-600">
+                            {{ $m['food_spent'] > 0 ? number_format($m['food_spent'], 0) . ' من ' . number_format($m['food_allow'], 0) : '—' }}
+                        </td>
+                        <td class="px-4 py-2.5 text-red-600">{{ $m['chargeable'] > 0 ? number_format($m['chargeable'], 0) : '—' }}</td>
+                        <td class="px-4 py-2.5 font-black text-emerald-700">{{ number_format($m['remaining'], 0) }}</td>
+                        <td class="px-4 py-2.5">
+                            @if($m['slip'])
+                                <span class="px-2 py-0.5 rounded-full text-xs font-semibold {{ $m['slip']->status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700' }}">
+                                    {{ $m['slip']->status === 'paid' ? 'مدفوع' : 'غير مدفوع' }}
+                                </span>
+                            @else
+                                <span class="text-xs text-gray-400">لم تُصدَر قسيمة</span>
+                            @endif
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+                <tfoot class="bg-gray-50 font-bold text-gray-700 text-sm">
+                    <tr>
+                        <td class="px-4 py-2.5">الإجمالي</td>
+                        <td class="px-4 py-2.5">—</td>
+                        <td class="px-4 py-2.5 text-indigo-700">{{ number_format($totals['food_spent'], 0) }}</td>
+                        <td class="px-4 py-2.5 text-red-700">{{ number_format($totals['chargeable'], 0) }}</td>
+                        <td class="px-4 py-2.5 text-emerald-800">{{ number_format($totals['remaining'], 0) }}</td>
+                        <td class="px-4 py-2.5"></td>
+                    </tr>
+                </tfoot>
+            </table>
         </div>
     </div>
 
@@ -152,6 +211,8 @@
                         <th class="px-4 py-2.5 font-medium">المبلغ</th>
                         <th class="px-4 py-2.5 font-medium">التصنيف</th>
                         <th class="px-4 py-2.5 font-medium">البيان</th>
+                        <th class="px-4 py-2.5 font-medium">صرفها له</th>
+                        <th class="px-4 py-2.5 font-medium">الوردية</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50">
@@ -161,9 +222,11 @@
                         <td class="px-4 py-2.5 font-semibold text-amber-700">{{ number_format((float) $a->amount, 0) }} {{ $a->currency }}</td>
                         <td class="px-4 py-2.5 text-gray-600">{{ \App\Models\Expense::categoryLabel($a->category) }}</td>
                         <td class="px-4 py-2.5 text-gray-400 text-xs">{{ $a->description ?? '—' }}</td>
+                        <td class="px-4 py-2.5 text-gray-500 text-xs">{{ $a->paidBy?->name ?? '—' }}</td>
+                        <td class="px-4 py-2.5 text-gray-500 text-xs">{{ $a->shift ? ($a->shift->user?->name ?? 'وردية #' . $a->shift->id) : '—' }}</td>
                     </tr>
                     @empty
-                    <tr><td colspan="4" class="px-4 py-8 text-center text-gray-400">لا توجد سلف أو مسحوبات خلال هذه الفترة</td></tr>
+                    <tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">لا توجد سلف أو مسحوبات خلال هذه الفترة</td></tr>
                     @endforelse
                 </tbody>
             </table>

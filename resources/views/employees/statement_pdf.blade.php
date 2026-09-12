@@ -57,7 +57,7 @@
 <body>
 
 <div class="header">
-    @include('partials.pdf-hotel-header')
+    @include('partials.pdf-hotel-header-full')
     <h1>كشف حساب موظف</h1>
     <div class="sub">
         الفترة: {{ \Carbon\Carbon::parse($from)->format('Y/m/d') }} — {{ \Carbon\Carbon::parse($to)->format('Y/m/d') }}
@@ -86,29 +86,72 @@
     <tr>
         <td class="lbl">الجوال</td>
         <td class="val ltr">{{ $employee->phone ?: '—' }}</td>
+        <td class="lbl">رقم الهوية</td>
+        <td class="val ltr">{{ $employee->national_id ?: '—' }}</td>
+    </tr>
+    <tr>
         <td class="lbl">الحالة</td>
         <td class="val">{{ $employee->is_active ? 'نشط' : 'غير نشط' }}</td>
+        @if($employee->notes)
+        <td class="lbl">ملاحظات</td>
+        <td class="val">{{ $employee->notes }}</td>
+        @endif
     </tr>
 </table>
 
 <div class="cards">
     <div class="card"><div class="card-inner">
-        <div class="card-label">صافي الرواتب</div>
-        <div class="card-value">{{ number_format($totals['salaries_net'], 0) }}</div>
-    </div></div>
-    <div class="card"><div class="card-inner">
-        <div class="card-label">المدفوع</div>
-        <div class="card-value green">{{ number_format($totals['salaries_paid'], 0) }}</div>
-    </div></div>
-    <div class="card"><div class="card-inner">
-        <div class="card-label">غير المدفوع (مستحق له)</div>
-        <div class="card-value red">{{ number_format($totals['salaries_due'], 0) }}</div>
-    </div></div>
-    <div class="card"><div class="card-inner">
-        <div class="card-label">السلف والمسحوبات</div>
+        <div class="card-label">إجمالي المسحوبات</div>
         <div class="card-value amber">{{ number_format($totals['advances'], 0) }}</div>
     </div></div>
+    <div class="card"><div class="card-inner">
+        <div class="card-label">المخصوم من الراتب</div>
+        <div class="card-value red">{{ number_format($totals['chargeable'], 0) }}</div>
+    </div></div>
+    <div class="card"><div class="card-inner">
+        <div class="card-label">المتبقي من الراتب</div>
+        <div class="card-value green">{{ number_format($totals['remaining'], 0) }}</div>
+    </div></div>
+    <div class="card"><div class="card-inner">
+        <div class="card-label">صافي الرواتب المستحقة</div>
+        <div class="card-value">{{ number_format($totals['salaries_net'], 0) }}</div>
+    </div></div>
 </div>
+
+{{-- التفصيل الشهري: راتب الشهر، ما صُرف منه، والمتبقي له — جوهر الكشف --}}
+<h2 class="sec">الراتب والمسحوبات شهرياً</h2>
+<table class="data" dir="rtl">
+    <thead>
+        <tr>
+            <th style="width:16%;">المتبقي من الراتب</th>
+            <th style="width:16%;">المخصوم من الراتب</th>
+            <th style="width:18%;">صرفية الطعام المصروفة</th>
+            <th style="width:16%;">الراتب الأساسي</th>
+            <th style="width:16%;">حالة الراتب</th>
+            <th style="width:18%;">الشهر</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach($monthly as $m)
+        <tr>
+            <td class="c" style="font-weight:bold;color:#16a34a;">{{ number_format($m['remaining'], 0) }}</td>
+            <td class="c" style="color:#dc2626;">{{ $m['chargeable'] > 0 ? number_format($m['chargeable'], 0) : '—' }}</td>
+            <td class="c">{{ $m['food_spent'] > 0 ? number_format($m['food_spent'], 0) . ' من ' . number_format($m['food_allow'], 0) : '—' }}</td>
+            <td class="c">{{ number_format($m['base'], 0) }}</td>
+            <td class="c">{{ $m['slip'] ? ($m['slip']->status === 'paid' ? 'مدفوع' : 'غير مدفوع') : 'لم تُصدَر قسيمة' }}</td>
+            <td class="c" style="font-weight:bold;">{{ $monthNames[$m['month']] ?? $m['month'] }} {{ $m['year'] }}</td>
+        </tr>
+        @endforeach
+    </tbody>
+    <tfoot>
+        <tr>
+            <td class="c">{{ number_format($totals['remaining'], 0) }}</td>
+            <td class="c">{{ number_format($totals['chargeable'], 0) }}</td>
+            <td class="c">{{ number_format($totals['food_spent'], 0) }}</td>
+            <td colspan="3" style="text-align:right;">الإجمالي</td>
+        </tr>
+    </tfoot>
+</table>
 
 {{-- dompdf لا يعكس ترتيب أعمدة الجدول بحسب dir="rtl" — نكتبها بترتيب معكوس
      ليظهر أول عمود منطقياً في أقصى اليمين. --}}
@@ -160,15 +203,19 @@
 <table class="data" dir="rtl">
     <thead>
         <tr>
-            <th style="width:42%;">البيان</th>
-            <th style="width:18%;">التصنيف</th>
-            <th style="width:20%;">المبلغ</th>
-            <th style="width:20%;">التاريخ</th>
+            <th style="width:14%;">الوردية</th>
+            <th style="width:14%;">صرفها له</th>
+            <th style="width:24%;">البيان</th>
+            <th style="width:14%;">التصنيف</th>
+            <th style="width:17%;">المبلغ</th>
+            <th style="width:17%;">التاريخ</th>
         </tr>
     </thead>
     <tbody>
         @foreach($advances as $a)
         <tr>
+            <td class="c">{{ $a->shift ? ($a->shift->user?->name ?? 'وردية #' . $a->shift->id) : '—' }}</td>
+            <td class="c">{{ $a->paidBy?->name ?? '—' }}</td>
             <td>{{ $a->description ?? '—' }}</td>
             <td class="c">{{ \App\Models\Expense::categoryLabel($a->category) }}</td>
             <td class="c" style="font-weight:bold;color:#b45309;">{{ number_format((float) $a->amount, 0) }} {{ $a->currency }}</td>
@@ -178,7 +225,7 @@
     </tbody>
     <tfoot>
         <tr>
-            <td colspan="2" style="text-align:right;">الإجمالي</td>
+            <td colspan="4" style="text-align:right;">الإجمالي</td>
             <td class="c">{{ number_format($totals['advances'], 0) }}</td>
             <td></td>
         </tr>

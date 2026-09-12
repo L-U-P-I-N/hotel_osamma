@@ -12,7 +12,13 @@
                 <h2 class="text-lg font-bold text-gray-800">{{ $employee->name }}</h2>
                 <p class="text-sm text-gray-500">{{ $employee->position }}</p>
             </div>
-            <a href="{{ route('employees.index') }}" class="text-sm text-gray-500 hover:text-gray-700">← رجوع للموظفين</a>
+            <div class="flex items-center gap-3">
+                <a href="{{ route('employees.withdrawals.pdf', ['employee' => $employee, 'month' => $month, 'year' => $year]) }}"
+                   class="px-4 py-2 rounded-lg text-sm font-semibold text-white" style="background:#B91C1C;">
+                    تصدير PDF
+                </a>
+                <a href="{{ route('employees.index') }}" class="text-sm text-gray-500 hover:text-gray-700">← رجوع للموظفين</a>
+            </div>
         </div>
 
         {{-- فلتر الشهر/السنة --}}
@@ -130,7 +136,8 @@
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المبلغ (ر.ي)</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الفئة</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الوصف</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">سجّله</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">صرفها له</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الوردية</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50">
@@ -143,10 +150,11 @@
                         <td class="px-4 py-3 text-gray-600">{{ \App\Models\Expense::categoryLabel($w->category) }}</td>
                         <td class="px-4 py-3 text-gray-600">{{ $w->description ?? '—' }}</td>
                         <td class="px-4 py-3 text-gray-500">{{ $w->paidBy?->name ?? '—' }}</td>
+                        <td class="px-4 py-3 text-gray-500">{{ $w->shift ? ($w->shift->user?->name ?? 'وردية #' . $w->shift->id) : '—' }}</td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="px-4 py-8 text-center text-gray-400 text-sm">لا توجد مسحوبات لهذا الموظف في هذا الشهر</td>
+                        <td colspan="8" class="px-4 py-8 text-center text-gray-400 text-sm">لا توجد مسحوبات لهذا الموظف في هذا الشهر</td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -155,7 +163,7 @@
                     <tr>
                         <td colspan="3" class="px-4 py-3 text-gray-700">الإجمالي</td>
                         <td class="px-4 py-3 text-amber-800">{{ number_format($monthTotal, 0) }}</td>
-                        <td colspan="3"></td>
+                        <td colspan="4"></td>
                     </tr>
                 </tfoot>
                 @endif

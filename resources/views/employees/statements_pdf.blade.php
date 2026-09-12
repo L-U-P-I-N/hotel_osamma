@@ -35,13 +35,16 @@
     table.data tbody td.c { text-align: center; }
     table.data tfoot td { padding: 5px; border: 1px solid #ccc; background: #e8f0f7; font-weight: bold; color: #0F4C75; }
     .empty { text-align: center; color: #999; padding: 16px; }
+    h2.sec { font-size: 11px; font-weight: bold; color: #0F4C75; border-bottom: 1px solid #d0e4f5; padding-bottom: 4px; margin: 14px 0 6px; }
+    .emp-block { page-break-inside: avoid; margin-bottom: 10px; }
+    .emp-title { font-size: 10.5px; font-weight: bold; color: #1f2937; background: #eef4fa; border: 1px solid #d0e4f5; padding: 4px 7px; }
     .footer { margin-top: 12px; border-top: 1px solid #eee; padding-top: 6px; font-size: 8px; color: #aaa; text-align: right; }
 </style>
 </head>
 <body>
 
 <div class="header">
-    @include('partials.pdf-hotel-header')
+    @include('partials.pdf-hotel-header-full')
     <h1>كشف حساب الموظفين</h1>
     <div class="sub">
         الفترة: {{ \Carbon\Carbon::parse($from)->format('Y/m/d') }} — {{ \Carbon\Carbon::parse($to)->format('Y/m/d') }}
@@ -71,26 +74,34 @@
 <p class="empty">لا يوجد موظفون</p>
 @else
 {{-- dompdf لا يعكس ترتيب أعمدة الجدول بحسب dir="rtl" — نكتبها بترتيب معكوس
-     ليظهر أول عمود منطقياً (الموظف) في أقصى اليمين. --}}
+     ليظهر أول عمود منطقياً (الرقم ثم الموظف) في أقصى اليمين. --}}
+<h2 class="sec">ملخص الموظفين (مرتَّب أبجدياً بالاسم)</h2>
 <table class="data" dir="rtl">
     <thead>
         <tr>
-            <th style="width:13%;">السلف</th>
-            <th style="width:14%;">غير المدفوع</th>
-            <th style="width:14%;">المدفوع</th>
-            <th style="width:14%;">صافي الرواتب</th>
-            <th style="width:9%;">عدد الأشهر</th>
-            <th style="width:13%;">الراتب الأساسي</th>
-            <th style="width:23%;">الموظف</th>
+            <th style="width:10%;">غير المدفوع</th>
+            <th style="width:10%;">المدفوع</th>
+            <th style="width:10%;">صافي الرواتب</th>
+            <th style="width:10%;">المتبقي من الراتب</th>
+            <th style="width:10%;">المخصوم من الراتب</th>
+            <th style="width:9%;">منها طعام</th>
+            <th style="width:10%;">إجمالي المسحوبات</th>
+            <th style="width:6%;">أشهر</th>
+            <th style="width:9%;">الراتب الأساسي</th>
+            <th style="width:12%;">الموظف</th>
+            <th style="width:4%;">#</th>
         </tr>
     </thead>
     <tbody>
         @foreach($rows as $row)
         <tr>
-            <td class="c" style="color:#b45309;">{{ number_format($row['advances'], 0) }}</td>
             <td class="c" style="color:{{ $row['salaries_due'] > 0 ? '#dc2626' : '#999' }};font-weight:bold;">{{ number_format($row['salaries_due'], 0) }}</td>
             <td class="c" style="color:#16a34a;">{{ number_format($row['salaries_paid'], 0) }}</td>
             <td class="c" style="font-weight:bold;">{{ number_format($row['salaries_net'], 0) }}</td>
+            <td class="c" style="color:{{ $row['remaining'] < 0 ? '#dc2626' : '#16a34a' }};font-weight:bold;">{{ number_format($row['remaining'], 0) }}</td>
+            <td class="c" style="color:#dc2626;">{{ number_format($row['chargeable'], 0) }}</td>
+            <td class="c">{{ $row['food_spent'] > 0 ? number_format($row['food_spent'], 0) : '—' }}</td>
+            <td class="c" style="color:#b45309;">{{ number_format($row['advances'], 0) }}</td>
             <td class="c">{{ $row['months_count'] }}</td>
             <td class="c">{{ number_format((float) $row['employee']->base_salary, 0) }}</td>
             <td style="font-weight:bold;">
@@ -99,19 +110,73 @@
                 <div style="font-size:8px;color:#888;font-weight:normal;">{{ $row['employee']->position }}</div>
                 @endif
             </td>
+            <td class="c">{{ $row['seq'] }}</td>
         </tr>
         @endforeach
     </tbody>
     <tfoot>
         <tr>
-            <td class="c">{{ number_format($totals['advances'], 0) }}</td>
             <td class="c">{{ number_format($totals['salaries_due'], 0) }}</td>
             <td class="c">{{ number_format($totals['salaries_paid'], 0) }}</td>
             <td class="c">{{ number_format($totals['salaries_net'], 0) }}</td>
-            <td colspan="3" style="text-align:right;">الإجمالي</td>
+            <td class="c">{{ number_format($totals['remaining'], 0) }}</td>
+            <td class="c">{{ number_format($totals['chargeable'], 0) }}</td>
+            <td class="c">{{ number_format($totals['food_spent'], 0) }}</td>
+            <td class="c">{{ number_format($totals['advances'], 0) }}</td>
+            <td colspan="4" style="text-align:right;">الإجمالي</td>
         </tr>
     </tfoot>
 </table>
+
+{{-- كشف تفصيلي لكل موظف داخل التصدير نفسه، بنفس الترتيب والترقيم --}}
+<h2 class="sec">التفصيل لكل موظف</h2>
+@foreach($rows as $row)
+<div class="emp-block">
+    <div class="emp-title">
+        {{ $row['seq'] }}. {{ $row['employee']->name }}
+        @if($row['employee']->position) — {{ $row['employee']->position }} @endif
+        | الراتب الأساسي: {{ number_format((float) $row['employee']->base_salary, 0) }} ر.ي
+        | المسحوبات: {{ number_format($row['advances'], 0) }} ر.ي
+        | المخصوم: {{ number_format($row['chargeable'], 0) }} ر.ي
+        | المتبقي: {{ number_format($row['remaining'], 0) }} ر.ي
+    </div>
+    @if($row['advance_rows']->isEmpty())
+    <p class="empty" style="padding:6px;font-size:9px;">لا توجد مسحوبات خلال هذه الفترة</p>
+    @else
+    <table class="data" dir="rtl">
+        <thead>
+            <tr>
+                <th style="width:14%;">الوردية</th>
+                <th style="width:14%;">صرفها له</th>
+                <th style="width:34%;">البيان</th>
+                <th style="width:13%;">التصنيف</th>
+                <th style="width:12%;">المبلغ</th>
+                <th style="width:13%;">التاريخ</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($row['advance_rows'] as $a)
+            <tr>
+                <td class="c">{{ $a->shift ? ($a->shift->user?->name ?? 'وردية #' . $a->shift->id) : '—' }}</td>
+                <td class="c">{{ $a->paidBy?->name ?? '—' }}</td>
+                <td>{{ $a->description ?: '—' }}</td>
+                <td class="c">{{ \App\Models\Expense::categoryLabel($a->category) }}</td>
+                <td class="c" style="font-weight:bold;color:#b45309;">{{ number_format((float) $a->amount, 0) }}</td>
+                <td class="c">{{ $a->expense_date?->format('d/m/Y') }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="4" style="text-align:right;">الإجمالي</td>
+                <td class="c">{{ number_format($row['advances'], 0) }}</td>
+                <td></td>
+            </tr>
+        </tfoot>
+    </table>
+    @endif
+</div>
+@endforeach
 @endif
 
 <div class="footer">طُبع في: {{ now()->format('d/m/Y H:i') }}</div>

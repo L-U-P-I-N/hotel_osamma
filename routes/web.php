@@ -317,6 +317,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/employees/{employee}/statement', [EmployeeController::class, 'statement'])->name('employees.statement');
         Route::get('/employees/{employee}/statement/pdf', [EmployeeController::class, 'statementPdf'])->name('employees.statement.pdf');
         Route::get('/employees/{employee}/withdrawals', [EmployeeController::class, 'withdrawals'])->name('employees.withdrawals');
+        Route::get('/employees/{employee}/withdrawals/pdf', [EmployeeController::class, 'withdrawalsPdf'])->name('employees.withdrawals.pdf');
     });
     Route::middleware('permission:hr.create')->group(function () {
         Route::get('/employees/create', [EmployeeController::class, 'create'])->name('employees.create');

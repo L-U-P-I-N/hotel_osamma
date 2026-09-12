@@ -59,47 +59,66 @@
         <table class="w-full text-sm text-right">
             <thead class="bg-gray-800 text-white">
                 <tr class="text-xs">
+                    <th class="px-3 py-3 font-bold">#</th>
                     <th class="px-4 py-3 font-bold">الموظف</th>
                     <th class="px-4 py-3 font-bold">الوظيفة</th>
                     <th class="px-4 py-3 font-bold">الراتب الأساسي</th>
+                    <th class="px-4 py-3 font-bold">إجمالي رواتب الفترة</th>
                     <th class="px-4 py-3 font-bold">عدد الأشهر</th>
+                    <th class="px-4 py-3 font-bold">إجمالي المسحوبات</th>
+                    <th class="px-4 py-3 font-bold">منها طعام وشراب</th>
+                    <th class="px-4 py-3 font-bold">المخصوم من الراتب</th>
+                    <th class="px-4 py-3 font-bold">المتبقي من الراتب</th>
                     <th class="px-4 py-3 font-bold">صافي الرواتب</th>
                     <th class="px-4 py-3 font-bold">المدفوع</th>
                     <th class="px-4 py-3 font-bold">غير المدفوع</th>
-                    <th class="px-4 py-3 font-bold">السلف</th>
                     <th class="px-4 py-3 font-bold"></th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
                 @forelse($rows as $row)
                 <tr class="hover:bg-gray-50 transition">
+                    <td class="px-3 py-3 text-gray-400 text-xs">{{ $row['seq'] }}</td>
                     <td class="px-4 py-3 font-bold text-gray-800">{{ $row['employee']->name }}</td>
                     <td class="px-4 py-3 text-gray-500 text-xs">{{ $row['employee']->position ?? '—' }}</td>
                     <td class="px-4 py-3 text-gray-600">{{ number_format((float) $row['employee']->base_salary, 0) }}</td>
+                    <td class="px-4 py-3 text-gray-600">{{ number_format($row['base_total'], 0) }}</td>
                     <td class="px-4 py-3 text-gray-500 text-center">{{ $row['months_count'] }}</td>
+                    <td class="px-4 py-3 font-semibold {{ $row['advances'] > 0 ? 'text-amber-700' : 'text-gray-300' }}">{{ number_format($row['advances'], 0) }}</td>
+                    <td class="px-4 py-3 text-indigo-700">{{ $row['food_spent'] > 0 ? number_format($row['food_spent'], 0) : '—' }}</td>
+                    <td class="px-4 py-3 font-semibold {{ $row['chargeable'] > 0 ? 'text-red-700' : 'text-gray-300' }}">{{ number_format($row['chargeable'], 0) }}</td>
+                    <td class="px-4 py-3 font-semibold {{ $row['remaining'] < 0 ? 'text-red-700' : 'text-emerald-700' }}">{{ number_format($row['remaining'], 0) }}</td>
                     <td class="px-4 py-3 font-semibold text-gray-800">{{ number_format($row['salaries_net'], 0) }}</td>
                     <td class="px-4 py-3 font-semibold text-green-700">{{ number_format($row['salaries_paid'], 0) }}</td>
                     <td class="px-4 py-3 font-semibold {{ $row['salaries_due'] > 0 ? 'text-red-700' : 'text-gray-300' }}">{{ number_format($row['salaries_due'], 0) }}</td>
-                    <td class="px-4 py-3 font-semibold {{ $row['advances'] > 0 ? 'text-amber-700' : 'text-gray-300' }}">{{ number_format($row['advances'], 0) }}</td>
                     <td class="px-4 py-3">
                         <a href="{{ route('employees.statement', ['employee' => $row['employee']->id, 'from' => $from, 'to' => $to]) }}"
                            class="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:border-blue-400 hover:text-blue-600 transition whitespace-nowrap">
                             كشف تفصيلي
                         </a>
+                        <a href="{{ route('employees.statement.pdf', ['employee' => $row['employee']->id, 'from' => $from, 'to' => $to]) }}"
+                           class="text-xs px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition whitespace-nowrap">
+                            PDF
+                        </a>
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="9" class="px-4 py-12 text-center text-gray-400">لا يوجد موظفون</td></tr>
+                <tr><td colspan="14" class="px-4 py-12 text-center text-gray-400">لا يوجد موظفون</td></tr>
                 @endforelse
             </tbody>
             @if($rows->isNotEmpty())
             <tfoot class="bg-blue-50 font-bold text-primary-900">
                 <tr>
                     <td class="px-4 py-3" colspan="4">الإجمالي</td>
+                    <td class="px-4 py-3">{{ number_format($totals['base_total'], 0) }}</td>
+                    <td></td>
+                    <td class="px-4 py-3 text-amber-700">{{ number_format($totals['advances'], 0) }}</td>
+                    <td class="px-4 py-3 text-indigo-700">{{ number_format($totals['food_spent'], 0) }}</td>
+                    <td class="px-4 py-3 text-red-700">{{ number_format($totals['chargeable'], 0) }}</td>
+                    <td class="px-4 py-3 text-emerald-700">{{ number_format($totals['remaining'], 0) }}</td>
                     <td class="px-4 py-3">{{ number_format($totals['salaries_net'], 0) }}</td>
                     <td class="px-4 py-3 text-green-700">{{ number_format($totals['salaries_paid'], 0) }}</td>
                     <td class="px-4 py-3 text-red-700">{{ number_format($totals['salaries_due'], 0) }}</td>
-                    <td class="px-4 py-3 text-amber-700">{{ number_format($totals['advances'], 0) }}</td>
                     <td></td>
                 </tr>
             </tfoot>
