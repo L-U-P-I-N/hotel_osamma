@@ -585,6 +585,8 @@ class ReservationController extends Controller
             'renewal_discount_value'  => 'nullable|numeric|min:0',
             'advance_payment'         => 'nullable|numeric|min:0',
             'payment_method'          => 'nullable|in:cash,pos,bank_transfer',
+            'bank_receipt'            => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
+            'bank_transfer_ref'       => 'nullable|string|max:100',
             'notes'                   => 'nullable|string|max:500',
             'payment_notes'           => 'nullable|string|max:500',
         ], [
@@ -592,7 +594,18 @@ class ReservationController extends Controller
             'new_check_out_date.after'      => 'يجب أن يكون تاريخ الخروج الجديد بعد التاريخ الحالي',
             'renewal_price_per_night.numeric' => 'سعر ليلة التجديد يجب أن يكون رقماً',
             'renewal_discount_value.numeric'  => 'قيمة الخصم يجب أن تكون رقماً',
+            'bank_receipt.mimes'              => 'سند التحويل يجب أن يكون صورة أو ملف PDF',
         ]);
+
+        // دفعة التجديد بتحويل بنكي تحتاج إثباتاً كأي دفعة أخرى — سند أو رقم مرجع
+        if (($validated['payment_method'] ?? null) === 'bank_transfer'
+            && (float) ($validated['advance_payment'] ?? 0) > 0
+            && !$request->hasFile('bank_receipt')
+            && empty($validated['bank_transfer_ref'])) {
+            return back()->withInput()->withErrors([
+                'bank_transfer' => 'عند الدفع بتحويل بنكي يجب إرفاق صورة السند أو إدخال رقم المرجع على الأقل',
+            ]);
+        }
 
         // منع التجديد فوق حجزٍ قادم على نفس الغرفة/الجناح مع ترك يوم فاصل للتنظيف:
         // يجب أن ينتهي التمديد قبل وصول أقرب نزيل قادم بيوم على الأقل.
@@ -695,16 +708,24 @@ class ReservationController extends Controller
         $paymentAmount = min($paymentAmount, max(0, (float) $reservation->balance));
 
         if ($paymentAmount > 0) {
+            // سند التحويل يُحفَظ بنفس مسار سندات الدفعات العادية، فيظهر في
+            // تفاصيل الحجز عبر نفس زر "السند" دون أي معالجة خاصة.
+            $bankReceiptPath = $request->hasFile('bank_receipt')
+                ? StorageHelper::store($request->file('bank_receipt'), 'bank_receipts')
+                : null;
+
             \App\Models\Payment::create([
-                'reservation_id' => $reservation->id,
-                'shift_id'       => $shift?->id,
-                'received_by'    => auth()->id(),
-                'amount'         => $paymentAmount,
-                'currency'       => 'YER',
-                'method'         => $validated['payment_method'] ?? 'cash',
-                'payment_date'   => now(),
-                'type'           => 'renewal',
-                'notes'          => $validated['payment_notes'] ?? null,
+                'reservation_id'    => $reservation->id,
+                'shift_id'          => $shift?->id,
+                'received_by'       => auth()->id(),
+                'amount'            => $paymentAmount,
+                'currency'          => 'YER',
+                'method'            => $validated['payment_method'] ?? 'cash',
+                'bank_receipt_path' => $bankReceiptPath,
+                'bank_transfer_ref' => $validated['bank_transfer_ref'] ?? null,
+                'payment_date'      => now(),
+                'type'              => 'renewal',
+                'notes'             => $validated['payment_notes'] ?? null,
             ]);
             $reservation->refresh()->recalculatePaidAmount();
             $reservation->refresh()->updatePaymentStatus();

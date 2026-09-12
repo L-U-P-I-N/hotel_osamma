@@ -63,6 +63,7 @@ class InvoiceHeaderTest extends TestCase
     public function test_shared_header_wraps_in_a_bordered_letterhead_rectangle(): void
     {
         $html = file_get_contents(resource_path('views/partials/pdf-hotel-header-full.blade.php'));
-        $this->assertStringContainsString('border:1.5px solid', $html);
+        // إطار حول الترويسة بلون الهوية — العرض بالبكسل تفصيل تصميمي قابل للتغيير
+        $this->assertMatchesRegularExpression('/border:\s*[\d.]+px solid #0F4C75/', $html);
     }
 }

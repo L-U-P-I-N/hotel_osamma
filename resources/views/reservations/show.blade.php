@@ -2030,7 +2030,7 @@
             </button>
         </div>
         <form method="POST" action="{{ route('reservations.renew', $reservation) }}"
-              x-data="renewForm()" class="p-6 space-y-3">
+              enctype="multipart/form-data" x-data="renewForm()" class="p-6 space-y-3">
             @csrf
             <div class="grid grid-cols-2 gap-3 bg-gray-50 rounded-xl p-4 text-sm">
                 <div>
@@ -2137,12 +2137,31 @@
                     <input type="number" name="advance_payment" min="0" step="0.01" placeholder="0"
                            x-model.number="advancePayment" @input="calc()"
                            class="border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                    <select name="payment_method" class="border border-gray-300 rounded-xl px-3 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    <select name="payment_method" x-model="payMethod"
+                            class="border border-gray-300 rounded-xl px-3 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                         <option value="cash">نقدي</option>
                         <option value="pos">شبكة POS</option>
                         <option value="bank_transfer">تحويل بنكي</option>
                     </select>
                 </div>
+
+                {{-- سند التحويل عند الدفع بتحويل بنكي — نفس حقول نافذة تسجيل الدفعة
+                     تماماً، فدفعة التجديد دفعةٌ كاملة الأركان تحتاج إثباتها كغيرها. --}}
+                <div x-show="payMethod === 'bank_transfer' && advancePayment > 0" x-cloak
+                     class="bg-blue-50 border border-blue-100 rounded-xl p-4 space-y-3 mt-3">
+                    <p class="text-xs text-blue-600 font-semibold">يجب تقديم واحد على الأقل: صورة السند أو رقم المرجع</p>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1.5">صورة سند التحويل</label>
+                        <input type="file" name="bank_receipt" accept="image/*,.pdf"
+                               class="w-full text-sm text-gray-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1.5">رقم مرجع التحويل</label>
+                        <input type="text" name="bank_transfer_ref" placeholder="TRF-20240101-001"
+                               class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                </div>
+
                 <div class="flex items-center gap-3 mt-2">
                     <button type="button" @click="payFull()"
                             class="text-xs font-semibold text-blue-700 hover:text-blue-800 underline">
@@ -2587,6 +2606,8 @@ function renewForm() {
         extraAmount: 0,
         newTotal: 0,
         advancePayment: 0,
+        // طريقة دفع الدفعة المقدمة — تُظهر حقول سند التحويل عند "تحويل بنكي"
+        payMethod: 'cash',
         remaining: 0,
         discountType: '',
         discountValue: 0,
