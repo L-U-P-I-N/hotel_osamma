@@ -140,6 +140,29 @@ class ReportController extends Controller
             ->orderByDesc('total')
             ->get();
 
+        // تفصيل كل دفعة: ممّن قُبضت، ومَن استلمها، وفي أي وردية وغرفة — المالك
+        // يحتاج معرفة مصدر كل ريال لا مجرد إجمالي كل طريقة دفع.
+        $revenueDetails = Payment::with(['reservation.guest', 'reservation.room', 'receivedBy', 'shift.user'])
+            ->whereDate('payment_date', '>=', $from)
+            ->whereDate('payment_date', '<=', $to)
+            ->where('currency', 'YER')
+            ->orderByDesc('payment_date')
+            ->orderByDesc('id')
+            ->limit(300)
+            ->get();
+
+        // مَن استلم الإيراد مجمَّعاً بالموظف — يظهر أداء كل موظف ومسؤوليته عن النقدية
+        $revenueByReceiver = $revenueDetails
+            ->groupBy(fn(Payment $p) => $p->receivedBy?->name ?? 'غير محدَّد')
+            ->map(fn($group, $name) => (object) [
+                'name'  => $name,
+                'total' => (float) $group->sum('amount'),
+                'count' => $group->count(),
+                'cash'  => (float) $group->where('method', 'cash')->sum('amount'),
+            ])
+            ->sortByDesc('total')
+            ->values();
+
         $revenueByMonth = Payment::whereDate('payment_date', '>=', $from)
             ->whereDate('payment_date', '<=', $to)
             ->where('currency', 'YER')
@@ -171,7 +194,8 @@ class ReportController extends Controller
         return view('reports.profit-loss', compact(
             'from', 'to', 'preset', 'totalRevenue', 'totalRevenueGross', 'totalRefunds',
             'foreignRevenue', 'totalExpenses', 'netProfit',
-            'revenueByMethod', 'expensesByCategory', 'monthlyTrend'
+            'revenueByMethod', 'revenueDetails', 'revenueByReceiver',
+            'expensesByCategory', 'monthlyTrend'
         ));
     }
 

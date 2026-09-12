@@ -210,6 +210,101 @@
     </div>
 </div>
 
+{{-- مَن استلم الإيراد: مسؤولية كل موظف عن النقدية التي مرّت بيده --}}
+@if($revenueByReceiver->isNotEmpty())
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-5">
+    <div class="px-5 py-3 border-b border-gray-100">
+        <h3 class="font-semibold text-gray-700 text-sm">الإيراد حسب مَن استلمه</h3>
+        <p class="text-xs text-gray-400 mt-0.5">ما قبضه كل موظف خلال الفترة — وكم منه نقداً بيده</p>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">الموظف المستلم</th>
+                    <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">عدد الدفعات</th>
+                    <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">الإجمالي (ر.ي)</th>
+                    <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">منه نقداً</th>
+                    <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">النسبة</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+                @foreach($revenueByReceiver as $row)
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-2.5 font-semibold text-gray-800">{{ $row->name }}</td>
+                    <td class="px-4 py-2.5 text-gray-500">{{ $row->count }}</td>
+                    <td class="px-4 py-2.5 font-semibold text-green-700">{{ number_format($row->total, 0) }}</td>
+                    <td class="px-4 py-2.5 text-amber-700">{{ number_format($row->cash, 0) }}</td>
+                    <td class="px-4 py-2.5 text-gray-500">
+                        {{ $totalRevenueGross > 0 ? number_format(($row->total / $totalRevenueGross) * 100, 1) : 0 }}%
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+</div>
+@endif
+
+{{-- تفصيل كل دفعة: ممّن، ولأي غرفة/حجز، ومَن استلمها وفي أي وردية --}}
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-5">
+    <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2">
+        <div>
+            <h3 class="font-semibold text-gray-700 text-sm">تفاصيل الإيرادات (كل دفعة)</h3>
+            <p class="text-xs text-gray-400 mt-0.5">مصدر كل مبلغ: ممّن قُبض، ولأي حجز وغرفة، ومَن استلمه وفي أي وردية</p>
+        </div>
+        <span class="text-xs text-gray-500">{{ $revenueDetails->count() }} دفعة معروضة</span>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">التاريخ</th>
+                    <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">من (الدافع)</th>
+                    <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">الحجز / الغرفة</th>
+                    <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">المبلغ (ر.ي)</th>
+                    <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">طريقة الدفع</th>
+                    <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">مرجع التحويل</th>
+                    <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">استلمها</th>
+                    <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">الوردية</th>
+                    <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">ملاحظات</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+                @forelse($revenueDetails as $p)
+                @php $res = $p->reservation; @endphp
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-2.5 whitespace-nowrap text-gray-600">{{ $p->payment_date?->format('d/m/Y H:i') ?? '—' }}</td>
+                    <td class="px-4 py-2.5 text-gray-800">
+                        {{-- الدافع قد يكون غير النزيل (قريب أو شركة)، فيُسجَّل اسمه في الدفعة --}}
+                        {{ $p->paid_by_name ?: ($res?->guest?->full_name ?? '—') }}
+                        @if($p->paid_by_name && $res?->guest && $p->paid_by_name !== $res->guest->full_name)
+                        <div class="text-xs text-gray-400">عن النزيل: {{ $res->guest->full_name }}</div>
+                        @endif
+                    </td>
+                    <td class="px-4 py-2.5 text-gray-600 text-xs">
+                        @if($res)
+                        <a href="{{ route('reservations.show', $res) }}" class="text-blue-600 hover:underline">#{{ $res->id }}</a>
+                        — غرفة {{ $res->display_room_number }}
+                        @else — @endif
+                    </td>
+                    <td class="px-4 py-2.5 font-semibold text-green-700">{{ number_format((float) $p->amount, 0) }}</td>
+                    <td class="px-4 py-2.5 text-gray-600">{{ match($p->method) {'cash'=>'نقداً','bank_transfer'=>'تحويل بنكي','pos'=>'POS',default=>$p->method} }}</td>
+                    <td class="px-4 py-2.5 text-gray-500 text-xs" dir="ltr">{{ $p->bank_transfer_ref ?: '—' }}</td>
+                    <td class="px-4 py-2.5 text-gray-700">{{ $p->receivedBy?->name ?? '—' }}</td>
+                    <td class="px-4 py-2.5 text-gray-500 text-xs">
+                        {{ $p->shift ? ($p->shift->user?->name ?? 'وردية #' . $p->shift->id) : 'بلا وردية' }}
+                    </td>
+                    <td class="px-4 py-2.5 text-gray-400 text-xs">{{ $p->notes ?: '—' }}</td>
+                </tr>
+                @empty
+                <tr><td colspan="9" class="px-4 py-8 text-center text-gray-400">لا توجد دفعات خلال هذه الفترة</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+</div>
+
 {{-- Monthly trend --}}
 @if($monthlyTrend->isNotEmpty())
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-5">

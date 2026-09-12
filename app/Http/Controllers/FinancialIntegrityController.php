@@ -33,8 +33,25 @@ class FinancialIntegrityController extends Controller
             ->get();
 
         $orphanWithdrawals = CashWithdrawal::whereNull('shift_id')
+            ->with(['employee', 'expense.paidBy', 'expense.shift.user', 'cashSettlement.shift.user'])
             ->orderByDesc('withdrawal_date')
             ->get();
+
+        // الوردية المرشَّحة لكل سحبية يتيمة: وردية المصروف/التسوية المرتبطة إن
+        // وُجدت، وإلا وردية كانت مفتوحة في تاريخ السحب — تختصر على المدير البحث
+        // عن الوردية الصحيحة قبل النقل.
+        $orphanWithdrawals->each(function (CashWithdrawal $w) {
+            $w->setAttribute('suggested_shift',
+                $w->expense?->shift
+                ?? $w->cashSettlement?->shift
+                ?? ($w->withdrawal_date
+                    ? Shift::with('user')
+                        ->whereDate('shift_date', $w->withdrawal_date->toDateString())
+                        ->orderBy('id')
+                        ->first()
+                    : null)
+            );
+        });
 
         $orphanExpenses = Expense::where('payment_method', 'cash')
             ->whereNull('shift_id')
