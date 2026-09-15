@@ -66,4 +66,46 @@ class InvoiceHeaderTest extends TestCase
         // إطار حول الترويسة بلون الهوية — العرض بالبكسل تفصيل تصميمي قابل للتغيير
         $this->assertMatchesRegularExpression('/border:\s*[\d.]+px solid #0F4C75/', $html);
     }
+
+    /**
+     * اسم الفندق في الترويسة يأتي من الإعدادات دائماً — لا اسم مكتوب في القالب.
+     */
+    public function test_header_prints_the_hotel_name_from_settings(): void
+    {
+        Setting::set('hotel_name_ar', 'فندق السعودي السياحي');
+
+        $html = view('partials.pdf-hotel-header-full')->render();
+
+        $this->assertStringContainsString('فندق السعودي السياحي', $html);
+    }
+
+    /**
+     * أكثر النسخ تُملأ بالعربية وحدها؛ ترك الثلث الإنجليزي فارغاً كان يُظهر
+     * الترويسة مائلة، فتتحوّل تلقائياً إلى تخطيط لغة واحدة موسَّط.
+     */
+    public function test_header_centers_itself_when_only_arabic_is_configured(): void
+    {
+        Setting::set('hotel_name_ar', 'فندق السعودي السياحي');
+        Setting::set('hotel_name_en', '');
+        Setting::set('hotel_tagline_en', '');
+        Setting::set('hotel_address_en', '');
+
+        $html = view('partials.pdf-hotel-header-full')->render();
+
+        // لا عمود إنجليزي فارغ: الاسم والشعار في خليّتين متساويتين تلتقيان وسطاً
+        $this->assertStringNotContainsString('text-transform:uppercase', $html);
+        $this->assertSame(2, substr_count($html, 'width:50%;vertical-align:middle;'));
+    }
+
+    public function test_header_uses_three_columns_when_both_languages_are_configured(): void
+    {
+        Setting::set('hotel_name_ar', 'فندق السعودي السياحي');
+        Setting::set('hotel_name_en', 'Al Saudi Tourist Hotel');
+
+        $html = view('partials.pdf-hotel-header-full')->render();
+
+        $this->assertStringContainsString('Al Saudi Tourist Hotel', $html);
+        $this->assertStringContainsString('فندق السعودي السياحي', $html);
+        $this->assertStringContainsString('width:26%', $html); // عمود الشعار الأوسط
+    }
 }

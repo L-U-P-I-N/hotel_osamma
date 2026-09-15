@@ -41,6 +41,12 @@
     $addressAr = $p['hotel_address_ar'] ?? null;
     $addressEn = $p['hotel_address_en'] ?? null;
 
+    // كثير من النسخ تُملأ بالعربية وحدها. لو بقي الثلث الإنجليزي فارغاً ظهرت
+    // الترويسة مائلة بفراغ كبير، فنتحوّل حينها إلى تخطيط لغة واحدة موسَّط.
+    $hasEn      = ($p['hotel_name_en'] ?? null) || ($p['hotel_tagline_en'] ?? null) || $addressEn;
+    $hasAr      = ($p['hotel_name_ar'] ?? null) || ($p['hotel_tagline_ar'] ?? null) || $addressAr;
+    $bilingual  = $hasEn && $hasAr;
+
     $lbl = 'font-size:7.5px;color:#8a9099;letter-spacing:0.2px;padding:1px 0;white-space:nowrap;width:54px;';
     // الأرقام تُثبَّت اتجاهها كي لا يقلب الـbidi إشارة + إلى آخر الرقم
     $val = 'font-size:8.5px;color:#2b3440;font-weight:bold;padding:1px 0;white-space:nowrap;direction:ltr;unicode-bidi:bidi-override;';
@@ -49,6 +55,37 @@
 <table style="width:100%;border-collapse:collapse;margin-bottom:12px;border:1.5px solid #0F4C75;background:#ffffff;">
 
     {{-- ————— ١) شريط الهوية ————— --}}
+    @if(!$bilingual)
+    {{-- لغة واحدة: الشعار والاسم متجاوران في المنتصف بدل ترك ثلث الصفحة
+         فارغاً — خليّتان متساويتان تلتقيان في الوسط فيبدو الزوج موسَّطاً. --}}
+    @php
+        $soleName    = $hasAr ? ($p['hotel_name_ar'] ?? null)    : ($p['hotel_name_en'] ?? null);
+        $soleTagline = $hasAr ? ($p['hotel_tagline_ar'] ?? null) : ($p['hotel_tagline_en'] ?? null);
+        $soleDir     = $hasAr ? 'rtl' : 'ltr';
+    @endphp
+    <tr><td style="padding:11px 16px 10px;">
+        <table style="width:100%;border-collapse:collapse;">
+            <tr>
+                <td style="width:50%;vertical-align:middle;text-align:right;padding-left:14px;">
+                    @if($logo)<img src="{{ $logo }}" alt="شعار الفندق" style="height:{{ $h }}px;">@endif
+                </td>
+                <td style="width:50%;vertical-align:middle;text-align:left;direction:{{ $soleDir }};">
+                    {{-- الكتلة الداخلية inline-block فينكمش عرضها لعرض الاسم،
+                         فيأتي الخط الذهبي بطول الاسم تماماً مهما طال أو قصر. --}}
+                    <div style="display:inline-block;text-align:{{ $hasAr ? 'right' : 'left' }};">
+                        @if($soleName)
+                        <div style="font-size:21px;font-weight:bold;color:#0F4C75;line-height:1.2;{{ $hasAr ? '' : 'letter-spacing:1.1px;text-transform:uppercase;' }}">{{ $soleName }}</div>
+                        <div style="border-top:1.5px solid #C9A84E;width:100%;margin-top:5px;"></div>
+                        @endif
+                        @if($soleTagline)
+                        <div style="font-size:9px;color:#6b7280;margin-top:4px;letter-spacing:0.2px;">{{ $soleTagline }}</div>
+                        @endif
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </td></tr>
+    @else
     <tr><td style="padding:11px 16px 9px;">
         <table style="width:100%;border-collapse:collapse;">
             <tr>
@@ -84,10 +121,33 @@
         </table>
     </td></tr>
 
+    @endif
+
     {{-- خط مزدوج (كحلي فوق ذهبي) يفصل الهوية عن بيانات التواصل --}}
     <tr><td style="padding:0;"><div style="border-top:1.5px solid #0F4C75;"></div><div style="border-top:1px solid #C9A84E;"></div></td></tr>
 
     {{-- ————— ٢) شريط التواصل ————— --}}
+    @if(!$bilingual)
+    {{-- لغة واحدة: كل بيانات التواصل والتاريخ في صف موسَّط بفواصل رأسية --}}
+    @php
+        $soleContacts = $hasAr ? $contactsAr : $contactsEn;
+        $soleContacts[] = [$hasAr ? 'التاريخ' : 'Date', now()->format('Y/m/d')];
+        // dompdf لا يعكس ترتيب الخلايا، فنعكس المصفوفة ليُقرأ أول بند يميناً
+        if ($hasAr) { $soleContacts = array_reverse($soleContacts); }
+    @endphp
+    <tr><td style="padding:7px 16px;background:#f7fafc;">
+        <table style="width:100%;border-collapse:collapse;">
+            <tr>
+                @foreach($soleContacts as $i => [$label, $value])
+                <td style="text-align:center;padding:0 10px;{{ $i > 0 ? 'border-left:1px solid #dde5ec;' : '' }}">
+                    <div style="font-size:7.5px;color:#8a9099;letter-spacing:0.2px;">{{ $label }}</div>
+                    <div style="font-size:9px;color:#2b3440;font-weight:bold;direction:ltr;unicode-bidi:bidi-override;margin-top:1px;">{{ $value }}</div>
+                </td>
+                @endforeach
+            </tr>
+        </table>
+    </td></tr>
+    @else
     <tr><td style="padding:6px 16px 7px;background:#f7fafc;">
         <table style="width:100%;border-collapse:collapse;">
             <tr>
@@ -123,6 +183,8 @@
             </tr>
         </table>
     </td></tr>
+
+    @endif
 
     {{-- ————— ٣) سطر العنوان (بعرض الصفحة كاملاً) ————— --}}
     @if($addressAr || $addressEn)
