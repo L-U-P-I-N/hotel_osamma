@@ -37,6 +37,9 @@ class EmployeeController extends Controller
         ]);
 
         $data['is_active'] = $request->boolean('is_active', true);
+        // العمود غير قابل للـ NULL بقيمة افتراضية 0؛ ترك الحقل فارغاً يمرّ من
+        // nullable ثم يُسقط الإدراج بخطأ 500، فنحوّله صراحةً إلى صفر.
+        $data['food_allowance'] = $data['food_allowance'] ?? 0;
 
         Employee::create($data);
 
@@ -63,6 +66,7 @@ class EmployeeController extends Controller
         ]);
 
         $data['is_active'] = $request->boolean('is_active');
+        $data['food_allowance'] = $data['food_allowance'] ?? 0;
 
         $employee->update($data);
 

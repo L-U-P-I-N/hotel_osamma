@@ -29,6 +29,16 @@ class Employee extends Model
         'is_active'   => 'boolean',
     ];
 
+    /**
+     * الراتب الإجمالي للموظف = الأساسي + صرفية الطعام والشراب. الصرفية بند
+     * مستقل في الاحتساب الشهري (لا يُخصم من الراتب إلا ما تجاوزها)، لكنها جزء
+     * من حزمة راتبه فتُعرض مجموعةً معه في كل مكان يُذكر فيه راتبه.
+     */
+    public function getTotalSalaryAttribute(): float
+    {
+        return round((float) $this->base_salary + (float) $this->food_allowance, 2);
+    }
+
     public function user()
     {
         return $this->hasOne(\App\Models\User::class);

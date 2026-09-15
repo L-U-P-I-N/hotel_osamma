@@ -33,7 +33,7 @@
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">#</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الاسم</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الوظيفة</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الراتب الأساسي</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الراتب الإجمالي</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">رقم الهاتف</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">تاريخ التوظيف</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الحالة</th>
@@ -57,7 +57,15 @@
                         </span>
                     </td>
                     <td class="px-4 py-3 text-gray-600">{{ $employee->position }}</td>
-                    <td class="px-4 py-3 font-medium" style="color:#0F4C75;">{{ number_format($employee->base_salary, 2) }}</td>
+                    <td class="px-4 py-3 font-medium" style="color:#0F4C75;">
+                        {{ number_format($employee->total_salary, 0) }}
+                        <div class="text-[11px] font-normal text-gray-400 mt-0.5">
+                            أساسي {{ number_format((float) $employee->base_salary, 0) }}
+                            @if((float) $employee->food_allowance > 0)
+                            + صرفية {{ number_format((float) $employee->food_allowance, 0) }}
+                            @endif
+                        </div>
+                    </td>
                     <td class="px-4 py-3 text-gray-600">{{ $employee->phone ?? '-' }}</td>
                     <td class="px-4 py-3 text-gray-600">{{ $employee->hire_date->format('d/m/Y') }}</td>
                     <td class="px-4 py-3">

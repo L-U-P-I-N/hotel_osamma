@@ -2147,7 +2147,7 @@
 
                 {{-- سند التحويل عند الدفع بتحويل بنكي — نفس حقول نافذة تسجيل الدفعة
                      تماماً، فدفعة التجديد دفعةٌ كاملة الأركان تحتاج إثباتها كغيرها. --}}
-                <div x-show="payMethod === 'bank_transfer' && advancePayment > 0" x-cloak
+                <div x-show="payMethod === 'bank_transfer'" x-cloak
                      class="bg-blue-50 border border-blue-100 rounded-xl p-4 space-y-3 mt-3">
                     <p class="text-xs text-blue-600 font-semibold">يجب تقديم واحد على الأقل: صورة السند أو رقم المرجع</p>
                     <div>
@@ -2157,7 +2157,8 @@
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 mb-1.5">رقم مرجع التحويل</label>
-                        <input type="text" name="bank_transfer_ref" placeholder="TRF-20240101-001"
+                        <input type="text" name="bank_transfer_ref" value="{{ old('bank_transfer_ref') }}"
+                               placeholder="TRF-20240101-001"
                                class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                     </div>
                 </div>

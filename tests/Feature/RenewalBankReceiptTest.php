@@ -101,4 +101,22 @@ class RenewalBankReceiptTest extends TestCase
 
         $this->assertSame(1, $r->payments()->count());
     }
+
+    /**
+     * حقل السند يظهر بمجرد اختيار "تحويل بنكي" — كما في نافذة تسجيل الدفعة —
+     * لا بعد كتابة مبلغ: ربطه بالمبلغ كان يُخفيه عمّن يختار الطريقة أولاً.
+     */
+    public function test_renewal_receipt_field_appears_as_soon_as_bank_transfer_is_picked(): void
+    {
+        $blade = file_get_contents(resource_path('views/reservations/show.blade.php'));
+
+        $this->assertStringNotContainsString(
+            "payMethod === 'bank_transfer' && advancePayment > 0",
+            $blade,
+            'إظهار حقل السند يجب ألا يكون مشروطاً بإدخال مبلغ'
+        );
+        // الحقلان موجودان في نموذج التجديد كما في نموذج الدفعة
+        $this->assertSame(2, substr_count($blade, 'name="bank_receipt"'));
+        $this->assertSame(2, substr_count($blade, 'name="bank_transfer_ref"'));
+    }
 }

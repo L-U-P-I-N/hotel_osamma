@@ -32,6 +32,11 @@
                     <b class="text-indigo-700">{{ number_format((float) $employee->food_allowance, 0) }} ر.ي</b>
                     <span class="text-xs text-gray-400">/ شهرياً</span>
                 </span>
+                <span class="text-gray-500">
+                    الراتب الإجمالي
+                    <b class="text-emerald-700">{{ number_format($employee->total_salary, 0) }} ر.ي</b>
+                    <span class="text-xs text-gray-400">(الأساسي + الصرفية)</span>
+                </span>
                 @endif
                 @if($employee->phone)
                 <span class="text-gray-500">

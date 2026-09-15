@@ -76,6 +76,8 @@
     <tr>
         <td class="lbl">الراتب الأساسي</td>
         <td class="val">{{ number_format((float) $employee->base_salary, 0) }} ر.ي</td>
+        <td class="lbl">الراتب الإجمالي</td>
+        <td class="val">{{ number_format($employee->total_salary, 0) }} ر.ي</td>
     </tr>
     <tr>
         <td class="lbl">صرفية طعام وشراب</td>

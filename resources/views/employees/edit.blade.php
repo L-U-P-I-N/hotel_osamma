@@ -31,19 +31,10 @@
                 <input type="text" name="position" value="{{ old('position', $employee->position) }}" required
                        class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-blue-400">
             </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1.5">الراتب الأساسي *</label>
-                <input type="number" name="base_salary" value="{{ old('base_salary', $employee->base_salary) }}" step="0.01" min="0" required
-                       class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-blue-400">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1.5">صرفية الطعام والشراب (شهرياً)</label>
-                <input type="number" name="food_allowance" value="{{ old('food_allowance', $employee->food_allowance) }}" step="0.01" min="0"
-                       class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-blue-400">
-                <p class="text-xs text-gray-500 mt-1.5">
-                    مبلغ مستقل عن الراتب يتجدد كل شهر ويُصرف يومياً، ولا يُخصم من الراتب إلا ما تجاوزه.
-                </p>
-            </div>
+            @include('employees.partials.salary-fields', [
+                'base' => old('base_salary', $employee->base_salary),
+                'food' => old('food_allowance', $employee->food_allowance),
+            ])
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
