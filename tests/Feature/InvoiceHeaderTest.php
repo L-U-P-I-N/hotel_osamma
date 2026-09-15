@@ -80,10 +80,10 @@ class InvoiceHeaderTest extends TestCase
     }
 
     /**
-     * أكثر النسخ تُملأ بالعربية وحدها؛ ترك الثلث الإنجليزي فارغاً كان يُظهر
-     * الترويسة مائلة، فتتحوّل تلقائياً إلى تخطيط لغة واحدة موسَّط.
+     * التخطيط ثلاثي الأعمدة هو الشكل المعتمد دائماً — لا يتبدّل حين تنقص
+     * الحقول الإنجليزية؛ يبقى عمودها فارغاً حتى تُملأ من شاشة الإعدادات.
      */
-    public function test_header_centers_itself_when_only_arabic_is_configured(): void
+    public function test_header_keeps_the_three_column_layout_even_without_english(): void
     {
         Setting::set('hotel_name_ar', 'فندق السعودي السياحي');
         Setting::set('hotel_name_en', '');
@@ -92,9 +92,9 @@ class InvoiceHeaderTest extends TestCase
 
         $html = view('partials.pdf-hotel-header-full')->render();
 
-        // لا عمود إنجليزي فارغ: الاسم والشعار في خليّتين متساويتين تلتقيان وسطاً
-        $this->assertStringNotContainsString('text-transform:uppercase', $html);
-        $this->assertSame(2, substr_count($html, 'width:50%;vertical-align:middle;'));
+        $this->assertStringContainsString('width:26%', $html); // عمود الشعار الأوسط باقٍ
+        $this->assertStringContainsString('width:37%', $html); // العمودان الجانبيان باقيان
+        $this->assertStringContainsString('فندق السعودي السياحي', $html);
     }
 
     public function test_header_uses_three_columns_when_both_languages_are_configured(): void
