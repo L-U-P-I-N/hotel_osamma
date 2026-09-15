@@ -1094,7 +1094,10 @@ class ReportController extends Controller
         $newGuests       = \App\Models\Guest::whereHas('reservations', fn($q) => $q->whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to))->whereDoesntHave('reservations', fn($q) => $q->whereDate('check_in_date', '<', $from))->count();
         $returningGuests = \App\Models\Guest::whereHas('reservations', fn($q) => $q->whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to))->whereHas('reservations', fn($q) => $q->whereDate('check_in_date', '<', $from))->count();
         $byNationality   = \App\Models\Guest::select('nationality', DB::raw('count(*) as count'))->groupBy('nationality')->orderByDesc('count')->limit(10)->get();
-        $topGuests       = \App\Models\Guest::withCount(['reservations as period_reservations' => fn($q) => $q->whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to)->whereNotIn('status', ['cancelled'])])->having('period_reservations', '>', 0)->orderByDesc('period_reservations')->limit(10)->get();
+        $periodStays     = fn($q) => $q->whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to)->whereNotIn('status', ['cancelled']);
+        $topGuests       = \App\Models\Guest::withCount(['reservations as period_reservations' => $periodStays])
+            ->whereHas('reservations', $periodStays)
+            ->orderByDesc('period_reservations')->limit(10)->get();
         $pdf = $this->pdfOptions(pdf_load_view('reports.guests_pdf', compact('totalGuests', 'newGuests', 'returningGuests', 'byNationality', 'topGuests', 'from', 'to')));
         $pdf->setPaper('a3', 'landscape');
         return $pdf->download('guests-' . $from . '-' . $to . '.pdf');
@@ -1557,10 +1560,11 @@ class ReportController extends Controller
                 ->whereHas('reservations', fn($q) => $q->whereDate('check_in_date', '<', $from))->count();
             $byNationality   = \App\Models\Guest::select('nationality', DB::raw('count(*) as count'))
                 ->groupBy('nationality')->orderByDesc('count')->limit(10)->get();
-            $topGuests       = \App\Models\Guest::withCount(['reservations as period_reservations' => fn($q) => $q
-                ->whereDate('check_in_date', '>=', $from)->whereDate('check_in_date', '<=', $to)
-                ->whereNotIn('status', ['cancelled'])])
-                ->having('period_reservations', '>', 0)->orderByDesc('period_reservations')->limit(10)->get();
+            $periodStays     = fn($q) => $q->whereDate('check_in_date', '>=', $from)
+                ->whereDate('check_in_date', '<=', $to)->whereNotIn('status', ['cancelled']);
+            $topGuests       = \App\Models\Guest::withCount(['reservations as period_reservations' => $periodStays])
+                ->whereHas('reservations', $periodStays)
+                ->orderByDesc('period_reservations')->limit(10)->get();
         } elseif ($tab === 'rooms') {
             // نعرض الغرف المتاحة/المشغولة/تحت الفحص فقط (نُخفي الصيانة)، مرتّبةً
             // تصاعدياً حسب رقم الغرفة (من الأصغر للأكبر) بترتيب رقمي لا نصّي.

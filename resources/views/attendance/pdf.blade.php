@@ -32,11 +32,10 @@
 </head>
 <body>
 
-<div class="header">
-    @include('partials.pdf-hotel-header')
-    <h1>كشف الحضور والغياب الشهري</h1>
-    <p>{{ \App\Models\Salary::monthName($month) }} {{ $year }}</p>
-</div>
+@include('partials.pdf-hotel-header-full', [
+    'docTitle' => 'كشف الحضور والغياب الشهري',
+    'docMeta'  => \App\Models\Salary::monthName($month) . ' ' . $year,
+])
 
 {{--
     dompdf لا يعكس ترتيب أعمدة الجدول بحسب dir="rtl" — نكتب الأعمدة بترتيب معكوس

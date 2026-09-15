@@ -104,15 +104,9 @@
     $pdfText = fn($s) => $s ? preg_replace('/[^\x{0000}-\x{FFFF}]/u', '', $s) : null;
 @endphp
 
-<div class="header">
-    @include('partials.pdf-hotel-header-full')
-    <h1>القائمة اليومية للنزلاء</h1>
-    <p>
-        تاريخ: {{ \Carbon\Carbon::parse($date)->format('d/m/Y') }}
-          |  
-        عدد النزلاء: {{ $reservations->count() }}
-    </p>
-</div>
+@include('partials.pdf-hotel-header-full', [
+    'docTitle' => 'القائمة اليومية للنزلاء',
+])
 
 <table class="summary-table" dir="rtl">
     <tr>

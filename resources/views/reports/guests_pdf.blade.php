@@ -39,11 +39,10 @@
 </head>
 <body>
 
-<div class="header">
-    @include('partials.pdf-hotel-header-full')
-    <h1>تقرير النزلاء</h1>
-    <div class="sub">الفترة: {{ \Carbon\Carbon::parse($from)->format('d/m/Y') }} — {{ \Carbon\Carbon::parse($to)->format('d/m/Y') }}</div>
-</div>
+@include('partials.pdf-hotel-header-full', [
+    'docTitle' => 'تقرير النزلاء',
+    'docMeta'  => 'الفترة: ' . \Carbon\Carbon::parse($from)->format('d/m/Y') . ' - ' . \Carbon\Carbon::parse($to)->format('d/m/Y'),
+])
 
 <div class="stats">
     <div class="stat-cell"><div class="num">{{ $totalGuests }}</div><div class="lbl">إجمالي النزلاء المسجلين</div></div>

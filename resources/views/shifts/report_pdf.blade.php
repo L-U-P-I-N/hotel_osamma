@@ -141,19 +141,12 @@
     }
 @endphp
 
-{{-- Header --}}
-<div class="header">
-    @include('partials.pdf-hotel-header-full')
-    <h1>تقرير الوردية</h1>
-    <div class="sub">
-        {{-- تاريخ العنوان: يوم إنشاء (فتح) الوردية دائماً — هو "اليوم المحاسبي"
-             الذي تخصّه أرقام هذا التقرير، بصرف النظر عن وقت إقفالها الفعلي أو
-             تاريخ تصدير الـ PDF. --}}
-        {{ $shift->shift_date->format('d/m/Y') }}
-        <span style="margin:0 6px;">|</span>
-        الموظف: {{ $shift->user?->name }}
-    </div>
-</div>
+{{-- تاريخ العنوان: يوم إنشاء (فتح) الوردية دائماً — هو "اليوم المحاسبي" الذي
+     تخصّه أرقام هذا التقرير، بصرف النظر عن وقت إقفالها أو تاريخ تصدير الـPDF. --}}
+@include('partials.pdf-hotel-header-full', [
+    'docTitle' => 'تقرير الوردية',
+    'docMeta'  => $shift->shift_date->format('d/m/Y') . ' | ' . ($shift->user?->name ?? ''),
+])
 
 {{-- Meta --}}
 <table class="meta-table" dir="rtl">

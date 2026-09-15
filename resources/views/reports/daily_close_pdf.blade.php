@@ -48,11 +48,10 @@
 </head>
 <body>
 
-<div class="header">
-    @include('partials.pdf-hotel-header-full')
-    <h1>تقرير إغلاق اليوم</h1>
-    <div class="sub">{{ \Carbon\Carbon::parse($date)->isoFormat('dddd، D MMMM Y') }}</div>
-</div>
+@include('partials.pdf-hotel-header-full', [
+    'docTitle' => 'تقرير إغلاق اليوم',
+    'docMeta'  => \Carbon\Carbon::parse($date)->isoFormat('dddd، D MMMM Y'),
+])
 
 {{-- Summary Cards --}}
 <div class="cards">

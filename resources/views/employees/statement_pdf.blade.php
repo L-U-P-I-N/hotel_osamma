@@ -56,13 +56,10 @@
 </head>
 <body>
 
-<div class="header">
-    @include('partials.pdf-hotel-header-full')
-    <h1>كشف حساب موظف</h1>
-    <div class="sub">
-        الفترة: {{ \Carbon\Carbon::parse($from)->format('Y/m/d') }} — {{ \Carbon\Carbon::parse($to)->format('Y/m/d') }}
-    </div>
-</div>
+@include('partials.pdf-hotel-header-full', [
+    'docTitle' => 'كشف حساب موظف',
+    'docMeta'  => 'الفترة: ' . \Carbon\Carbon::parse($from)->format('Y/m/d') . ' - ' . \Carbon\Carbon::parse($to)->format('Y/m/d'),
+])
 
 {{-- بيانات الموظف كجدول مرتّب (لا سطر واحد بفواصل): أوضح للقراءة، ويتفادى
      &nbsp; التي يطبعها dompdf مع الخط العربي كرمز "Â". --}}

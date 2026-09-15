@@ -40,11 +40,10 @@
                    7=>'يوليو',8=>'أغسطس',9=>'سبتمبر',10=>'أكتوبر',11=>'نوفمبر',12=>'ديسمبر'];
 @endphp
 
-<div class="header">
-    @include('partials.pdf-hotel-header')
-    <h1>تقرير الرواتب — {{ $year }}</h1>
-    <div class="sub">تاريخ الطباعة: {{ now()->format('d/m/Y') }}</div>
-</div>
+@include('partials.pdf-hotel-header-full', [
+    'docTitle' => 'تقرير الرواتب',
+    'docMeta'  => 'سنة ' . $year,
+])
 
 <div class="total-card">
     <div class="num">{{ number_format($totalNet, 0) }} ر.ي</div>

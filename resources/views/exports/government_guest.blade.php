@@ -132,11 +132,10 @@ table.data tbody tr:nth-child(even) td { background: #f9fafb; }
 {{-- الرأس الموحّد يُطبع على خلفية بيضاء: شريط العنوان الأزرق أسفله يحمل اسم
      المستند وحده. (وضعه داخل الشريط الأزرق كان يجعل نصّه الأزرق غير مقروء،
      ويكرّر اسم الفندق وعنوانه وهاتفه مرتين.) --}}
-@include('partials.pdf-hotel-header-full')
-
-<div class="header">
-    <div class="doc-title">نموذج بيانات النزلاء</div>
-</div>
+@include('partials.pdf-hotel-header-full', [
+    'docTitle' => 'نموذج بيانات النزلاء',
+    'docMeta'  => 'حجز رقم ' . $reservation->id . ' | غرفة ' . $reservation->display_room_number,
+])
 
 {{-- Reservation Meta --}}
 @php

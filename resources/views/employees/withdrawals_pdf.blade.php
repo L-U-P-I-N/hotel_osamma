@@ -50,11 +50,10 @@
 </head>
 <body>
 
-<div class="header">
-    @include('partials.pdf-hotel-header-full')
-    <h1>كشف مسحوبات موظف</h1>
-    <div class="sub">شهر: {{ $monthNames[$month] ?? $month }} {{ $year }}</div>
-</div>
+@include('partials.pdf-hotel-header-full', [
+    'docTitle' => 'كشف مسحوبات موظف',
+    'docMeta'  => ($monthNames[$month] ?? $month) . ' ' . $year,
+])
 
 <table class="info-grid" dir="rtl">
     <tr>

@@ -43,13 +43,10 @@
 </head>
 <body>
 
-<div class="header">
-    @include('partials.pdf-hotel-header-full')
-    <h1>كشف حساب الموظفين</h1>
-    <div class="sub">
-        الفترة: {{ \Carbon\Carbon::parse($from)->format('Y/m/d') }} — {{ \Carbon\Carbon::parse($to)->format('Y/m/d') }}
-    </div>
-</div>
+@include('partials.pdf-hotel-header-full', [
+    'docTitle' => 'كشف حساب الموظفين',
+    'docMeta'  => 'الفترة: ' . \Carbon\Carbon::parse($from)->format('Y/m/d') . ' - ' . \Carbon\Carbon::parse($to)->format('Y/m/d'),
+])
 
 <div class="cards">
     <div class="card"><div class="card-inner">

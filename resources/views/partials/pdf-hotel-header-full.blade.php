@@ -6,8 +6,9 @@
      *   ١) شريط الهوية : اسم الفندق بالعربية يميناً، الشعار وسطاً، الاسم
      *      بالإنجليزية يساراً — الثلاثة على محور أفقي واحد، وتحت كل اسم خط
      *      ذهبي ثم الوصف الفرعي، فيتطابق الجانبان بصرياً.
-     *   ٢) شريط التواصل: الهواتف في عمودين متقابلين والتاريخ بينهما، كل تسمية
-     *      وقيمتها في خليّتين مصفوفتين — لا قائمة أسطر متراصّة تحت الاسم.
+     *   ٢) شريط التواصل: الهواتف في عمودين متقابلين، وبينهما عمود المستند
+     *      (عنوان التصدير وفترته وتاريخ الطباعة) — كل تسمية وقيمتها في
+     *      خليّتين مصفوفتين، لا قائمة أسطر متراصّة تحت الاسم.
      *   ٣) سطر العنوان بعرض الصفحة كاملاً.
      *
      * ملاحظات تخصّ dompdf:
@@ -22,7 +23,11 @@
      *
      * الحقول غير المضبوطة في الإعدادات تُحذف بدل طباعة شرطة، فإن لم تُملأ
      * الحقول الإنجليزية بقي عمودها فارغاً — تُملأ من شاشة الإعدادات.
-     * $logoHeight اختياري (افتراضي 66).
+     *
+     * المتغيّرات الاختيارية:
+     *   $docTitle   عنوان المستند (مثل: تقرير الوردية) — يظهر في العمود الأوسط.
+     *   $docMeta    سطر تفصيلي تحته (الفترة، اسم الموظف، الشهر…).
+     *   $logoHeight ارتفاع الشعار (افتراضي 66).
      */
     $p    = \App\Models\Setting::hotelProfile();
     $logo = \App\Models\Setting::hotelLogo();
@@ -42,6 +47,13 @@
     $addressAr = $p['hotel_address_ar'] ?? null;
     $addressEn = $p['hotel_address_en'] ?? null;
 
+    // عنوان المستند يوسَّع له العمود الأوسط: الأسطر العربية لا تلتفّ (الالتفاف
+    // يقلب ترتيب كلماتها بعد التحويل لأشكال العرض)، فتحتاج عرضاً كافياً.
+    $docTitle = trim($docTitle ?? '');
+    $docMeta  = trim($docMeta ?? '');
+    $sideCol  = $docTitle !== '' ? '33%' : '37%';
+    $midCol   = $docTitle !== '' ? '34%' : '26%';
+
     $lbl = 'font-size:7.5px;color:#8a9099;letter-spacing:0.2px;padding:1px 0;white-space:nowrap;width:54px;';
     // الأرقام تُثبَّت اتجاهها كي لا يقلب الـbidi إشارة + إلى آخر الرقم
     $val = 'font-size:8.5px;color:#2b3440;font-weight:bold;padding:1px 0;white-space:nowrap;direction:ltr;unicode-bidi:bidi-override;';
@@ -54,7 +66,7 @@
         <table style="width:100%;border-collapse:collapse;">
             <tr>
                 {{-- إنجليزي — يُكتب أولاً فيظهر يساراً --}}
-                <td style="width:37%;vertical-align:middle;text-align:left;direction:ltr;">
+                <td style="width:{{ $sideCol }};vertical-align:middle;text-align:left;direction:ltr;">
                     @if($p['hotel_name_en'] ?? null)
                     <div style="font-size:14px;font-weight:bold;color:#0F4C75;line-height:1.2;letter-spacing:1.1px;text-transform:uppercase;">{{ $p['hotel_name_en'] }}</div>
                     <div style="border-top:1.5px solid #C9A84E;width:58%;margin:4px auto 0 0;"></div>
@@ -65,14 +77,14 @@
                 </td>
 
                 {{-- الشعار وسطاً --}}
-                <td style="width:26%;vertical-align:middle;text-align:center;">
+                <td style="width:{{ $midCol }};vertical-align:middle;text-align:center;">
                     @if($logo)
                     <img src="{{ $logo }}" alt="شعار الفندق" style="height:{{ $h }}px;">
                     @endif
                 </td>
 
                 {{-- عربي — يُكتب أخيراً فيظهر يميناً --}}
-                <td style="width:37%;vertical-align:middle;text-align:right;direction:rtl;">
+                <td style="width:{{ $sideCol }};vertical-align:middle;text-align:right;direction:rtl;">
                     @if($p['hotel_name_ar'] ?? null)
                     <div style="font-size:19px;font-weight:bold;color:#0F4C75;line-height:1.2;">{{ $p['hotel_name_ar'] }}</div>
                     <div style="border-top:1.5px solid #C9A84E;width:58%;margin:4px 0 0 auto;"></div>
@@ -94,7 +106,7 @@
         <table style="width:100%;border-collapse:collapse;">
             <tr>
                 {{-- الهواتف بتسميات إنجليزية (يسار): التسمية أولاً ثم القيمة --}}
-                <td style="width:37%;vertical-align:middle;">
+                <td style="width:{{ $sideCol }};vertical-align:middle;">
                     <table style="width:100%;border-collapse:collapse;table-layout:fixed;">
                         @foreach($contactsEn as [$label, $value])
                         <tr>
@@ -105,14 +117,23 @@
                     </table>
                 </td>
 
-                {{-- التاريخ وسطاً تحت الشعار — موضعه المعتاد في الترويسات الرسمية --}}
-                <td style="width:26%;vertical-align:middle;text-align:center;border-right:1px solid #dde5ec;border-left:1px solid #dde5ec;">
+                {{-- عمود المستند وسطاً تحت الشعار: عنوان التصدير وفترته وتاريخ
+                     الطباعة — موضع بيانات المستند المعتاد في الترويسات الرسمية --}}
+                <td style="width:{{ $midCol }};vertical-align:middle;text-align:center;border-right:1px solid #dde5ec;border-left:1px solid #dde5ec;padding:0 8px;">
+                    @if($docTitle !== '')
+                    <div style="font-size:11.5px;font-weight:bold;color:#0F4C75;line-height:1.25;">{{ $docTitle }}</div>
+                    @if($docMeta !== '')
+                    <div style="font-size:8px;color:#4b5563;margin-top:2px;line-height:1.3;">{{ $docMeta }}</div>
+                    @endif
+                    <div style="font-size:7.5px;color:#8a9099;margin-top:2px;direction:ltr;unicode-bidi:bidi-override;">{{ now()->format('Y/m/d') }}</div>
+                    @else
                     <div style="font-size:7.5px;color:#8a9099;letter-spacing:0.3px;">التاريخ / DATE</div>
                     <div style="font-size:10px;color:#0F4C75;font-weight:bold;direction:ltr;unicode-bidi:bidi-override;margin-top:1px;">{{ now()->format('Y/m/d') }}</div>
+                    @endif
                 </td>
 
                 {{-- نفس الهواتف بتسميات عربية (يمين): القيمة أولاً ثم التسمية --}}
-                <td style="width:37%;vertical-align:middle;">
+                <td style="width:{{ $sideCol }};vertical-align:middle;">
                     <table style="width:100%;border-collapse:collapse;table-layout:fixed;">
                         @foreach($contactsAr as [$label, $value])
                         <tr>

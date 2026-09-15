@@ -196,18 +196,15 @@
     };
 @endphp
 @php $isSingleDay = \Carbon\Carbon::parse($from)->isSameDay(\Carbon\Carbon::parse($to)); @endphp
-<div class="header">
-    @include('partials.pdf-hotel-header-full')
-    <h1>{{ $isSingleDay ? 'قائمة اليومية' : 'تقرير الحجوزات' }}</h1>
-    <div class="sub">
-        @if($isSingleDay)
-        التاريخ: {{ \Carbon\Carbon::parse($from)->format('d/m/Y') }}
-        @else
-        الفترة: {{ \Carbon\Carbon::parse($from)->format('d/m/Y') }} — {{ \Carbon\Carbon::parse($to)->format('d/m/Y') }}
-        @endif
-        — الفلتر: <strong>{{ $statusFilterLabel }}</strong>
-    </div>
-</div>
+@php
+    $periodLine = $isSingleDay
+        ? 'التاريخ: ' . \Carbon\Carbon::parse($from)->format('d/m/Y')
+        : 'الفترة: ' . \Carbon\Carbon::parse($from)->format('d/m/Y') . ' - ' . \Carbon\Carbon::parse($to)->format('d/m/Y');
+@endphp
+@include('partials.pdf-hotel-header-full', [
+    'docTitle' => $isSingleDay ? 'قائمة اليومية' : 'تقرير الحجوزات',
+    'docMeta'  => $periodLine . ' | ' . $statusFilterLabel,
+])
 
 <table class="stats" dir="rtl">
     <tr>

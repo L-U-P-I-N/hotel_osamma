@@ -38,18 +38,15 @@
     $shiftTotals  = $shiftTotals ?? null;
 @endphp
 
-<div class="header">
-    @include('partials.pdf-hotel-header-full')
-    <h1>تقرير الورديات{{ $selectedUser ? ' — ' . $selectedUser->name : '' }}</h1>
-    <div class="sub">
-        @if($allPeriods)
-            كل الفترات (تاريخ الورديات كاملاً)
-        @else
-            الفترة: {{ \Carbon\Carbon::parse($from)->format('d/m/Y') }} — {{ \Carbon\Carbon::parse($to)->format('d/m/Y') }}
-        @endif
-        @if(! $selectedUser) · كل الموظفين @endif
-    </div>
-</div>
+@php
+    $shiftsPeriod = $allPeriods
+        ? 'كل الفترات'
+        : 'الفترة: ' . \Carbon\Carbon::parse($from)->format('d/m/Y') . ' - ' . \Carbon\Carbon::parse($to)->format('d/m/Y');
+@endphp
+@include('partials.pdf-hotel-header-full', [
+    'docTitle' => 'تقرير الورديات',
+    'docMeta'  => $shiftsPeriod . ' | ' . ($selectedUser?->name ?? 'كل الموظفين'),
+])
 
 @if($shiftTotals && $shiftTotals['count'] > 0)
 <table class="data" dir="rtl" style="margin-bottom:10px;">

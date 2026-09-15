@@ -31,14 +31,10 @@
 </head>
 <body>
 
-<div class="header">
-    @include('partials.pdf-hotel-header-full')
-    <h1>تقرير عم علي</h1>
-    <div class="sub">
-        كل الغرف — يوم العمل {{ \Carbon\Carbon::parse($date)->format('Y/m/d') }} الساعة 1 ظهراً
-        إلى {{ \Carbon\Carbon::parse($date)->addDay()->format('Y/m/d') }} الساعة 1 ظهراً
-    </div>
-</div>
+@include('partials.pdf-hotel-header-full', [
+    'docTitle' => 'تقرير عم علي',
+    'docMeta'  => 'يوم العمل ' . \Carbon\Carbon::parse($date)->format('Y/m/d') . ' الساعة 1 ظهراً إلى ' . \Carbon\Carbon::parse($date)->addDay()->format('Y/m/d') . ' الساعة 1 ظهراً',
+])
 
 @if($rows->isEmpty())
 <p class="empty">لا توجد غرف</p>

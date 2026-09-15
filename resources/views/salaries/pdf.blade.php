@@ -123,14 +123,10 @@
 </head>
 <body>
 
-{{-- Header --}}
-<div class="header">
-    @include('partials.pdf-hotel-header')
-    <h1>الفندق السعودي</h1>
-    <p>نظام إدارة الفندق</p>
-</div>
-
-<div class="slip-title">قسيمة راتب</div>
+@include('partials.pdf-hotel-header-full', [
+    'docTitle' => 'قسيمة راتب',
+    'docMeta'  => $salary->employee?->name ?? '',
+])
 
 {{-- Employee Info --}}
 <div class="info-grid">

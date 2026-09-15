@@ -48,10 +48,9 @@
 </head>
 <body>
 
-<div class="header" dir="rtl">
-    @include('partials.pdf-hotel-header-full', ['logoHeight' => 72])
-    <h1>حجوزات الفندق</h1>
-</div>
+@include('partials.pdf-hotel-header-full', [
+    'docTitle' => 'حجوزات الفندق',
+])
 
 @php
     // في وضع "اليوم" جدولان منفصلان (متواجدون/غادروا)، وفي الوضع الافتراضي جدول

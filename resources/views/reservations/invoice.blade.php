@@ -269,10 +269,13 @@ table.mini tr { page-break-inside: avoid; }
 <div class="page">
 
   <!-- HEADER: ترويسة رسمية موحّدة (عربي يمين / الشعار وسطاً / إنجليزي يسار) -->
-  @include('partials.pdf-hotel-header-full')
+  @include('partials.pdf-hotel-header-full', [
+      'docTitle' => 'فاتورة الحجز',
+      'docMeta'  => 'رقم ' . $invNo . ' | ' . $reservation->check_in_date->format('d/m/Y')
+                    . ' - ' . $reservation->check_out_date->format('d/m/Y'),
+  ])
 
   <div class="invmeta-bar">
-    <div class="inv-title">فاتورة #{{ $invNo }}</div>
     <span class="pill {{ $isPaid ? 'pill-paid' : 'pill-due' }}">
         {{ $isPaid ? 'مسدّدة بالكامل' : 'متبقي مبلغ' }}
     </span>

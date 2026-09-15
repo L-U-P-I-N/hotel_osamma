@@ -30,14 +30,11 @@
 </head>
 <body>
 
-<div class="header">
-    @include('partials.pdf-hotel-header')
-    <h1>الفندق السعودي</h1>
-    <p>نظام إدارة الفندق</p>
-</div>
-
-<div class="title">كشف حساب الموظف — {{ $user->name }}</div>
-<div class="subtitle">الفترة من {{ \Carbon\Carbon::parse($from)->format('d/m/Y') }} إلى {{ \Carbon\Carbon::parse($to)->format('d/m/Y') }}</div>
+@include('partials.pdf-hotel-header-full', [
+    'docTitle' => 'كشف حساب الموظف',
+    'docMeta'  => $user->name . ' | ' . \Carbon\Carbon::parse($from)->format('d/m/Y')
+                  . ' - ' . \Carbon\Carbon::parse($to)->format('d/m/Y'),
+])
 
 <table style="width:100%; border-collapse:collapse; margin-bottom:18px;">
     <tr>

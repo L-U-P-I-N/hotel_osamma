@@ -51,11 +51,10 @@
         : '—';
 @endphp
 
-<div class="header">
-    @include('partials.pdf-hotel-header-full')
-</div>
-
-<div class="title">كشف حساب النزيل</div>
+@include('partials.pdf-hotel-header-full', [
+    'docTitle' => 'كشف حساب النزيل',
+    'docMeta'  => $guest->full_name,
+])
 
 {{-- البيانات الشخصية مرتَّبة "تسمية: قيمة" وبترتيب ثابت — الغرفة أولاً --}}
 <table class="info-grid" dir="rtl">

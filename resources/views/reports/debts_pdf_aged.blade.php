@@ -28,11 +28,10 @@
 </head>
 <body>
 
-<div class="header">
-    @include('partials.pdf-hotel-header')
-    <h1>تقرير أعمار الديون</h1>
-    <div class="sub">تاريخ الطباعة: {{ now()->format('d/m/Y') }} — إجمالي الديون: {{ number_format($totalDebt, 0) }} ر.ي — {{ $reservations->count() }} حجز</div>
-</div>
+@include('partials.pdf-hotel-header-full', [
+    'docTitle' => 'تقرير أعمار الديون',
+    'docMeta'  => $reservations->count() . ' حجز - إجمالي الديون ' . number_format($totalDebt, 0) . ' ر.ي',
+])
 
 <div class="buckets">
     <div class="bucket" style="background:#fefce8;"><div class="num" style="color:#ca8a04;">{{ number_format($buckets['current']['total'], 0) }}</div><div class="lbl">جارية ≤30 يوم ({{ $buckets['current']['count'] }})</div></div>

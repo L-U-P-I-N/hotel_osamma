@@ -36,11 +36,9 @@
 </head>
 <body>
 
-<div class="header">
-    @include('partials.pdf-hotel-header-full')
-    <h1>تقرير الديون والمبالغ غير المحصّلة</h1>
-    <div class="sub">تاريخ الطباعة: {{ now()->format('d/m/Y') }}</div>
-</div>
+@include('partials.pdf-hotel-header-full', [
+    'docTitle' => 'تقرير الديون غير المحصّلة',
+])
 
 <div class="total-card">
     <div class="num">{{ number_format($totalDebt, 2) }} ر.ي</div>

@@ -34,11 +34,9 @@
     $statusLabels = ['available' => 'متاحة', 'occupied' => 'مشغولة', 'maintenance' => 'صيانة', 'under_inspection' => 'فحص'];
 @endphp
 
-<div class="header">
-    @include('partials.pdf-hotel-header')
-    <h1>تقرير حالة الغرف</h1>
-    <div class="sub">بتاريخ: {{ now()->format('d/m/Y') }}</div>
-</div>
+@include('partials.pdf-hotel-header-full', [
+    'docTitle' => 'تقرير حالة الغرف',
+])
 
 {{-- رقم الغرفة وحالتها فقط (دون إيرادات أو عدد حجوزات). العمود الأيمن يُكتب
      أخيراً لأن dompdf يتجاهل dir="rtl" في ترتيب الأعمدة. --}}

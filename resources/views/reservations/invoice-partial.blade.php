@@ -89,10 +89,12 @@ table.items .c { text-align: center !important; white-space: nowrap; }
 <div class="page">
 
   <!-- HEADER: ترويسة رسمية موحّدة (عربي يمين / الشعار وسطاً / إنجليزي يسار) -->
-  @include('partials.pdf-hotel-header-full')
+  @include('partials.pdf-hotel-header-full', [
+      'docTitle' => 'فاتورة الحجز',
+      'docMeta'  => 'رقم ' . $invNo . ' | فترة محدَّدة من الإقامة',
+  ])
 
   <div class="invmeta-bar">
-    <div class="inv-title">فاتورة #{{ $invNo }}</div>
     <span class="pill">فترة محدَّدة من الإقامة</span>
   </div>
   <div class="rule2"></div>

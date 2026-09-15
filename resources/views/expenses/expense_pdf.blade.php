@@ -100,18 +100,13 @@
     $count      = $expenses->count();
 @endphp
 
-<div class="header">
-    @include('partials.pdf-hotel-header')
-    <h1>تقرير المصروفات</h1>
-    @if($dateFrom || $dateTo)
-    <div class="sub">
-        الفترة:
-        {{ $dateFrom ? \Carbon\Carbon::parse($dateFrom)->format('d/m/Y') : '—' }}
-        —
-        {{ $dateTo ? \Carbon\Carbon::parse($dateTo)->format('d/m/Y') : '—' }}
-    </div>
-    @endif
-</div>
+@include('partials.pdf-hotel-header-full', [
+    'docTitle' => 'تقرير المصروفات',
+    'docMeta'  => ($dateFrom || $dateTo)
+        ? 'الفترة: ' . ($dateFrom ? \Carbon\Carbon::parse($dateFrom)->format('d/m/Y') : '-')
+          . ' - ' . ($dateTo ? \Carbon\Carbon::parse($dateTo)->format('d/m/Y') : '-')
+        : '',
+])
 
 <table class="stats" dir="rtl">
     <tr>

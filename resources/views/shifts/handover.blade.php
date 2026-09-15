@@ -49,12 +49,10 @@
 </head>
 <body>
 
-<div class="header">
-    <h1>الفندق السعودي</h1>
-    <p>نظام إدارة الفندق</p>
-</div>
-
-<div class="title">مستند تسليم الوردية</div>
+@include('partials.pdf-hotel-header-full', [
+    'docTitle' => 'مستند تسليم الوردية',
+    'docMeta'  => $shift->shift_date->format('d/m/Y') . ' | ' . ($shift->user?->name ?? ''),
+])
 
 {{-- Shift Info --}}
 <div class="section">

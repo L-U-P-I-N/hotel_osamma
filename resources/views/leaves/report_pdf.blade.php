@@ -29,11 +29,9 @@
 </head>
 <body>
 
-<div class="header">
-    @include('partials.pdf-hotel-header')
-    <h1>تقرير أرصدة الإجازات</h1>
-    <p>سنة {{ $year }} — الرصيد السنوي للإجازة الاعتيادية: {{ $annualEntitlement }} يوماً</p>
-</div>
+@include('partials.pdf-hotel-header-full', [
+    'docTitle' => 'تقرير أرصدة الإجازات',
+])
 
 {{--
     dompdf لا يعكس ترتيب أعمدة الجدول بحسب dir="rtl" — نكتب الأعمدة بترتيب معكوس
