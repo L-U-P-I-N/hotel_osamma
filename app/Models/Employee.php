@@ -83,6 +83,21 @@ class Employee extends Model
         return $this->hasMany(CashWithdrawal::class);
     }
 
+    /** خصومات الراتب المسجَّلة على هذا الموظف (عقوبات، تعويض تلف، …). */
+    public function salaryDeductions()
+    {
+        return $this->hasMany(SalaryDeduction::class);
+    }
+
+    /** إجمالي الخصومات المسجَّلة على الموظف خلال شهر معيّن. */
+    public function recordedDeductionsForMonth(int $month, int $year): float
+    {
+        return round((float) $this->salaryDeductions()
+            ->whereMonth('deduction_date', $month)
+            ->whereYear('deduction_date', $year)
+            ->sum('amount'), 2);
+    }
+
     /** فئة المصروفات المحتسبة على صرفية الطعام والشراب */
     public const FOOD_CATEGORY = 'food';
 

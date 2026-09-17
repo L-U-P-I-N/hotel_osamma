@@ -54,6 +54,9 @@
                             <span class="text-gray-300 mx-1">·</span>
                             <a href="{{ route('employees.withdrawals', $employee) }}"
                                class="text-blue-600 hover:text-blue-800 hover:underline">كشف المسحوبات</a>
+                            <span class="text-gray-300 mx-1">·</span>
+                            <a href="{{ route('employees.deductions', $employee) }}"
+                               class="text-red-600 hover:text-red-800 hover:underline">الخصومات</a>
                         </span>
                     </td>
                     <td class="px-4 py-3 text-gray-600">{{ $employee->position }}</td>

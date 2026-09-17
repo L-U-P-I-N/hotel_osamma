@@ -17,6 +17,7 @@ use App\Http\Controllers\DailyReportController;
 use App\Http\Controllers\FloorController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\SalaryController;
+use App\Http\Controllers\SalaryDeductionController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\LeaveController;
@@ -353,6 +354,20 @@ Route::middleware(['auth'])->group(function () {
     });
     Route::middleware('permission:hr.delete')->group(function () {
         Route::delete('/salaries/{salary}', [SalaryController::class, 'destroy'])->name('salaries.destroy');
+    });
+
+    // خصومات الرواتب — تُسجَّل على الموظف وقت حدوثها وتُجمع في قسيمة شهرها
+    Route::middleware('permission:hr.view')->group(function () {
+        Route::get('/employees/{employee}/deductions', [SalaryDeductionController::class, 'index'])
+            ->name('employees.deductions');
+    });
+    Route::middleware('permission:hr.edit')->group(function () {
+        Route::post('/employees/{employee}/deductions', [SalaryDeductionController::class, 'store'])
+            ->name('employees.deductions.store');
+    });
+    Route::middleware('permission:hr.delete')->group(function () {
+        Route::delete('/employees/{employee}/deductions/{deduction}', [SalaryDeductionController::class, 'destroy'])
+            ->name('employees.deductions.destroy');
     });
 
     // Attendance

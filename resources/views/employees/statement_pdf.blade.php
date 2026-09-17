@@ -123,8 +123,9 @@
     <thead>
         <tr>
             <th style="width:16%;">المتبقي من الراتب</th>
-            <th style="width:16%;">المخصوم من الراتب</th>
-            <th style="width:18%;">صرفية الطعام المصروفة</th>
+            <th style="width:14%;">المخصوم من الراتب</th>
+            <th style="width:13%;">خصومات مسجَّلة</th>
+            <th style="width:15%;">صرفية الطعام المصروفة</th>
             <th style="width:16%;">الراتب الأساسي</th>
             <th style="width:16%;">حالة الراتب</th>
             <th style="width:18%;">الشهر</th>
@@ -135,6 +136,7 @@
         <tr>
             <td class="c" style="font-weight:bold;color:#16a34a;">{{ number_format($m['remaining'], 0) }}</td>
             <td class="c" style="color:#dc2626;">{{ $m['chargeable'] > 0 ? number_format($m['chargeable'], 0) : '—' }}</td>
+            <td class="c" style="color:#dc2626;font-weight:bold;">{{ $m['penalties'] > 0 ? number_format($m['penalties'], 0) : '—' }}</td>
             <td class="c">{{ $m['food_spent'] > 0 ? number_format($m['food_spent'], 0) . ' من ' . number_format($m['food_allow'], 0) : '—' }}</td>
             <td class="c">{{ number_format($m['base'], 0) }}</td>
             <td class="c">{{ $m['slip'] ? ($m['slip']->status === 'paid' ? 'مدفوع' : 'غير مدفوع') : 'لم تُصدَر قسيمة' }}</td>
@@ -146,6 +148,7 @@
         <tr>
             <td class="c">{{ number_format($totals['remaining'], 0) }}</td>
             <td class="c">{{ number_format($totals['chargeable'], 0) }}</td>
+            <td class="c">{{ number_format($totals['penalties'], 0) }}</td>
             <td class="c">{{ number_format($totals['food_spent'], 0) }}</td>
             <td colspan="3" style="text-align:right;">الإجمالي</td>
         </tr>
@@ -190,6 +193,39 @@
             <td class="c">—</td>
             <td class="c">{{ number_format($totals['salaries_net'], 0) }}</td>
             <td colspan="6" style="text-align:right;">الإجمالي</td>
+        </tr>
+    </tfoot>
+</table>
+@endif
+
+@if($deductionRecords->isNotEmpty())
+<h2 class="sec">الخصومات المسجَّلة</h2>
+<table class="data" dir="rtl">
+    <thead>
+        <tr>
+            <th style="width:16%;">سجّله</th>
+            <th style="width:30%;">البيان</th>
+            <th style="width:20%;">السبب</th>
+            <th style="width:17%;">المبلغ</th>
+            <th style="width:17%;">التاريخ</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach($deductionRecords as $d)
+        <tr>
+            <td class="c">{{ $d->createdBy?->name ?? '—' }}</td>
+            <td>{{ $d->description ?: '—' }}</td>
+            <td class="c">{{ $d->reason_label }}</td>
+            <td class="c" style="font-weight:bold;color:#dc2626;">{{ number_format((float) $d->amount, 0) }}</td>
+            <td class="c">{{ $d->deduction_date->format('d/m/Y') }}</td>
+        </tr>
+        @endforeach
+    </tbody>
+    <tfoot>
+        <tr>
+            <td colspan="3" style="text-align:right;">الإجمالي</td>
+            <td class="c">{{ number_format($deductionRecords->sum('amount'), 0) }}</td>
+            <td></td>
         </tr>
     </tfoot>
 </table>

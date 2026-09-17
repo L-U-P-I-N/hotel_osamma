@@ -177,6 +177,12 @@
             <td class="ltr" style="color:#dc2626;">-{{ number_format($salary->deductions, 0) }}</td>
             <td style="color:#dc2626;">خصومات أخرى</td>
         </tr>
+        @if($salary->recorded_deductions > 0)
+        <tr>
+            <td class="ltr" style="color:#dc2626;">-{{ number_format($salary->recorded_deductions, 0) }}</td>
+            <td style="color:#dc2626;">خصومات مسجَّلة (عقوبات/تعويضات)</td>
+        </tr>
+        @endif
         @if($salary->withdrawals_deduction > 0)
         <tr>
             <td class="ltr" style="color:#dc2626;">-{{ number_format($salary->withdrawals_deduction, 0) }}</td>

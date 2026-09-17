@@ -114,6 +114,7 @@
                         <th class="px-4 py-2.5 font-medium">الشهر</th>
                         <th class="px-4 py-2.5 font-medium">الراتب الأساسي</th>
                         <th class="px-4 py-2.5 font-medium">صرفية الطعام المصروفة</th>
+                        <th class="px-4 py-2.5 font-medium">خصومات مسجَّلة</th>
                         <th class="px-4 py-2.5 font-medium">المخصوم من الراتب</th>
                         <th class="px-4 py-2.5 font-medium">المتبقي من الراتب</th>
                         <th class="px-4 py-2.5 font-medium">حالة الراتب</th>
@@ -127,6 +128,7 @@
                         <td class="px-4 py-2.5 text-indigo-600">
                             {{ $m['food_spent'] > 0 ? number_format($m['food_spent'], 0) . ' من ' . number_format($m['food_allow'], 0) : '—' }}
                         </td>
+                        <td class="px-4 py-2.5 text-red-700 font-semibold">{{ $m['penalties'] > 0 ? number_format($m['penalties'], 0) : '—' }}</td>
                         <td class="px-4 py-2.5 text-red-600">{{ $m['chargeable'] > 0 ? number_format($m['chargeable'], 0) : '—' }}</td>
                         <td class="px-4 py-2.5 font-black text-emerald-700">{{ number_format($m['remaining'], 0) }}</td>
                         <td class="px-4 py-2.5">
@@ -146,6 +148,7 @@
                         <td class="px-4 py-2.5">الإجمالي</td>
                         <td class="px-4 py-2.5">—</td>
                         <td class="px-4 py-2.5 text-indigo-700">{{ number_format($totals['food_spent'], 0) }}</td>
+                        <td class="px-4 py-2.5 text-red-700">{{ number_format($totals['penalties'], 0) }}</td>
                         <td class="px-4 py-2.5 text-red-700">{{ number_format($totals['chargeable'], 0) }}</td>
                         <td class="px-4 py-2.5 text-emerald-800">{{ number_format($totals['remaining'], 0) }}</td>
                         <td class="px-4 py-2.5"></td>
@@ -199,6 +202,42 @@
             </table>
         </div>
     </div>
+
+    {{-- الخصومات المسجَّلة: كل خصم بسببه وتاريخه ومَن سجّله --}}
+    @if($deductionRecords->isNotEmpty())
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+            <h3 class="font-bold text-gray-800 text-sm">الخصومات المسجَّلة</h3>
+            <span class="text-xs font-bold text-red-700 bg-red-50 px-2.5 py-1 rounded-lg">
+                الإجمالي: {{ number_format($deductionRecords->sum('amount'), 0) }} ر.ي
+            </span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-right">
+                <thead class="bg-gray-50">
+                    <tr class="text-xs text-gray-500">
+                        <th class="px-4 py-2.5 font-medium">التاريخ</th>
+                        <th class="px-4 py-2.5 font-medium">المبلغ</th>
+                        <th class="px-4 py-2.5 font-medium">السبب</th>
+                        <th class="px-4 py-2.5 font-medium">البيان</th>
+                        <th class="px-4 py-2.5 font-medium">سجّله</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                    @foreach($deductionRecords as $d)
+                    <tr>
+                        <td class="px-4 py-2.5 whitespace-nowrap text-gray-600">{{ $d->deduction_date->format('d/m/Y') }}</td>
+                        <td class="px-4 py-2.5 font-semibold text-red-700">{{ number_format($d->amount, 0) }}</td>
+                        <td class="px-4 py-2.5 text-gray-600">{{ $d->reason_label }}</td>
+                        <td class="px-4 py-2.5 text-gray-400 text-xs">{{ $d->description ?: '—' }}</td>
+                        <td class="px-4 py-2.5 text-gray-500 text-xs">{{ $d->createdBy?->name ?? '—' }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+    @endif
 
     {{-- السلف والمسحوبات --}}
     <div class="bg-white rounded-xl shadow-sm border border-gray-200">

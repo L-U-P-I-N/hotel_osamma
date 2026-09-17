@@ -61,7 +61,7 @@
                     <td class="px-4 py-3 text-gray-600">{{ number_format($salary->base_salary, 2) }}</td>
                     <td class="px-4 py-3 text-green-700">{{ number_format($salary->bonuses, 2) }}</td>
                     <td class="px-4 py-3 text-red-600"
-                        title="خصومات يدوية: {{ number_format($salary->deductions, 0) }} — مسحوبات: {{ number_format($salary->withdrawals_deduction, 0) }} — غياب/إجازة: {{ number_format($salary->attendance_deduction, 0) }}">
+                        title="خصومات يدوية: {{ number_format($salary->deductions, 0) }} — خصومات مسجَّلة: {{ number_format($salary->recorded_deductions, 0) }} — مسحوبات: {{ number_format($salary->withdrawals_deduction, 0) }} — غياب/إجازة: {{ number_format($salary->attendance_deduction, 0) }}">
                         {{ number_format($salary->total_deductions, 2) }}
                     </td>
                     <td class="px-4 py-3 font-bold" style="color:#0F4C75;">{{ number_format($salary->net_salary, 2) }}</td>

@@ -21,8 +21,9 @@
               base: {{ $salary->base_salary }},
               bonuses: {{ $salary->bonuses }},
               deductions: {{ $salary->deductions }},
-              autoDeductions: {{ (float) $salary->withdrawals_deduction + (float) $salary->attendance_deduction }},
-              get net() { return Math.max(0, this.base + this.bonuses - this.deductions - this.autoDeductions); }
+              autoDeductions: {{ (float) $salary->withdrawals_deduction + (float) $salary->attendance_deduction + (float) $salary->recorded_deductions }},
+              // الصافي قد يكون سالباً حين تتجاوز الخصومات الراتب — لا يُصفَّر
+              get net() { return this.base + this.bonuses - this.deductions - this.autoDeductions; }
           }">
         @csrf @method('PUT')
 
@@ -51,6 +52,18 @@
                        class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-blue-400">
             </div>
 
+            {{-- الخصومات المسجَّلة على الموظف لهذا الشهر: تُدار من صفحة خصوماته
+                 وتُحدَّث القسيمة تلقائياً مع كل خصم، فلا تُحرَّر هنا يدوياً. --}}
+            <div class="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start justify-between gap-3 flex-wrap">
+                <span class="text-xs text-red-800">
+                    <strong>خصومات مسجَّلة لهذا الشهر:</strong>
+                    {{ number_format($salary->recorded_deductions, 0) }} ر.ي —
+                    تُسجَّل بسببها وتاريخها من صفحة خصومات الموظف، وتُخصم هنا تلقائياً.
+                </span>
+                <a href="{{ route('employees.deductions', ['employee' => $salary->employee_id, 'month' => $salary->month, 'year' => $salary->year]) }}"
+                   class="text-xs font-semibold text-red-700 hover:underline whitespace-nowrap">إدارة الخصومات ←</a>
+            </div>
+
             <label class="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-lg p-3 cursor-pointer">
                 <input type="checkbox" name="include_withdrawals" value="1" class="mt-0.5"
                        {{ old('include_withdrawals') ? 'checked' : '' }}>
@@ -73,7 +86,9 @@
 
             <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 flex justify-between items-center">
                 <span class="text-sm font-medium text-gray-700">صافي الراتب:</span>
-                <span class="text-xl font-bold" style="color:#0F4C75;" x-text="net.toLocaleString('ar') + ' ر.ي'"></span>
+                <span class="text-xl font-bold" :class="net < 0 ? 'text-red-600' : ''" style="color:#0F4C75;"
+                      :style="net < 0 ? 'color:#dc2626' : 'color:#0F4C75'"
+                      x-text="net.toLocaleString('en-US') + ' ر.ي'"></span>
             </div>
             <p class="text-xs text-gray-400 -mt-2">لا يعكس هذا الرقم أي تغيير من خانتَي إعادة الاحتساب أعلاه إلا بعد الحفظ.</p>
 

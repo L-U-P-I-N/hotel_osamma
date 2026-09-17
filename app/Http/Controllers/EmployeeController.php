@@ -240,6 +240,8 @@ class EmployeeController extends Controller
         $monthly = collect($this->monthsBetween($from, $to))->map(function (array $m) use ($employee, $salaries) {
             $food       = $employee->foodAllowanceSummary($m['month'], $m['year']);
             $chargeable = $employee->withdrawalsTotalForMonth($m['month'], $m['year']);
+            // خصومات مسجَّلة (عقوبات/تعويضات) — بند مستقل عن المسحوبات
+            $penalties  = $employee->recordedDeductionsForMonth($m['month'], $m['year']);
             $base       = (float) $employee->base_salary;
             $slip       = $salaries->first(fn($s) => (int) $s->month === $m['month'] && (int) $s->year === $m['year']);
 
@@ -250,17 +252,26 @@ class EmployeeController extends Controller
                 'food_spent'  => $food['spent'],
                 'food_allow'  => $food['allowance'],
                 'chargeable'  => $chargeable,
-                'remaining'   => round($base - $chargeable, 2),
+                'penalties'   => $penalties,
+                'remaining'   => round($base - $chargeable - $penalties, 2),
                 'slip'        => $slip,
             ];
         });
+
+        $deductionRecords = $employee->salaryDeductions()
+            ->with('createdBy')
+            ->whereDate('deduction_date', '>=', $from)
+            ->whereDate('deduction_date', '<=', $to)
+            ->orderByDesc('deduction_date')
+            ->get();
 
         $totals = [
             'salaries_net'   => (float) $salaries->sum('net_salary'),
             'salaries_paid'  => (float) $salaries->where('status', 'paid')->sum('net_salary'),
             'salaries_due'   => (float) $salaries->where('status', '!=', 'paid')->sum('net_salary'),
             'advances'       => (float) $advances->sum('amount'),
-            'deductions'     => (float) $salaries->sum(fn($s) => (float) $s->deductions + (float) $s->withdrawals_deduction + (float) $s->attendance_deduction),
+            'deductions'     => (float) $salaries->sum(fn($s) => $s->total_deductions),
+            'penalties'      => round((float) $monthly->sum('penalties'), 2),
             'bonuses'        => (float) $salaries->sum('bonuses'),
             'present_days'   => $attendance->where('status', 'present')->count(),
             'absent_days'    => $attendance->where('status', 'absent')->count(),
@@ -272,7 +283,7 @@ class EmployeeController extends Controller
             'remaining'      => round((float) $monthly->sum('remaining'), 2),
         ];
 
-        return compact('employee', 'salaries', 'advances', 'attendance', 'leaves', 'monthly', 'totals', 'from', 'to');
+        return compact('employee', 'salaries', 'advances', 'attendance', 'leaves', 'monthly', 'deductionRecords', 'totals', 'from', 'to');
     }
 
     /** كل شهر يتقاطع مع الفترة [from, to] بالترتيب — لبناء التفصيل الشهري. */
@@ -320,9 +331,11 @@ class EmployeeController extends Controller
             // ما يُخصم فعلاً من الراتب (بلا صرفية الطعام ضمن حدّها) والمتبقي له
             $chargeable = 0.0;
             $foodSpent  = 0.0;
+            $penalties  = 0.0;
             foreach ($months as $m) {
                 $chargeable += $employee->withdrawalsTotalForMonth($m['month'], $m['year']);
                 $foodSpent  += $employee->foodAllowanceSummary($m['month'], $m['year'])['spent'];
+                $penalties  += $employee->recordedDeductionsForMonth($m['month'], $m['year']);
             }
 
             $base = (float) $employee->base_salary * max(1, count($months));
@@ -338,7 +351,8 @@ class EmployeeController extends Controller
                 'advance_rows'   => $advanceRows,
                 'food_spent'     => round($foodSpent, 2),
                 'chargeable'     => round($chargeable, 2),
-                'remaining'      => round($base - $chargeable, 2),
+                'penalties'      => round($penalties, 2),
+                'remaining'      => round($base - $chargeable - $penalties, 2),
                 'months_count'   => $salaries->count(),
             ];
         });
@@ -351,6 +365,7 @@ class EmployeeController extends Controller
             'advances'      => $rows->sum('advances'),
             'food_spent'    => $rows->sum('food_spent'),
             'chargeable'    => $rows->sum('chargeable'),
+            'penalties'     => $rows->sum('penalties'),
             'remaining'     => $rows->sum('remaining'),
         ];
 

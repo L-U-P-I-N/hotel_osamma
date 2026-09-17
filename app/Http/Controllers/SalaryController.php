@@ -47,8 +47,15 @@ class SalaryController extends Controller
         [$data['withdrawals_deduction'], $data['attendance_deduction'], $data['notes']] =
             $this->computeAutoDeductions($request, $employee, (int) $data['month'], (int) $data['year'], $data['notes'] ?? null);
 
+        // خصومات الشهر المسجَّلة على الموظف تدخل القسيمة تلقائياً بمجموعها،
+        // في عمود مستقل عن الخصم اليدوي كي لا يتكرر الخصم عند إعادة الاحتساب.
+        $data['recorded_deductions'] = $employee->recordedDeductionsForMonth((int) $data['month'], (int) $data['year']);
+
+        // الصافي قد يخرج سالباً حين تتجاوز الخصومات الراتب — يُعرض بالأحمر
+        // ويبقى ديناً على الموظف، ولا يُصفَّر كي لا يضيع الفارق بلا أثر.
         $data['net_salary'] = $data['base_salary'] + $data['bonuses']
-            - $data['deductions'] - $data['withdrawals_deduction'] - $data['attendance_deduction'];
+            - $data['deductions'] - $data['recorded_deductions']
+            - $data['withdrawals_deduction'] - $data['attendance_deduction'];
         $data['created_by'] = auth()->id();
 
         // Check if salary already exists for this month/year/employee
@@ -174,8 +181,11 @@ class SalaryController extends Controller
                 (float) $salary->withdrawals_deduction, (float) $salary->attendance_deduction
             );
 
+        $data['recorded_deductions'] = $salary->employee->recordedDeductionsForMonth($salary->month, $salary->year);
+
         $data['net_salary'] = $data['base_salary'] + $data['bonuses']
-            - $data['deductions'] - $data['withdrawals_deduction'] - $data['attendance_deduction'];
+            - $data['deductions'] - $data['recorded_deductions']
+            - $data['withdrawals_deduction'] - $data['attendance_deduction'];
 
         $salary->update($data);
 

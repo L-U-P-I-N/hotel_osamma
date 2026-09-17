@@ -18,6 +18,7 @@ class Salary extends Model
         'deductions',
         'withdrawals_deduction',
         'attendance_deduction',
+        'recorded_deductions',
         'net_salary',
         'status',
         'notes',
@@ -30,13 +31,18 @@ class Salary extends Model
         'deductions'             => 'decimal:2',
         'withdrawals_deduction'  => 'decimal:2',
         'attendance_deduction'   => 'decimal:2',
+        'recorded_deductions'    => 'decimal:2',
         'net_salary'             => 'decimal:2',
     ];
 
-    /** إجمالي كل الخصومات (اليدوية + المسحوبات التلقائية + الغياب التلقائي). */
+    /**
+     * إجمالي كل الخصومات: اليدوية + خصومات الشهر المسجَّلة + المسحوبات
+     * التلقائية + الغياب التلقائي.
+     */
     public function getTotalDeductionsAttribute(): float
     {
-        return round((float) $this->deductions + (float) $this->withdrawals_deduction + (float) $this->attendance_deduction, 2);
+        return round((float) $this->deductions + (float) $this->recorded_deductions
+            + (float) $this->withdrawals_deduction + (float) $this->attendance_deduction, 2);
     }
 
     public function employee()
