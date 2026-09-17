@@ -101,7 +101,18 @@ class ReservationController extends Controller
                 ->get()
             : collect();
 
-        return view('reservations.show', compact('reservation', 'availableRooms', 'transferOptions', 'renewMaxCheckout', 'renewNextArrival', 'swappableReservations'));
+        // دَين قديم على النزيل من إقامات غادر منها دون سداد — يُعرض مع الإجمالي
+        // الشامل في هذه الصفحة. لا يُنقل محاسبياً: يبقى مسجَّلاً على حجزه الأصلي
+        // فلا تتغيّر أرقام التقارير السابقة ولا يُحتسب المبلغ مرتين.
+        $previousDebtStays = $reservation->guest
+            ? $reservation->guest->unpaidPreviousStays($reservation->id)->with('room')->get()
+            : collect();
+        $previousDebtTotal = round((float) $previousDebtStays->sum('balance'), 2);
+
+        return view('reservations.show', compact(
+            'reservation', 'availableRooms', 'transferOptions', 'renewMaxCheckout',
+            'renewNextArrival', 'swappableReservations', 'previousDebtStays', 'previousDebtTotal'
+        ));
     }
 
     /**

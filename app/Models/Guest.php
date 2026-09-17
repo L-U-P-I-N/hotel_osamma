@@ -37,6 +37,28 @@ class Guest extends Model
         return $this->hasMany(Reservation::class);
     }
 
+    /**
+     * إقامات سابقة غادر منها النزيل دون سداد كامل المبلغ — أي دَينٌ قديم عليه.
+     * تُستثنى الإقامة الحالية (إن مُرِّر رقمها) والحجوزات الملغاة، ويُقتصر على
+     * "غادر" فرصيد إقامة قائمة ليس ديناً سابقاً بل مبلغاً مستحقاً بعد.
+     */
+    public function unpaidPreviousStays(?int $excludeReservationId = null)
+    {
+        return $this->reservations()
+            ->where('status', 'checked_out')
+            ->whereColumn('paid_amount', '<', 'total_amount')
+            ->when($excludeReservationId, fn($q) => $q->where('id', '!=', $excludeReservationId))
+            ->orderBy('check_out_date');
+    }
+
+    /** إجمالي الدَّين القديم على النزيل من إقاماته السابقة. */
+    public function previousDebtTotal(?int $excludeReservationId = null): float
+    {
+        return round((float) $this->unpaidPreviousStays($excludeReservationId)
+            ->selectRaw('COALESCE(SUM(total_amount - paid_amount), 0) as debt')
+            ->value('debt'), 2);
+    }
+
     public function scopeSearchByIdNumber(Builder $query, string $number): Builder
     {
         return $query->where('id_number_hash', hash('sha256', $number));

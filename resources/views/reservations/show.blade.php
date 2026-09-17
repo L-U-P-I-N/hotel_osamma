@@ -340,6 +340,76 @@
     </div>
 </div>
 
+{{-- ═══ دَين سابق على النزيل ═══
+     النزيل غادر إقامةً سابقة دون سداد. الدَّين يبقى مسجَّلاً على حجزه الأصلي
+     (فلا تتغيّر أرقام التقارير الماضية ولا يُحتسب المبلغ مرتين)، ويُعرض هنا مع
+     الإجمالي الشامل ليراه الموظف، مع زر تحصيله مباشرةً من هذه الشاشة. --}}
+@if($previousDebtTotal > 0)
+<div class="flex-shrink-0 rounded-2xl border-2 border-red-300 bg-red-50 p-4">
+    <div class="flex items-start justify-between gap-3 flex-wrap">
+        <div class="flex items-start gap-2 min-w-0">
+            <svg class="w-6 h-6 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M5 19h14a2 2 0 001.84-2.75L13.74 4a2 2 0 00-3.48 0L3.16 16.25A2 2 0 005 19z"/></svg>
+            <div class="min-w-0">
+                <p class="text-sm font-black text-red-800">على هذا النزيل دَين سابق لم يُسدَّد</p>
+                <p class="text-xs text-red-600 mt-0.5">
+                    من {{ $previousDebtStays->count() }} إقامة سابقة غادر منها دون سداد — الدَّين مسجَّل على حجزه الأصلي ولم يُنقل لهذا الحجز
+                </p>
+            </div>
+        </div>
+        <div class="text-left flex-shrink-0">
+            <p class="text-xs text-red-500 font-semibold">الدَّين السابق</p>
+            <p class="text-3xl font-black text-red-700 leading-none">
+                {{ number_format($previousDebtTotal, 0) }}<span class="text-sm font-bold text-red-400"> {{ $reservation->currency_symbol }}</span>
+            </p>
+        </div>
+    </div>
+
+    {{-- تفصيل كل إقامة غير مسدَّدة، وزر تحصيل رصيدها فوراً --}}
+    <div class="mt-3 space-y-2">
+        @foreach($previousDebtStays as $old)
+        <div class="bg-white rounded-xl border border-red-100 px-3 py-2 flex items-center justify-between gap-3 flex-wrap">
+            <div class="text-xs text-gray-600 min-w-0">
+                <a href="{{ route('reservations.show', $old) }}" class="font-bold text-blue-600 hover:underline">حجز #{{ $old->id }}</a>
+                <span class="text-gray-400 mx-1">·</span>
+                غرفة {{ $old->display_room_number }}
+                <span class="text-gray-400 mx-1">·</span>
+                {{ $old->check_in_date?->format('d/m/Y') }} — {{ $old->check_out_date?->format('d/m/Y') }}
+                <span class="text-gray-400 mx-1">·</span>
+                مدفوع {{ number_format($old->paid_amount, 0) }} من {{ number_format($old->total_amount, 0) }}
+            </div>
+            <div class="flex items-center gap-2 flex-shrink-0">
+                <span class="font-black text-red-700 text-sm">{{ number_format($old->balance, 0) }} {{ $reservation->currency_symbol }}</span>
+                @can('payments.create')
+                <button type="button"
+                        onclick="openOldDebtModal({{ $old->id }}, {{ $old->balance }}, '{{ $old->check_in_date?->format('d/m/Y') }}')"
+                        class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition whitespace-nowrap">
+                    تحصيل الدَّين
+                </button>
+                @endcan
+            </div>
+        </div>
+        @endforeach
+    </div>
+
+    {{-- الإجمالي الشامل: ما على النزيل كله (هذا الحجز + دَينه القديم) --}}
+    <div class="mt-3 rounded-xl bg-red-700 text-white px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+        <div class="text-xs">
+            <span class="opacity-80">متبقي هذا الحجز</span>
+            <b class="mx-1">{{ number_format($reservation->balance, 0) }}</b>
+            <span class="opacity-80">+ دَين سابق</span>
+            <b class="mx-1">{{ number_format($previousDebtTotal, 0) }}</b>
+        </div>
+        <div class="text-left">
+            <span class="text-xs opacity-80">الإجمالي المستحق على النزيل</span>
+            <p class="text-2xl font-black leading-none">
+                {{ number_format($reservation->balance + $previousDebtTotal, 0) }}
+                <span class="text-sm font-bold opacity-70">{{ $reservation->currency_symbol }}</span>
+            </p>
+        </div>
+    </div>
+</div>
+@endif
+
 {{-- ═══ لوحة الحساب المبسّطة: أهم ما يحتاجه الموظف — كم يُحصِّل من النزيل ═══ --}}
 <div class="flex-shrink-0 grid grid-cols-2 md:grid-cols-4 gap-3">
     {{-- المتبقي: الأبرز والأكبر --}}
@@ -1105,6 +1175,89 @@
 @endif
 </div>
 
+
+{{-- ===== نافذة تحصيل دَين سابق ===== --}}
+@can('payments.create')
+@if($previousDebtTotal > 0)
+<div id="oldDebtModal"
+     class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+     onclick="if(event.target===this) this.classList.add('hidden')">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md" onclick="event.stopPropagation()">
+        <div class="px-6 py-5 rounded-t-2xl flex items-center justify-between" style="background:#b91c1c;">
+            <h3 class="font-bold text-white text-lg">تحصيل دَين سابق</h3>
+            <button type="button" onclick="document.getElementById('oldDebtModal').classList.add('hidden')"
+                    class="w-8 h-8 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+
+        <form method="POST" action="{{ route('payments.store') }}" enctype="multipart/form-data"
+              class="p-6 space-y-4" x-data="{ payMethod: 'cash' }">
+            @csrf
+            {{-- الدفعة تُسجَّل على الحجز القديم صاحب الدَّين، ثم يعود الموظف لهذه الصفحة --}}
+            <input type="hidden" name="reservation_id" id="oldDebtReservationId">
+            <input type="hidden" name="return_to" value="{{ $reservation->id }}">
+
+            <div class="bg-red-50 border border-red-100 rounded-xl p-3 text-sm text-red-700">
+                تحصيل رصيد <b id="oldDebtLabel"></b> —
+                المتبقي عليه <b id="oldDebtMaxLabel"></b> {{ $reservation->currency_symbol }}
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">المبلغ المُحصَّل</label>
+                <input type="number" name="amount" id="oldDebtAmount" step="0.01" min="0.01" required
+                       class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-red-500 outline-none">
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">طريقة الدفع</label>
+                <select name="method" x-model="payMethod"
+                        class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-red-500 outline-none">
+                    <option value="cash">نقدي</option>
+                    <option value="pos">شبكة POS</option>
+                    <option value="bank_transfer">تحويل بنكي</option>
+                </select>
+            </div>
+
+            <div x-show="payMethod === 'bank_transfer'" x-cloak class="bg-blue-50 border border-blue-100 rounded-xl p-4 space-y-3">
+                <p class="text-xs text-blue-600 font-semibold">يجب تقديم واحد على الأقل: صورة السند أو رقم المرجع</p>
+                <input type="file" name="bank_receipt" accept="image/*,.pdf"
+                       class="w-full text-sm text-gray-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-blue-100 file:text-blue-700">
+                <input type="text" name="bank_transfer_ref" placeholder="رقم مرجع التحويل"
+                       class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm outline-none">
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">ملاحظات</label>
+                <input type="text" name="notes" value="سداد دَين سابق"
+                       class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm outline-none">
+            </div>
+
+            <div class="flex gap-3 pt-1">
+                <button type="submit" class="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-sm transition">
+                    تسجيل التحصيل
+                </button>
+                <button type="button" onclick="document.getElementById('oldDebtModal').classList.add('hidden')"
+                        class="px-5 py-3 border border-gray-300 text-gray-700 rounded-xl text-sm hover:bg-gray-50 transition">
+                    إلغاء
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openOldDebtModal(reservationId, balance, checkInDate) {
+    document.getElementById('oldDebtReservationId').value = reservationId;
+    document.getElementById('oldDebtAmount').value = balance;
+    document.getElementById('oldDebtAmount').max   = balance;
+    document.getElementById('oldDebtLabel').textContent    = 'حجز #' + reservationId + ' (' + checkInDate + ')';
+    document.getElementById('oldDebtMaxLabel').textContent = Number(balance).toLocaleString('en-US');
+    document.getElementById('oldDebtModal').classList.remove('hidden');
+}
+</script>
+@endif
+@endcan
 
 {{-- ===== PAYMENT MODAL ===== --}}
 @can('payments.create')

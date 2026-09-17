@@ -435,7 +435,13 @@ html.dark [style*="background:var(--gold-l)"] {
                                     <div class="font-semibold text-gray-800 text-sm truncate" x-text="g.full_name"></div>
                                     <div class="text-xs text-gray-400 truncate" x-text="(g.nationality || '—') + (g.id_number ? ' • ' + g.id_number : '')"></div>
                                 </div>
-                                <span class="text-[11px] text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0">نزيل عائد</span>
+                                <span class="flex flex-col items-end gap-1 flex-shrink-0">
+                                    <span class="text-[11px] text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full whitespace-nowrap">نزيل عائد</span>
+                                    <template x-if="Number(g.debt_total) > 0">
+                                        <span class="text-[11px] text-red-700 bg-red-100 px-2 py-0.5 rounded-full whitespace-nowrap font-bold"
+                                              x-text="'عليه دين ' + Number(g.debt_total).toLocaleString('en-US')"></span>
+                                    </template>
+                                </span>
                             </button>
                         </template>
                     </div>
@@ -446,6 +452,31 @@ html.dark [style*="background:var(--gold-l)"] {
                         <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         <span>نزيل عائد — تم تعبئة البيانات تلقائياً، تابع لاختيار الغرفة</span>
                         <button type="button" @click="clearReturningGuest()" class="mr-auto text-emerald-600 hover:text-emerald-800 underline whitespace-nowrap">إدخال نزيل جديد</button>
+                    </div>
+
+                    {{-- تنبيه الدَّين القديم: النزيل غادر سابقاً دون سداد. يُعرض قبل
+                         إكمال التسجيل كي لا يسجّله موظفٌ لا يعرفه دون أن ينتبه. --}}
+                    <div x-show="existingGuestId && guestDebtTotal > 0" x-cloak
+                         class="mt-2 rounded-xl border-2 border-red-300 bg-red-50 px-4 py-3">
+                        <div class="flex items-start gap-2">
+                            <svg class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M5 19h14a2 2 0 001.84-2.75L13.74 4a2 2 0 00-3.48 0L3.16 16.25A2 2 0 005 19z"/></svg>
+                            <div class="min-w-0">
+                                <p class="text-sm font-bold text-red-800">
+                                    تنبيه: على هذا النزيل دَين سابق لم يُسدَّد
+                                </p>
+                                <p class="text-sm text-red-700 mt-1">
+                                    المبلغ:
+                                    <b class="text-base" x-text="Number(guestDebtTotal).toLocaleString('en-US') + ' ر.ي'"></b>
+                                    <span class="text-xs">
+                                        (من <span x-text="guestDebtCount"></span> إقامة سابقة غادر منها دون سداد)
+                                    </span>
+                                </p>
+                                <p class="text-xs text-red-600 mt-1.5">
+                                    يمكنك إكمال التسجيل بشكل طبيعي — سيظهر الدَّين والإجمالي الشامل في تفاصيل الحجز،
+                                    ويمكن تحصيله من هناك في أي وقت.
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -1535,6 +1566,9 @@ function checkInForm() {
         showSuggestions: false,
         existingGuestId: null,
         existingGuestHasImage: false,
+        // دَين قديم على النزيل العائد (إقامة غادر منها دون سداد)
+        guestDebtTotal: 0,
+        guestDebtCount: 0,
         companions: [],
         // مصدر قائمة المرافقين الحالية: null (فارغة)، 'manual' (أضافها/عدّلها
         // الموظف يدوياً)، أو رقم نزيل (عُبّئت تلقائياً من سجل ذلك النزيل العائد) —
@@ -1617,6 +1651,8 @@ function checkInForm() {
                 if (idNumber.length < 3) {
                     this.existingGuestId = null;
                     this.existingGuestHasImage = false;
+                    this.guestDebtTotal = 0;
+                    this.guestDebtCount = 0;
                     return;
                 }
                 this._idNumberLookupTimer = setTimeout(() => {
@@ -1627,6 +1663,8 @@ function checkInForm() {
                             if ((this.guestData.id_number || '').trim() !== idNumber) return;
                             this.existingGuestId       = res.found ? res.id : null;
                             this.existingGuestHasImage = res.found ? !!res.has_id_image : false;
+                            this.guestDebtTotal        = res.found ? Number(res.debt_total || 0) : 0;
+                            this.guestDebtCount        = res.found ? Number(res.debt_count || 0) : 0;
                         })
                         .catch(() => {});
                 }, 400);
@@ -1644,6 +1682,8 @@ function checkInForm() {
                     guestData:       this.guestData,
                     existingGuestId: this.existingGuestId,
                     existingGuestHasImage: this.existingGuestHasImage,
+                    guestDebtTotal:  this.guestDebtTotal,
+                    guestDebtCount:  this.guestDebtCount,
                     companions:      this.companions.map(c => ({ ...c, id_preview: null })),
                     _companionsSource: this._companionsSource,
                     roomId:          this.roomId,
@@ -1676,6 +1716,8 @@ function checkInForm() {
                 this.guestData         = s.guestData         ?? this.guestData;
                 this.existingGuestId   = s.existingGuestId    ?? null;
                 this.existingGuestHasImage = s.existingGuestHasImage ?? false;
+                this.guestDebtTotal = s.guestDebtTotal ?? 0;
+                this.guestDebtCount = s.guestDebtCount ?? 0;
                 this.companions        = s.companions         ?? [];
                 this._companionsSource = s._companionsSource  ?? null;
                 this.roomId            = s.roomId             ?? '';
@@ -1832,6 +1874,8 @@ function checkInForm() {
             this.guestData.phone         = g.phone || '';
             this.existingGuestId         = g.id;
             this.existingGuestHasImage   = !!g.has_id_image;
+            this.guestDebtTotal          = Number(g.debt_total || 0);
+            this.guestDebtCount          = Number(g.debt_count || 0);
             // مرافقو آخر حجز لهذا النزيل العائد — تُعبَّأ تلقائياً. لا نستبدل
             // مرافقين أضافهم/عدَّلهم الموظف يدوياً (_companionsSource === 'manual')،
             // لكن نستبدل دائماً مرافقين كانوا معبَّئين تلقائياً من نزيل عائد آخر
@@ -1856,6 +1900,8 @@ function checkInForm() {
         clearReturningGuest() {
             this.existingGuestId = null;
             this.existingGuestHasImage = false;
+            this.guestDebtTotal = 0;
+            this.guestDebtCount = 0;
             this.guestData.full_name = '';
             this.guestData.nationality = '';
             this.guestData.occupation = '';

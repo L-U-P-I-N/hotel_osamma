@@ -35,6 +35,8 @@ class PaymentController extends Controller
             'notes'          => 'nullable|string|max:500',
             'bank_receipt'   => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
             'bank_transfer_ref' => 'nullable|string|max:100',
+            // عند تحصيل دَين سابق من شاشة حجز آخر: نعود لتلك الشاشة بعد التسجيل
+            'return_to'      => 'nullable|exists:reservations,id',
         ], [
             'amount.max'      => 'المبلغ المدخل يتجاوز الرصيد المتبقي (' . number_format($reservation->balance, 2) . ')',
             'amount.min'      => 'يجب أن يكون المبلغ أكبر من صفر',
@@ -50,7 +52,7 @@ class PaymentController extends Controller
                 ->withErrors(['bank_transfer' => 'عند اختيار التحويل البنكي يجب إرفاق صورة السند أو إدخال رقم المرجع على الأقل']);
         }
 
-        $data = $request->except(['_token', 'reservation_id']);
+        $data = $request->except(['_token', 'reservation_id', 'return_to']);
         $data['currency'] = 'YER';
         if ($request->hasFile('bank_receipt')) {
             $data['bank_receipt'] = $request->file('bank_receipt');
@@ -61,8 +63,12 @@ class PaymentController extends Controller
         if ($request->expectsJson()) {
             return response()->json(['success' => true, 'payment' => $payment]);
         }
-        return redirect()->route('reservations.show', $reservation)
-            ->with('success', 'تم تسجيل الدفعة بنجاح');
+        $returnTo = $request->input('return_to');
+
+        return redirect()->route('reservations.show', $returnTo ?: $reservation)
+            ->with('success', $returnTo
+                ? 'تم تحصيل الدَّين السابق وتسجيله على حجزه الأصلي #' . $reservation->id
+                : 'تم تسجيل الدفعة بنجاح');
     }
 
     /**

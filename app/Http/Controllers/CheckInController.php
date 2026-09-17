@@ -301,9 +301,14 @@ class CheckInController extends Controller
                 ])
                 : collect();
 
+            // دَين قديم من إقامة غادر منها دون سداد — يراه الموظف قبل إكمال التسجيل
+            $debt = $g->previousDebtTotal();
+
             return [
                 'id'            => $g->id,
                 'full_name'     => $g->full_name,
+                'debt_total'    => $debt,
+                'debt_count'    => $debt > 0 ? $g->unpaidPreviousStays()->count() : 0,
                 'nationality'   => $g->nationality ?? '',
                 'occupation'    => $g->occupation ?? '',
                 'id_type'       => $g->id_type,
@@ -345,6 +350,8 @@ class CheckInController extends Controller
             'reservations_count' => $guest->reservations_count,
             'last_visit'         => $lastReservation?->check_in_date?->format('d/m/Y'),
             'has_id_image'       => (bool) $guest->id_image_path,
+            'debt_total'         => $debt = $guest->previousDebtTotal(),
+            'debt_count'         => $debt > 0 ? $guest->unpaidPreviousStays()->count() : 0,
         ]);
     }
 

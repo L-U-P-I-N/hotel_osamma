@@ -115,8 +115,9 @@ class RenewalBankReceiptTest extends TestCase
             $blade,
             'إظهار حقل السند يجب ألا يكون مشروطاً بإدخال مبلغ'
         );
-        // الحقلان موجودان في نموذج التجديد كما في نموذج الدفعة
-        $this->assertSame(2, substr_count($blade, 'name="bank_receipt"'));
-        $this->assertSame(2, substr_count($blade, 'name="bank_transfer_ref"'));
+        // الحقلان موجودان في نموذج التجديد كما في نموذج الدفعة (وأي نموذج قبضٍ
+        // آخر في الصفحة، كتحصيل دَين سابق) — فالعدد الأدنى اثنان لا عدد ثابت
+        $this->assertGreaterThanOrEqual(2, substr_count($blade, 'name="bank_receipt"'));
+        $this->assertGreaterThanOrEqual(2, substr_count($blade, 'name="bank_transfer_ref"'));
     }
 }
