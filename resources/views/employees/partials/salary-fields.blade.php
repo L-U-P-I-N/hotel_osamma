@@ -4,7 +4,7 @@
 <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4"
      x-data="{ base: {{ (float) $base }}, food: {{ (float) $food }},
                get total() { return (parseFloat(this.base) || 0) + (parseFloat(this.food) || 0) },
-               fmt(n) { return new Intl.NumberFormat('en-US').format(Math.round(n)) }">
+               fmt(n) { return new Intl.NumberFormat('en-US').format(Math.round(n)) } }">
     <div>
         <label class="block text-sm font-medium text-gray-700 mb-1.5">الراتب الأساسي *</label>
         <input type="number" name="base_salary" x-model.number="base" value="{{ $base }}" step="0.01" min="0" required
