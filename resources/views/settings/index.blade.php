@@ -145,8 +145,8 @@
                     <label class="block text-xs font-semibold text-gray-600 mb-1.5">
                         كلمة المرور الجديدة <span class="text-gray-400 font-normal">(اتركها فارغة لإبقائها كما هي)</span>
                     </label>
-                    <input type="password" name="password" dir="ltr" autocomplete="new-password" minlength="8"
-                           class="w-full border @error('password') border-red-400 bg-red-50 @else border-gray-300 @enderror rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none">
+                    <x-password-input name="password" dir="ltr" autocomplete="new-password" minlength="8"
+                           :class="'w-full border ' . ($errors->has('password') ? 'border-red-400 bg-red-50' : 'border-gray-300') . ' rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none'" />
                     @error('password')
                     <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                     @enderror
@@ -155,8 +155,8 @@
 
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1.5">تأكيد كلمة المرور الجديدة</label>
-                    <input type="password" name="password_confirmation" dir="ltr" autocomplete="new-password"
-                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none">
+                    <x-password-input name="password_confirmation" dir="ltr" autocomplete="new-password"
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none" />
                 </div>
             </div>
 
@@ -164,8 +164,11 @@
                 <label class="block text-xs font-semibold text-gray-600 mb-1.5 mt-4">
                     كلمة المرور الحالية <span class="text-red-500">*</span>
                 </label>
-                <input type="password" name="current_password" dir="ltr" required autocomplete="current-password"
-                       class="w-full md:w-1/2 border @error('current_password') border-red-400 bg-red-50 @else border-gray-300 @enderror rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none">
+                {{-- الحقل نصفي العرض، فتُلفّ الأيقونة معه في حاوية بنفس العرض --}}
+                <div class="w-full md:w-1/2">
+                    <x-password-input name="current_password" dir="ltr" required autocomplete="current-password"
+                           :class="'w-full border ' . ($errors->has('current_password') ? 'border-red-400 bg-red-50' : 'border-gray-300') . ' rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none'" />
+                </div>
                 @error('current_password')
                 <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                 @enderror

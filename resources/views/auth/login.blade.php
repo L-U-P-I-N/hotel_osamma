@@ -62,9 +62,9 @@
                     <input type="hidden" name="username" value="{{ session('force_username') }}">
                     <div class="mb-3">
                         <label class="block text-xs font-medium text-amber-800 mb-1">أدخل كلمة المرور للتأكيد</label>
-                        <input type="password" name="password" required autofocus
+                        <x-password-input name="password" required autofocus align="left"
                                class="w-full px-3 py-2 border border-amber-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-400 outline-none bg-white"
-                               placeholder="كلمة المرور">
+                               placeholder="كلمة المرور" />
                     </div>
                     <button type="submit"
                             class="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-semibold transition">

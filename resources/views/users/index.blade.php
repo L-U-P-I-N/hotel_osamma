@@ -497,9 +497,9 @@
             </div>
             <div>
                 <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">كلمة مرور جديدة</label>
-                <input type="password" name="password" minlength="8" placeholder="اتركها فارغة لعدم التغيير"
+                <x-password-input name="password" minlength="8" placeholder="اتركها فارغة لعدم التغيير"
                        class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition"
-                       dir="ltr">
+                       dir="ltr" />
                 <p class="text-xs text-gray-400 mt-1">8 أحرف كحد أدنى</p>
             </div>
 
