@@ -78,9 +78,11 @@ class ReservationSegmentService
      * الفترات، فتُغيّر أرقام عملٍ سابق مُصفّى — وهو ما تمنعه أصلاً شاشتا تعديل/حذف
      * الفترة (isLocked). كان هذا المسار ينسف تلك الحماية بالكامل.
      */
-    public function rebuildFromCurrentPricing(Reservation $reservation, float $firstNight, float $restPrice, int $nights, ?int $userId = null): void
+    public function rebuildFromCurrentPricing(Reservation $reservation, float $firstNight, float $restPrice, int $nights, ?int $userId = null, bool $allowLocked = false): void
     {
-        if ($this->hasLockedSegments($reservation)) {
+        // $allowLocked يمرّره المتحكّم بعد التأكد أن المستخدم يملك صلاحية فكّ
+        // القفل — الخدمة لا تعرف المستخدم، والتصريح يبقى قراراً واحداً واضحاً.
+        if (!$allowLocked && $this->hasLockedSegments($reservation)) {
             throw new \RuntimeException(
                 'لا يمكن إعادة تسعير كامل الإقامة لأن بعض فتراتها تخصّ ورديات أُقفلت بالفعل. '
                 . 'عدّل سعر الفترة المطلوبة وحدها من تفصيل فترات الغرفة، أو استخدم «تغيير السعر من تاريخ».'

@@ -252,6 +252,25 @@ class Reservation extends Model
         return $date ? \Carbon\Carbon::parse($date) : null;
     }
 
+    /**
+     * هل انتهت مهلة تعديل هذا الحجز لهذا المستخدم؟
+     *
+     * مهلة الموظف تنتهي بإقفال الوردية التي سُجّلت فيها فترات الحجز: بعد
+     * الإقفال تُصفَّى أرقام تلك الوردية ويُسلَّم نقدها، فأي تعديل بعده يغيّر
+     * أرقام عملٍ منتهٍ. المدير (ومن يملك صلاحية فكّ القفل) غير مقيَّد، ويُسجَّل
+     * تجاوزه في سجل المراجعة.
+     */
+    public function isEditLockedFor(?User $user): bool
+    {
+        if ($user && $user->can('segment.unlock')) {
+            return false;
+        }
+
+        return $this->segments()
+            ->whereHas('shift', fn($q) => $q->where('is_closed', true))
+            ->exists();
+    }
+
     public function getBalanceAttribute(): float
     {
         return (float)$this->total_amount - (float)$this->paid_amount;

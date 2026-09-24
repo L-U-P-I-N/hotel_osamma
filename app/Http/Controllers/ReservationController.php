@@ -109,9 +109,14 @@ class ReservationController extends Controller
             : collect();
         $previousDebtTotal = round((float) $previousDebtStays->sum('balance'), 2);
 
+        // انتهاء مهلة التعديل لهذا المستخدم: تُخفى أزرار التصحيح ويُوضَّح السبب
+        // بدل أن يضغطها الموظف فتردّه رسالة رفض.
+        $editLocked = $reservation->isEditLockedFor(auth()->user());
+
         return view('reservations.show', compact(
             'reservation', 'availableRooms', 'transferOptions', 'renewMaxCheckout',
-            'renewNextArrival', 'swappableReservations', 'previousDebtStays', 'previousDebtTotal'
+            'renewNextArrival', 'swappableReservations', 'previousDebtStays', 'previousDebtTotal',
+            'editLocked'
         ));
     }
 
@@ -325,10 +330,34 @@ class ReservationController extends Controller
         return view('reservations.edit', compact('reservation', 'companionsData', 'currentPricePerNight'));
     }
 
+    /**
+     * مهلة التعديل: الموظف يعدّل ما سجّله ما دامت وردية الحجز مفتوحة؛ وبعد
+     * إقفالها تُصفَّى أرقامها ويُسلَّم نقدها، فيُمنع أي تعديل يغيّر بيانات الحجز
+     * أو ماليته. المدير (ومن يملك صلاحية فكّ القفل) غير مقيَّد.
+     *
+     * لا يشمل المنعُ العملَ اليومي — تسجيل الدفعات والتجديد ونقل الغرفة
+     * وتسجيل الخروج — فتلك عمليات جديدة لا تصحيحٌ لعملٍ منتهٍ.
+     */
+    private function blockIfEditWindowClosed(Reservation $reservation): ?\Illuminate\Http\RedirectResponse
+    {
+        if (!$reservation->isEditLockedFor(auth()->user())) {
+            return null;
+        }
+
+        return back()->withInput()->withErrors(['error' =>
+            'انتهت مهلة تعديل هذا الحجز: فتراته سُجّلت في وردية أُقفلت وصُفّيت أرقامها، '
+            . 'وتعديلها الآن يُغيّر أرقام عملٍ منتهٍ. راجع المدير لإجراء التعديل.',
+        ]);
+    }
+
     public function update(Request $request, Reservation $reservation)
     {
         if (!in_array($reservation->status, ['confirmed', 'checked_in'])) {
             return back()->with('error', 'لا يمكن تعديل هذا الحجز في حالته الحالية');
+        }
+
+        if ($blocked = $this->blockIfEditWindowClosed($reservation)) {
+            return $blocked;
         }
 
         $priceBoundsRule = new WithinPriceBounds(
@@ -800,6 +829,10 @@ class ReservationController extends Controller
     {
         if ($reservation->status !== 'checked_in') {
             return back()->withErrors(['error' => 'لا يمكن تعديل تاريخ الوصول إلا للحجوزات النشطة (مسجل دخول)']);
+        }
+
+        if ($blocked = $this->blockIfEditWindowClosed($reservation)) {
+            return $blocked;
         }
 
         $validated = $request->validate([
@@ -1337,6 +1370,10 @@ class ReservationController extends Controller
 
     public function applyDiscount(Request $request, Reservation $reservation)
     {
+        if ($blocked = $this->blockIfEditWindowClosed($reservation)) {
+            return $blocked;
+        }
+
         $validated = $request->validate([
             'discount_type'   => 'required|in:fixed,percent',
             'discount_value'  => 'required|numeric|min:0',
@@ -1387,6 +1424,10 @@ class ReservationController extends Controller
      */
     public function removeDiscount(Reservation $reservation)
     {
+        if ($blocked = $this->blockIfEditWindowClosed($reservation)) {
+            return $blocked;
+        }
+
         if ((float) $reservation->discount_amount <= 0 && !$reservation->discount_type) {
             return back()->withErrors(['error' => 'لا يوجد خصم مطبَّق على هذا الحجز']);
         }
@@ -2162,6 +2203,10 @@ class ReservationController extends Controller
             return back()->withErrors(['error' => 'إعادة الاحتساب متاحة فقط للحجوزات النشطة أو المغادرة']);
         }
 
+        if ($blocked = $this->blockIfEditWindowClosed($reservation)) {
+            return $blocked;
+        }
+
         $billableNights = Reservation::billableNightsFor(
             $reservation->check_in_date, $reservation->check_out_date,
             $reservation->check_out_time, $reservation->check_in_time
@@ -2298,13 +2343,19 @@ class ReservationController extends Controller
 
         // تغيير تواريخ الإقامة يُعيد بناء كل الفترات — يُمنَع إن كانت إحداها تخصّ
         // وردية مُقفلة حتى لا تتغيّر أرقام عملٍ سابق مُصفّى.
-        if (app(\App\Services\ReservationSegmentService::class)->hasLockedSegments($reservation)) {
-            return back()->withErrors(['error' => 'لا يمكن تعديل تواريخ الإقامة لأن بعض فتراتها يخصّ ورديات أُقفلت بالفعل — عدّل الفترة المطلوبة وحدها من تفصيل فترات الغرفة.']);
+        // القفل المحاسبي يقيّد الموظف لا المدير: مَن يملك صلاحية فكّ القفل
+        // يستطيع تصحيح التواريخ (وبذلك إلغاء تجديد أُدخل خطأً) ويُسجَّل تجاوزه.
+        if ($blocked = $this->blockIfEditWindowClosed($reservation)) {
+            return $blocked;
         }
 
         $old = $reservation->only(['check_in_date', 'check_in_time', 'check_out_date', 'check_out_time', 'total_amount']);
 
-        DB::transaction(function () use ($reservation, $validated, $newBillableNights, $firstNightPrice, $renewalPrice, $newTotal, $discountAmount, $old) {
+        // تجاوز القفل مسموح هنا لأن الحارس أعلاه سمح بالمرور (مدير أو صاحب
+        // صلاحية فكّ القفل)؛ نوثّق التجاوز حين تكون هناك فترات مقفلة فعلاً.
+        $overrodeLock = app(\App\Services\ReservationSegmentService::class)->hasLockedSegments($reservation);
+
+        DB::transaction(function () use ($reservation, $validated, $newBillableNights, $firstNightPrice, $renewalPrice, $newTotal, $discountAmount, $old, $overrodeLock) {
             $reservation->check_in_date   = $validated['check_in_date'];
             $reservation->check_in_time   = $this->nullIfEmpty($validated['check_in_time'] ?? null);
             $reservation->check_out_date  = $validated['check_out_date'];
@@ -2315,10 +2366,11 @@ class ReservationController extends Controller
             $reservation->refresh()->updatePaymentStatus();
 
             app(\App\Services\ReservationSegmentService::class)
-                ->rebuildFromCurrentPricing($reservation, $firstNightPrice, $renewalPrice, $newBillableNights, auth()->id());
+                ->rebuildFromCurrentPricing($reservation, $firstNightPrice, $renewalPrice, $newBillableNights, auth()->id(), true);
 
             AuditLogService::log('update', $reservation, $old, [
                 'action'          => 'stay_dates_updated',
+                'locked_override' => $overrodeLock,
                 'check_in_date'   => $reservation->check_in_date->toDateString(),
                 'check_in_time'   => $reservation->check_in_time,
                 'check_out_date'  => $reservation->check_out_date->toDateString(),
