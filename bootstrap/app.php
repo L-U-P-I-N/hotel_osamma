@@ -17,6 +17,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
         ]);
         $middleware->appendToGroup('web', \App\Http\Middleware\NoCacheHeaders::class);
+        // ترويسات حماية على كل استجابة (منع التأطير، منع تخمين نوع الملفات، …)
+        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         // انتهاء صلاحية الجلسة/رمز CSRF (419): يحدث عندما تبقى صفحة النموذج مفتوحة

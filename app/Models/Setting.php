@@ -86,6 +86,24 @@ class Setting extends Model
         return [round($min, 2), round($max, 2)];
     }
 
+    /**
+     * اسم الفندق المعروض في الواجهة: من الإعدادات، ثم من جدول hotels القديم،
+     * وأخيراً اسمٌ محايد — فلا يبقى اسمٌ مكتوب يدوياً في أي صفحة.
+     */
+    public static function hotelName(): string
+    {
+        $name = static::get('hotel_name_ar');
+        if ($name) {
+            return $name;
+        }
+
+        try {
+            return Hotel::first()?->name ?: 'نظام إدارة الفندق';
+        } catch (\Throwable $e) {
+            return 'نظام إدارة الفندق';
+        }
+    }
+
     public static function hotelLogo(): ?string
     {
         $logo = static::get(self::HOTEL_LOGO);

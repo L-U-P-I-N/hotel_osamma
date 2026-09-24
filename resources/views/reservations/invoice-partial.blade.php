@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>فاتورة #{{ str_pad($reservation->id, 6, '0', STR_PAD_LEFT) }} — الفندق السعودي</title>
+<title>فاتورة #{{ str_pad($reservation->id, 6, '0', STR_PAD_LEFT) }} — {{ \App\Models\Setting::hotelName() }}</title>
 <style>
 :root {
   --color-navy:          #0F4C75;
@@ -164,7 +164,7 @@ table.items .c { text-align: center !important; white-space: nowrap; }
 
   <!-- FOOTER -->
   <div class="foot">
-    الفندق السعودي · فاتورة للحجز رقم #{{ $invNo }} · صدرت بتاريخ {{ now()->format('Y/m/d H:i') }}
+    {{ \App\Models\Setting::hotelName() }} · فاتورة للحجز رقم #{{ $invNo }} · صدرت بتاريخ {{ now()->format('Y/m/d H:i') }}
     <span class="scope-note">تغطي هذه الفاتورة الفترة المذكورة أعلاه فقط من الإقامة</span>
   </div>
 </div>

@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>@yield('title', 'الفندق السعودي') - نظام إدارة الفندق</title>
+    <title>@yield('title', \App\Models\Setting::hotelName()) - {{ \App\Models\Setting::hotelName() }}</title>
 
     {{-- Theme (الوضع الليلي/النهاري) — applied before paint to avoid flash --}}
     <script>
@@ -176,18 +176,13 @@
         <!-- Logo -->
         <div class="px-5 py-5 flex-shrink-0" style="border-bottom: 1px solid rgba(255,255,255,0.07);">
             <div class="flex items-center gap-3">
-                @php $__sidebarLogo = \App\Models\Setting::get(\App\Models\Setting::HOTEL_LOGO) ?: (file_exists(public_path('images/hotel-logo.png')) ? asset('images/hotel-logo.png') : null); @endphp
-                @if($__sidebarLogo)
-                <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden bg-white">
-                    <img src="{{ $__sidebarLogo }}" alt="شعار الفندق" class="w-full h-full object-contain">
-                </div>
-                @else
-                <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-primary-900 text-base"
-                     style="background: linear-gradient(135deg, #D4A574, #c08d5a);">س</div>
-                @endif
+                @include('partials.brand-mark', [
+                    'size' => 'w-9 h-9 flex-shrink-0', 'rounded' => 'rounded-xl', 'letterCls' => 'text-base',
+                ])
+                @php $__tagline = \App\Models\Setting::get('hotel_tagline_ar'); @endphp
                 <div class="min-w-0">
-                    <div class="font-bold text-sm text-white leading-tight truncate">الفندق السعودي</div>
-                    <div class="text-xs truncate" style="color:#4d7fa0;">نظام إدارة الفندق</div>
+                    <div class="font-bold text-sm text-white leading-tight truncate">{{ \App\Models\Setting::hotelName() }}</div>
+                    <div class="text-xs truncate" style="color:#4d7fa0;">{{ $__tagline ?: 'نظام إدارة الفندق' }}</div>
                 </div>
             </div>
         </div>
@@ -720,5 +715,6 @@ window.addEventListener('appinstalled', () => {
 </script>
 @endif
 
+@include('partials.copy-deterrent')
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>فاتورة #{{ str_pad($reservation->id, 6, '0', STR_PAD_LEFT) }} — الفندق السعودي</title>
+<title>فاتورة #{{ str_pad($reservation->id, 6, '0', STR_PAD_LEFT) }} — {{ \App\Models\Setting::hotelName() }}</title>
 <style>
 :root {
   /* ── Brand ── */
@@ -381,7 +381,7 @@ table.mini tr { page-break-inside: avoid; }
   </table>
 
   <!-- FOOTER -->
-  <div class="foot">الفندق السعودي · فاتورة رقم #{{ $invNo }} · صدرت بتاريخ {{ now()->format('Y/m/d H:i') }}</div>
+  <div class="foot">{{ \App\Models\Setting::hotelName() }} · فاتورة رقم #{{ $invNo }} · صدرت بتاريخ {{ now()->format('Y/m/d H:i') }}</div>
 </div>
 
 </body>
