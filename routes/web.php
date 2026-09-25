@@ -7,6 +7,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\CheckInController;
 use App\Http\Controllers\ReservationController;
+use App\Http\Controllers\ReservationNoteController;
 use App\Http\Controllers\CheckOutController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\SettlementController;
@@ -145,6 +146,14 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/reservations/{reservation}/renew', [ReservationController::class, 'renew'])->name('reservations.renew')->middleware('permission:reservation.renew');
         Route::patch('/reservations/{reservation}/auto-renew', [ReservationController::class, 'toggleAutoRenew'])->name('reservations.toggleAutoRenew')->middleware('permission:checkin.create');
         Route::post('/reservations/{reservation}/charge', [ReservationController::class, 'addCharge'])->name('reservations.addCharge')->middleware('permission:payments.create');
+        // رسم يُحتسب ضمن إجمالي الغرفة (تأخير مغادرة، تعديل سعر، خدمة إضافية)
+        Route::post('/reservations/{reservation}/hotel-charge', [ReservationController::class, 'addHotelCharge'])->name('reservations.addHotelCharge')->middleware('permission:payments.create');
+
+        // ملاحظات فورية على الحجز — تُدار من جدول الحجوزات مباشرةً
+        Route::get('/reservations/{reservation}/notes', [ReservationNoteController::class, 'index'])->name('reservations.notes.index');
+        Route::post('/reservations/{reservation}/notes', [ReservationNoteController::class, 'store'])->name('reservations.notes.store');
+        Route::put('/reservations/{reservation}/notes/{note}', [ReservationNoteController::class, 'update'])->name('reservations.notes.update');
+        Route::delete('/reservations/{reservation}/notes/{note}', [ReservationNoteController::class, 'destroy'])->name('reservations.notes.destroy');
         Route::put('/reservations/charge/{charge}', [ReservationController::class, 'updateCharge'])->name('reservations.updateCharge')->middleware('permission:payments.create');
         Route::delete('/reservations/charge/{charge}', [ReservationController::class, 'deleteCharge'])->name('reservations.deleteCharge')->middleware('permission:payments.create');
         // تحصيل دَين المشتريات (بقالة) وتسليمه للبقالة — توثيق فقط بلا قيد محاسبي

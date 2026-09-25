@@ -21,6 +21,28 @@ class ExtraCharge extends Model
         'settled_at' => 'datetime',
     ];
 
+    /**
+     * أنواع الرسوم المحتسَبة ضمن إجمالي الغرفة (تدخل الفاتورة والإيرادات)،
+     * مقابل رسوم المشتريات التي تبقى دَيناً منفصلاً خارج صندوق الفندق.
+     */
+    public const HOTEL_TYPES = [
+        'late_checkout'    => 'تأخير عن موعد المغادرة',
+        'price_adjustment' => 'تعديل سعر الغرفة',
+        'extra_service'    => 'خدمة إضافية',
+        'damage'           => 'تعويض أضرار',
+        'other'            => 'رسم آخر',
+    ];
+
+    public static function hotelTypeLabel(?string $type): string
+    {
+        return self::HOTEL_TYPES[$type] ?? ($type ?: '—');
+    }
+
+    public function getTypeLabelAttribute(): string
+    {
+        return self::hotelTypeLabel($this->type);
+    }
+
     public function reservation()
     {
         return $this->belongsTo(Reservation::class);

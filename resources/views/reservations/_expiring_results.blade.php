@@ -9,6 +9,7 @@
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">#</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">النزيل</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الغرفة</th>
+                    <th class="px-2 py-3 text-center text-xs font-medium text-gray-500" title="ملاحظات فورية">📌</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">تاريخ الدخول</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">تاريخ الخروج</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المدة المتبقية</th>
@@ -49,7 +50,7 @@
                     $balance = (float)$res->total_amount - (float)$res->paid_amount;
                 @endphp
                 {{-- Guest row --}}
-                <tr class="{{ $rowCls }} hover:bg-gray-50 transition-colors">
+                <tr class="{{ $rowCls }} hover:bg-gray-50 transition-colors" data-row="{{ $res->id }}">
                     <td class="px-4 py-3 text-gray-500 font-mono text-xs">#{{ $res->id }}</td>
                     <td class="px-4 py-3">
                         <a href="{{ route('reservations.show', $res) }}" class="font-semibold text-gray-800 hover:text-primary-700 transition">
@@ -63,8 +64,34 @@
                         <span class="font-medium text-gray-800">{{ $res->display_room_number }}</span>
                         <div class="text-xs text-gray-400">{{ $res->room_type_label }}</div>
                     </td>
+                    @php
+                        $openNotes = $res->openQuickNotes;
+                        $noteColor = $openNotes->contains(fn($n) => $n->color === 'red') ? 'red'
+                            : ($openNotes->contains(fn($n) => $n->color === 'amber') ? 'amber'
+                            : ($openNotes->isNotEmpty() ? 'blue' : 'none'));
+                        $noteClasses = [
+                            'red'   => 'bg-red-100 text-red-600 hover:bg-red-200',
+                            'amber' => 'bg-amber-100 text-amber-600 hover:bg-amber-200',
+                            'blue'  => 'bg-blue-100 text-blue-600 hover:bg-blue-200',
+                            'none'  => 'text-gray-300 hover:bg-gray-100 hover:text-gray-500',
+                        ];
+                    @endphp
+                    <td class="px-2 py-3 text-center">
+                        {{-- أيقونة الملاحظات: لونها يتبع أشدّ ملاحظة قائمة، وعنوانها
+                             معاينة سريعة لأول ملاحظة دون فتح أي نافذة --}}
+                        <button type="button"
+                                data-notes-btn="{{ $res->id }}"
+                                onclick="openNotes({{ $res->id }}, this)"
+                                title="{{ $openNotes->isNotEmpty() ? $openNotes->first()->type_label . ': ' . \Illuminate\Support\Str::limit($openNotes->first()->body, 90) : 'لا توجد ملاحظات — اضغط لإضافة واحدة' }}"
+                                class="relative w-8 h-8 rounded-lg transition inline-flex items-center justify-center {{ $noteClasses[$noteColor] }}">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            @if($openNotes->isNotEmpty())
+                            <span data-notes-badge class="absolute -top-1 -left-1 min-w-[16px] h-4 px-1 rounded-full bg-red-600 text-white text-[10px] font-bold leading-4">{{ $openNotes->count() }}</span>
+                            @endif
+                        </button>
+                    </td>
                     <td class="px-4 py-3 text-gray-600 text-sm">{{ $res->check_in_date->format('d/m/Y') }}</td>
-                    <td class="px-4 py-3 text-gray-600 text-sm font-medium">{{ $res->check_out_date->format('d/m/Y') }}</td>
+                    <td class="px-4 py-3 text-gray-600 text-sm font-medium" data-cell="checkout">{{ $res->check_out_date->format('d/m/Y') }}</td>
                     <td class="px-4 py-3">
                         <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold {{ $badgeCls }}">
                             @if(!$isCheckedOut && $daysLeft < 0)
@@ -73,7 +100,7 @@
                             {{ $badgeLabel }}
                         </span>
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3" data-cell="balance">
                         @if($balance > 0)
                         <span class="text-red-600 font-semibold text-sm">{{ number_format($balance, 0) }} ر.ي</span>
                         @else
@@ -99,6 +126,15 @@
                                 تجديد
                             </button>
                             @endcan
+                            @can('payments.create')
+                            <button type="button"
+                                    onclick="openCharge({{ $res->id }}, '{{ addslashes($res->guest?->full_name ?? '') }}', '{{ $res->display_room_number }}')"
+                                    class="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white transition font-medium"
+                                    title="رسم يُضاف إلى إجمالي الغرفة">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                رسم
+                            </button>
+                            @endcan
                             @endunless
                             <a href="{{ route('reservations.show', $res) }}"
                                class="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition">
@@ -110,13 +146,14 @@
                 {{-- Inline renewal form row --}}
                 @can('checkin.create')
                 <tr x-show="renewOpen === {{ $res->id }}" x-cloak class="bg-green-50">
-                    <td colspan="8" class="px-6 py-4 border-t border-green-200">
+                    <td colspan="9" class="px-6 py-4 border-t border-green-200">
                         <div class="flex items-center gap-2 mb-3">
                             <svg class="w-4 h-4 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                             <span class="text-sm font-semibold text-green-800">تجديد إقامة: {{ $res->guest?->full_name }}</span>
                             <span class="text-xs text-green-600">— الغرفة {{ $res->display_room_number }} — تاريخ الخروج الحالي: {{ $res->check_out_date->format('d/m/Y') }}</span>
                         </div>
                         <form method="POST" action="{{ route('reservations.renew', $res) }}"
+                              data-inline-renew="{{ $res->id }}"
                               class="flex items-end gap-3 flex-wrap">
                             @csrf
                             <div class="flex flex-col gap-1">
@@ -161,7 +198,7 @@
                 @endcan
                 @empty
                 <tr>
-                    <td colspan="8" class="px-4 py-12 text-center text-gray-400">
+                    <td colspan="9" class="px-4 py-12 text-center text-gray-400">
                         <svg class="w-10 h-10 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                         لا يوجد نزلاء مسجلون حالياً
                     </td>

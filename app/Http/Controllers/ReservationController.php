@@ -20,7 +20,9 @@ class ReservationController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Reservation::with(['guest', 'room.roomType', 'createdBy']);
+        // openQuickNotes تُحمَّل مسبقاً: أيقونة الملاحظات تُرسَم لكل صفّ، وقراءتها
+        // صفّاً صفّاً تُنتج استعلاماً لكل حجز في الصفحة.
+        $query = Reservation::with(['guest', 'room.roomType', 'createdBy', 'openQuickNotes']);
 
         if ($request->filled('search')) {
             $search = trim($request->search);
@@ -784,10 +786,40 @@ class ReservationController extends Controller
             'price_per_night'  => $pricePerNight,
         ], auth()->user());
 
-        return redirect()->route('reservations.show', $reservation)
-            ->with('success', "تم تجديد الإقامة بنجاح — تمديد {$extraNights} ليلة بمبلغ "
-                . number_format($netExtraAmount, 0) . ' ر.ي'
-                . ($renewalDiscount > 0 ? ' (بعد خصم ' . number_format($renewalDiscount, 0) . ' ر.ي)' : ''));
+        $message = "تم تجديد الإقامة بنجاح — تمديد {$extraNights} ليلة بمبلغ "
+            . number_format($netExtraAmount, 0) . ' ر.ي'
+            . ($renewalDiscount > 0 ? ' (بعد خصم ' . number_format($renewalDiscount, 0) . ' ر.ي)' : '');
+
+        // التجديد من قوائم الحجوزات يتمّ دون مغادرة الصفحة: يُعاد ملخّص الحجز
+        // ليُحدَّث صفّه في الجدول مكانه، فيتابع الموظف تجديد النزيل التالي.
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success'     => true,
+                'message'     => $message,
+                'reservation' => $this->rowSummary($reservation->refresh()),
+            ]);
+        }
+
+        return redirect()->route('reservations.show', $reservation)->with('success', $message);
+    }
+
+    /**
+     * ملخّص الحجز كما يظهر في صفّ جدول الحجوزات — يُعاد بعد العمليات الفورية
+     * (تجديد، رسم إضافي) ليُحدَّث الصفّ مكانه دون إعادة تحميل الصفحة.
+     */
+    private function rowSummary(Reservation $reservation): array
+    {
+        return [
+            'id'                   => $reservation->id,
+            'check_out_date'       => $reservation->check_out_date?->format('d/m/Y'),
+            'check_out_date_raw'   => $reservation->check_out_date?->toDateString(),
+            'nights'               => $reservation->nights,
+            'total_amount'         => number_format((float) $reservation->total_amount, 0),
+            'paid_amount'          => number_format((float) $reservation->paid_amount, 0),
+            'balance'              => number_format($reservation->balance, 0),
+            'payment_status'       => $reservation->payment_status,
+            'payment_status_label' => $reservation->payment_status_label,
+        ];
     }
 
     /**
@@ -1236,7 +1268,9 @@ class ReservationController extends Controller
         // فلتر الحالة: مقيم (الافتراضي) / غادر / الكل
         $status = $request->input('status', 'all');
 
-        $query = \App\Models\Reservation::with(['guest', 'room.roomType']);
+        // openQuickNotes تُحمَّل مسبقاً: أيقونة الملاحظات تُرسَم لكل صفّ، وقراءتها
+        // صفّاً صفّاً تُنتج استعلاماً لكل حجز في الصفحة.
+        $query = \App\Models\Reservation::with(['guest', 'room.roomType', 'openQuickNotes']);
 
         if (in_array($status, ['checked_in', 'checked_out'], true)) {
             $query->where('status', $status);
@@ -1743,6 +1777,86 @@ class ReservationController extends Controller
      * إضافة رسم/مصروف على حساب النزيل (مشتريات بقالة، مأكولات، خدمات...) — يُضاف
      * إلى إجمالي الحجز فيصبح ديناً يُحصَّل مع الليالي عند المغادرة.
      */
+    /**
+     * رسم على الغرفة يُحتسب ضمن إجمالي الحجز (تأخير مغادرة، تعديل سعر، خدمة
+     * إضافية…): يزيد المطلوب من النزيل، ويظهر في الفاتورة وفي إيرادات الفندق —
+     * بخلاف رسوم المشتريات التي تبقى دَيناً منفصلاً خارج صندوق الفندق.
+     *
+     * يعمل من جدول الحجوزات مباشرةً (JSON) ومن صفحة التفاصيل معاً.
+     */
+    public function addHotelCharge(Request $request, Reservation $reservation)
+    {
+        if (!in_array($reservation->status, ['checked_in', 'checked_out'])) {
+            return $this->chargeError($request, 'يمكن إضافة الرسوم لنزيل مقيم أو لم تُسوَّ مغادرته بعد');
+        }
+
+        if ($blocked = $reservation->isEditLockedFor(auth()->user())) {
+            return $this->chargeError($request,
+                'انتهت مهلة تعديل هذا الحجز: فتراته سُجّلت في وردية أُقفلت. راجع المدير.');
+        }
+
+        $validated = $request->validate([
+            'charge_type' => 'required|in:' . implode(',', array_keys(\App\Models\ExtraCharge::HOTEL_TYPES)),
+            'description' => 'nullable|string|max:255',
+            'amount'      => 'required|numeric|min:0.01',
+        ], [
+            'charge_type.required' => 'نوع الرسم مطلوب',
+            'charge_type.in'       => 'نوع الرسم غير معروف',
+            'amount.required'      => 'المبلغ مطلوب',
+            'amount.min'           => 'المبلغ يجب أن يكون أكبر من صفر',
+        ]);
+
+        $amount = round((float) $validated['amount'], 2);
+
+        DB::transaction(function () use ($reservation, $validated, $amount) {
+            \App\Models\ExtraCharge::create([
+                'reservation_id' => $reservation->id,
+                'added_by'       => auth()->id(),
+                'type'           => $validated['charge_type'],
+                'description'    => $validated['description'] ?? null,
+                'amount'         => $amount,
+                'charge_date'    => now(),
+                // يدخل إجمالي الحجز وصندوق الفندق — هذا ما يميّزه عن المشتريات
+                'in_hotel_total' => true,
+                'settled_at'     => null,
+            ]);
+
+            $reservation->total_amount = round((float) $reservation->total_amount + $amount, 2);
+            $reservation->save();
+            $reservation->refresh()->updatePaymentStatus();
+
+            AuditLogService::log('update', $reservation, null, [
+                'action'      => 'hotel_charge_added',
+                'charge_type' => $validated['charge_type'],
+                'amount'      => $amount,
+            ], auth()->user());
+        });
+
+        $reservation->refresh();
+        $message = 'تمت إضافة ' . number_format($amount, 0) . ' ر.ي ('
+            . \App\Models\ExtraCharge::hotelTypeLabel($validated['charge_type']) . ') إلى إجمالي الحجز';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success'     => true,
+                'message'     => $message,
+                'reservation' => $this->rowSummary($reservation),
+            ]);
+        }
+
+        return redirect()->route('reservations.show', $reservation)->with('success', $message);
+    }
+
+    /** خطأ إضافة رسم — بنفس الشكل للطلب العادي وطلب JSON. */
+    private function chargeError(Request $request, string $message)
+    {
+        if ($request->expectsJson()) {
+            return response()->json(['success' => false, 'message' => $message], 422);
+        }
+
+        return back()->withErrors(['error' => $message]);
+    }
+
     public function addCharge(Request $request, Reservation $reservation)
     {
         if (!in_array($reservation->status, ['checked_in', 'checked_out'])) {

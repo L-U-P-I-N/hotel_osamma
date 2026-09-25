@@ -104,6 +104,7 @@
 </div>
 
 @push('scripts')
+@include('reservations._quick_actions_js')
 <script>
 (function () {
     const form    = document.getElementById('filters');
@@ -197,4 +198,5 @@
 })();
 </script>
 @endpush
+@include('reservations._quick_actions')
 @endsection

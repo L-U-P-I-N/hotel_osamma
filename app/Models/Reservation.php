@@ -271,6 +271,23 @@ class Reservation extends Model
             ->exists();
     }
 
+    /**
+     * الملاحظات الفورية على هذا الحجز (الأحدث أولاً).
+     *
+     * التسمية quickNotes لا notes: العمود notes موجود أصلاً في الجدول كنصّ حرّ،
+     * وعلاقةٌ بنفس الاسم يحجبها العمود فتُقرأ خطأً.
+     */
+    public function quickNotes()
+    {
+        return $this->hasMany(ReservationNote::class)->latest('id');
+    }
+
+    /** الملاحظات القائمة (غير المحلولة) — هي ما يلوّن الأيقونة في الجدول. */
+    public function openQuickNotes()
+    {
+        return $this->hasMany(ReservationNote::class)->whereNull('resolved_at')->latest('id');
+    }
+
     public function getBalanceAttribute(): float
     {
         return (float)$this->total_amount - (float)$this->paid_amount;
