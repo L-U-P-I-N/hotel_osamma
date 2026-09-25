@@ -444,6 +444,27 @@ class Reservation extends Model
      * بينها. لا يتجاوز حجزاً قادماً على نفس الغرفة (يترك اليوم الفاصل للتنظيف).
      * يُرجِع عدد الليالي التي أُضيفت (0 إن لا شيء).
      */
+    /**
+     * تصحيحٌ يُنهي الإقامة (تاريخ خروج اليوم أو قبله) يوقف التجديد التلقائي.
+     *
+     * بدونه يعود التجديد التلقائي فيمدّد الإقامة في أول فتح للصفحة بعد الحفظ،
+     * فيرى الموظف رسالة "تم التعديل بنجاح" والتاريخ القديم مكانه — ويُضاف مبلغ
+     * لحساب النزيل دون أن يطلبه أحد. الإرادة الصريحة للموظف تسبق الأتمتة.
+     *
+     * يُرجع true إن أُوقف التجديد فعلاً (لإبلاغ المستخدم).
+     */
+    public function stopAutoRenewIfStayEnded(): bool
+    {
+        if (!$this->auto_renew || $this->check_out_date->startOfDay()->gt(today())) {
+            return false;
+        }
+
+        $this->auto_renew = false;
+        $this->save();
+
+        return true;
+    }
+
     public function applyAutoRenewCatchUp(): int
     {
         if (!$this->auto_renew || $this->status !== 'checked_in') {

@@ -2108,8 +2108,11 @@ class ReservationController extends Controller
             ], auth()->user());
         });
 
+        $autoRenewStopped = $reservation->refresh()->stopAutoRenewIfStayEnded();
+
         return redirect()->route('reservations.show', $reservation)
-            ->with('success', 'تم حذف التجديد' . ($amount > 0 ? ' وخصم ' . number_format($amount, 0) . ' ر.ي من حساب النزيل' : ''));
+            ->with('success', 'تم حذف التجديد' . ($amount > 0 ? ' وخصم ' . number_format($amount, 0) . ' ر.ي من حساب النزيل' : '')
+                . ($autoRenewStopped ? ' · وأُوقف التجديد التلقائي لأن الإقامة انتهت بهذا التاريخ' : ''));
     }
 
     /**
@@ -2380,8 +2383,13 @@ class ReservationController extends Controller
             ], auth()->user());
         });
 
+        // تصحيحٌ يُنهي الإقامة يوقف التجديد التلقائي، وإلا أعاد تمديدها فوراً
+        // عند فتح الصفحة فيظهر التعديل وكأنه لم يُحفظ.
+        $autoRenewStopped = $reservation->stopAutoRenewIfStayEnded();
+
         return redirect()->route('reservations.show', $reservation)
-            ->with('success', 'تم تعديل تاريخ الإقامة بنجاح — الإجمالي الجديد: ' . number_format($newTotal, 0) . ' ر.ي');
+            ->with('success', 'تم تعديل تاريخ الإقامة بنجاح — الإجمالي الجديد: ' . number_format($newTotal, 0) . ' ر.ي'
+                . ($autoRenewStopped ? ' · وأُوقف التجديد التلقائي لأن الإقامة انتهت بهذا التاريخ' : ''));
     }
 
     private function nullIfEmpty(mixed $value): mixed
