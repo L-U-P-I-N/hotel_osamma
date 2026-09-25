@@ -30,3 +30,9 @@ deploy/cloud_backup_token.txt
 # Electron desktop-app build artifacts
 desktop-app/node_modules
 desktop-app/dist
+
+# ذاكرة خطوط dompdf المولَّدة — تُبنى محلياً عند أول تصدير وتحوي مسارات مطلقة
+# خاصة بجهاز التوليد، فحفظها في المستودع يكسر التصدير على الخادم.
+/storage/fonts/installed-fonts.json
+/storage/fonts/*_normal_*
+/storage/fonts/*_bold_*
