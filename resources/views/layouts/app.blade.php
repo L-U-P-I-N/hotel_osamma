@@ -166,11 +166,39 @@
     </div>
 </div>
 
-<div x-data="{ sidebarOpen: window.innerWidth >= 1024 }" class="flex h-screen overflow-hidden">
+{{--
+    القائمة على الحاسوب تدفع المحتوى جانباً، وعلى الجوال تنزلق فوقه:
+    بعرض 390px كانت تأخذ 240px فلا يبقى للمحتوى إلا 150px.
+    isMobile يُتابَع عند تغيير القياس كي يعمل التدوير وتصغير النافذة.
+--}}
+<div x-data="{
+        isMobile: window.innerWidth < 1024,
+        sidebarOpen: window.innerWidth >= 1024,
+        init() {
+            const sync = () => {
+                const mobile = window.innerWidth < 1024;
+                if (mobile !== this.isMobile) { this.isMobile = mobile; this.sidebarOpen = !mobile; }
+            };
+            window.addEventListener('resize', sync);
+        },
+        closeOnMobile() { if (this.isMobile) this.sidebarOpen = false; },
+     }"
+     @keydown.escape.window="closeOnMobile()"
+     class="flex h-screen overflow-hidden">
+
+    {{-- غطاء يُعتّم المحتوى خلف الدُرج ويُغلقه باللمس خارجه --}}
+    <div x-show="isMobile && sidebarOpen" x-cloak @click="sidebarOpen = false"
+         x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
+         x-transition:leave="transition ease-in duration-150" x-transition:leave-end="opacity-0"
+         class="fixed inset-0 bg-black/50 z-40 lg:hidden"></div>
 
     <!-- Sidebar -->
-    <aside :class="sidebarOpen ? 'w-60' : 'w-0 overflow-hidden'"
-           class="flex-shrink-0 flex flex-col transition-all duration-300 select-none"
+    <aside :class="[
+               sidebarOpen ? 'w-60' : 'w-0 overflow-hidden',
+               isMobile ? 'fixed inset-y-0 right-0 z-50 shadow-2xl' : 'flex-shrink-0'
+           ]"
+           @click="closeOnMobile()"
+           class="flex flex-col transition-all duration-300 select-none"
            style="background: linear-gradient(180deg, #0d3f64 0%, #0a3254 100%); box-shadow: 2px 0 12px rgba(0,0,0,0.18);">
 
         <!-- Logo -->
@@ -518,7 +546,7 @@
     <div class="flex-1 flex flex-col overflow-hidden">
 
         <!-- Top bar -->
-        <header class="app-topbar bg-white flex-shrink-0 flex items-center gap-4 px-6 py-3.5"
+        <header class="app-topbar bg-white flex-shrink-0 flex items-center gap-2 sm:gap-4 px-3 sm:px-6 py-3"
                 style="border-bottom: 1px solid #e8edf2; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
             <button @click="sidebarOpen=!sidebarOpen"
                     class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
@@ -544,8 +572,8 @@
             </button>
             @endunless
             @endif
-            <h1 class="text-base font-semibold text-gray-800 flex-1">@yield('page-title', 'لوحة التحكم')</h1>
-            <div class="flex items-center gap-3">
+            <h1 class="text-sm sm:text-base font-semibold text-gray-800 flex-1 min-w-0 truncate">@yield('page-title', 'لوحة التحكم')</h1>
+            <div class="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
                 {{-- تسجيل دخول نزيل — متاح من أي صفحة بالنظام، لا يحتاج الموظف
                      الرجوع للوحة التحكم أو صفحة الحجوزات كل مرة --}}
                 @can('checkin.create')
@@ -553,7 +581,7 @@
                    title="تسجيل دخول نزيل"
                    class="flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-gray-500 hover:text-green-600 hover:bg-green-50 transition-colors flex-shrink-0">
                     <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H5a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
-                    <span class="text-xs font-semibold whitespace-nowrap">تسجيل دخول</span>
+                    <span class="text-xs font-semibold whitespace-nowrap hidden sm:inline">تسجيل دخول</span>
                 </a>
                 @endcan
                 {{-- Refresh — essential in PWA standalone mode (no browser reload button) --}}
@@ -574,7 +602,7 @@
                 <div class="w-px h-5 bg-gray-200 hidden sm:block"></div>
                 <span class="text-xs text-gray-400 hidden sm:block">{{ now()->isoFormat('dddd، D MMMM Y') }}</span>
                 <div class="w-px h-5 bg-gray-200 hidden sm:block"></div>
-                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold"
+                <span class="hidden sm:inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold"
                       style="background:#e8f0f7; color:#0F4C75;">
                     {{ auth()->user()->roles->first()?->name ?? '' }}
                 </span>
@@ -589,7 +617,7 @@
              x-transition:enter-end="opacity-100 translate-y-0"
              x-transition:leave="transition ease-in duration-200"
              x-transition:leave-end="opacity-0"
-             class="mx-6 mt-4 p-3.5 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3 text-green-800 text-sm shadow-sm">
+             class="mx-3 sm:mx-6 mt-4 p-3.5 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3 text-green-800 text-sm shadow-sm">
             <div class="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
                 <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
             </div>
@@ -605,7 +633,7 @@
              مهمة (كتسجيل الدخول) فيظن أن "لا شيء حدث" ويُعيد المحاولة. --}}
         @if(session('error'))
         <div x-data="{ show: true }" x-show="show"
-             class="mx-6 mt-4 p-3.5 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-red-800 text-sm shadow-sm">
+             class="mx-3 sm:mx-6 mt-4 p-3.5 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-red-800 text-sm shadow-sm">
             <div class="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
                 <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             </div>
@@ -617,7 +645,7 @@
         @endif
 
         @if($errors->any())
-        <div class="mx-6 mt-4 p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-800 text-sm shadow-sm">
+        <div class="mx-3 sm:mx-6 mt-4 p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-800 text-sm shadow-sm">
             <ul class="list-disc list-inside space-y-1">
                 @foreach($errors->all() as $error)
                 <li>{{ $error }}</li>
@@ -627,7 +655,7 @@
         @endif
 
         <!-- Page Content -->
-        <main class="flex-1 overflow-y-auto p-6">
+        <main class="flex-1 overflow-y-auto p-3 sm:p-6">
             @yield('content')
         </main>
     </div>
@@ -747,5 +775,8 @@ window.addEventListener('appinstalled', () => {
 @endif
 
 @include('partials.copy-deterrent')
+
+@include('partials.mobile-ui')
+
 </body>
 </html>

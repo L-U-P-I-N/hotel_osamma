@@ -43,7 +43,7 @@
                    placeholder="يظهر في ترويسة المستند"
                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-300">
         </div>
-        <div class="flex items-end gap-4">
+        <div class="flex items-center gap-5 md:items-end">
             <label class="flex items-center gap-2 text-sm text-gray-700">
                 <input type="checkbox" name="is_default" value="1" @checked(old('is_default', $template->is_default)) class="rounded">
                 الافتراضي
@@ -64,7 +64,7 @@
             <div class="space-y-1 mb-4">
                 @foreach($placeholders['مفردة'] as $name)
                 <button type="button" data-insert="{{ $open . $name . $close }}" onclick="insertAtCursor(this.dataset.insert)"
-                        class="w-full text-right px-2 py-1 rounded text-[11px] font-mono bg-gray-50 hover:bg-blue-50 text-gray-700">
+                        class="w-full text-right px-2 py-1.5 rounded text-[11px] bg-gray-50 hover:bg-blue-50 text-gray-700">
                     {{ $name }}
                 </button>
                 @endforeach
@@ -79,7 +79,7 @@
                 </button>
                 @foreach($columns as $column)
                 <button type="button" data-insert="{{ $open . $column . $close }}" onclick="insertAtCursor(this.dataset.insert)"
-                        class="w-full text-right px-2 py-1 rounded text-[11px] font-mono bg-gray-50 hover:bg-blue-50 text-gray-600">
+                        class="w-full text-right px-2 py-1.5 rounded text-[11px] bg-gray-50 hover:bg-blue-50 text-gray-600">
                     {{ $column }}
                 </button>
                 @endforeach
@@ -103,7 +103,8 @@
                 </button>
             </div>
             <textarea name="body" id="templateBody" required spellcheck="false"
-                      class="w-full h-[520px] p-4 font-mono text-xs outline-none resize-none"
+                      class="w-full h-[320px] lg:h-[520px] p-4 text-xs outline-none resize-none"
+                      style="font-family: ui-monospace, SFMono-Regular, Menlo, 'Cairo', monospace;"
                       dir="ltr">{{ old('body', $template->body) }}</textarea>
         </div>
 
@@ -113,7 +114,7 @@
             </div>
             <div id="previewWarning" class="hidden px-4 py-2 bg-amber-50 border-b border-amber-100 text-[11px] text-amber-800"></div>
             <div id="previewError" class="hidden px-4 py-3 bg-red-50 text-xs text-red-700"></div>
-            <iframe id="previewFrame" class="w-full h-[520px] bg-white"></iframe>
+            <iframe id="previewFrame" class="w-full h-[320px] lg:h-[520px] bg-white"></iframe>
         </div>
     </div>
 
