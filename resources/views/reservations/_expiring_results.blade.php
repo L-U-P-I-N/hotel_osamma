@@ -153,7 +153,8 @@
                             <span class="text-xs text-green-600">— الغرفة {{ $res->display_room_number }} — تاريخ الخروج الحالي: {{ $res->check_out_date->format('d/m/Y') }}</span>
                         </div>
                         <form method="POST" action="{{ route('reservations.renew', $res) }}"
-                              data-inline-renew="{{ $res->id }}"
+                              data-inline-renew="{{ $res->id }}" enctype="multipart/form-data"
+                              x-data="{ method: 'cash', advance: 0 }"
                               class="flex items-end gap-3 flex-wrap">
                             @csrf
                             <div class="flex flex-col gap-1">
@@ -166,17 +167,20 @@
                             <div class="flex flex-col gap-1">
                                 <label class="text-xs font-medium text-gray-600">دفعة مقدمة (ر.ي)</label>
                                 <input type="number" name="advance_payment" min="0" step="0.01" placeholder="0"
+                                       x-model.number="advance"
                                        class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-32 focus:ring-2 focus:ring-green-400 outline-none bg-white">
                             </div>
                             <div class="flex flex-col gap-1">
                                 <label class="text-xs font-medium text-gray-600">طريقة الدفع</label>
-                                <select name="payment_method"
+                                <select name="payment_method" x-model="method"
                                         class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-green-400 outline-none bg-white">
                                     <option value="cash">نقداً</option>
                                     <option value="pos">POS</option>
                                     <option value="bank_transfer">تحويل بنكي</option>
                                 </select>
                             </div>
+
+                            @include('reservations._renew_bank_fields')
                             <div class="flex flex-col gap-1">
                                 <label class="text-xs font-medium text-gray-600">ملاحظات</label>
                                 <input type="text" name="notes" placeholder="سبب التجديد..."

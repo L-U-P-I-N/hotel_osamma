@@ -302,6 +302,80 @@ class ReservationQuickActionsTest extends TestCase
         $this->assertSame(5000.0, (float) \App\Models\Payment::where('reservation_id', $reservation->id)->sum('amount'));
     }
 
+    /**
+     * لوحة التحكم هي الصفحة الأولى التي يراها الموظف، وبطاقة «إقامات تنتهي قريباً»
+     * فيها كانت تجدّد بإرسال عادي فتقذفه إلى صفحة تفاصيل النزيل بعد كل تجديد.
+     */
+    public function test_the_dashboard_renews_in_place_too(): void
+    {
+        $reservation = $this->stay();
+        $reservation->update(['check_out_date' => today()]);
+
+        $page = $this->actingAs($this->admin())->get(route('dashboard'))->assertOk();
+
+        $page->assertSee('data-inline-renew="' . $reservation->id . '"', false);
+        $page->assertSee('data-row="' . $reservation->id . '"', false);
+        $page->assertSee('data-cell="checkout"', false);
+        $page->assertSee('data-renew-panel', false);
+    }
+
+    /**
+     * التجديد بتحويل بنكي كان يطلب فتح صفحة التفاصيل لتسجيل السند —
+     * وهو بالضبط ما يُراد تفاديه. السند يُرفَق مع التجديد نفسه.
+     */
+    public function test_a_bank_transfer_renewal_takes_its_receipt_inline(): void
+    {
+        $reservation = $this->stay();
+
+        \Illuminate\Support\Facades\Storage::fake('local');
+
+        $response = $this->actingAs($this->admin())
+            ->postJson(route('reservations.renew', $reservation), [
+                'new_check_out_date' => today()->addDays(3)->toDateString(),
+                'renewal_price'      => 20000,
+                'advance_payment'    => 20000,
+                'payment_method'     => 'bank_transfer',
+                'bank_transfer_ref'  => 'TRX-99887766',
+            ]);
+
+        $response->assertOk()->assertJsonPath('success', true);
+
+        $payment = \App\Models\Payment::where('reservation_id', $reservation->id)
+            ->where('method', 'bank_transfer')->latest('id')->firstOrFail();
+
+        $this->assertSame('TRX-99887766', $payment->bank_transfer_ref);
+    }
+
+    /** وبدون مرجع ولا صورة يُرفض التجديد البنكي — ويبقى الرفض داخل الصفحة. */
+    public function test_a_bank_transfer_renewal_without_proof_is_refused_as_json(): void
+    {
+        $reservation = $this->stay();
+
+        $this->actingAs($this->admin())
+            ->postJson(route('reservations.renew', $reservation), [
+                'new_check_out_date' => today()->addDays(3)->toDateString(),
+                'renewal_price'      => 20000,
+                'advance_payment'    => 20000,
+                'payment_method'     => 'bank_transfer',
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('bank_transfer');
+    }
+
+    /** حقول السند موجودة فعلاً في نافذة التجديد السريع. */
+    public function test_the_quick_renew_modal_carries_the_receipt_fields(): void
+    {
+        $this->stay();
+
+        $page = $this->actingAs($this->admin())->get(route('reservations.expiring'))->assertOk();
+
+        $page->assertSee('name="bank_transfer_ref"', false);
+        $page->assertSee('name="bank_receipt"', false);
+        $page->assertSee('id="renewQuickBankBox"', false);
+        // ولم تعد الرسالة التي تُحيل الموظف لصفحة التفاصيل موجودة
+        $page->assertDontSee('سجّل الدفعة من صفحة تفاصيل الحجز بعد التجديد');
+    }
+
     public function test_reservations_url_lands_on_the_live_table(): void
     {
         $this->actingAs($this->admin())

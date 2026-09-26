@@ -55,7 +55,7 @@
         <div class="divide-y divide-red-100 bg-white max-h-44 overflow-y-auto slim-scroll">
             @foreach($overdueGuests as $res)
             @php $daysOver = (int) now()->startOfDay()->diffInDays($res->check_out_date->copy()->startOfDay(), false) * -1; @endphp
-            <div>
+            <div data-row="{{ $res->id }}">
                 {{-- Guest row --}}
                 <div class="px-5 py-2.5 flex items-center gap-3 flex-wrap sm:flex-nowrap">
                     <div class="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 font-bold text-red-700 text-sm">
@@ -66,7 +66,7 @@
                         <p class="text-xs text-gray-500">
                             غرفة {{ $res->display_room_number }}
                             &nbsp;•&nbsp; دخل: {{ $res->check_in_date->format('d/m/Y') }}
-                            &nbsp;•&nbsp; انتهى: {{ $res->check_out_date->format('d/m/Y') }}
+                            &nbsp;•&nbsp; انتهى: <span data-cell="checkout">{{ $res->check_out_date->format('d/m/Y') }}</span>
                         </p>
                     </div>
                     <span class="px-2.5 py-1 rounded-full text-xs font-bold flex-shrink-0 {{ $daysOver === 0 ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700' }}">
@@ -98,10 +98,13 @@
 
                 {{-- Inline renew form --}}
                 @can('checkin.create')
-                <div x-show="renewOpen === {{ $res->id }}" x-cloak
+                <div x-show="renewOpen === {{ $res->id }}" x-cloak data-renew-panel
                      class="px-5 pb-4 pt-3 bg-green-50 border-t border-green-100">
                     <p class="text-xs font-semibold text-green-800 mb-3">تجديد إقامة: {{ $res->guest?->full_name }}</p>
+                    {{-- يُرسَل عبر JSON فيبقى الموظف في لوحة التحكم ويجدّد للنزيل التالي مباشرة --}}
                     <form method="POST" action="{{ route('reservations.renew', $res) }}"
+                          data-inline-renew="{{ $res->id }}" enctype="multipart/form-data"
+                          x-data="{ method: 'cash', advance: 0 }"
                           class="flex items-end gap-3 flex-wrap">
                         @csrf
                         <div class="flex flex-col gap-1">
@@ -114,17 +117,22 @@
                         <div class="flex flex-col gap-1">
                             <label class="text-xs font-medium text-gray-600">دفعة مقدمة (ر.ي)</label>
                             <input type="number" name="advance_payment" min="0" step="0.01" placeholder="0"
+                                   x-model.number="advance"
                                    class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-32 focus:ring-2 focus:ring-green-400 outline-none bg-white">
                         </div>
                         <div class="flex flex-col gap-1">
                             <label class="text-xs font-medium text-gray-600">طريقة الدفع</label>
-                            <select name="payment_method"
+                            <select name="payment_method" x-model="method"
                                     class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-green-400 outline-none bg-white">
                                 <option value="cash">نقداً</option>
                                 <option value="pos">POS</option>
                                 <option value="bank_transfer">تحويل بنكي</option>
                             </select>
                         </div>
+
+                        {{-- سند التحويل يُرفَق هنا، فالتجديد بتحويل بنكي كان
+                             يتطلّب فتح صفحة التفاصيل لتسجيل السند --}}
+                        @include('reservations._renew_bank_fields')
                         <div class="flex flex-col gap-1">
                             <label class="text-xs font-medium text-gray-600">ملاحظات</label>
                             <input type="text" name="notes" placeholder="سبب التجديد..."
@@ -507,5 +515,11 @@
     });
 </script>
 @endif
+
+{{-- التجديد الفوري: نفس منطق صفحة الحجوزات كي لا يُنقل الموظف لصفحة التفاصيل --}}
+@push('scripts')
+@include('reservations._quick_actions_js')
+@endpush
+@include('reservations._quick_actions')
 
 @endsection

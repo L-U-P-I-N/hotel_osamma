@@ -58,10 +58,21 @@
                     <option value="pos">شبكة POS</option>
                     <option value="bank_transfer">تحويل بنكي</option>
                 </select>
-                {{-- التحويل البنكي يحتاج إثباتاً؛ وإدخاله هنا يطول، فنوجّه لصفحة التفاصيل --}}
-                <p id="renewQuickBankHint" class="hidden text-xs text-blue-700 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 mt-2">
-                    التحويل البنكي يحتاج إرفاق السند — سجّل الدفعة من صفحة تفاصيل الحجز بعد التجديد.
-                </p>
+                {{-- التحويل البنكي يحتاج إثباتاً، ويُستكمل هنا كي لا يُضطر
+                     الموظف لفتح صفحة التفاصيل بعد كل تجديد --}}
+                <div id="renewQuickBankBox" class="hidden mt-3 rounded-xl bg-blue-50 border border-blue-100 p-3 space-y-2.5">
+                    <p class="text-xs font-semibold text-blue-700">يجب تقديم واحد على الأقل: رقم المرجع أو صورة السند</p>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">رقم مرجع التحويل</label>
+                        <input type="text" name="bank_transfer_ref" id="renewQuickBankRef" maxlength="100"
+                               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">صورة سند التحويل</label>
+                        <input type="file" name="bank_receipt" id="renewQuickReceipt" accept="image/*,.pdf"
+                               class="w-full text-xs text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-700">
+                    </div>
+                </div>
             </div>
 
             <div class="rounded-xl bg-emerald-50 border border-emerald-100 px-4 py-3 flex items-center justify-between">

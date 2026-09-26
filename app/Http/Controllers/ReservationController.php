@@ -612,10 +612,27 @@ class ReservationController extends Controller
         return redirect()->route('reservations.show', $reservation)->with('success', 'تم تحديث الحجز بنجاح');
     }
 
+    /**
+     * رفض يصلح للحالتين: إعادة توجيه في الإرسال العادي، ورسالة JSON في
+     * التجديد الفوري من الجدول أو لوحة التحكم — فلا يُقذف الموظف لصفحة أخرى.
+     */
+    private function inlineError(Request $request, string $key, string $message)
+    {
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+                'errors'  => [$key => [$message]],
+            ], 422);
+        }
+
+        return back()->withInput()->withErrors([$key => $message]);
+    }
+
     public function renew(Request $request, Reservation $reservation)
     {
         if ($reservation->status !== 'checked_in') {
-            return back()->withErrors(['error' => 'لا يمكن تجديد إلا الحجوزات النشطة (مسجل دخول)']);
+            return $this->inlineError($request, 'error', 'لا يمكن تجديد إلا الحجوزات النشطة (مسجل دخول)');
         }
 
         // سعر التجديد مفتوح عمداً: التمديد يُتفاوَض عليه مع نزيل مقيم أصلاً،
@@ -644,9 +661,8 @@ class ReservationController extends Controller
             && (float) ($validated['advance_payment'] ?? 0) > 0
             && !$request->hasFile('bank_receipt')
             && empty($validated['bank_transfer_ref'])) {
-            return back()->withInput()->withErrors([
-                'bank_transfer' => 'عند الدفع بتحويل بنكي يجب إرفاق صورة السند أو إدخال رقم المرجع على الأقل',
-            ]);
+            return $this->inlineError($request, 'bank_transfer',
+                'عند الدفع بتحويل بنكي يجب إرفاق صورة السند أو إدخال رقم المرجع على الأقل');
         }
 
         // منع التجديد فوق حجزٍ قادم على نفس الغرفة/الجناح مع ترك يوم فاصل للتنظيف:
@@ -661,11 +677,10 @@ class ReservationController extends Controller
             $arrival     = Carbon::parse($conflict->check_in_date)->format('Y/m/d');
             $maxCheckout = Carbon::parse($conflict->check_in_date)
                 ->subDays(Reservation::TURNOVER_BUFFER_DAYS)->format('Y/m/d');
-            return back()->withErrors(['new_check_out_date' =>
+            return $this->inlineError($request, 'new_check_out_date',
                 'الغرفة محجوزة لنزيل قادم (' . ($conflict->guest?->full_name ?? '—') . ') يصل بتاريخ '
                 . $arrival . '، ويجب ترك يوم فاصل للتنظيف قبل وصوله. أقصى تاريخ خروج متاح: '
-                . $maxCheckout
-            ])->withInput();
+                . $maxCheckout);
         }
 
         // عدد الليالي الإضافية = الفرق بين تاريخ الخروج الحالي والجديد (بالأيام

@@ -45,7 +45,9 @@
      * (جدول الإقامات يعرض المتبقي، وجدول الحجوزات يعرض الإجمالي).
      */
     function refreshRow(summary) {
-        const row = document.querySelector(`tr[data-row="${summary.id}"]`);
+        // ليس بالضرورة صفّ جدول: بطاقة «إقامات تنتهي قريباً» في لوحة التحكم
+        // تحمل السِمات نفسها وتُحدَّث بالمنطق نفسه.
+        const row = document.querySelector(`[data-row="${summary.id}"]`);
         if (!row) return;
 
         const set = (cell, html) => {
@@ -90,6 +92,9 @@
         document.getElementById('renewQuickPrice').value   = pricePerNight || 0;
         document.getElementById('renewQuickNights').value  = 1;
         document.getElementById('renewQuickAdvance').value = '';
+        document.getElementById('renewQuickBankRef').value  = '';
+        document.getElementById('renewQuickReceipt').value  = '';
+        document.getElementById('renewQuickBankBox').classList.add('hidden');
         setNights(1);
         document.getElementById('renewQuickModal').classList.remove('hidden');
         document.getElementById('renewQuickNights').focus();
@@ -123,9 +128,11 @@
 
         document.getElementById('renewQuickTotal').textContent = fmt(nights * price) + ' ر.ي';
         document.getElementById('renewQuickPayBox').classList.toggle('hidden', advance <= 0);
-        document.getElementById('renewQuickBankHint').classList.toggle(
-            'hidden', document.getElementById('renewQuickMethod').value !== 'bank_transfer' || advance <= 0
-        );
+
+        // حقول السند تظهر فقط عند تحويل بنكي بدفعة فعلية — وتُستكمل هنا،
+        // فلا يُضطر الموظف لفتح صفحة التفاصيل لتسجيل السند.
+        const needsReceipt = document.getElementById('renewQuickMethod').value === 'bank_transfer' && advance > 0;
+        document.getElementById('renewQuickBankBox').classList.toggle('hidden', !needsReceipt);
     };
 
     document.getElementById('renewQuickForm')?.addEventListener('submit', async function (e) {
@@ -163,11 +170,11 @@
                 qaToast(data.message);
                 refreshRow(data.reservation);
                 form.reset();
-                // طيّ النموذج بعد النجاح كي يظهر الصفّ المحدَّث
-                form.closest('tr')?.previousElementSibling
-                    ?.querySelector('[data-notes-btn]')?.blur();
-                document.querySelectorAll('[x-data]').forEach(() => {});
-                form.closest('tr').style.display = 'none';
+
+                // طيّ لوحة التجديد بعد النجاح كي يظهر الصفّ المحدَّث تحتها.
+                // اللوحة صفّ جدول في صفحة الحجوزات وقسم داخل بطاقة في لوحة التحكم.
+                const panel = form.closest('[data-renew-panel]') || form.closest('tr');
+                if (panel) panel.style.display = 'none';
             } catch (error) {
                 qaToast(error.message, false);
             } finally {
