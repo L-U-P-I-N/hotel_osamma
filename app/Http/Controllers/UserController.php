@@ -45,9 +45,26 @@ class UserController extends Controller
     public function permissions(User $user)
     {
         $permissionMap = PermissionService::getMap($user);
-        return view('users.permissions', compact('user', 'permissionMap'));
+
+        // موظفون يصلحون مصدراً للنسخ: غير المدير (صلاحياته بحكم الدور) وغير نفسه
+        $copySources = User::with('roles')
+            ->where('id', '!=', $user->id)
+            ->where('is_active', true)
+            ->get()
+            ->reject(fn ($u) => $u->isAdmin())
+            ->sortBy('name')
+            ->values();
+
+        return view('users.permissions', compact('user', 'permissionMap', 'copySources'));
     }
 
+    /**
+     * منح صلاحية أو سحبها.
+     *
+     * يردّ JSON للطلبات الفورية: شاشة الصلاحيات فيها 64 مفتاحاً، وكان كل
+     * مفتاح نموذجاً يعيد تحميل الصفحة كاملة — ضبط صلاحيات موظف واحد يعني
+     * عشرات إعادات التحميل مع رجوع الصفحة لأعلاها في كل مرة.
+     */
     public function togglePermission(Request $request, User $user)
     {
         $request->validate([
@@ -56,19 +73,192 @@ class UserController extends Controller
         ]);
 
         if ($user->isAdmin()) {
-            return back()->withErrors(['error' => 'لا يمكن تعديل صلاحيات المدير']);
+            return $this->permissionError($request, 'لا يمكن تعديل صلاحيات المدير — صلاحياته كاملة بحكم دوره.');
         }
 
-        PermissionService::toggle($user, $request->permission, (bool)$request->grant, auth()->user());
+        if (!array_key_exists($request->permission, PermissionService::all())) {
+            return $this->permissionError($request, 'هذه الصلاحية غير معروفة في النظام.');
+        }
+
+        PermissionService::toggle($user, $request->permission, (bool) $request->grant, auth()->user());
         AuditLogService::log('update', $user, [], [
             'permission' => $request->permission,
             'granted'    => $request->grant,
         ], auth()->user());
 
-        $label = PermissionService::all()[$request->permission]['label'] ?? $request->permission;
-        $action = $request->grant ? 'منح' : 'سحب';
+        $label   = PermissionService::all()[$request->permission]['label'] ?? $request->permission;
+        $action  = $request->grant ? 'مُنحت' : 'سُحبت';
+        $message = "{$action} صلاحية «{$label}»";
 
-        return back()->with('success', "تم {$action} صلاحية \"{$label}\" بنجاح");
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'summary' => $this->permissionSummary($user->fresh()),
+            ]);
+        }
+
+        return back()->with('success', $message);
+    }
+
+    /**
+     * منح أو سحب كل صلاحيات مجموعة دفعةً واحدة — بدل 9 نقرات لمجموعة الحجوزات.
+     */
+    public function toggleGroupPermissions(Request $request, User $user)
+    {
+        $data = $request->validate([
+            'group' => 'required|string',
+            'grant' => 'required|boolean',
+        ]);
+
+        if ($user->isAdmin()) {
+            return $this->permissionError($request, 'لا يمكن تعديل صلاحيات المدير — صلاحياته كاملة بحكم دوره.');
+        }
+
+        $keys = collect(PermissionService::all())
+            ->filter(fn ($p) => ($p['group'] ?? '') === $data['group'])
+            ->keys();
+
+        if ($keys->isEmpty()) {
+            return $this->permissionError($request, 'المجموعة المطلوبة غير موجودة.');
+        }
+
+        // نعدّ ما تغيّر فعلاً لا كل صلاحيات المجموعة: قول «مُنحت 9» بينما
+        // كانت ستّ منها ممنوحة أصلاً يضلّل المدير عن أثر نقرته.
+        $before  = collect(PermissionService::getMap($user));
+        $changed = $keys->filter(fn ($key) => (bool) ($before[$key]['is_granted'] ?? false) !== (bool) $data['grant'])->count();
+
+        foreach ($keys as $key) {
+            PermissionService::toggle($user, $key, (bool) $data['grant'], auth()->user());
+        }
+
+        AuditLogService::log('update', $user, [], [
+            'group'   => $data['group'],
+            'granted' => $data['grant'],
+            'changed' => $changed,
+        ], auth()->user());
+
+        $action  = $data['grant'] ? 'مُنحت' : 'سُحبت';
+        $message = $changed === 0
+            ? "لا جديد في «{$data['group']}» — كلها " . ($data['grant'] ? 'ممنوحة' : 'مسحوبة') . ' أصلاً'
+            : "{$action} " . self::countLabel($changed) . " في «{$data['group']}»";
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'summary' => $this->permissionSummary($user->fresh()),
+            ]);
+        }
+
+        return back()->with('success', $message);
+    }
+
+    /**
+     * إعادة الصلاحيات إلى الافتراضي المرافق لدور الموظف — مخرج آمن حين
+     * تتشابك التعديلات اليدوية ولا يعود المدير يعرف ما غيّره.
+     */
+    public function resetPermissions(Request $request, User $user)
+    {
+        if ($user->isAdmin()) {
+            return $this->permissionError($request, 'لا يمكن تعديل صلاحيات المدير — صلاحياته كاملة بحكم دوره.');
+        }
+
+        \App\Models\UserPermission::where('user_id', $user->id)->delete();
+
+        AuditLogService::log('update', $user, [], ['permissions' => 'reset_to_role_defaults'], auth()->user());
+
+        $message = 'أُعيدت الصلاحيات إلى الافتراضي لدور «' . ($user->roles->first()?->name ?? 'الموظف') . '»';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'summary' => $this->permissionSummary($user->fresh()),
+                'reload'  => true,
+            ]);
+        }
+
+        return back()->with('success', $message);
+    }
+
+    /**
+     * نسخ صلاحيات موظف إلى آخر — الفندق فيه عدة موظفي استقبال بنفس المهام،
+     * فضبط كل واحد يدوياً من الصفر عمل مكرَّر ومَظِنّة خطأ.
+     */
+    public function copyPermissions(Request $request, User $user)
+    {
+        $data = $request->validate([
+            'source_user_id' => 'required|exists:users,id',
+        ], ['source_user_id.required' => 'اختر الموظف الذي تريد النسخ من صلاحياته']);
+
+        if ($user->isAdmin()) {
+            return $this->permissionError($request, 'لا يمكن تعديل صلاحيات المدير — صلاحياته كاملة بحكم دوره.');
+        }
+
+        $source = User::findOrFail($data['source_user_id']);
+
+        if ($source->id === $user->id) {
+            return $this->permissionError($request, 'اختر موظفاً آخر للنسخ من صلاحياته.');
+        }
+
+        if ($source->isAdmin()) {
+            return $this->permissionError($request, 'لا تُنسخ صلاحيات المدير — فهي كاملة بحكم الدور لا مضبوطة يدوياً.');
+        }
+
+        $sourceMap = PermissionService::getMap($source);
+
+        \App\Models\UserPermission::where('user_id', $user->id)->delete();
+        foreach ($sourceMap as $key => $permission) {
+            PermissionService::toggle($user, $key, (bool) $permission['is_granted'], auth()->user());
+        }
+
+        AuditLogService::log('update', $user, [], ['permissions_copied_from' => $source->id], auth()->user());
+
+        $message = 'نُسخت صلاحيات «' . $source->name . '» إلى هذا الموظف';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'summary' => $this->permissionSummary($user->fresh()),
+                'reload'  => true,
+            ]);
+        }
+
+        return back()->with('success', $message);
+    }
+
+    /** صياغة العدد بالعربية: «صلاحية واحدة»، «صلاحيتان»، «3 صلاحيات». */
+    private static function countLabel(int $count): string
+    {
+        return match (true) {
+            $count === 1 => 'صلاحية واحدة',
+            $count === 2 => 'صلاحيتين',
+            $count <= 10 => $count . ' صلاحيات',
+            default      => $count . ' صلاحية',
+        };
+    }
+
+    /** أعداد محدَّثة تُعرض في رأس الصفحة بعد كل تغيير دون إعادة تحميل. */
+    private function permissionSummary(User $user): array
+    {
+        $map = collect(PermissionService::getMap($user));
+
+        return [
+            'granted' => $map->where('is_granted', true)->count(),
+            'total'   => $map->count(),
+            'custom'  => $map->where('is_custom', true)->count(),
+        ];
+    }
+
+    private function permissionError(Request $request, string $message)
+    {
+        if ($request->expectsJson()) {
+            return response()->json(['success' => false, 'message' => $message], 422);
+        }
+
+        return back()->withErrors(['error' => $message]);
     }
 
     public function store(Request $request)

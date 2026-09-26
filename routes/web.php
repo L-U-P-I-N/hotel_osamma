@@ -298,6 +298,9 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('/users/{user}/toggle', [UserController::class, 'toggleActive'])->name('users.toggle');
         Route::get('/users/{user}/permissions', [UserController::class, 'permissions'])->name('users.permissions');
         Route::post('/users/{user}/permissions', [UserController::class, 'togglePermission'])->name('users.togglePermission');
+        Route::post('/users/{user}/permissions/group', [UserController::class, 'toggleGroupPermissions'])->name('users.togglePermissionGroup');
+        Route::post('/users/{user}/permissions/reset', [UserController::class, 'resetPermissions'])->name('users.resetPermissions');
+        Route::post('/users/{user}/permissions/copy', [UserController::class, 'copyPermissions'])->name('users.copyPermissions');
         Route::post('/users/{user}/regenerate-backup-code', [UserController::class, 'regenerateBackupCode'])->name('users.regenerateBackupCode');
         Route::get('/users/{user}/statement', [UserController::class, 'statement'])->name('users.statement');
         Route::get('/users/{user}/statement/pdf', [UserController::class, 'statementPdf'])->name('users.statement.pdf');
