@@ -32,7 +32,7 @@
 <body>
 
 @include('partials.pdf-hotel-header-full', [
-    'docTitle' => 'تقرير عم علي',
+    'docTitle' => 'جرد غرف اليومية',
     'docMeta'  => 'يوم العمل ' . \Carbon\Carbon::parse($date)->format('Y/m/d') . ' الساعة 1 ظهراً إلى ' . \Carbon\Carbon::parse($date)->addDay()->format('Y/m/d') . ' الساعة 1 ظهراً',
 ])
 

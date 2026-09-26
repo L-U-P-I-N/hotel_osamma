@@ -95,6 +95,8 @@ class AccountSearchTest extends TestCase
 
         $receptionist = User::role('receptionist')->firstOrFail();
         PermissionService::toggle($receptionist, 'reports.view', true, $this->admin());
+        // البحث في الحسابات صار له صلاحيته المستقلة ضمن تقارير المالية
+        PermissionService::toggle($receptionist, 'reports.account_search', true, $this->admin());
         PermissionService::toggle($receptionist, 'accounts.view', true, $this->admin());
 
         $response = $this->actingAs($receptionist)

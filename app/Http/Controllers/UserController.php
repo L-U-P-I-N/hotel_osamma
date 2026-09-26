@@ -65,7 +65,7 @@ class UserController extends Controller
             'granted'    => $request->grant,
         ], auth()->user());
 
-        $label = PermissionService::ALL_PERMISSIONS[$request->permission]['label'] ?? $request->permission;
+        $label = PermissionService::all()[$request->permission]['label'] ?? $request->permission;
         $action = $request->grant ? 'منح' : 'سحب';
 
         return back()->with('success', "تم {$action} صلاحية \"{$label}\" بنجاح");

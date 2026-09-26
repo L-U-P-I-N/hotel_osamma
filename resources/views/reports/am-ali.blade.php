@@ -1,6 +1,6 @@
 @extends('layouts.app')
-@section('title', 'تقرير عم علي')
-@section('page-title', 'تقرير عم علي')
+@section('title', 'جرد غرف اليومية')
+@section('page-title', 'جرد غرف اليومية')
 
 @section('content')
 <div class="space-y-6" dir="rtl">
@@ -8,7 +8,7 @@
     {{-- رأس التقرير + طباعة --}}
     <div class="flex items-center justify-between flex-wrap gap-3 no-print">
         <div>
-            <h2 class="text-2xl font-black text-gray-800">تقرير عم علي</h2>
+            <h2 class="text-2xl font-black text-gray-800">جرد غرف اليومية</h2>
             <p class="text-gray-500 text-sm mt-1">كل الغرف اليوم: حالتها، من حاجزها، آخر دفعة ومن استلمها، والمديونية</p>
         </div>
         <div class="flex items-center gap-2">

@@ -1314,7 +1314,7 @@ class ReportController extends Controller
     }
 
     /**
-     * تقرير عم علي — جدول واحد لكل غرفة (تشمل الفاضية): رقم الغرفة، حالة
+     * جرد غرف اليومية — جدول واحد لكل غرفة (تشمل الفاضية): رقم الغرفة، حالة
      * الغرفة، من حاجزها اليوم ووقت دخوله، دفعات "يوم العمل" الحالي ومن
      * استلمها وتاريخها (أو آخر دفعة سابقة إن لم تُستلم دفعة اليوم)،
      * مديونيته، وموعد خروجه المُجدوَل.
@@ -1326,14 +1326,14 @@ class ReportController extends Controller
     }
 
     /**
-     * تصدير تقرير عم علي إلى PDF لليوم المحدَّد (عرضي/landscape).
+     * تصدير جرد غرف اليومية إلى PDF لليوم المحدَّد (عرضي/landscape).
      */
     public function amAliPdf(Request $request)
     {
         $date = $request->input('date', $this->amAliDefaultBusinessDate());
         $pdf  = $this->pdfOptions(pdf_load_view('reports.am_ali_pdf', $this->amAliData($date)));
         $pdf->setPaper('a4', 'landscape');
-        return $pdf->download('am-ali-' . $date . '.pdf');
+        return $pdf->download('daily-rooms-inventory-' . $date . '.pdf');
     }
 
     /**
@@ -1348,7 +1348,7 @@ class ReportController extends Controller
     }
 
     /**
-     * بناء بيانات تقرير عم علي (مشترك بين العرض والتصدير): صف واحد لكل غرفة.
+     * بناء بيانات جرد غرف اليومية (مشترك بين العرض والتصدير): صف واحد لكل غرفة.
      */
     private function amAliData(string $date): array
     {

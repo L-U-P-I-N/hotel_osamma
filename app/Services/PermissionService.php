@@ -27,6 +27,16 @@ class PermissionService
         'settlement.view', // backward compat alias
     ];
 
+    /**
+     * كل الصلاحيات القابلة للتعديل، وفيها صلاحية مستقلة لكل تقرير.
+     * صلاحيات التقارير تأتي من ReportRegistry كي تبقى قائمة التقارير
+     * ووصولها معرَّفتين في مكان واحد.
+     */
+    public static function all(): array
+    {
+        return array_merge(self::ALL_PERMISSIONS, \App\Support\ReportRegistry::permissions());
+    }
+
     // جميع الصلاحيات القابلة للتعديل
     const ALL_PERMISSIONS = [
         // Reservations & Check-in/out
@@ -71,7 +81,7 @@ class PermissionService
         'settlement.lock'       => ['label' => 'إقفال التسوية',                  'default' => false, 'group' => '⏰ الورديات'],
 
         // Reports
-        'reports.view'          => ['label' => 'عرض التقارير',                'default' => false, 'group' => '📊 التقارير'],
+        'reports.view'          => ['label' => 'دخول قسم التقارير (بوابة عامة — ثم تُحدَّد التقارير المسموحة أدناه)', 'default' => false, 'group' => '📊 التقارير'],
         'government.export'     => ['label' => 'التصدير للجهات الحكومية',    'default' => false, 'group' => '📊 التقارير'],
 
         // HR Module
@@ -158,7 +168,7 @@ class PermissionService
             ->toArray();
 
         $map = [];
-        foreach (self::ALL_PERMISSIONS as $key => $config) {
+        foreach (self::all() as $key => $config) {
             $map[$key] = [
                 'label'     => $config['label'],
                 'is_granted'=> $stored[$key] ?? $config['default'],
