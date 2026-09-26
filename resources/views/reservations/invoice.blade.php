@@ -316,6 +316,40 @@ table.mini tr { page-break-inside: avoid; }
   </div>
   <div class="clear"></div>
 
+  <!-- HOTEL EXTRA CHARGES -->
+  @php
+    // الرسوم المحتسَبة ضمن سعر الغرفة تُعرَض مفصَّلة بملاحظتها، فالنزيل يرى
+    // سبب كل زيادة بدل مبلغ مبهم مدموج في الإجمالي.
+    $hotelCharges = $reservation->extraCharges->where('in_hotel_total', true);
+  @endphp
+  @if($hotelCharges->count() > 0)
+  <div class="sec">رسوم إضافية على الغرفة</div>
+  <table class="mini">
+    <thead>
+      <tr>
+        <th class="c" style="width:20%;">المبلغ</th>
+        <th style="width:22%;">التاريخ</th>
+        <th style="width:33%;">الملاحظة</th>
+        <th style="width:25%;">النوع</th>
+      </tr>
+    </thead>
+    <tbody>
+      @foreach($hotelCharges as $c)
+      <tr>
+        <td class="c" style="font-weight:700;">{{ number_format($c->amount, 0) }} {{ $cur }}</td>
+        <td>{{ $c->created_at?->format('Y/m/d') }}</td>
+        <td>{{ $c->description ?: '—' }}</td>
+        <td>{{ $c->type_label }}</td>
+      </tr>
+      @endforeach
+      <tr>
+        <td class="c" style="font-weight:700;">{{ number_format($extraTotal, 0) }} {{ $cur }}</td>
+        <td colspan="3" style="font-weight:700;">إجمالي الرسوم الإضافية</td>
+      </tr>
+    </tbody>
+  </table>
+  @endif
+
   <!-- PAYMENTS -->
   @if($reservation->payments->count() > 0)
   <div class="sec">سجل المدفوعات</div>

@@ -254,6 +254,54 @@ class ReservationQuickActionsTest extends TestCase
         $page->assertSee('التزام قبل المغادرة');
     }
 
+    /**
+     * الملاحظة المكتوبة مع الرسم هي مبرِّر الزيادة — فتُطبع في الفاتورة
+     * وتُعرض في تفاصيل الحجز بدل مبلغ مبهم مدموج في الإجمالي.
+     */
+    public function test_the_charge_note_is_itemised_in_the_invoice_and_the_details_page(): void
+    {
+        $reservation = $this->stay();
+
+        $this->actingAs($this->admin())->postJson(route('reservations.addHotelCharge', $reservation), [
+            'charge_type' => 'late_checkout', 'amount' => 5000, 'description' => 'تأخّر المغادرة إلى 6 مساءً',
+        ])->assertOk();
+
+        $details = $this->actingAs($this->admin())->get(route('reservations.show', $reservation))->assertOk();
+        $details->assertSee('رسوم إضافية على الغرفة');
+        $details->assertSee('تأخير عن موعد المغادرة');
+        $details->assertSee('تأخّر المغادرة إلى 6 مساءً');
+
+        // الفاتورة تُصدَّر PDF (نصّها مُشكَّل للعرض)، فنفحص قالبها قبل التحويل
+        $invoiceHtml = view('reservations.invoice', ['reservation' => $reservation->fresh()])->render();
+        $this->assertStringContainsString('رسوم إضافية على الغرفة', $invoiceHtml);
+        $this->assertStringContainsString('تأخّر المغادرة إلى 6 مساءً', $invoiceHtml);
+
+        // وتُصدَّر فعلاً دون خطأ
+        $this->actingAs($this->admin())->get(route('reservations.invoice', $reservation))->assertOk();
+    }
+
+    /** الرسم يدخل الإيراد عند تحصيله — لا قبل ذلك، فلا يُضخَّم الإيراد بمبلغ لم يُقبض. */
+    public function test_the_charge_reaches_revenue_only_once_it_is_collected(): void
+    {
+        $reservation = $this->stay();
+        $admin = $this->admin();
+
+        $this->actingAs($admin)->postJson(route('reservations.addHotelCharge', $reservation), [
+            'charge_type' => 'late_checkout', 'amount' => 5000,
+        ])->assertOk();
+
+        $this->assertSame(0.0, (float) \App\Models\Payment::where('reservation_id', $reservation->id)->sum('amount'));
+
+        $this->actingAs($admin)->post(route('payments.store'), [
+            'reservation_id' => $reservation->id,
+            'amount'         => 5000,
+            'method'         => 'cash',
+            'type'           => 'partial',
+        ]);
+
+        $this->assertSame(5000.0, (float) \App\Models\Payment::where('reservation_id', $reservation->id)->sum('amount'));
+    }
+
     public function test_reservations_url_lands_on_the_live_table(): void
     {
         $this->actingAs($this->admin())

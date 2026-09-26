@@ -852,6 +852,62 @@
             </div>
         </div>
 
+        {{-- الرسوم المحتسَبة ضمن سعر الغرفة — مفصَّلة بملاحظتها ليُعرف سبب كل زيادة --}}
+        @php
+            $hotelCharges = $reservation->extraCharges->where('in_hotel_total', true)->sortByDesc('charge_date');
+        @endphp
+        @if($hotelCharges->count() > 0)
+        <div class="bg-white rounded-2xl shadow-sm border border-rose-200 overflow-hidden">
+            <div class="px-5 py-3 border-b border-rose-100 bg-rose-50/60 flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-rose-500 flex items-center justify-center shadow-sm">
+                    <svg class="text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:18px;height:18px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <h3 class="font-bold text-gray-800 text-sm">رسوم إضافية على الغرفة</h3>
+                <span class="mr-auto px-2 py-0.5 bg-rose-100 text-rose-800 text-xs font-bold rounded-full">
+                    + {{ number_format($reservation->hotel_charges_total, 0) }} {{ $reservation->currency_symbol }}
+                </span>
+            </div>
+            <div class="px-5 py-2.5 bg-rose-50/40 text-xs text-rose-700 flex items-start gap-1.5">
+                <svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>هذه الرسوم محتسَبة ضمن إجمالي الغرفة وتظهر في الفاتورة، وتدخل إيرادات الفندق عند تحصيلها.</span>
+            </div>
+            <div class="divide-y divide-gray-50">
+                @foreach($hotelCharges as $charge)
+                <div class="px-5 py-2.5 flex items-center justify-between text-sm">
+                    <div class="min-w-0 flex-1">
+                        <p class="font-medium text-gray-700">{{ $charge->type_label }}</p>
+                        <p class="text-xs text-gray-400">{{ $charge->charge_date?->format('d/m/Y') }}@if($charge->description) — {{ $charge->description }}@endif</p>
+                    </div>
+                    <div class="flex items-center gap-2 ml-3">
+                        <span class="font-bold text-rose-700 whitespace-nowrap">+ {{ number_format($charge->amount, 0) }} {{ $reservation->currency_symbol }}</span>
+                        @can('payments.create')
+                        @if($reservation->status !== 'cancelled')
+                        <button type="button"
+                                data-charge-id="{{ $charge->id }}"
+                                data-charge-scope="hotel"
+                                data-charge-type="{{ $charge->type }}"
+                                data-charge-amount="{{ (float) $charge->amount }}"
+                                data-charge-description="{{ $charge->description }}"
+                                onclick="openEditCharge(this)"
+                                class="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition" title="تعديل الرسم">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        </button>
+                        <form method="POST" action="{{ route('reservations.deleteCharge', $charge) }}"
+                              onsubmit="return confirm('حذف هذا الرسم؟ سيُخصم مبلغه من إجمالي الحجز.')" class="inline">
+                            @csrf @method('DELETE')
+                            <button type="submit" class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="حذف الرسم">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            </button>
+                        </form>
+                        @endif
+                        @endcan
+                    </div>
+                </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
+
         {{-- مشتريات النزيل (بقالة/خدمات) — دَين منفصل عن صندوق الفندق --}}
         @php
             $purchaseCharges = $reservation->extraCharges->where('in_hotel_total', false)->sortByDesc('charge_date');
@@ -1787,10 +1843,32 @@ function openOldDebtModal(reservationId, balance, checkInDate) {
     </div>
 </div>
 <script>
+    @php
+        $purchaseChargeTypes = [
+            'بقالة' => 'بقالة', 'مأكولات' => 'مأكولات ومشروبات', 'خدمة غرفة' => 'خدمة غرفة',
+            'غسيل ملابس' => 'غسيل ملابس', 'خدمة أخرى' => 'خدمة أخرى',
+        ];
+    @endphp
+    var CHARGE_TYPE_OPTIONS = {
+        purchase: {!! json_encode($purchaseChargeTypes, JSON_UNESCAPED_UNICODE) !!},
+        hotel: {!! json_encode(\App\Models\ExtraCharge::HOTEL_TYPES, JSON_UNESCAPED_UNICODE) !!},
+    };
+
     function openEditCharge(btn) {
         var form = document.getElementById('editChargeForm');
         form.action = '{{ url('/reservations/charge') }}/' + btn.dataset.chargeId;
-        document.getElementById('editChargeType').value = btn.dataset.chargeType || '';
+
+        // رسم الغرفة له أنواعه الخاصة، فلا تُعرض عليه قائمة أنواع المشتريات
+        var select = document.getElementById('editChargeType');
+        var options = CHARGE_TYPE_OPTIONS[btn.dataset.chargeScope === 'hotel' ? 'hotel' : 'purchase'];
+        select.innerHTML = '';
+        Object.keys(options).forEach(function (value) {
+            var opt = document.createElement('option');
+            opt.value = value;
+            opt.textContent = options[value];
+            select.appendChild(opt);
+        });
+        select.value = btn.dataset.chargeType || '';
         document.getElementById('editChargeDescription').value = btn.dataset.chargeDescription || '';
         document.getElementById('editChargeAmount').value = btn.dataset.chargeAmount;
         document.getElementById('editChargeModal').classList.remove('hidden');
