@@ -17,6 +17,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
         ]);
         $middleware->appendToGroup('web', \App\Http\Middleware\NoCacheHeaders::class);
+        // التقاط قالب التصدير المختار (?template=) لكل طلب على حدة
+        $middleware->appendToGroup('web', \App\Http\Middleware\SelectPdfTemplate::class);
         // ترويسات حماية على كل استجابة (منع التأطير، منع تخمين نوع الملفات، …)
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
     })

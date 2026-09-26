@@ -101,8 +101,19 @@ if (!function_exists('pdf_load_view')) {
      * Returns the same \Barryvdh\DomPDF\PDF object so callers can chain
      * ->setPaper(), ->stream(), etc. as before.
      */
+    /**
+     * توليد PDF من قالب Blade — أو من قالب صمّمه المدير إن وُجد لهذا التقرير.
+     *
+     * الاعتراض هنا وحده يغطّي كل تصديرات النظام، فلا تُعدَّل عشرات الدوال.
+     * التقارير ذات القوالب الثابتة (الجهات الحكومية، جرد الغرف، الحجوزات)
+     * لا تُعترَض لأن ReportRegistry يستثنيها من القوالب المتاحة.
+     */
     function pdf_load_view(string $view, array $data = []): \Barryvdh\DomPDF\PDF
     {
+        if ($template = \App\Support\TemplateResolver::forView($view)) {
+            return \App\Support\TemplatePdf::render($template, $data);
+        }
+
         $html = view($view, $data)->render();
         $html = pdf_arabic_html($html);
         return \Barryvdh\DomPDF\Facade\Pdf::loadHtml($html);

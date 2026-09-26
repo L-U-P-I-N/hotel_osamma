@@ -308,6 +308,17 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('permission:audit_log.view');
 
     // ===== إعدادات النظام (شعار الفندق…) =====
+    // ═══ مصمّم قوالب تصدير PDF — مقصور على المدير ═══
+    Route::middleware('permission:settings.manage')->group(function () {
+        Route::get('/pdf-templates', [\App\Http\Controllers\PdfTemplateController::class, 'index'])->name('pdf-templates.index');
+        Route::get('/pdf-templates/create', [\App\Http\Controllers\PdfTemplateController::class, 'create'])->name('pdf-templates.create');
+        Route::post('/pdf-templates', [\App\Http\Controllers\PdfTemplateController::class, 'store'])->name('pdf-templates.store');
+        Route::post('/pdf-templates/preview', [\App\Http\Controllers\PdfTemplateController::class, 'preview'])->name('pdf-templates.preview');
+        Route::get('/pdf-templates/{pdfTemplate}/edit', [\App\Http\Controllers\PdfTemplateController::class, 'edit'])->name('pdf-templates.edit');
+        Route::put('/pdf-templates/{pdfTemplate}', [\App\Http\Controllers\PdfTemplateController::class, 'update'])->name('pdf-templates.update');
+        Route::delete('/pdf-templates/{pdfTemplate}', [\App\Http\Controllers\PdfTemplateController::class, 'destroy'])->name('pdf-templates.destroy');
+    });
+
     Route::middleware('permission:settings.manage')->group(function () {
         Route::get('/settings', [\App\Http\Controllers\SettingsController::class, 'index'])->name('settings.index');
         Route::post('/settings/profile', [\App\Http\Controllers\SettingsController::class, 'updateProfile'])->name('settings.profile.update');
