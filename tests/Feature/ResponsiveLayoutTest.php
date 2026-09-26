@@ -78,6 +78,36 @@ class ResponsiveLayoutTest extends TestCase
         $this->assertStringContainsString('hidden sm:inline', $html);
     }
 
+    /**
+     * شبكات بأعمدة ثابتة بلا بادئة md: كانت تبقى بعدد أعمدتها على الجوال،
+     * فيصير عرض العمود نحو 100px. قِيست 15 صفحة بها هذا العيب.
+     */
+    public function test_fixed_column_grids_collapse_on_small_screens(): void
+    {
+        $html = $this->page();
+
+        $this->assertStringContainsString('main .grid-cols-3,', $html);
+        $this->assertStringContainsString('main .grid-cols-12 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }', $html);
+    }
+
+    /** والنماذج تنهار إلى عمود واحد: حقل في عمود ضيّق لا يُكتب. */
+    public function test_form_grids_become_a_single_column(): void
+    {
+        $html = $this->page();
+
+        $this->assertStringContainsString('main .grid:has(> * input)', $html);
+        $this->assertStringContainsString('grid-template-columns: minmax(0, 1fr) !important;', $html);
+    }
+
+    /** نصّ ممنوع من الالتفاف كان يتجاوز حافة الشاشة داخل البطاقة. */
+    public function test_nowrap_text_wraps_inside_cards(): void
+    {
+        $this->assertStringContainsString(
+            'table[data-cards] tbody td * { white-space: normal !important; }',
+            $this->page()
+        );
+    }
+
     public function test_the_page_declares_a_mobile_viewport(): void
     {
         $this->assertMatchesRegularExpression(

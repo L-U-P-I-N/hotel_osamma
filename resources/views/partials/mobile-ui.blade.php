@@ -39,6 +39,11 @@
         white-space: normal !important;
         min-height: 0;
     }
+    /* نصّ مكتوب بـ whitespace-nowrap (اسم مرافق مثلاً) كان يتجاوز حافة
+       الشاشة داخل البطاقة؛ في البطاقة يوجد متّسع للالتفاف */
+    table[data-cards] tbody td * { white-space: normal !important; }
+    table[data-cards] tbody td { min-width: 0; }
+
     table[data-cards] tbody td + td { border-top: 1px solid #f3f4f6 !important; }
     .dark table[data-cards] tbody td + td { border-top-color: #374151 !important; }
 
@@ -79,6 +84,37 @@
         على شاشة صغيرة؛ ومن أراد صفاً واحداً يصرّح بـ flex-nowrap.
     */
     main .flex:not(.flex-nowrap):not(.flex-col) { flex-wrap: wrap; }
+
+    /*
+        شبكات بأعمدة ثابتة (grid-cols-3 وما فوق بلا بادئة md:) تبقى بعدد
+        أعمدتها على الجوال، فيصير عرض العمود نحو 100px: نصّ مبتور وحقول
+        لا تُكتب. تنهار هنا إلى عمودين، وإلى عمود واحد إن كانت نموذجاً.
+        الشبكات المكتوبة أصلاً بتدرّج (md:grid-cols-4) لا تتأثر لأن صنفها مختلف.
+    */
+    main .grid-cols-3,
+    main .grid-cols-4,
+    main .grid-cols-5,
+    main .grid-cols-6,
+    main .grid-cols-7,
+    main .grid-cols-8,
+    main .grid-cols-9,
+    main .grid-cols-10,
+    main .grid-cols-11,
+    main .grid-cols-12 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+
+    /* حقل إدخال في عمود ضيّق لا يُقرأ ولا يُكتب — النماذج عمود واحد */
+    main .grid:has(> * input),
+    main .grid:has(> * select),
+    main .grid:has(> * textarea),
+    main .grid:has(> input),
+    main .grid:has(> select),
+    main .grid:has(> textarea) { grid-template-columns: minmax(0, 1fr) !important; }
+
+    /* خانة تمتد على أعمدة صارت أقل: تمتد على العرض كاملاً */
+    main .col-span-3,
+    main .col-span-4,
+    main .col-span-5,
+    main .col-span-6 { grid-column: 1 / -1 !important; }
 
     /* حقول النموذج تملأ العرض بدل أن تتزاحم */
     main input[type="date"],
