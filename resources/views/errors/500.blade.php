@@ -9,7 +9,7 @@
     <div class="text-center max-w-2xl w-full">
         <div class="text-9xl font-bold text-gray-200 mb-4">500</div>
         <h1 class="text-2xl font-bold text-gray-800 mb-2">خطأ في الخادم</h1>
-        <p class="text-gray-500 mb-6">حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى لاحقاً</p>
+        <p class="text-gray-500 mb-6">{{ $friendly ?? 'حدث خطأ غير متوقع في النظام ولم تُحفظ العملية. أعد المحاولة، وإن تكرر الأمر راجع الدعم الفني.' }}</p>
 
         @if(config('app.debug') && isset($exception))
         <div class="text-left bg-red-50 border border-red-200 rounded-lg p-4 mb-6 text-sm">

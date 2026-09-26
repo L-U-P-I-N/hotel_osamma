@@ -43,4 +43,73 @@ return Application::configure(basePath: dirname(__DIR__))
                 'error' => 'تعذّر الحفظ: حجم الصور/الملفات المرفوعة أكبر من الحد المسموح به. قلّل حجم الصور أو عددها ثم أعد المحاولة.',
             ]);
         });
+
+        // قاعدة البيانات ترفض العملية: قيود المفاتيح والحقول الإلزامية والتكرار.
+        // كانت تصل للموظف كنصّ SQL إنجليزي طويل داخل صفحة خطأ عامة.
+        $exceptions->render(function (\Illuminate\Database\QueryException $e, \Illuminate\Http\Request $request) {
+            $message = \App\Support\FriendlyError::forDatabase($e);
+
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => $message], 422);
+            }
+
+            return back()
+                ->withInput(\Illuminate\Support\Arr::except($request->input(), ['_token', 'password', 'password_confirmation']))
+                ->withErrors(['error' => $message]);
+        });
+
+        // سجلّ غير موجود (حُذف أو رابط قديم): كانت تظهر صفحة 404 إنجليزية
+        $exceptions->render(function (\Illuminate\Database\Eloquent\ModelNotFoundException $e, \Illuminate\Http\Request $request) {
+            $message = 'السجل المطلوب غير موجود — قد يكون محذوفاً أو أن الرابط قديم.';
+
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => $message], 404);
+            }
+
+            return response()->view('errors.404', ['friendly' => $message], 404);
+        });
+
+        // صلاحية ناقصة: الموظف يحتاج أن يعرف أن عليه مراجعة المدير، لا كلمة "Forbidden"
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException $e, \Illuminate\Http\Request $request) {
+            $message = trim($e->getMessage()) ?: 'ليست لديك صلاحية لهذه العملية — راجع مدير النظام لمنحك الصلاحية.';
+
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => $message], 403);
+            }
+
+            return response()->view('errors.403', ['friendly' => $message], 403);
+        });
+
+        $exceptions->render(function (\Illuminate\Auth\Access\AuthorizationException $e, \Illuminate\Http\Request $request) {
+            $message = trim($e->getMessage()) ?: 'ليست لديك صلاحية لهذه العملية — راجع مدير النظام لمنحك الصلاحية.';
+
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => $message], 403);
+            }
+
+            return response()->view('errors.403', ['friendly' => $message], 403);
+        });
+
+        // كثرة الطلبات (حماية تسجيل الدخول مثلاً)
+        $exceptions->render(function (\Illuminate\Http\Exceptions\ThrottleRequestsException $e, \Illuminate\Http\Request $request) {
+            $seconds = (int) ($e->getHeaders()['Retry-After'] ?? 60);
+            $message  = 'محاولات كثيرة في وقت قصير. انتظر ' . \App\Support\FriendlyError::duration($seconds) . ' ثم أعد المحاولة.';
+
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => $message], 429);
+            }
+
+            return back()->withErrors(['error' => $message]);
+        });
+
+        // الجلسة انتهت والمستخدم لم يعد مسجّل الدخول
+        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, \Illuminate\Http\Request $request) {
+            $message = 'انتهت جلستك أو تم تسجيل دخولك من جهاز آخر — سجّل الدخول من جديد للمتابعة.';
+
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => $message], 401);
+            }
+
+            return redirect()->guest(route('login'))->withErrors(['username' => $message]);
+        });
     })->create();

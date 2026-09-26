@@ -33,10 +33,10 @@ class CheckPermission
             if ($user->getRoleNames()->contains('admin')) {
                 return $next($request);
             }
-            return $this->deny($request, 'حدث خطأ في فحص الصلاحيات');
+            return $this->deny($request, 'تعذّر التحقق من صلاحياتك بسبب خطأ في النظام. أعد المحاولة، وإن تكرر الأمر راجع الدعم الفني.');
         }
 
-        return $this->deny($request, 'ليس لديك صلاحية للقيام بهذا الإجراء');
+        return $this->deny($request, 'ليست لديك صلاحية لهذه العملية — راجع مدير النظام لمنحك الصلاحية.');
     }
 
     /**
@@ -47,7 +47,7 @@ class CheckPermission
     private function deny(Request $request, string $message): mixed
     {
         if ($request->expectsJson() || $request->ajax()) {
-            return response()->json(['message' => $message], 403);
+            return response()->json(['success' => false, 'message' => $message], 403);
         }
 
         $previous = url()->previous();

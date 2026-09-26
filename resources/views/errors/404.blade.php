@@ -14,7 +14,7 @@
     <div class="text-center max-w-sm">
         <div class="text-8xl font-bold mb-4" style="color:#d1e4f1;">404</div>
         <h1 class="text-xl font-bold text-gray-800 mb-2">الصفحة غير موجودة</h1>
-        <p class="text-gray-500 mb-2 text-sm">الصفحة التي تبحث عنها غير موجودة أو تم حذفها</p>
+        <p class="text-gray-500 mb-2 text-sm">{{ $friendly ?? 'الصفحة التي تبحث عنها غير موجودة أو تم حذفها' }}</p>
         <p class="text-sm mb-6" style="color:#0F4C75;">سيتم تحويلك للرئيسية تلقائياً خلال ثوانٍ...</p>
 
         <!-- شريط التقدم -->
