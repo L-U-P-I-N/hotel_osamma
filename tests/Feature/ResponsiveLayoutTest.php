@@ -115,4 +115,69 @@ class ResponsiveLayoutTest extends TestCase
             $this->page()
         );
     }
+
+    /* ═══════════════════ الدُرج والتمرير على الجوال ═══════════════════ */
+
+    private function themeCss(): string
+    {
+        return file_get_contents(public_path('css/app-theme.css'));
+    }
+
+    /**
+     * الدُرج على الجوال ينزلق بعرضه الكامل. طيّه بتقليص العرض كان يضغط أسماء
+     * الأقسام أثناء الحركة فتتراكب حروفها عند كل ضغطة على زر القائمة.
+     */
+    public function test_the_mobile_drawer_slides_instead_of_shrinking(): void
+    {
+        $html = $this->page();
+        $css  = $this->themeCss();
+
+        $this->assertStringContainsString("isMobile ? 'app-drawer' : ''", $html);
+        $this->assertStringContainsString("(isMobile && !sidebarOpen) ? 'app-drawer-closed' : ''", $html);
+
+        $this->assertStringContainsString('transform: translateX(0)', $css);
+        $this->assertStringContainsString('transform: translateX(100%)', $css);
+        // الطيّ بالعرض يبقى للحاسوب وحده
+        $this->assertStringContainsString("(!isMobile && !sidebarOpen) ? 'w-0 overflow-hidden' : ''", $html);
+    }
+
+    /** وعلى الحاسوب يُخفى محتوى القائمة فور طيّها فلا تتراكب أسطرها. */
+    public function test_the_collapsing_desktop_sidebar_hides_its_content_at_once(): void
+    {
+        $this->assertStringContainsString('data-sidebar', $this->page());
+        $this->assertStringContainsString(
+            'aside[data-sidebar][data-collapsed] > * { visibility: hidden; }',
+            $this->themeCss()
+        );
+    }
+
+    /**
+     * 100vh على متصفحات الجوال يحسب شريط العنوان ضمن الطول، فيُقتطع أسفل
+     * الصفحة ولا يصل التمرير آخر التفاصيل. 100dvh تتبع المساحة المرئية فعلاً.
+     */
+    public function test_the_shell_uses_the_visible_viewport_height(): void
+    {
+        $this->assertStringContainsString('app-shell', $this->page());
+        $this->assertStringContainsString('.app-shell { height: 100vh; height: 100dvh; }', $this->themeCss());
+    }
+
+    /** ومساحة أسفل المحتوى كي لا يختفي آخر زر خلف شريط المتصفح. */
+    public function test_the_content_area_scrolls_comfortably_on_touch(): void
+    {
+        $css = $this->themeCss();
+
+        $this->assertStringContainsString('-webkit-overflow-scrolling: touch;', $css);
+        $this->assertStringContainsString('overscroll-behavior-y: contain;', $css);
+        $this->assertStringContainsString('env(safe-area-inset-bottom)', $css);
+        $this->assertStringContainsString('app-main', $this->page());
+    }
+
+    /** نافذة الملاحظات تُثبَّت أسفل الشاشة على الجوال فتُقرأ بلا سحب أفقي. */
+    public function test_the_notes_popover_becomes_a_bottom_sheet_on_mobile(): void
+    {
+        $css = $this->themeCss();
+
+        $this->assertStringContainsString('#notesPopover', $css);
+        $this->assertStringContainsString('bottom: 0 !important;', $css);
+    }
 }

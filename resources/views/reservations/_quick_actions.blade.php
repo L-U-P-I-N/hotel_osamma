@@ -93,13 +93,13 @@
 </div>
 @endcan
 
-{{-- ═══ رسم على الغرفة ═══ --}}
+{{-- ═══ رسوم إضافية على الغرفة ═══ --}}
 @can('payments.create')
 <div id="chargeQuickModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4"
      onclick="if(event.target===this) closeQuick('chargeQuickModal')">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md" onclick="event.stopPropagation()">
         <div class="px-6 py-4 rounded-t-2xl flex items-center justify-between" style="background:linear-gradient(135deg,#b45309,#f59e0b);">
-            <h3 class="font-bold text-white">إضافة رسم على الغرفة</h3>
+            <h3 class="font-bold text-white">إضافة رسوم إضافية على الغرفة</h3>
             <button type="button" onclick="closeQuick('chargeQuickModal')" class="text-white/80 hover:text-white">✕</button>
         </div>
         <form id="chargeQuickForm" class="p-6 space-y-4">
@@ -107,7 +107,7 @@
             <p class="text-sm text-gray-600" id="chargeQuickWho"></p>
 
             <div>
-                <label class="block text-xs font-semibold text-gray-600 mb-1.5">نوع الرسم *</label>
+                <label class="block text-xs font-semibold text-gray-600 mb-1.5">نوع الرسوم الإضافية *</label>
                 <select name="charge_type" required class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm outline-none">
                     @foreach(\App\Models\ExtraCharge::HOTEL_TYPES as $key => $label)
                     <option value="{{ $key }}">{{ $label }}</option>
@@ -134,7 +134,7 @@
             <div class="flex gap-3">
                 <button type="submit" id="chargeQuickSubmit"
                         class="flex-1 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-sm transition">
-                    إضافة الرسم
+                    إضافة الرسوم الإضافية
                 </button>
                 <button type="button" onclick="closeQuick('chargeQuickModal')"
                         class="px-5 py-3 border border-gray-300 text-gray-600 rounded-xl text-sm hover:bg-gray-50">إلغاء</button>

@@ -114,6 +114,35 @@
             </form>
         </div>
 
+        {{-- مطوّرو النظام: الحاجة لأرقامهم أشدّ هنا — حين يتعذّر الدخول أصلاً --}}
+        @php
+            $devTeam    = config('developers.team_name', 'فريق التطوير');
+            $devMembers = config('developers.members', []);
+        @endphp
+        @if(!empty($devMembers))
+        <div class="mt-6 rounded-2xl px-4 py-3" style="background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.12);">
+            <div class="flex items-center justify-center gap-2 mb-2">
+                <span class="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0"
+                      style="background:linear-gradient(135deg,#0F4C75,#D4A574);">
+                    <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+                    </svg>
+                </span>
+                <span class="text-[11px] font-bold text-primary-100">{{ $devTeam }} — للتواصل</span>
+            </div>
+            <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
+                @foreach($devMembers as $member)
+                <span class="text-[11px] text-primary-200 whitespace-nowrap">
+                    {{ $member['name'] }}
+                    @if(!empty($member['phone']))
+                    <a href="tel:{{ $member['phone'] }}" dir="ltr" class="font-mono font-bold text-white hover:underline mr-1">{{ $member['phone'] }}</a>
+                    @endif
+                </span>
+                @endforeach
+            </div>
+        </div>
+        @endif
+
         <p class="text-center text-primary-300 text-xs mt-6">© {{ date('Y') }} {{ \App\Models\Setting::hotelName() }} - جميع الحقوق محفوظة</p>
     </div>
 <script>

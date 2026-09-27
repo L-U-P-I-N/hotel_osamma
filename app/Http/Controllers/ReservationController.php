@@ -1316,6 +1316,13 @@ class ReservationController extends Controller
         $overdueCount = (clone $query)->where('status', 'checked_in')->whereDate('check_out_date', '<', today())->count();
         $todayCount   = (clone $query)->where('status', 'checked_in')->whereDate('check_out_date', today())->count();
         $total        = (clone $query)->count();
+        // "الموجودون الآن" = من لم يُسجَّل خروجه بعد. يُحسب مستقلاً عن الإجمالي
+        // لأن الإجمالي يضمّ المغادرين تاريخياً، فلا يُقرأ منه عدد من في الفندق.
+        $presentCount = (clone $query)->where('status', 'checked_in')->count();
+        $departedCount = (clone $query)->where('status', 'checked_out')->count();
+        // من غادر فعلياً اليوم — يقرأه الموظف مع "خروجهم اليوم" (المتوقَّع)
+        $departedTodayCount = (clone $query)->where('status', 'checked_out')
+            ->whereDate('actual_check_out', today())->count();
 
         if ($status === 'checked_out') {
             // فلتر المغادرين وحده: الأحدث مغادرة أولاً (أعلى القائمة).
@@ -1334,11 +1341,16 @@ class ReservationController extends Controller
 
         // طلب AJAX من حقل البحث الفوري: نُعيد جزئية النتائج وحدها ليستبدلها
         // المتصفح دون إعادة تحميل الصفحة — فلا يُفقد تركيز الحقل أثناء الكتابة.
+        $counts = compact('overdueCount', 'todayCount', 'total', 'presentCount', 'departedCount', 'departedTodayCount');
+
         if ($request->ajax()) {
-            return view('reservations._expiring_results', compact('reservations', 'status', 'overdueCount', 'todayCount', 'total'));
+            return view('reservations._expiring_results', array_merge(compact('reservations', 'status'), $counts));
         }
 
-        return view('reservations.expiring', compact('reservations', 'status', 'overdueCount', 'todayCount', 'total'));
+        // لوحة الملاحظات العامة أعلى الصفحة — القائمة فقط، والمنتهية تُطلَب عند الحاجة
+        $hotelNotes = \App\Models\HotelNote::with('createdBy')->open()->boardOrder()->limit(50)->get();
+
+        return view('reservations.expiring', array_merge(compact('reservations', 'status', 'hotelNotes'), $counts));
     }
 
     public function invoice(Reservation $reservation)

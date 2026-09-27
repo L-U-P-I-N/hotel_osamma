@@ -56,6 +56,43 @@
     </div>
 </div>
 
+{{-- رصيد متبقٍّ للنزيل نتج عن هذا الخروج — يجب أن يُرى فوراً لا أن يُكتشف لاحقاً --}}
+@php
+    $creditsFromCheckout = \App\Models\GuestCredit::where('reservation_id', $reservation->id)
+        ->orderByDesc('id')->get();
+    $openCredit = $creditsFromCheckout->firstWhere('status', \App\Models\GuestCredit::STATUS_OPEN);
+    $paidCredit = $creditsFromCheckout->firstWhere('status', \App\Models\GuestCredit::STATUS_SETTLED);
+@endphp
+@if($openCredit)
+<div class="bg-amber-50 rounded-xl border border-amber-200 p-4 flex items-start gap-3">
+    <svg class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    <div class="min-w-0 flex-1">
+        <p class="text-sm font-bold text-amber-800">
+            رُحِّل مبلغ متبقٍّ للنزيل: {{ number_format($openCredit->amount, 0) }} {{ $reservation->currency_symbol }}
+        </p>
+        <p class="text-xs text-amber-700 mt-0.5">{{ $openCredit->reason }} — يبقى مستحقاً للنزيل حتى يُصرف له.</p>
+        @can('guest_credits.view')
+        <a href="{{ route('guest-credits.index') }}"
+           class="inline-flex items-center gap-1 mt-2 text-xs font-bold px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white transition">
+            فتح قسم متبقيات النزلاء
+        </a>
+        @endcan
+    </div>
+</div>
+@elseif($paidCredit)
+<div class="bg-green-50 rounded-xl border border-green-200 p-4 text-sm text-green-800">
+    صُرف للنزيل مبلغ متبقٍّ قدره <strong>{{ number_format($paidCredit->amount, 0) }} {{ $reservation->currency_symbol }}</strong>
+    من صندوق الوردية ({{ $paidCredit->settlement_method === 'cash' ? 'نقدي' : $paidCredit->settlement_method }}).
+</div>
+@endif
+
+@if($reservation->checkout_notes)
+<div class="bg-rose-50 rounded-xl border border-rose-200 p-4 text-sm text-rose-800">
+    <span class="font-bold block mb-0.5">ملاحظة الخروج</span>
+    <span class="whitespace-pre-line text-xs">{{ $reservation->checkout_notes }}</span>
+</div>
+@endif
+
 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
 
     {{-- Financial Breakdown --}}

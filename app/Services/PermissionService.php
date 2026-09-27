@@ -22,6 +22,7 @@ class PermissionService
         'extra_charges.manage',
         'withdrawal.create',
         'withdrawal.view',
+        'guest_credits.view',
         'shifts.view',
         'shifts.delete',
         'settlement.view', // backward compat alias
@@ -72,6 +73,8 @@ class PermissionService
         'withdrawal.view'       => ['label' => 'عرض السحبيات',                'default' => true,  'group' => '💰 المالية'],
         'withdrawal.edit'       => ['label' => 'تعديل السحبيات',              'default' => false, 'group' => '💰 المالية'],
         'withdrawal.delete'     => ['label' => 'حذف السحبيات',                'default' => false, 'group' => '💰 المالية'],
+        'guest_credits.view'    => ['label' => 'عرض المبالغ المتبقية للنزلاء', 'default' => true,  'group' => '💰 المالية'],
+        'guest_credits.manage'  => ['label' => 'صرف/إسقاط المبالغ المتبقية للنزلاء', 'default' => false, 'group' => '💰 المالية'],
 
         // Shifts & Settlement
         'shifts.view'           => ['label' => 'عرض الوردية',                    'default' => true,  'group' => '⏰ الورديات'],

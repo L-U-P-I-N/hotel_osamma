@@ -16,29 +16,57 @@
 @section('content')
 <div dir="rtl">
 
+{{-- لوحة الملاحظات العامة — أعلى الصفحة ليقرأها كل موظف قبل أي شيء --}}
+@include('reservations._hotel-notes-board')
+
 <!-- Header -->
-<div class="flex items-center justify-between mb-4">
-    <div>
-        <p class="text-sm text-gray-500">
-            @php $st = $status ?? 'all'; @endphp
-            <span id="resultsLabel">{{ $st === 'checked_out' ? 'إجمالي المغادرين' : ($st === 'all' ? 'إجمالي النزلاء' : 'إجمالي المسجلين') }}</span>:
-            <span id="resultsSummary" data-show-badges="{{ $st !== 'checked_out' ? '1' : '0' }}">
-                <strong>{{ $total }}</strong>
-                @if($st !== 'checked_out')
-                @if($overdueCount > 0)
-                — <span class="text-red-600 font-semibold">{{ $overdueCount }} متأخر</span>
-                @endif
-                @if($todayCount > 0)
-                — <span class="text-orange-600 font-semibold">{{ $todayCount }} خروجهم اليوم</span>
-                @endif
-                @endif
-            </span>
-        </p>
+<div class="flex items-start justify-between gap-3 mb-4 flex-wrap">
+    <div class="min-w-0">
+        {{--
+            عدّادات النزلاء. "الإجمالي" يضمّ المغادرين تاريخياً فلا يُقرأ منه عدد
+            من هم في الفندق الآن، ولهذا صار "الموجودون الآن" بطاقةً مستقلة بارزة
+            بجواره، ومعهما من يُتوقَّع خروجهم اليوم ومن تأخّر.
+        --}}
+        <div id="countCards" class="flex items-stretch gap-2 flex-wrap"
+             data-total="{{ $total }}" data-present="{{ $presentCount }}"
+             data-today="{{ $todayCount }}" data-overdue="{{ $overdueCount }}"
+             data-departed="{{ $departedCount }}" data-departed-today="{{ $departedTodayCount }}">
+            <div class="rounded-xl border border-green-200 bg-green-50 px-3 py-2 min-w-[8.5rem]">
+                <div class="text-xl font-black text-green-700 leading-none" data-count="present">{{ $presentCount }}</div>
+                <div class="text-[11px] font-semibold text-green-700 mt-1">النزلاء الموجودون الآن</div>
+            </div>
+            <div class="rounded-xl border border-gray-200 bg-white px-3 py-2 min-w-[8.5rem]">
+                <div class="text-xl font-black leading-none" style="color:#0F4C75;" data-count="total">{{ $total }}</div>
+                <div class="text-[11px] font-semibold text-gray-500 mt-1" data-count-label="total">إجمالي النزلاء (الكل)</div>
+            </div>
+            <div class="rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 min-w-[8.5rem]">
+                <div class="text-xl font-black text-orange-600 leading-none" data-count="today">{{ $todayCount }}</div>
+                <div class="text-[11px] font-semibold text-orange-700 mt-1">خروجهم اليوم</div>
+            </div>
+            <div class="rounded-xl border border-red-200 bg-red-50 px-3 py-2 min-w-[8.5rem]">
+                <div class="text-xl font-black text-red-600 leading-none" data-count="overdue">{{ $overdueCount }}</div>
+                <div class="text-[11px] font-semibold text-red-700 mt-1">متأخرون عن الخروج</div>
+            </div>
+            <div class="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 min-w-[8.5rem]">
+                <div class="text-xl font-black text-gray-600 leading-none" data-count="departed">{{ $departedCount }}</div>
+                <div class="text-[11px] font-semibold text-gray-500 mt-1">
+                    المغادرون <span class="text-gray-400">(اليوم: <span data-count="departed-today">{{ $departedTodayCount }}</span>)</span>
+                </div>
+            </div>
+        </div>
     </div>
-    <a href="{{ route('dashboard') }}" class="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-        لوحة التحكم
-    </a>
+    <div class="flex items-center gap-2">
+        {{-- طيّ نصوص الملاحظات: لمن يريد قائمةً نظيفة بالأيقونات وحدها --}}
+        <button type="button" data-notes-text-toggle onclick="toggleNotesText()"
+                class="flex items-center gap-1.5 px-3 py-2 border border-gray-300 text-gray-600 rounded-lg text-xs hover:bg-gray-50 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+            <span data-notes-text-label>إخفاء نصوص الملاحظات</span>
+        </button>
+        <a href="{{ route('dashboard') }}" class="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+            لوحة التحكم
+        </a>
+    </div>
 </div>
 
 <!-- Filters -->
@@ -109,7 +137,7 @@
 (function () {
     const form    = document.getElementById('filters');
     const results = document.getElementById('resultsArea');
-    const summary = document.getElementById('resultsSummary');
+    const cards   = document.getElementById('countCards');
     if (!form || !results) return;
 
     let timer = null;
@@ -150,29 +178,34 @@
         btn.classList.toggle('hidden', !active);
     }
 
-    // أرقام العدّادات تصل ضمن جزئية النتائج (data-*) فنحدّث بها سطر الملخص
+    // أرقام العدّادات تصل ضمن جزئية النتائج (data-*) فنحدّث بها البطاقات
     function updateSummary() {
         const box = results.firstElementChild;
-        if (!box || !summary) return;
+        if (!box || !cards) return;
 
-        const status  = form.querySelector('[name="status"]')?.value || 'all';
-        const total   = box.dataset.total ?? '0';
-        const overdue = parseInt(box.dataset.overdue ?? '0', 10);
-        const today   = parseInt(box.dataset.today   ?? '0', 10);
+        const set = (key, value) => {
+            const el = cards.querySelector(`[data-count="${key}"]`);
+            if (el) el.textContent = value ?? '0';
+        };
 
-        const label = document.getElementById('resultsLabel');
+        set('present',        box.dataset.present);
+        set('total',          box.dataset.total);
+        set('today',          box.dataset.today);
+        set('overdue',        box.dataset.overdue);
+        set('departed',       box.dataset.departed);
+        set('departed-today', box.dataset.departedToday);
+
+        // عنوان الإجمالي يتبع الفلتر: "الكل" يضمّ المغادرين، وغيره لا
+        const status = form.querySelector('[name="status"]')?.value || 'all';
+        const label  = cards.querySelector('[data-count-label="total"]');
         if (label) {
             label.textContent = status === 'checked_out' ? 'إجمالي المغادرين'
-                              : status === 'all'         ? 'إجمالي النزلاء'
-                              : 'إجمالي المسجلين';
+                              : status === 'checked_in'  ? 'إجمالي المقيمين'
+                              : 'إجمالي النزلاء (الكل)';
         }
 
-        let html = `<strong>${total}</strong>`;
-        if (status !== 'checked_out') {
-            if (overdue > 0) html += ` — <span class="text-red-600 font-semibold">${overdue} متأخر</span>`;
-            if (today > 0)   html += ` — <span class="text-orange-600 font-semibold">${today} خروجهم اليوم</span>`;
-        }
-        summary.innerHTML = html;
+        // نصوص الملاحظات تُرسَم من جديد مع النتائج، فتُعاد حالة الطيّ عليها
+        if (window.applyNotesTextState) window.applyNotesTextState();
     }
 
     // البحث النصّي: مهلة قصيرة فقط لتجميع الأحرف المتتابعة (لا إعادة تحميل)

@@ -12,7 +12,7 @@ class Reservation extends Model
 
     protected $fillable = [
         'guest_id','room_id','linked_room_id','suite_booking_type','created_by',
-        'check_in_date','check_in_time','check_out_date','check_out_time','actual_check_out','checked_out_by','origin','purpose','notes',
+        'check_in_date','check_in_time','check_out_date','check_out_time','actual_check_out','checked_out_by','origin','purpose','notes','checkout_notes',
         'status','payment_status','total_amount','first_night_price','renewal_price_per_night','auto_renew','recompute_dismissed','paid_amount','currency',
         'admin_approval_id','government_exported','government_exported_at',
         'discount_type','discount_value','discount_amount','discount_reason',
@@ -136,6 +136,15 @@ class Reservation extends Model
     public function refunds()
     {
         return $this->hasMany(Refund::class);
+    }
+
+    /**
+     * المبالغ المتبقية للنزيل على هذا الحجز (أمانات دائنة). المرحَّلة منها
+     * تُخصم من "المدفوع" لأنها لم تعد إيراداً للإقامة بل التزاماً على الفندق.
+     */
+    public function guestCredits()
+    {
+        return $this->hasMany(GuestCredit::class);
     }
 
     public function scopeActive(Builder $query): Builder
@@ -668,7 +677,15 @@ class Reservation extends Model
             ->where('affects_paid_amount', true)
             ->sum('amount');
 
-        $this->paid_amount = max(0, round($paid - $refunded, 2));
+        // المبالغ المرحَّلة كرصيد للنزيل ليست مدفوعاً مقابل الإقامة: النقد ما
+        // زال في الصندوق لكنه التزام على الفندق. خصمها هنا يُبقي "المتبقي" صفراً
+        // بعد المغادرة المبكرة بدل أن يظهر الحجز مدفوعاً بأكثر من قيمته.
+        // الملغاة (تنازل النزيل) تعود إيراداً فلا تُخصم.
+        $credited = (float) $this->guestCredits()
+            ->whereIn('status', [GuestCredit::STATUS_OPEN, GuestCredit::STATUS_SETTLED])
+            ->sum('amount');
+
+        $this->paid_amount = max(0, round($paid - $refunded - $credited, 2));
         $this->save();
 
         $this->updatePaymentStatus();

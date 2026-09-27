@@ -20,6 +20,7 @@ class AccountsSeeder extends Seeder
             ['2000', 'الخصوم', 'liability', 'credit', null],
             ['2100', 'رواتب مستحقة', 'liability', 'credit', '2000'],
             ['2200', 'مصروفات مستحقة (تحويل/لاحق)', 'liability', 'credit', '2000'],
+            ['2300', 'مبالغ متبقية للنزلاء (أمانات دائنة)', 'liability', 'credit', '2000'],
 
             ['3000', 'حقوق الملكية', 'equity', 'credit', null],
             ['3100', 'رأس المال / الأرباح المرحّلة', 'equity', 'credit', '3000'],
@@ -50,6 +51,12 @@ class AccountsSeeder extends Seeder
                     'is_active' => true,
                 ]
             );
+
+            // حساب أُنشئ بترحيلة سابقة قبل وجود أبيه يبقى بلا أب، فتُرمَّم النسبة
+            // هنا بدل أن يظهر الحساب معلّقاً خارج الشجرة في التقارير.
+            if ($parentCode && $account->parent_id === null && isset($idsByCode[$parentCode])) {
+                $account->update(['parent_id' => $idsByCode[$parentCode]]);
+            }
 
             $idsByCode[$code] = $account->id;
         }

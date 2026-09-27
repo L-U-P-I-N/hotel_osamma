@@ -8,6 +8,8 @@ use App\Http\Controllers\RoomController;
 use App\Http\Controllers\CheckInController;
 use App\Http\Controllers\ReservationController;
 use App\Http\Controllers\ReservationNoteController;
+use App\Http\Controllers\HotelNoteController;
+use App\Http\Controllers\GuestCreditController;
 use App\Http\Controllers\CheckOutController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\SettlementController;
@@ -154,6 +156,12 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/reservations/{reservation}/notes', [ReservationNoteController::class, 'store'])->name('reservations.notes.store');
         Route::put('/reservations/{reservation}/notes/{note}', [ReservationNoteController::class, 'update'])->name('reservations.notes.update');
         Route::delete('/reservations/{reservation}/notes/{note}', [ReservationNoteController::class, 'destroy'])->name('reservations.notes.destroy');
+
+        // ملاحظات عامة على الفندق (لا على حجز) — لوحة أعلى صفحة الحجوزات
+        Route::get('/hotel-notes', [HotelNoteController::class, 'index'])->name('hotel-notes.index');
+        Route::post('/hotel-notes', [HotelNoteController::class, 'store'])->name('hotel-notes.store');
+        Route::put('/hotel-notes/{note}', [HotelNoteController::class, 'update'])->name('hotel-notes.update');
+        Route::delete('/hotel-notes/{note}', [HotelNoteController::class, 'destroy'])->name('hotel-notes.destroy');
         Route::put('/reservations/charge/{charge}', [ReservationController::class, 'updateCharge'])->name('reservations.updateCharge')->middleware('permission:payments.create');
         Route::delete('/reservations/charge/{charge}', [ReservationController::class, 'deleteCharge'])->name('reservations.deleteCharge')->middleware('permission:payments.create');
         // تحصيل دَين المشتريات (بقالة) وتسليمه للبقالة — توثيق فقط بلا قيد محاسبي
@@ -188,6 +196,14 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/reservations/{reservation}/damage/{inspection}', [ReservationController::class, 'updateDamage'])->name('reservations.updateDamage');
         Route::delete('/reservations/{reservation}/damage/{inspection}', [ReservationController::class, 'removeDamage'])->name('reservations.removeDamage');
     });
+
+    // المبالغ المتبقية للنزلاء (أمانات دائنة على الفندق)
+    Route::get('/guest-credits', [GuestCreditController::class, 'index'])
+        ->name('guest-credits.index')->middleware('permission:guest_credits.view');
+    Route::post('/guest-credits/{credit}/settle', [GuestCreditController::class, 'settle'])
+        ->name('guest-credits.settle')->middleware('permission:guest_credits.manage');
+    Route::post('/guest-credits/{credit}/cancel', [GuestCreditController::class, 'cancel'])
+        ->name('guest-credits.cancel')->middleware('permission:guest_credits.manage');
 
     // Payments
     // دفعة موحدة لعدة حجوزات (شخص واحد يدفع لعدة حجوزات فيُوزَّع المبلغ عليها)

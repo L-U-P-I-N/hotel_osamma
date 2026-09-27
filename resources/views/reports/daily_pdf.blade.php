@@ -163,11 +163,15 @@
                     $payNote   = $res->payments->first(fn($p) => $p->notes)?->notes;
                     $resNote   = $pdfText($res->notes);
                     $payNote   = $pdfText($payNote);
+                    // ملاحظة الخروج تُطبع مع بقية الملاحظات كي يقرأها مراجع الكشف
+                    $outNote   = $pdfText($res->checkout_notes);
                 @endphp
                 @if($resNote){{ $resNote }}@endif
-                @if($resNote && $payNote)<br/>@endif
+                @if($resNote && $outNote)<br/>@endif
+                @if($outNote)[خروج] {{ $outNote }}@endif
+                @if(($resNote || $outNote) && $payNote)<br/>@endif
                 @if($payNote)[دفع] {{ $payNote }}@endif
-                @if(!$resNote && !$payNote)—@endif
+                @if(!$resNote && !$outNote && !$payNote)—@endif
             </td>
             <td class="ltr-val">{{ $res->guest?->phone }}</td>
             <td class="ltr-val">{{ number_format($res->paid_amount, 0) }} / {{ number_format($res->total_amount, 0) }}</td>

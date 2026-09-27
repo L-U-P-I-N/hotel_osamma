@@ -168,8 +168,14 @@
                     $rNote = $kept !== '' ? $kept : null;
                 }
                 $payNote = $strip($r->payments->first(fn($p) => $p->notes)?->notes);
-                if (!$rNote && !$payNote) return '—';
-                return trim(($rNote ?? '') . ($rNote && $payNote ? ' | ' : '') . ($payNote ? '[دفع] ' . $payNote : ''));
+                // ملاحظة الخروج: تُكتب لحظة المغادرة وتُقرأ من الكشف دون فتح الحجز
+                $outNote = $strip($r->checkout_notes);
+                $parts = array_filter([
+                    $rNote,
+                    $outNote ? '[خروج] ' . $outNote : null,
+                    $payNote ? '[دفع] ' . $payNote : null,
+                ]);
+                return $parts ? implode(' | ', $parts) : '—';
             }],
     ];
 

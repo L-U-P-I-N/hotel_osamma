@@ -101,18 +101,6 @@
                     $statusColors = ['confirmed'=>'bg-blue-100 text-blue-800','checked_in'=>'bg-green-100 text-green-800','checked_out'=>'bg-gray-100 text-gray-800'];
                     $payColors = ['unpaid'=>'bg-red-100 text-red-800','partial'=>'bg-yellow-100 text-yellow-800','paid'=>'bg-green-100 text-green-800','deferred'=>'bg-purple-100 text-purple-800'];
                 @endphp
-                @php
-                    $openNotes = $res->openQuickNotes;
-                    $noteColor = $openNotes->contains(fn($n) => $n->color === 'red') ? 'red'
-                        : ($openNotes->contains(fn($n) => $n->color === 'amber') ? 'amber'
-                        : ($openNotes->isNotEmpty() ? 'blue' : 'none'));
-                    $noteClasses = [
-                        'red'   => 'bg-red-100 text-red-600 hover:bg-red-200',
-                        'amber' => 'bg-amber-100 text-amber-600 hover:bg-amber-200',
-                        'blue'  => 'bg-blue-100 text-blue-600 hover:bg-blue-200',
-                        'none'  => 'text-gray-300 hover:bg-gray-100 hover:text-gray-500',
-                    ];
-                @endphp
                 <tr class="hover:bg-blue-50 transition-colors cursor-pointer select-none"
                     data-row="{{ $res->id }}"
                     onclick="if(!event.target.closest('a,button,form')) window.location='{{ route('reservations.show', $res) }}'"
@@ -123,21 +111,7 @@
                         <div class="text-xs text-gray-400">{{ $res->guest?->nationality ?? '' }}</div>
                     </td>
                     <td class="px-4 py-3 font-semibold text-gray-800">{{ $res->display_room_number }}</td>
-                    <td class="px-2 py-3 text-center">
-                        {{-- أيقونة الملاحظات: لونها يتبع أشدّ ملاحظة قائمة، وعنوانها
-                             معاينة سريعة لأول ملاحظة دون فتح أي نافذة --}}
-                        <button type="button"
-                                data-notes-btn="{{ $res->id }}"
-                                data-notes-count="{{ $openNotes->count() }}"
-                                onclick="event.stopPropagation(); openNotes({{ $res->id }}, this)"
-                                title="{{ $openNotes->isNotEmpty() ? $openNotes->first()->type_label . ': ' . \Illuminate\Support\Str::limit($openNotes->first()->body, 90) : 'لا توجد ملاحظات — اضغط لإضافة واحدة' }}"
-                                class="relative w-8 h-8 rounded-lg transition inline-flex items-center justify-center {{ $noteClasses[$noteColor] }}">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                            @if($openNotes->isNotEmpty())
-                            <span data-notes-badge class="absolute -top-1 -left-1 min-w-[16px] h-4 px-1 rounded-full bg-red-600 text-white text-[10px] font-bold leading-4">{{ $openNotes->count() }}</span>
-                            @endif
-                        </button>
-                    </td>
+                    @include('reservations._note-cell', ['res' => $res])
                     <td class="px-4 py-3 text-gray-600">{{ $res->check_in_date?->format('d/m/Y') ?? '—' }}</td>
                     <td class="px-4 py-3 text-gray-600" data-cell="checkout">{{ $res->check_out_date?->format('d/m/Y') ?? '—' }}</td>
                     <td class="px-4 py-3 font-medium text-gray-800" data-cell="total">{{ number_format($res->total_amount, 0) }}</td>
@@ -170,7 +144,7 @@
                             @endcan
                             @can('payments.create')
                             <button type="button" onclick="event.stopPropagation(); openCharge({{ $res->id }}, '{{ addslashes($res->guest?->full_name ?? '') }}', '{{ $res->display_room_number }}')"
-                                    class="text-xs font-medium text-amber-700 hover:text-amber-900">رسم</button>
+                                    class="text-xs font-medium text-amber-700 hover:text-amber-900">رسوم إضافية</button>
                             @endcan
                             @endif
                             @can('checkin.view')

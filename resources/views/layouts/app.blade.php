@@ -184,7 +184,7 @@
         closeOnMobile() { if (this.isMobile) this.sidebarOpen = false; },
      }"
      @keydown.escape.window="closeOnMobile()"
-     class="flex h-screen overflow-hidden">
+     class="app-shell flex overflow-hidden">
 
     {{-- غطاء يُعتّم المحتوى خلف الدُرج ويُغلقه باللمس خارجه --}}
     <div x-show="isMobile && sidebarOpen" x-cloak @click="sidebarOpen = false"
@@ -192,13 +192,23 @@
          x-transition:leave="transition ease-in duration-150" x-transition:leave-end="opacity-0"
          class="fixed inset-0 bg-black/50 z-40 lg:hidden"></div>
 
-    <!-- Sidebar -->
-    <aside :class="[
-               sidebarOpen ? 'w-60' : 'w-0 overflow-hidden',
-               isMobile ? 'fixed inset-y-0 right-0 z-50 shadow-2xl' : 'flex-shrink-0'
+    {{--
+        الدُرج على الجوال ينزلق بعرضه الكامل (transform) ولا يُطوى بتقليص العرض:
+        تقليص العرض كان يضغط أسماء الأقسام أثناء الحركة فتتراكب الحروف وتُقرأ
+        مشوَّشة عند كل ضغطة على زر القائمة. وعلى الحاسوب يبقى الطيّ بالعرض، لكن
+        محتواه يُخفى فوراً (data-collapsed) فلا يتراكب أثناء الانزلاق.
+    --}}
+    <aside data-sidebar
+           :data-collapsed="(!sidebarOpen && !isMobile) ? '' : null"
+           :class="[
+               isMobile ? 'fixed inset-y-0 right-0 z-50 shadow-2xl' : 'flex-shrink-0',
+               isMobile ? 'app-drawer' : '',
+               (!isMobile && sidebarOpen) ? 'w-60' : '',
+               (!isMobile && !sidebarOpen) ? 'w-0 overflow-hidden' : '',
+               (isMobile && !sidebarOpen) ? 'app-drawer-closed' : '',
            ]"
            @click="closeOnMobile()"
-           class="flex flex-col transition-all duration-300 select-none"
+           class="flex flex-col select-none"
            style="background: linear-gradient(180deg, #0d3f64 0%, #0a3254 100%); box-shadow: 2px 0 12px rgba(0,0,0,0.18);">
 
         <!-- Logo -->
@@ -244,6 +254,23 @@
                class="nav-link {{ request()->routeIs('reservations.*') ? 'active' : '' }}">
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                 الحجوزات
+            </a>
+            @endcan
+
+            {{-- المبالغ المتبقية للنزلاء: التزام على الفندق يجب أن يُرى دائماً --}}
+            @can('guest_credits.view')
+            @php
+                $_guestCreditsCount = \App\Models\GuestCredit::open()->count();
+            @endphp
+            <a href="{{ route('guest-credits.index') }}"
+               class="nav-link {{ request()->routeIs('guest-credits.*') ? 'active' : '' }}">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                متبقيات النزلاء
+                @if($_guestCreditsCount > 0)
+                <span class="mr-auto bg-amber-500 text-white text-[9px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 flex-shrink-0" title="أرصدة قائمة مستحقة للنزلاء">
+                    {{ $_guestCreditsCount }}
+                </span>
+                @endif
             </a>
             @endcan
 
@@ -573,7 +600,7 @@
             @endunless
             @endif
             <h1 class="text-sm sm:text-base font-semibold text-gray-800 flex-1 min-w-0 truncate">@yield('page-title', 'لوحة التحكم')</h1>
-            <div class="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+            <div class="app-topbar-actions flex items-center gap-1.5 sm:gap-3 flex-shrink-0 min-w-0">
                 {{-- تسجيل دخول نزيل — متاح من أي صفحة بالنظام، لا يحتاج الموظف
                      الرجوع للوحة التحكم أو صفحة الحجوزات كل مرة --}}
                 @can('checkin.create')
@@ -600,12 +627,15 @@
                     <svg class="theme-icon-sun w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
                 </button>
                 <div class="w-px h-5 bg-gray-200 hidden sm:block"></div>
-                <span class="text-xs text-gray-400 hidden sm:block">{{ now()->isoFormat('dddd، D MMMM Y') }}</span>
-                <div class="w-px h-5 bg-gray-200 hidden sm:block"></div>
-                <span class="hidden sm:inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold"
+                <span class="text-xs text-gray-400 hidden lg:block">{{ now()->isoFormat('dddd، D MMMM Y') }}</span>
+                <div class="w-px h-5 bg-gray-200 hidden lg:block"></div>
+                <span class="hidden md:inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold"
                       style="background:#e8f0f7; color:#0F4C75;">
                     {{ auth()->user()->roles->first()?->name ?? '' }}
                 </span>
+                {{-- فريق التطوير: ثابت في الشريط فيظهر في كل الصفحات --}}
+                <div class="w-px h-5 bg-gray-200 hidden sm:block"></div>
+                @include('partials.developers-badge')
             </div>
         </header>
 
@@ -655,7 +685,7 @@
         @endif
 
         <!-- Page Content -->
-        <main class="flex-1 overflow-y-auto p-3 sm:p-6">
+        <main class="app-main flex-1 overflow-y-auto p-3 sm:p-6">
             @yield('content')
         </main>
     </div>

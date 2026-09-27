@@ -208,7 +208,7 @@
             qaToast(error.message, false);
         } finally {
             button.disabled = false;
-            button.textContent = 'إضافة الرسم';
+            button.textContent = 'إضافة الرسوم الإضافية';
         }
     });
 
@@ -283,10 +283,43 @@
         return div.innerHTML;
     }
 
-    /** لون الأيقونة وعدّادها يتبعان الملاحظات القائمة بعد كل تغيير. */
+    /* ————— طيّ نصوص الملاحظات في الجدول —————
+       بعض الموظفين يريدون النصّ ظاهراً ليقرأوه بمرور العين، وبعضهم يريد قائمةً
+       نظيفة بالأيقونات وحدها. الاختيار محفوظ في المتصفح فيبقى بين الصفحات. */
+    const NOTE_TEXT_KEY = 'resNotesTextHidden';
+
+    function notesTextHidden() {
+        try { return localStorage.getItem(NOTE_TEXT_KEY) === '1'; } catch (e) { return false; }
+    }
+
+    // الإظهار/الإخفاء بنمط مباشر لا بصنف: الصنف hidden على العنصر مغلوب بـ sm:block
+    window.applyNotesTextState = function () {
+        const hidden = notesTextHidden();
+        document.querySelectorAll('[data-note-text]').forEach(function (el) {
+            el.style.display = hidden ? 'none' : '';
+        });
+        document.querySelectorAll('[data-notes-text-label]').forEach(function (el) {
+            el.textContent = hidden ? 'إظهار نصوص الملاحظات' : 'إخفاء نصوص الملاحظات';
+        });
+    };
+
+    window.toggleNotesText = function () {
+        try { localStorage.setItem(NOTE_TEXT_KEY, notesTextHidden() ? '0' : '1'); } catch (e) {}
+        window.applyNotesTextState();
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', window.applyNotesTextState);
+    } else {
+        window.applyNotesTextState();
+    }
+
+    /** لون الأيقونة وعدّادها ونصّها المعروض يتبعون الملاحظات القائمة بعد كل تغيير. */
     function updateNoteIcon(payload) {
         const button = document.querySelector(`[data-notes-btn="${notesId}"]`);
         if (!button) return;
+
+        updateNoteText(payload);
 
         const classes = {
             red:   'bg-red-100 text-red-600 hover:bg-red-200',
@@ -306,6 +339,48 @@
             badge.textContent = payload.open_count;
             button.appendChild(badge);
         }
+    }
+
+    /**
+     * يعيد رسم نصّ الملاحظة الظاهر بجوار الأيقونة في الصفّ. الخانة قد لا تحتوي
+     * عنصر نصّ (كان الحجز بلا ملاحظات) فنُنشئه عند أول ملاحظة تُضاف.
+     */
+    function updateNoteText(payload) {
+        const cell = document.querySelector(`[data-note-cell="${notesId}"]`);
+        if (!cell) return;
+
+        let box = cell.querySelector('[data-note-text]');
+        const first = payload.items.find((note) => !note.resolved);
+
+        if (!first) {
+            if (box) box.remove();
+            return;
+        }
+
+        if (!box) {
+            box = document.createElement('div');
+            box.setAttribute('data-note-text', notesId);
+            box.className = 'min-w-0 max-w-[15rem]';
+            cell.appendChild(box);
+        }
+
+        const styles = {
+            red:   'bg-red-50 border-red-200 text-red-800',
+            amber: 'bg-amber-50 border-amber-200 text-amber-800',
+            blue:  'bg-blue-50 border-blue-200 text-blue-800',
+        }[payload.color] || 'bg-gray-50 border-gray-200 text-gray-600';
+
+        const others = payload.items.filter((note) => !note.resolved).length - 1;
+
+        box.innerHTML = `
+            <button type="button" onclick="event.stopPropagation(); openNotes(${notesId}, this.closest('[data-note-cell]').querySelector('[data-notes-btn]'))"
+                    class="block w-full text-right rounded-lg border px-2 py-1 text-[11px] leading-snug transition hover:brightness-95 ${styles}">
+                <span class="font-bold block text-[10px] opacity-80">${escapeHtml(first.type_label)}</span>
+                <span class="block line-clamp-2">${escapeHtml(first.body)}</span>
+                ${others > 0 ? `<span class="block text-[10px] font-semibold opacity-70 mt-0.5">+${others} ملاحظة أخرى</span>` : ''}
+            </button>`;
+
+        window.applyNotesTextState();
     }
 
     document.getElementById('noteForm')?.addEventListener('submit', async function (e) {

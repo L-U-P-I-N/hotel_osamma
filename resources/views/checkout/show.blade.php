@@ -96,6 +96,90 @@
     @csrf
     @method('POST')
 
+    {{-- مغادرة مبكرة: نزيل حجز (ودفع) ليالٍ أكثر مما أقام --}}
+    @if($earlyQuote)
+    <div class="bg-white rounded-xl shadow-sm border border-amber-200 p-5">
+        <div class="flex items-center gap-2 mb-3">
+            <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+                <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            </div>
+            <h3 class="font-semibold text-amber-800">مغادرة مبكرة — النزيل يخرج قبل تاريخ خروجه المحجوز</h3>
+        </div>
+
+        <input type="hidden" name="early_departure" :value="earlyDeparture ? 1 : 0">
+        <label class="flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition"
+               :class="earlyDeparture ? 'bg-amber-50 border-amber-300' : 'bg-gray-50 border-gray-200 hover:border-gray-300'">
+            <input type="checkbox" x-model="earlyDeparture" class="mt-0.5 w-4 h-4 accent-amber-600">
+            <span class="text-sm">
+                <span class="font-semibold text-gray-800">
+                    احتسب الإقامة على {{ $earlyQuote['actual_nights'] }} ليلة فعلية بدل {{ $earlyQuote['planned_nights'] }} ليلة محجوزة
+                </span>
+                <span class="block text-xs text-gray-500 mt-0.5">
+                    {{ $earlyQuote['unused_nights'] }} ليلة لم تُستهلك. سيهبط المستحق بمقدار
+                    <strong>{{ number_format($earlyQuote['savings'], 0) }} {{ $reservation->currency_symbol }}</strong>،
+                    ولن تُمسّ فترات الغرفة المرتبطة بورديات أُقفلت.
+                </span>
+            </span>
+        </label>
+
+        <div x-show="earlyDeparture" x-cloak class="mt-4 space-y-3">
+            <div class="bg-gray-50 rounded-xl border border-gray-200 p-4 space-y-2 text-sm">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">المستحق الحالي</span>
+                    <span class="font-medium text-gray-800">{{ number_format($reservation->total_amount, 2) }} {{ $reservation->currency_symbol }}</span>
+                </div>
+                <div class="flex justify-between text-emerald-700">
+                    <span>خصم الليالي غير المستهلكة</span>
+                    <span class="font-semibold">- {{ number_format($earlyQuote['savings'], 2) }} {{ $reservation->currency_symbol }}</span>
+                </div>
+                <div class="flex justify-between border-t border-gray-300 pt-2 font-bold">
+                    <span class="text-gray-800">المستحق بعد التسوية</span>
+                    <span class="text-gray-900">{{ number_format($earlyQuote['new_total'], 2) }} {{ $reservation->currency_symbol }}</span>
+                </div>
+            </div>
+
+            @if($earlyQuote['refundable'] > 0)
+            <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm font-bold text-emerald-800">مبلغ متبقٍّ للنزيل</span>
+                    <span class="text-lg font-black text-emerald-800">{{ number_format($earlyQuote['refundable'], 2) }} {{ $reservation->currency_symbol }}</span>
+                </div>
+                <p class="text-xs text-emerald-700 mb-3">
+                    دفع النزيل أكثر من المستحق بعد التسوية. اختر ما يُفعل بالمبلغ — لا يُسمح بإتمام
+                    الخروج دون قرار، فلا يضيع حقٌّ للنزيل ولا يبقى التزامٌ غير مسجَّل على الفندق.
+                </p>
+                <div class="space-y-2">
+                    <label class="flex items-start gap-2.5 p-3 rounded-lg border cursor-pointer transition bg-white"
+                           :class="creditAction === 'carry' ? 'border-emerald-400 ring-1 ring-emerald-300' : 'border-gray-200'">
+                        <input type="radio" name="credit_action" value="carry" x-model="creditAction" class="mt-0.5 w-4 h-4 accent-emerald-600">
+                        <span class="text-xs">
+                            <span class="font-bold text-gray-800">ترحيله إلى «المبالغ المتبقية للنزلاء»</span>
+                            <span class="block text-gray-500 mt-0.5">يبقى النقد في الصندوق ويُسجَّل رصيداً باسم النزيل يُصرف له لاحقاً.</span>
+                        </span>
+                    </label>
+                    <label class="flex items-start gap-2.5 p-3 rounded-lg border cursor-pointer transition bg-white"
+                           :class="creditAction === 'payout' ? 'border-emerald-400 ring-1 ring-emerald-300' : 'border-gray-200'">
+                        <input type="radio" name="credit_action" value="payout" x-model="creditAction" class="mt-0.5 w-4 h-4 accent-emerald-600">
+                        <span class="text-xs">
+                            <span class="font-bold text-gray-800">صرفه للنزيل الآن</span>
+                            <span class="block text-gray-500 mt-0.5">يخرج المبلغ من صندوق الوردية فوراً ويظهر في تقرير الاسترجاعات.</span>
+                        </span>
+                    </label>
+                </div>
+                <div x-show="creditAction === 'payout'" x-cloak class="mt-3">
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">طريقة الصرف</label>
+                    <select name="credit_method" class="w-full md:w-56 border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none bg-white">
+                        <option value="cash">نقدي</option>
+                        <option value="pos">POS</option>
+                        <option value="bank_transfer">تحويل بنكي</option>
+                    </select>
+                </div>
+            </div>
+            @endif
+        </div>
+    </div>
+    @endif
+
     <!-- Room Inspection -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
         <h3 class="font-semibold text-gray-700 mb-4">فحص الغرفة</h3>
@@ -149,7 +233,8 @@
         <div x-show="hasDamage && compensationAmount > 0" class="mb-4 space-y-2 bg-gray-50 rounded-xl p-4 border border-gray-200 text-sm">
             <div class="flex justify-between">
                 <span class="text-gray-600">رصيد الحجز</span>
-                <span class="font-medium text-gray-800">{{ number_format($reservation->balance, 2) }} {{ $reservation->currency_symbol }}</span>
+                <span class="font-medium text-gray-800"
+                      x-text="effectiveBalance.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' {{ $reservation->currency_symbol }}'"></span>
             </div>
             <div class="flex justify-between">
                 <span class="text-gray-600">تعويض الأضرار</span>
@@ -164,7 +249,8 @@
         {{-- Simple total when no damage --}}
         <div x-show="!(hasDamage && compensationAmount > 0)" class="bg-red-50 border border-red-200 rounded-xl p-4 mb-4 flex items-center justify-between">
             <span class="text-sm text-red-800 font-medium">المبلغ المتبقي</span>
-            <span class="text-xl font-bold text-red-700">{{ number_format($reservation->balance, 2) }} {{ $reservation->currency_symbol }}</span>
+            <span class="text-xl font-bold text-red-700"
+                  x-text="effectiveBalance.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' {{ $reservation->currency_symbol }}'"></span>
         </div>
 
         <input type="hidden" name="currency" value="YER">
@@ -254,6 +340,17 @@
             <svg class="w-5 h-5 text-orange-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
             سيُسجَّل الخروج مع بقاء دَين قدره <strong class="mx-1" x-text="(totalRequired - (parseFloat(remainingPayment)||0)).toLocaleString('ar-SA', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' {{ $reservation->currency_symbol }}'"></strong> على النزيل.
         </div>
+        {{-- ملاحظة الخروج: تظهر في كشوف النزلاء (الموجودين والمغادرين) فيقرأها
+             من يراجع الكشف لاحقاً دون فتح الحجز --}}
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">
+                ملاحظة الخروج <span class="text-gray-400 font-normal text-xs">(اختياري — تظهر في كشف النزلاء)</span>
+            </label>
+            <textarea name="checkout_notes" rows="2" maxlength="1000"
+                      placeholder="مثال: غادر مبكراً لسفر مفاجئ — الغرفة سليمة — وعد بالعودة الأسبوع القادم"
+                      class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none resize-none">{{ old('checkout_notes') }}</textarea>
+        </div>
+
         <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-4 text-sm text-yellow-800">
             <strong>تحذير:</strong> بعد إتمام تسجيل الخروج لا يمكن التراجع عنه.
         </div>
@@ -283,9 +380,19 @@ function checkoutForm() {
         balance: {{ $reservation->balance }},
         purchasesDebt: {{ $reservation->purchases_debt }},
         collectPurchases: false,
+        // تسوية المغادرة المبكرة: القيم للعرض فقط — الخادم يعيد حسابها كلها
+        earlyDeparture: false,
+        creditAction: 'carry',
+        earlyBalance: {{ $earlyQuote['new_balance'] ?? 0 }},
+        hasEarlyQuote: {{ $earlyQuote ? 'true' : 'false' }},
+        // الرصيد الذي تُحاسَب عليه الشاشة يتبع اختيار المغادرة المبكرة: تسوية
+        // الليالي غير المستهلكة تُنزل المستحق، فلا يُطالَب النزيل بما لن يقيمه.
+        get effectiveBalance() {
+            return (this.hasEarlyQuote && this.earlyDeparture) ? this.earlyBalance : this.balance;
+        },
         get totalRequired() {
             const comp = this.hasDamage ? (parseFloat(this.compensationAmount) || 0) : 0;
-            return this.balance + comp;
+            return this.effectiveBalance + comp;
         },
         // يُمنع الخروج ما لم تُسوَّ الإقامة (أو تُترك كدَين) ويُحصَّل دَين المشتريات
         // (أو يُترك كدَين عند خيار «غادر دون سداد»).

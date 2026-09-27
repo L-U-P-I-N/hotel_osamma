@@ -4,6 +4,7 @@ namespace App\Services;
 use App\Helpers\StorageHelper;
 use App\Models\Expense;
 use App\Models\ExtraCharge;
+use App\Models\GuestCredit;
 use App\Models\InspectionImage;
 use App\Models\Payment;
 use App\Models\Reservation;
@@ -13,6 +14,130 @@ use Illuminate\Support\Facades\DB;
 
 class CheckOutService
 {
+    /**
+     * حساب المغادرة المبكرة: نزيل حجز (ودفع) ليالٍ أكثر مما أقام. يُرجِع تفصيل
+     * التسوية المقترحة، أو null إن لم تكن هناك ليالٍ غير مستهلكة.
+     *
+     * الفترات المحاسبية (segments) لا تُمَس: قد تكون إحداها مرتبطة بوردية أُقفلت
+     * فعلاً، وإعادة كتابتها تُغيّر أرقام عملٍ سابقٍ مُصفّى. لذا تُسجَّل الليالي
+     * غير المستهلكة كخصم على الحجز — فيبقى إجمالي الغرفة قبل الخصم (gross_total)
+     * مطابقاً لمجموع الفترات كما هو، ويهبط المستحق وحده.
+     *
+     * @return array{planned_nights:int,actual_nights:int,unused_nights:int,savings:float,new_total:float,new_discount:float,refundable:float,new_balance:float}|null
+     */
+    public function earlyDepartureQuote(Reservation $reservation, $departureAt = null): ?array
+    {
+        $departure = $departureAt ? \Carbon\Carbon::parse($departureAt) : now();
+
+        $plannedNights = max(1, $reservation->nights);
+        $actualNights  = Reservation::billableNightsFor(
+            $reservation->check_in_date,
+            $departure->toDateString(),
+            $departure->format('H:i'),
+            $reservation->check_in_time
+        );
+        $actualNights = max(1, min($actualNights, $plannedNights));
+        $unusedNights = $plannedNights - $actualNights;
+
+        if ($unusedNights <= 0) {
+            return null;
+        }
+
+        // نفس اشتقاق الأسعار المستخدَم في تعديل تواريخ الإقامة: سعر محفوظ إن
+        // وُجد، وإلا يُشتقّ من الإجمالي الفعلي لا من سعر الغرفة الافتراضي (فقد
+        // يكون الحجز مسعَّراً بسعر متفاوَض عليه).
+        $firstNightPrice = $reservation->first_night_price !== null
+            ? (float) $reservation->first_night_price
+            : round((float) $reservation->gross_total / $plannedNights, 2);
+        $renewalPrice = $reservation->renewal_price_per_night !== null
+            ? (float) $reservation->renewal_price_per_night
+            : $firstNightPrice;
+
+        $grossOld   = (float) $reservation->gross_total;
+        $netStayOld = round($grossOld - (float) $reservation->discount_amount, 2);
+
+        $newGross   = round($firstNightPrice + max(0, $actualNights - 1) * $renewalPrice, 2);
+        $netStayNew = max(0, round($newGross - $reservation->discountAmountFor($newGross), 2));
+
+        $savings = round(max(0, $netStayOld - $netStayNew), 2);
+
+        if ($savings <= 0) {
+            return null;
+        }
+
+        $newTotal    = round(max(0, (float) $reservation->total_amount - $savings), 2);
+        $newDiscount = round((float) $reservation->discount_amount + $savings, 2);
+        $paid        = (float) $reservation->paid_amount;
+
+        return [
+            'planned_nights' => $plannedNights,
+            'actual_nights'  => $actualNights,
+            'unused_nights'  => $unusedNights,
+            'savings'        => $savings,
+            'new_total'      => $newTotal,
+            'new_discount'   => $newDiscount,
+            // ما دفعه النزيل فوق المستحق الجديد — يُرحَّل رصيداً باسمه أو يُصرف له
+            'refundable'     => round(max(0, $paid - $newTotal), 2),
+            'new_balance'    => round(max(0, $newTotal - $paid), 2),
+        ];
+    }
+
+    /**
+     * يطبّق تسوية المغادرة المبكرة: يُنزل المستحق إلى قيمة الليالي المُقامة فعلاً،
+     * ثم يرحّل ما دفعه النزيل زائداً إلى رصيد باسمه (أو يصرفه له نقداً الآن).
+     * يُنفَّذ داخل معاملة الخروج نفسها.
+     */
+    private function applyEarlyDeparture(Reservation $reservation, array $data, User $user): ?array
+    {
+        // الحساب يُعاد على الخادم دائماً — قيم النموذج للعرض فقط
+        $quote = $this->earlyDepartureQuote($reservation);
+
+        if (!$quote) {
+            return null;
+        }
+
+        $old = $reservation->only(['total_amount', 'discount_amount', 'discount_type', 'discount_value']);
+
+        $reason = 'مغادرة مبكرة: ' . $quote['unused_nights'] . ' من '
+            . $quote['planned_nights'] . ' ليلة لم تُستهلك';
+
+        // النوع يُحوَّل إلى مبلغ ثابت: الإقامة انتهت فلا معنى لإعادة احتساب نسبة
+        // مئوية لاحقاً، والمبلغ الثابت يحفظ الخصم كما هو عند أي تعديل تالٍ.
+        $reservation->discount_amount = $quote['new_discount'];
+        $reservation->discount_type   = 'fixed';
+        $reservation->discount_value  = $quote['new_discount'];
+        $reservation->discount_reason = trim(($reservation->discount_reason ? $reservation->discount_reason . ' + ' : '') . $reason);
+        $reservation->total_amount    = $quote['new_total'];
+        $reservation->save();
+
+        $reservation->refresh()->recalculatePaidAmount();
+
+        if ($quote['refundable'] > 0) {
+            $creditService = app(\App\Services\GuestCreditService::class);
+            $credit = $creditService->carry($reservation, $quote['refundable'], $reason, $user);
+
+            // صرف فوري: المبلغ يخرج من صندوق الوردية الآن بدل أن يبقى رصيداً
+            if (($data['credit_action'] ?? 'carry') === 'payout') {
+                $creditService->settle($credit, [
+                    'settlement_method' => $data['credit_method'] ?? 'cash',
+                    'settlement_notes'  => 'صُرف للنزيل لحظة تسجيل الخروج',
+                ], $user);
+            }
+
+            $reservation->refresh();
+        }
+
+        AuditLogService::log('update', $reservation, $old, [
+            'action'        => 'early_departure_settled',
+            'unused_nights' => $quote['unused_nights'],
+            'savings'       => $quote['savings'],
+            'refundable'    => $quote['refundable'],
+            'credit_action' => $data['credit_action'] ?? 'carry',
+        ], $user);
+
+        return $quote;
+    }
+
     public function processCheckOut(Reservation $reservation, array $data, User $user): Reservation
     {
         return DB::transaction(function () use ($reservation, $data, $user) {
@@ -33,6 +158,12 @@ class CheckOutService
                     ->where('in_hotel_total', false)
                     ->whereNull('settled_at')
                     ->update(['settled_at' => now(), 'settled_by' => $user->id]);
+            }
+
+            // 0.5 المغادرة المبكرة تُسوّى قبل أي حساب آخر: هي التي تحدّد المستحق
+            // الفعلي، وبقية الخطوات (الأضرار، الدفع، حالة السداد) تبنى عليه.
+            if (!empty($data['early_departure'])) {
+                $this->applyEarlyDeparture($reservation, $data, $user);
             }
 
             // a. Create RoomInspection
@@ -149,6 +280,8 @@ class CheckOutService
                 'actual_check_out' => now(),
                 'checked_out_by'   => $user->id,
                 'auto_renew'       => false,
+                // ملاحظة الخروج تظهر في كشوف النزلاء (الموجودين والمغادرين)
+                'checkout_notes'   => $this->nullIfBlank($data['checkout_notes'] ?? null),
             ];
 
             // النزيل غادر دون سداد (هروب): نُسجّل الخروج مع بقاء الدين ونوثّق ذلك
@@ -178,6 +311,14 @@ class CheckOutService
 
             return $reservation->fresh();
         });
+    }
+
+    /** نصّ فارغ أو مسافات لا يُحفظ ملاحظةً — يبقى الحقل null فتُقرأ الكشوف نظيفة. */
+    private function nullIfBlank(?string $value): ?string
+    {
+        $value = $value !== null ? trim($value) : null;
+
+        return $value === '' ? null : $value;
     }
 
     /**
