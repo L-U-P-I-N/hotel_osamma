@@ -31,6 +31,7 @@ class PaymentController extends Controller
             'reservation_id' => 'required|exists:reservations,id',
             'amount'         => ['required', 'numeric', 'min:0.01', 'max:' . $reservation->balance],
             'method'         => 'required|in:cash,bank_transfer,pos',
+            'payment_account_id' => 'nullable|exists:payment_accounts,id',
             'currency'       => 'nullable|in:YER',
             'notes'          => 'nullable|string|max:500',
             'bank_receipt'   => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',

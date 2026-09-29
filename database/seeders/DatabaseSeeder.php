@@ -12,6 +12,7 @@ class DatabaseSeeder extends Seeder
             RolesSeeder::class,
             // AccountsSeeder لم تعد تُبذر: شجرة USALI وحدها دفتر الأستاذ بعد التوحيد
             ChartOfAccountsSeeder::class,
+            PaymentAccountsSeeder::class,
             UserSeeder::class,
             RoomTypeSeeder::class,
             RoomSeeder::class,

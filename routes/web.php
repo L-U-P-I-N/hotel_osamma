@@ -10,6 +10,7 @@ use App\Http\Controllers\ReservationController;
 use App\Http\Controllers\ReservationNoteController;
 use App\Http\Controllers\HotelNoteController;
 use App\Http\Controllers\GuestCreditController;
+use App\Http\Controllers\PaymentAccountController;
 use App\Http\Controllers\CheckOutController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\SettlementController;
@@ -196,6 +197,16 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/reservations/{reservation}/damage/{inspection}', [ReservationController::class, 'updateDamage'])->name('reservations.updateDamage');
         Route::delete('/reservations/{reservation}/damage/{inspection}', [ReservationController::class, 'removeDamage'])->name('reservations.removeDamage');
     });
+
+    // الصناديق والحسابات البنكية — رصيد كل وعاء مالٍ على حِدة
+    Route::get('/payment-accounts', [PaymentAccountController::class, 'index'])
+        ->name('payment-accounts.index')->middleware('permission:accounts.view');
+    Route::post('/payment-accounts', [PaymentAccountController::class, 'store'])
+        ->name('payment-accounts.store')->middleware('permission:settings.manage');
+    Route::put('/payment-accounts/{paymentAccount}', [PaymentAccountController::class, 'update'])
+        ->name('payment-accounts.update')->middleware('permission:settings.manage');
+    Route::patch('/payment-accounts/{paymentAccount}/toggle', [PaymentAccountController::class, 'toggle'])
+        ->name('payment-accounts.toggle')->middleware('permission:settings.manage');
 
     // المبالغ المتبقية للنزلاء (أمانات دائنة على الفندق)
     Route::get('/guest-credits', [GuestCreditController::class, 'index'])

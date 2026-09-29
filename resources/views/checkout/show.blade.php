@@ -276,6 +276,7 @@
                     <option value="bank_transfer">تحويل بنكي</option>
                 </select>
             </div>
+            @include('partials.payment-account-picker', ['methodModel' => 'remainingMethod', 'compact' => true, 'name' => 'payment_account_id'])
             <div class="md:col-span-2">
                 <label class="block text-xs font-medium text-gray-600 mb-1.5">ملاحظة (اختياري)</label>
                 <input type="text" name="payment_notes"

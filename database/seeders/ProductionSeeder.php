@@ -43,6 +43,7 @@ class ProductionSeeder extends Seeder
         //    تُحدَّث دائماً لأنها بيانات مرجعية بحتة، فأي حساب جديد يضيفه
         //    التحديث يصل تلقائياً دون تدخل.
         $this->call(ChartOfAccountsSeeder::class);
+        $this->call(PaymentAccountsSeeder::class);
         $this->command?->info('  ✔ شجرة الحسابات: ' . ChartOfAccount::count() . ' حساباً');
 
         // ⑥ أنواع الغرف — لازمة قبل بذر الغرف

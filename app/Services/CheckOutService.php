@@ -246,13 +246,24 @@ class CheckOutService
                 $shiftService = app(ShiftService::class);
                 $shift = $shiftService->getActiveShift($user);
 
+                $method  = $data['remaining_method'] ?? 'cash';
+                // الوعاء الذي دخله المبلغ فعلاً — بدونه تُحسب تسوية الخروج
+                // بالتحويل البنكي نقداً في درج الوردية
+                $account = !empty($data['payment_account_id'])
+                    ? \App\Models\PaymentAccount::find($data['payment_account_id'])
+                    : null;
+                if (!$account || !in_array($account->type, \App\Models\PaymentAccount::METHOD_TYPES[$method] ?? [], true)) {
+                    $account = \App\Models\PaymentAccount::defaultFor($method);
+                }
+
                 Payment::create([
                     'reservation_id' => $reservation->id,
                     'shift_id' => $shift?->id,
                     'received_by' => $user->id,
                     'amount' => $data['remaining_payment'],
                     'currency' => 'YER',
-                    'method' => $data['remaining_method'] ?? 'cash',
+                    'method' => $method,
+                    'payment_account_id' => $account?->id,
                     'bank_receipt_path' => $bankReceiptPath,
                     'notes' => $data['payment_notes'] ?? null,
                     'payment_date' => now(),

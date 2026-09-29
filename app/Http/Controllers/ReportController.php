@@ -750,19 +750,23 @@ class ReportController extends Controller
             ->get();
 
         $shiftBoxes = $openShifts->map(function (Shift $shift) {
-            $received    = (float) $shift->total_received_yer;
+            // الدرج يضمّ النقد وحده؛ التحويل والشبكة يدخلان البنك مباشرةً
+            $cash        = (float) $shift->total_received_cash_yer;
+            $nonCash     = (float) $shift->total_received_noncash_yer;
             $withdrawals = (float) $shift->total_withdrawals_yer;
             $refunds     = (float) $shift->total_refunds_yer;
 
             return [
-                'shift'       => $shift,
-                'user'        => $shift->user?->name ?? '—',
-                'date'        => $shift->shift_date,
-                'started_at'  => $shift->started_at,
-                'received'    => $received,
-                'withdrawals' => $withdrawals,
-                'refunds'     => $refunds,
-                'in_drawer'   => round($received - $withdrawals - $refunds, 2),
+                'shift'        => $shift,
+                'user'         => $shift->user?->name ?? '—',
+                'date'         => $shift->shift_date,
+                'started_at'   => $shift->started_at,
+                'received'     => $cash,
+                'received_all' => (float) $shift->total_received_yer,
+                'non_cash'     => $nonCash,
+                'withdrawals'  => $withdrawals,
+                'refunds'      => $refunds,
+                'in_drawer'    => round($cash - $withdrawals - $refunds, 2),
             ];
         });
 

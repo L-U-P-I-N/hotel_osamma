@@ -10,7 +10,7 @@ class Payment extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'reservation_id','group_id','paid_by_name','shift_id','received_by','amount','currency','method',
+        'reservation_id','group_id','paid_by_name','shift_id','received_by','amount','currency','method','payment_account_id',
         'bank_receipt_path','bank_transfer_ref','payment_date','type','notes',
     ];
 
@@ -25,5 +25,8 @@ class Payment extends Model
     }
 
     public function receivedBy() { return $this->belongsTo(User::class, 'received_by'); }
+
+    /** الوعاء المالي الذي دخله المبلغ فعلاً (درج، بنك بعينه، جهاز شبكة). */
+    public function paymentAccount() { return $this->belongsTo(PaymentAccount::class); }
     public function shift()      { return $this->belongsTo(Shift::class); }
 }

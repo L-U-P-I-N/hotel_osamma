@@ -1259,6 +1259,11 @@ html.dark [style*="background:var(--gold-l)"] {
                     </label>
                 </div>
 
+                {{-- إلى أي حساب بنكي دخل المبلغ — يظهر عند التحويل فقط --}}
+                <div class="mb-3">
+                    @include('partials.payment-account-picker', ['methodModel' => 'paymentMethod', 'compact' => true])
+                </div>
+
                 {{-- Currency notes --}}
                 <div class="mb-3">
                     <label class="fl text-xs">ملاحظة العملة (اختياري)</label>

@@ -63,7 +63,7 @@ class ShiftService
         $this->computeTotals($shift);
         $shift->refresh();
 
-        $netBalance = $shift->total_received_yer - $shift->total_withdrawals_yer - $shift->total_refunds_yer;
+        $netBalance = $this->expectedDrawerCash($shift);
         $shortfall  = $actualAmount !== null ? ($actualAmount - $netBalance) : null;
 
         // Append this closing event to the history
@@ -276,7 +276,7 @@ class ShiftService
         $shift->refresh();
 
         if ($shift->is_closed && $shift->actual_amount !== null) {
-            $netBalance = $shift->total_received_yer - $shift->total_withdrawals_yer - $shift->total_refunds_yer;
+            $netBalance = $this->expectedDrawerCash($shift);
             $shift->update(['shortfall' => (float) $shift->actual_amount - $netBalance]);
         }
     }
@@ -404,10 +404,23 @@ class ShiftService
 
     public function computeTotals(Shift $shift): void
     {
-        $payments = Payment::where('shift_id', $shift->id)->get();
+        $payments = Payment::with('paymentAccount')->where('shift_id', $shift->id)->get();
         $recv = ['YER' => 0, 'SAR' => 0, 'USD' => 0];
+        // النقدي وحده هو ما يُعدّ في الدرج عند الإقفال؛ التحويل والشبكة يدخلان
+        // البنك مباشرةً ولا يمرّان بيد الموظف.
+        $cash = 0.0;
+        $nonCash = 0.0;
         foreach ($payments as $p) {
             $recv[$p->currency] = ($recv[$p->currency] ?? 0) + (float)$p->amount;
+
+            if ($p->currency !== 'YER') {
+                continue;
+            }
+            if ($this->isCashPayment($p)) {
+                $cash += (float) $p->amount;
+            } else {
+                $nonCash += (float) $p->amount;
+            }
         }
 
         $withdrawals = CashWithdrawal::where('shift_id', $shift->id)->get();
@@ -429,10 +442,40 @@ class ShiftService
             'total_withdrawals_yer' => $wdr['YER'],
             'total_withdrawals_sar' => $wdr['SAR'],
             'total_withdrawals_usd' => $wdr['USD'],
+            'total_received_cash_yer'    => round($cash, 2),
+            'total_received_noncash_yer' => round($nonCash, 2),
             'total_refunds_yer'     => $rfd['YER'],
             'total_refunds_sar'     => $rfd['SAR'],
             'total_refunds_usd'     => $rfd['USD'],
         ]);
+    }
+
+    /**
+     * دفعة نقدية فعلاً؟ الوعاء هو الحكم حين يكون مربوطاً (درج أو خزنة)، وإلا
+     * نرجع للطريقة — فالدفعات القديمة سُجّلت قبل وجود الأوعية.
+     */
+    private function isCashPayment(Payment $payment): bool
+    {
+        if ($payment->paymentAccount) {
+            return $payment->paymentAccount->is_cash;
+        }
+
+        return $payment->method === 'cash';
+    }
+
+    /**
+     * النقد المتوقَّع في الدرج عند الإقفال: المقبوض نقداً فقط ناقص ما خرج منه.
+     * كان يُحسب من إجمالي المقبوض فيشمل التحويلات البنكية، فيظهر عجزٌ ورقيّ
+     * بمقدار ما حُوِّل.
+     */
+    public function expectedDrawerCash(Shift $shift): float
+    {
+        return round(
+            (float) $shift->total_received_cash_yer
+            - (float) $shift->total_withdrawals_yer
+            - (float) $shift->total_refunds_yer,
+            2
+        );
     }
 
     public function getHistory(User $user, int $limit = 10): Collection

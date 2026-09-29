@@ -9,6 +9,7 @@ class Shift extends Model
         'user_id','shift_date','started_at','ended_at',
         'is_closed','closed_at',
         'total_received_yer','total_received_sar','total_received_usd',
+        'total_received_cash_yer','total_received_noncash_yer',
         'total_withdrawals_yer','total_withdrawals_sar','total_withdrawals_usd',
         'total_refunds_yer','total_refunds_sar','total_refunds_usd',
         'actual_amount','shortfall',
@@ -33,9 +34,25 @@ class Shift extends Model
     public function withdrawals() { return $this->hasMany(CashWithdrawal::class); }
     public function refunds()     { return $this->hasMany(Refund::class); }
 
+    /**
+     * النقد المتوقَّع في الدرج: المقبوض **نقداً** فقط ناقص ما خرج منه. التحويل
+     * البنكي والشبكة لا يمرّان بالدرج، وإدخالهما هنا كان يُظهر عجزاً ورقياً على
+     * الموظف بمقدار ما حُوِّل.
+     */
     public function getNetBalanceYerAttribute(): float
     {
-        return $this->total_received_yer - $this->total_withdrawals_yer - $this->total_refunds_yer;
+        return round(
+            (float) $this->total_received_cash_yer
+            - (float) $this->total_withdrawals_yer
+            - (float) $this->total_refunds_yer,
+            2
+        );
+    }
+
+    /** المقبوض بغير النقد (بنك/شبكة) — للعرض لا للعدّ في الدرج. */
+    public function getNonCashReceivedYerAttribute(): float
+    {
+        return (float) $this->total_received_noncash_yer;
     }
 
     public function getNetBalanceSarAttribute(): float

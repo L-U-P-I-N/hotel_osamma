@@ -45,6 +45,7 @@ class CheckOutController extends Controller
             'inspection_images.*' => 'nullable|file|mimes:jpg,jpeg,png|max:5120',
             'remaining_payment' => 'nullable|numeric|min:0',
             'remaining_method' => 'nullable|in:cash,bank_transfer,pos',
+            'payment_account_id' => 'nullable|exists:payment_accounts,id',
             'remaining_bank_receipt' => 'required_if:remaining_method,bank_transfer|nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
             'left_unpaid' => 'boolean',
             'collect_purchases' => 'boolean',

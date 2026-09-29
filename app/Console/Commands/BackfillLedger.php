@@ -7,6 +7,7 @@ use App\Models\ExtraCharge;
 use App\Models\GuestCredit;
 use App\Models\JournalEntry;
 use App\Models\Payment;
+use App\Models\PaymentAccount;
 use App\Models\Refund;
 use App\Models\Salary;
 use App\Services\JournalService;
@@ -69,7 +70,7 @@ class BackfillLedger extends Command
     /** دفعات النزلاء: نقدية الوردية مقابل إيراد الغرف. */
     private function backfillPayments(JournalService $journal, ?string $from, ?string $to, bool $dry): void
     {
-        $query = Payment::query()->where('currency', 'YER');
+        $query = Payment::query()->with('paymentAccount')->where('currency', 'YER');
         $this->applyDates($query, 'payment_date', $from, $to);
 
         $this->each('دفعات النزلاء', $query, function (Payment $payment) use ($journal, $dry) {
@@ -79,7 +80,7 @@ class BackfillLedger extends Command
                 'دفعة نزيل — حجز #' . $payment->reservation_id,
                 Payment::class, $payment->id, 'payment.received',
                 [
-                    ['account_code' => '1111', 'debit'  => $payment->amount],
+                    ['account_code' => $this->containerCode($payment->paymentAccount, $payment->method), 'debit' => $payment->amount],
                     ['account_code' => '4110', 'credit' => $payment->amount],
                 ]
             );
@@ -89,7 +90,7 @@ class BackfillLedger extends Command
     /** الاسترجاعات: مسموحات الغرف مقابل خروج نقدية. */
     private function backfillRefunds(JournalService $journal, ?string $from, ?string $to, bool $dry): void
     {
-        $query = Refund::query()->where('currency', 'YER');
+        $query = Refund::query()->with('paymentAccount')->where('currency', 'YER');
         $this->applyDates($query, 'refunded_at', $from, $to);
 
         $this->each('الاسترجاعات', $query, function (Refund $refund) use ($journal, $dry) {
@@ -99,8 +100,8 @@ class BackfillLedger extends Command
                 'استرجاع لنزيل — حجز #' . $refund->reservation_id,
                 Refund::class, $refund->id, 'refund.issued',
                 [
-                    ['account_code' => '4190', 'debit'  => $refund->amount],
-                    ['account_code' => '1111', 'credit' => $refund->amount],
+                    ['account_code' => '4190', 'debit' => $refund->amount],
+                    ['account_code' => $this->containerCode($refund->paymentAccount, $refund->method), 'credit' => $refund->amount],
                 ]
             );
         });
@@ -216,6 +217,18 @@ class BackfillLedger extends Command
     }
 
     /* ═══════════════════ أدوات ═══════════════════ */
+
+    /**
+     * حساب الوعاء الذي دخله المبلغ (أو خرج منه). الحركات القديمة قد تكون بلا
+     * وعاء إن سبقت ربط الأوعية، فنستنتجه من طريقتها بدل افتراض النقدية —
+     * فتحويل بنكي قديم لا يُسجَّل في درج الوردية.
+     */
+    private function containerCode(?PaymentAccount $account, ?string $method): string
+    {
+        return $account?->account_code
+            ?? PaymentAccount::defaultFor($method ?? 'cash')?->account_code
+            ?? '1111';
+    }
 
     private function applyDates($query, string $column, ?string $from, ?string $to): void
     {

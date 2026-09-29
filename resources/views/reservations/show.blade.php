@@ -1305,6 +1305,7 @@
                     <option value="bank_transfer">تحويل بنكي</option>
                 </select>
             </div>
+            @include('partials.payment-account-picker', ['methodModel' => 'payMethod', 'compact' => true, 'name' => 'payment_account_id'])
 
             <div x-show="payMethod === 'bank_transfer'" x-cloak class="bg-blue-50 border border-blue-100 rounded-xl p-4 space-y-3">
                 <p class="text-xs text-blue-600 font-semibold">يجب تقديم واحد على الأقل: صورة السند أو رقم المرجع</p>
@@ -1414,6 +1415,7 @@ function openOldDebtModal(reservationId, balance, checkInDate) {
                     <option value="bank_transfer">تحويل بنكي</option>
                 </select>
             </div>
+            @include('partials.payment-account-picker', ['methodModel' => 'payMethod', 'compact' => true, 'name' => 'payment_account_id'])
 
             <div x-show="payMethod === 'bank_transfer'" class="bg-blue-50 border border-blue-100 rounded-xl p-4 space-y-3">
                 <p class="text-xs text-blue-600 font-semibold">يجب تقديم واحد على الأقل: صورة السند أو رقم المرجع</p>

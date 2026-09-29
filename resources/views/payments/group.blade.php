@@ -178,6 +178,7 @@
                                 <option value="bank_transfer">تحويل بنكي</option>
                             </select>
                         </div>
+                        @include('partials.payment-account-picker', ['methodModel' => 'method', 'compact' => true, 'name' => 'payment_account_id'])
 
                         {{-- حقول التحويل البنكي --}}
                         <div x-show="method === 'bank_transfer'" x-cloak class="space-y-3">

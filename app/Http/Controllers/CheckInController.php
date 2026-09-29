@@ -180,6 +180,7 @@ class CheckInController extends Controller
             'renewal_price_per_night' => ['nullable', 'numeric', 'min:0', $priceBoundsRule],
             'currency'        => 'nullable|in:YER',
             'bank_receipt' => "required_if:payment_method,bank_transfer|nullable|file|mimes:{$imgMimes}|max:10240",
+            'payment_account_id' => 'nullable|exists:payment_accounts,id',
             'companions.*.full_name' => 'required_with:companions.*.relationship|string',
             'companions.*.relationship' => 'nullable|in:wife,son,daughter,brother,sister,father,mother,other',
             'companions.*.nationality' => 'required_with:companions.*.full_name|nullable|string|max:100',
@@ -197,6 +198,7 @@ class CheckInController extends Controller
             $data['paid_amount'] = $request->input('paid_amount', 0);
             $data['total_amount'] = $request->input('total_amount', 0);
             $data['payment_method'] = $request->input('payment_method', 'cash');
+            $data['payment_account_id'] = $request->input('payment_account_id');
             $data['currency'] = 'YER';
             if ($request->filled('payment_notes')) {
                 $data['payment_notes'] = $request->input('payment_notes');

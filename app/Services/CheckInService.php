@@ -4,6 +4,7 @@ namespace App\Services;
 use App\Models\Companion;
 use App\Models\Guest;
 use App\Models\Payment;
+use App\Services\PaymentService;
 use App\Models\Reservation;
 use App\Models\Room;
 use App\Models\User;
@@ -200,28 +201,22 @@ class CheckInService
                     $bankReceiptPath = StorageHelper::store($data['bank_receipt'], 'bank_receipts');
                 }
 
-                $shift = app(ShiftService::class)->getActiveShift($user);
-
-                Payment::create([
-                    'reservation_id'    => $reservation->id,
-                    'shift_id'          => $shift?->id,
-                    'received_by'       => $user->id,
-                    'amount'            => $data['paid_amount'],
-                    'currency'          => 'YER',
-                    'method'            => $data['payment_method'] ?? 'cash',
-                    'bank_receipt_path' => $bankReceiptPath,
-                    'bank_transfer_ref' => $data['bank_transfer_ref'] ?? null,
-                    'notes'             => $data['payment_notes'] ?? null,
-                    'payment_date'      => now(),
-                    'type'              => 'reservation',
-                ]);
+                // تُسجَّل عبر خدمة الدفعات لا مباشرةً: هي التي تحدّد الوعاء المالي
+                // (درج/بنك/شبكة) وتُرحّل القيد وتحدّث أرقام الوردية. إنشاؤها هنا
+                // مباشرةً كان يتخطّى الثلاثة، فتظهر دفعة الدخول بلا قيد محاسبي.
+                app(PaymentService::class)->addPayment($reservation, [
+                    'amount'             => $data['paid_amount'],
+                    'currency'           => 'YER',
+                    'method'             => $data['payment_method'] ?? 'cash',
+                    'payment_account_id' => $data['payment_account_id'] ?? null,
+                    'bank_transfer_ref'  => $data['bank_transfer_ref'] ?? null,
+                    'notes'              => $data['payment_notes'] ?? null,
+                    'type'               => 'reservation',
+                    'bank_receipt_path'  => $bankReceiptPath,
+                ], $user);
 
                 $reservation->refresh()->recalculatePaidAmount();
                 $reservation->updatePaymentStatus();
-
-                if ($shift) {
-                    app(ShiftService::class)->computeTotals($shift);
-                }
             }
 
             AuditLogService::log('create', $reservation, null, $reservation->toArray(), $user);
