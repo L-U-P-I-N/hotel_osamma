@@ -394,6 +394,13 @@ class ExpenseController extends Controller
         }
     }
 
+    /**
+     * سجل السحب المرافق للمصروف النقدي. ليس واجهةً بديلة للمصروف بل أثرُه في
+     * النقدية: هو ما يُنقص المتوقَّع في درج الوردية وما يظهر في التسوية اليومية.
+     *
+     * الوعاء هو الذي يحدّد أين يُقيَّد: مصروفٌ من الخزنة لا يُربط بوردية ولا
+     * يُنقص درجها، وإلا ظهر الموظف عاجزاً بمبلغٍ لم يخرج من يده.
+     */
     private function syncWithdrawal(Expense $expense, ?Shift $shift): void
     {
         $settlement = $this->getOrCreateSettlement(auth()->user());
@@ -401,11 +408,18 @@ class ExpenseController extends Controller
             return;
         }
 
+        $fromSafe = $expense->paymentAccount?->type === \App\Models\PaymentAccount::TYPE_SAFE;
+
         $withdrawal = CashWithdrawal::where('expense_id', $expense->id)->first();
 
         $payload = [
             'cash_settlement_id' => $settlement->id,
-            'shift_id'           => $shift?->id,
+            'shift_id'           => $fromSafe ? null : $shift?->id,
+            'funding_source'     => $fromSafe ? 'general_safe' : 'shift',
+            'payment_account_id' => $expense->payment_account_id,
+            // السلفة الشخصية تُخصم من الراتب عبر سجل المصروف، ونحفظ الموظف هنا
+            // أيضاً كي يتطابق السجلان ولا يبدو السحب بلا صاحب
+            'employee_id'        => $expense->employee_id,
             'expense_id'         => $expense->id,
             'amount'             => $expense->amount,
             'currency'           => $expense->currency,

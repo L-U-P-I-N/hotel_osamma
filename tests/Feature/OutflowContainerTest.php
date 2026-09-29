@@ -163,6 +163,96 @@ class OutflowContainerTest extends TestCase
         );
     }
 
+    /* ═══ مسار واحد للصرف ═══ */
+
+    /**
+     * مصروف من الخزنة لا يُنقص درج الوردية.
+     *
+     * سجل السحب المرافق للمصروف كان يُربط بالوردية دائماً، فمصروفٌ دُفع من
+     * الخزنة كان يُنقص المتوقَّع في درج الموظف ويُظهره عاجزاً بمبلغ لم يخرج
+     * من يده — نفس عيب التحويل البنكي الذي عولج قبله.
+     */
+    public function test_a_safe_expense_does_not_reduce_the_shift_drawer(): void
+    {
+        $shift = $this->shift();
+
+        $this->actingAs($this->admin())->post(route('expenses.store'), [
+            'amount' => 50000, 'category' => 'other', 'recipient_name' => 'من الخزنة',
+            'expense_date' => today()->toDateString(),
+            'payment_method' => 'cash', 'payment_account_id' => $this->safe()->id,
+        ])->assertRedirect();
+
+        $withdrawal = CashWithdrawal::whereHas('expense', fn ($q) => $q->where('recipient_name', 'من الخزنة'))->first();
+
+        $this->assertNotNull($withdrawal, 'لم يُنشأ سجل السحب المرافق');
+        $this->assertNull($withdrawal->shift_id, 'رُبط مصروف الخزنة بالوردية');
+        $this->assertSame('general_safe', $withdrawal->funding_source);
+        $this->assertSame($this->safe()->id, $withdrawal->payment_account_id);
+
+        app(\App\Services\ShiftService::class)->computeTotals($shift);
+        $this->assertEqualsWithDelta(0, $shift->refresh()->total_withdrawals_yer, 0.01);
+    }
+
+    /** ومصروف من الدرج يُنقصه كما يجب. */
+    public function test_a_drawer_expense_does_reduce_the_shift_drawer(): void
+    {
+        $shift = $this->shift();
+
+        $this->actingAs($this->admin())->post(route('expenses.store'), [
+            'amount' => 7000, 'category' => 'other', 'recipient_name' => 'من الدرج',
+            'expense_date' => today()->toDateString(),
+            'payment_method' => 'cash', 'payment_account_id' => $this->drawer()->id,
+        ])->assertRedirect();
+
+        app(\App\Services\ShiftService::class)->computeTotals($shift);
+
+        $this->assertEqualsWithDelta(7000, $shift->refresh()->total_withdrawals_yer, 0.01);
+    }
+
+    /** ومصروف بتحويل بنكي لا يُنشئ سحباً نقدياً أصلاً. */
+    public function test_a_bank_expense_creates_no_cash_withdrawal(): void
+    {
+        $shift = $this->shift();
+
+        $this->actingAs($this->admin())->post(route('expenses.store'), [
+            'amount' => 33000, 'category' => 'other', 'recipient_name' => 'بتحويل',
+            'expense_date' => today()->toDateString(),
+            'payment_method' => 'bank_transfer', 'payment_account_id' => $this->bank()->id,
+        ])->assertRedirect();
+
+        $expense = Expense::where('recipient_name', 'بتحويل')->firstOrFail();
+
+        $this->assertSame(0, CashWithdrawal::where('expense_id', $expense->id)->count());
+        app(\App\Services\ShiftService::class)->computeTotals($shift);
+        $this->assertEqualsWithDelta(0, $shift->refresh()->total_withdrawals_yer, 0.01);
+    }
+
+    /** صفحة المصروفات لم يبقَ فيها نموذج سحبٍ موازٍ. */
+    public function test_the_expenses_page_no_longer_offers_a_second_form(): void
+    {
+        $html = $this->actingAs($this->admin())->get(route('expenses.index'))->assertOk()->getContent();
+
+        $this->assertStringNotContainsString('تسجيل سحب', $html);
+        $this->assertStringNotContainsString('name="funding_source"', $html);
+        $this->assertStringContainsString('تسجيل مصروف', $html);
+    }
+
+    /** وصفحة الصناديق تفتح نموذج المصروف جاهزاً على صندوقها. */
+    public function test_the_containers_screen_links_into_the_single_expense_form(): void
+    {
+        $safe = $this->safe();
+
+        $this->actingAs($this->admin())->get(route('payment-accounts.index'))
+            ->assertOk()
+            ->assertSee('صرف مصروف من هذا الصندوق', false)
+            ->assertSee('payment_account_id=' . $safe->id, false);
+
+        $this->actingAs($this->admin())
+            ->get(route('expenses.create', ['payment_account_id' => $safe->id, 'payment_method' => 'cash']))
+            ->assertOk()
+            ->assertSee('value="' . $safe->id . '" selected', false);
+    }
+
     /* ═══ الرواتب ═══ */
 
     private function salary(): Salary

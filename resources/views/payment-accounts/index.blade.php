@@ -147,6 +147,22 @@
                 </div>
             </div>
 
+            {{-- الصرف يُسجَّل من نموذج المصروف الواحد، ويُفتح هنا جاهزاً على هذا
+                 الصندوق — مدخلٌ ثانٍ لا نموذجٌ ثانٍ --}}
+            @can('expenses.create')
+            @if($account->is_active && $account->type !== 'pos')
+            <a href="{{ route('expenses.create', [
+                    'payment_account_id' => $account->id,
+                    'payment_method'     => $account->is_cash ? 'cash' : 'bank_transfer',
+               ]) }}"
+               class="mt-4 w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-white transition"
+               style="background:#0F4C75;">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7"/></svg>
+                صرف مصروف من هذا الصندوق
+            </a>
+            @endif
+            @endcan
+
             @can('settings.manage')
             <div class="flex items-center gap-2 mt-4">
                 <button type="button" @click="editing = editing === {{ $account->id }} ? null : {{ $account->id }}"

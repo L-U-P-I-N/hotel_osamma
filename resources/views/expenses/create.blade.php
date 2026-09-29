@@ -57,7 +57,13 @@
         </div>
 
         {{-- مصدر المال: طريقة الدفع ثم الوعاء الذي يخرج منه فعلاً --}}
-        <div x-data="{ method: '{{ old('payment_method', $__expenseMethod ?? 'cash') }}' }" class="space-y-4">
+        @php
+            // تُمرَّران من بطاقة الصندوق في صفحة «الصناديق والبنوك»، فيفتح النموذج
+            // جاهزاً على ذلك الصندوق بدل أن يبحث عنه الموظف
+            $__prefillAccount = request('payment_account_id');
+            $__prefillMethod  = request('payment_method', $__expenseMethod ?? 'cash');
+        @endphp
+        <div x-data="{ method: '{{ old('payment_method', $__prefillMethod) }}' }" class="space-y-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1.5">طريقة الدفع *</label>
                 <select name="payment_method" x-model="method" required
@@ -75,7 +81,7 @@
                 <select name="payment_account_id"
                         class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-blue-400 bg-white">
                     @foreach(\App\Models\PaymentAccount::active()->whereIn('type', ['shift_cash', 'safe'])->ordered()->get() as $__acc)
-                    <option value="{{ $__acc->id }}" @selected(old('payment_account_id', $__expenseAccountId ?? null) == $__acc->id)>{{ $__acc->name }}</option>
+                    <option value="{{ $__acc->id }}" @selected(old('payment_account_id', $__prefillAccount) == $__acc->id)>{{ $__acc->name }}</option>
                     @endforeach
                 </select>
                 <p class="mt-2 bg-green-50 border border-green-200 rounded-lg p-3 text-xs text-green-700">
@@ -88,7 +94,7 @@
                 <select name="payment_account_id"
                         class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-blue-400 bg-white">
                     @foreach(\App\Models\PaymentAccount::active()->where('type', 'bank')->ordered()->get() as $__acc)
-                    <option value="{{ $__acc->id }}" @selected(old('payment_account_id', $__expenseAccountId ?? null) == $__acc->id)>{{ $__acc->name }}{{ $__acc->bank_name ? ' — ' . $__acc->bank_name : '' }}</option>
+                    <option value="{{ $__acc->id }}" @selected(old('payment_account_id', $__prefillAccount) == $__acc->id)>{{ $__acc->name }}{{ $__acc->bank_name ? ' — ' . $__acc->bank_name : '' }}</option>
                     @endforeach
                 </select>
             </div>

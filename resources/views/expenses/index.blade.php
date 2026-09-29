@@ -5,7 +5,7 @@
 @section('content')
 <div dir="rtl">
 
-<div class="flex items-center justify-between mb-5 flex-wrap gap-2" x-data="{ withdrawalModal: false }">
+<div class="flex items-center justify-between mb-5 flex-wrap gap-2">
     <div class="flex gap-2 flex-wrap">
         <a href="{{ route('expenses.pdf', request()->query()) }}"
            class="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition">
@@ -17,12 +17,6 @@
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
             Excel
         </a>
-        @can('withdrawal.create')
-        <button @click="withdrawalModal=true" class="flex items-center gap-2 px-4 py-2 border border-orange-300 text-orange-700 rounded-lg text-sm hover:bg-orange-50 transition">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-            تسجيل سحب
-        </button>
-        @endcan
     </div>
     <div class="flex gap-2">
         @can('expenses.create')
@@ -33,85 +27,6 @@
         @endcan
     </div>
 
-    {{-- Withdrawal Modal --}}
-    @can('withdrawal.create')
-    <div x-show="withdrawalModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="withdrawalModal=false">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-            <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-                <h3 class="font-bold text-gray-800">تسجيل سحب</h3>
-                <button @click="withdrawalModal=false" class="text-gray-400 hover:text-gray-600">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
-            </div>
-            <form method="POST" action="{{ route('shifts.withdrawal') }}" class="p-6 space-y-4">
-                @csrf
-                <input type="hidden" name="withdrawal_type" value="expense">
-                <input type="hidden" name="currency" value="YER">
-                <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">المبلغ (ر.ي) *</label>
-                    <input type="number" name="amount" step="0.01" min="0.01" required
-                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">التصنيف</label>
-                    <select name="category"
-                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white">
-                        @foreach($categories as $key => $label)
-                        <option value="{{ $key }}">{{ $label }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">مصدر التمويل *</label>
-                    <select name="funding_source" required
-                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white">
-                        @if($activeShift)
-                        <option value="shift">من الوردية (وردية {{ $activeShift->shift_date->format('d/m/Y') }})</option>
-                        @endif
-                        <option value="general_safe" {{ $activeShift ? '' : 'selected' }}>من الصندوق العام</option>
-                    </select>
-                    @unless($activeShift)
-                    <p class="text-xs text-gray-400 mt-1">لا توجد وردية مفتوحة لك — هذا السحب سيُقيَّد على الصندوق العام.</p>
-                    @endunless
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">من أي صندوق بالضبط؟</label>
-                    <select name="payment_account_id"
-                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white">
-                        @foreach(\App\Models\PaymentAccount::active()->whereIn('type', ['shift_cash', 'safe'])->ordered()->get() as $__acc)
-                        <option value="{{ $__acc->id }}">{{ $__acc->name }}</option>
-                        @endforeach
-                    </select>
-                    <p class="text-xs text-gray-400 mt-1">يُنقص رصيد هذا الصندوق تحديداً في دفتر الأستاذ.</p>
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">اسم المستلم *</label>
-                    <input type="text" name="withdrawn_by_name" required
-                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">السبب / البيان</label>
-                    <input type="text" name="notes"
-                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">ربط بموظف <span class="text-gray-400 font-normal">(اختياري — سلفة شخصية تُخصم من راتبه)</span></label>
-                    <select name="employee_id"
-                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white">
-                        <option value="">— بلا ربط (سحب عادي) —</option>
-                        @foreach($employees as $employee)
-                        <option value="{{ $employee->id }}">{{ $employee->name }}</option>
-                        @endforeach
-                    </select>
-                    <p class="text-xs text-amber-600 mt-1">اختر الموظف فقط إذا كان هذا المبلغ سلفة شخصية له — لا اسم المستلم العام.</p>
-                </div>
-                <button type="submit" class="w-full py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-semibold transition">
-                    تسجيل السحب
-                </button>
-            </form>
-        </div>
-    </div>
-    @endcan
 </div>
 
 @if(session('success'))
