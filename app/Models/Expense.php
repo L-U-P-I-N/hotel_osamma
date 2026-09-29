@@ -22,6 +22,7 @@ class Expense extends Model
         'shift_id',
         'room_inspection_id',
         'payment_method',
+        'payment_account_id',
         'settled_at',
         'settled_by',
     ];
@@ -116,5 +117,11 @@ class Expense extends Model
             'USD' => 'دولار أمريكي',
             default => $currency,
         };
+    }
+
+    /** الوعاء المالي الذي خرج منه المبلغ (درج، خزنة، أو حساب بنكي). */
+    public function paymentAccount()
+    {
+        return $this->belongsTo(PaymentAccount::class);
     }
 }

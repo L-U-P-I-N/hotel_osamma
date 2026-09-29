@@ -134,12 +134,16 @@ class ExpenseController extends Controller
             'description'    => 'nullable|string',
             'expense_date'   => 'required|date',
             'payment_method' => 'required|in:cash,bank_transfer,later',
+            'payment_account_id' => 'nullable|exists:payment_accounts,id',
             'shift_id'       => 'nullable|exists:shifts,id',
         ]);
 
         $data['currency']       = 'YER';
         $data['paid_by']        = auth()->id();
         $data['payment_method'] = $request->input('payment_method', 'cash');
+        $data['payment_account_id'] = \App\Models\PaymentAccount::resolveFor(
+            $data['payment_method'], $request->input('payment_account_id')
+        )?->id;
 
         $targetShift = $this->resolveShiftForExpense($data['expense_date'], $request->input('shift_id'));
         $data['shift_id'] = $targetShift?->id;
@@ -157,7 +161,11 @@ class ExpenseController extends Controller
 
     /**
      * قيد يومية للمصروف المباشر (لا يمر بـShiftService/CashSettlementService).
-     * كاش → دائن 1110 نقدية الورديات، تحويل/لاحق → دائن 2200 مصروفات مستحقة.
+     *
+     * الطرف الدائن هو الوعاء الذي خرج منه المال فعلاً: درج، خزنة، أو حساب بنكي.
+     * «لاحقاً» وحده يُقيَّد ذمةً دائنة (2150) لأن المال لم يخرج بعد. كان التحويل
+     * البنكي يُقيَّد ذمةً دائنة أيضاً — وهو خطأ: المبلغ غادر البنك فعلاً وقتها،
+     * فكان رصيد البنك يبقى مرتفعاً والذمم تتضخّم بلا مقابل.
      */
     private function postExpenseJournal(Expense $expense): void
     {
@@ -165,7 +173,11 @@ class ExpenseController extends Controller
             return;
         }
 
-        $creditAccount = $expense->isPaidFromCash() ? '1111' : '2150';
+        $creditAccount = $expense->payment_method === 'later'
+            ? '2150'
+            : ($expense->paymentAccount?->account_code
+                ?? \App\Models\PaymentAccount::defaultFor($expense->payment_method)?->account_code
+                ?? '1111');
 
         app(\App\Services\JournalService::class)->post(
             $expense->expense_date->toDateString(),
@@ -223,10 +235,14 @@ class ExpenseController extends Controller
             'description'    => 'nullable|string',
             'expense_date'   => 'required|date',
             'payment_method' => 'required|in:cash,bank_transfer,later',
+            'payment_account_id' => 'nullable|exists:payment_accounts,id',
             'shift_id'       => 'nullable|exists:shifts,id',
         ]);
 
         $data['currency'] = 'YER';
+        $data['payment_account_id'] = \App\Models\PaymentAccount::resolveFor(
+            $data['payment_method'], $request->input('payment_account_id')
+        )?->id;
         $targetShift = $this->resolveShiftForExpense($data['expense_date'], $request->input('shift_id'), $expense->paid_by);
         $data['shift_id'] = $targetShift?->id;
         $expense->update($data);
@@ -302,7 +318,7 @@ class ExpenseController extends Controller
                 $expense->id,
                 [
                     ['account_code' => '2150', 'debit' => $expense->amount],
-                    ['account_code' => '1111', 'credit' => $expense->amount],
+                    ['account_code' => $expense->paymentAccount?->account_code ?? '1111', 'credit' => $expense->amount],
                 ],
                 auth()->id()
             );

@@ -33,6 +33,8 @@ class PaymentAccount extends Model
         'cash'          => [self::TYPE_SHIFT_CASH, self::TYPE_SAFE],
         'bank_transfer' => [self::TYPE_BANK],
         'pos'           => [self::TYPE_POS],
+        // مصروف يُدفع لاحقاً لا يخرج من وعاء الآن — يُقيَّد ذمةً دائنة
+        'later'         => [],
     ];
 
     /** الحساب الأب في شجرة USALI الذي يُنشأ تحته حساب وسيلة جديدة. */
@@ -104,6 +106,24 @@ class PaymentAccount extends Model
     {
         return static::active()->forMethod($method)->where('is_default', true)->ordered()->first()
             ?? static::active()->forMethod($method)->ordered()->first();
+    }
+
+    /**
+     * الوعاء الذي تخرج منه (أو تدخله) حركةٌ بطريقة معيّنة: اختيار الموظف إن كان
+     * يناسب الطريقة، وإلا الوعاء الافتراضي لها. مصدرٌ واحد لهذا القرار يمنع أن
+     * يتصرّف كل مسار (دفعة، مصروف، سحبية، راتب) بمنطق خاص به.
+     */
+    public static function resolveFor(string $method, $accountId = null): ?self
+    {
+        if (!empty($accountId)) {
+            $account = static::find($accountId);
+
+            if ($account && in_array($account->type, self::METHOD_TYPES[$method] ?? [], true)) {
+                return $account;
+            }
+        }
+
+        return static::defaultFor($method);
     }
 
     /**

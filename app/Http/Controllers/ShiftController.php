@@ -280,6 +280,7 @@ class ShiftController extends Controller
             'exchange_to_amount'   => 'required_if:withdrawal_type,currency_exchange|nullable|numeric|min:0.01',
             'employee_id'          => 'nullable|exists:employees,id',
             'funding_source'       => 'nullable|in:shift,general_safe',
+            'payment_account_id'   => 'nullable|exists:payment_accounts,id',
             'category'             => 'nullable|in:maintenance,electricity,salary,cleaning,food,other',
         ], [
             'amount.required'                  => 'المبلغ مطلوب',

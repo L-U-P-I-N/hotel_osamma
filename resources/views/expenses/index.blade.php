@@ -75,6 +75,16 @@
                     @endunless
                 </div>
                 <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">من أي صندوق بالضبط؟</label>
+                    <select name="payment_account_id"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                        @foreach(\App\Models\PaymentAccount::active()->whereIn('type', ['shift_cash', 'safe'])->ordered()->get() as $__acc)
+                        <option value="{{ $__acc->id }}">{{ $__acc->name }}</option>
+                        @endforeach
+                    </select>
+                    <p class="text-xs text-gray-400 mt-1">يُنقص رصيد هذا الصندوق تحديداً في دفتر الأستاذ.</p>
+                </div>
+                <div>
                     <label class="block text-xs font-medium text-gray-600 mb-1">اسم المستلم *</label>
                     <input type="text" name="withdrawn_by_name" required
                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">

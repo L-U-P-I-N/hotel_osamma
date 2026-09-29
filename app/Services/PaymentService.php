@@ -79,16 +79,6 @@ class PaymentService
      */
     private function resolveAccount(array $data): ?PaymentAccount
     {
-        $method = $data['method'] ?? 'cash';
-
-        if (!empty($data['payment_account_id'])) {
-            $account = PaymentAccount::find($data['payment_account_id']);
-
-            if ($account && in_array($account->type, PaymentAccount::METHOD_TYPES[$method] ?? [], true)) {
-                return $account;
-            }
-        }
-
-        return PaymentAccount::defaultFor($method);
+        return PaymentAccount::resolveFor($data['method'] ?? 'cash', $data['payment_account_id'] ?? null);
     }
 }

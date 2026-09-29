@@ -23,6 +23,7 @@ class Salary extends Model
         'status',
         'notes',
         'created_by',
+        'payment_account_id',
     ];
 
     protected $casts = [
@@ -63,5 +64,11 @@ class Salary extends Model
             9 => 'سبتمبر', 10 => 'أكتوبر', 11 => 'نوفمبر', 12 => 'ديسمبر',
         ];
         return $months[$month] ?? $month;
+    }
+
+    /** الوعاء المالي الذي خرج منه المبلغ (درج، خزنة، أو حساب بنكي). */
+    public function paymentAccount()
+    {
+        return $this->belongsTo(PaymentAccount::class);
     }
 }

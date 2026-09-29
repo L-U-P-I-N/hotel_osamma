@@ -87,13 +87,45 @@
                                class="text-xs px-2.5 py-1.5 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 transition">
                                 تعديل
                             </a>
-                            {{-- Mark paid --}}
-                            <form method="POST" action="{{ route('salaries.markPaid', $salary) }}">
-                                @csrf @method('PATCH')
-                                <button type="submit" class="text-xs px-2.5 py-1.5 rounded-lg text-white transition" style="background:#0F4C75;">
+                            {{-- Mark paid — مع تحديد من أين صُرف الراتب فعلاً --}}
+                            <div x-data="{ open: false }" class="relative">
+                                <button type="button" @click="open = !open"
+                                        class="text-xs px-2.5 py-1.5 rounded-lg text-white transition" style="background:#0F4C75;">
                                     مدفوعة
                                 </button>
-                            </form>
+                                <form x-show="open" x-cloak @click.outside="open = false"
+                                      method="POST" action="{{ route('salaries.markPaid', $salary) }}"
+                                      x-data="{ method: 'cash' }"
+                                      class="absolute left-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-200 p-3 space-y-2 z-30 text-right">
+                                    @csrf @method('PATCH')
+                                    <p class="text-xs font-bold text-gray-700">من أين صُرف الراتب؟</p>
+                                    <select name="payment_method" x-model="method"
+                                            class="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs outline-none bg-white">
+                                        <option value="cash">نقداً</option>
+                                        <option value="bank_transfer">تحويل بنكي</option>
+                                    </select>
+                                    <select name="payment_account_id"
+                                            class="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs outline-none bg-white">
+                                        <template x-if="method === 'cash'">
+                                            <optgroup label="نقداً">
+                                                @foreach(\App\Models\PaymentAccount::active()->whereIn('type', ['shift_cash','safe'])->ordered()->get() as $__acc)
+                                                <option value="{{ $__acc->id }}">{{ $__acc->name }}</option>
+                                                @endforeach
+                                            </optgroup>
+                                        </template>
+                                        <template x-if="method === 'bank_transfer'">
+                                            <optgroup label="بنكياً">
+                                                @foreach(\App\Models\PaymentAccount::active()->where('type','bank')->ordered()->get() as $__acc)
+                                                <option value="{{ $__acc->id }}">{{ $__acc->name }}</option>
+                                                @endforeach
+                                            </optgroup>
+                                        </template>
+                                    </select>
+                                    <button type="submit" class="w-full py-1.5 rounded-lg text-white text-xs font-bold transition" style="background:#0F4C75;">
+                                        تأكيد الصرف
+                                    </button>
+                                </form>
+                            </div>
                             {{-- Delete --}}
                             @can('hr.delete')
                             <form method="POST" action="{{ route('salaries.destroy', $salary) }}"

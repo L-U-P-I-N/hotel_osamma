@@ -131,23 +131,57 @@ class SalaryController extends Controller
 
     public function markPaid(Request $request, Salary $salary)
     {
-        $salary->update(['status' => 'paid']);
+        $validated = $request->validate([
+            'payment_method'     => 'nullable|in:cash,bank_transfer',
+            'payment_account_id' => 'nullable|exists:payment_accounts,id',
+        ], [
+            'payment_method.in' => 'طريقة صرف الراتب غير معروفة',
+        ]);
 
-        // يسدّ فجوة كانت موجودة: "مدفوع" لا ينشئ أي سجل مالي. راتب مستحق
-        // يُسدَّد الآن من الصندوق العام.
+        // الوعاء الذي خرج منه الراتب فعلاً. كان مثبَّتاً على الصندوق العام، فراتبٌ
+        // يُحوَّل بنكياً كان يُنقص الخزنة ولا يمسّ البنك.
+        $account = \App\Models\PaymentAccount::resolveFor(
+            $validated['payment_method'] ?? 'cash',
+            $validated['payment_account_id'] ?? null
+        );
+
+        $salary->update([
+            'status'             => 'paid',
+            'payment_account_id' => $account?->id,
+        ]);
+
+        // يسدّ فجوة كانت موجودة: "مدفوع" لا ينشئ أي سجل مالي.
+        $label = ($salary->employee?->name ?? '—') . ' — ' . $salary->month . '/' . $salary->year;
+
+        // الاستحقاق يسبق الصرف: بدونه يبقى حساب الرواتب المستحقة مديناً بلا
+        // مقابل ويختفي المصروف من قائمة الدخل.
         app(\App\Services\JournalService::class)->post(
             now()->toDateString(),
-            'راتب مدفوع: ' . ($salary->employee?->name ?? '—') . ' — ' . $salary->month . '/' . $salary->year,
+            'استحقاق راتب: ' . $label,
             Salary::class,
             $salary->id,
             [
-                ['account_code' => '2410', 'debit' => $salary->net_salary],
-                ['account_code' => '1120', 'credit' => $salary->net_salary],
+                ['account_code' => '6113', 'debit'  => $salary->net_salary],
+                ['account_code' => '2410', 'credit' => $salary->net_salary],
             ],
-            auth()->id()
+            auth()->id(),
+            'payroll.accrued'
         );
 
-        return back()->with('success', 'تم تسجيل الراتب كمدفوع');
+        app(\App\Services\JournalService::class)->post(
+            now()->toDateString(),
+            'راتب مدفوع: ' . $label,
+            Salary::class,
+            $salary->id,
+            [
+                ['account_code' => '2410', 'debit'  => $salary->net_salary],
+                ['account_code' => $account?->account_code ?? '1120', 'credit' => $salary->net_salary],
+            ],
+            auth()->id(),
+            'payroll.paid'
+        );
+
+        return back()->with('success', 'تم تسجيل الراتب كمدفوع' . ($account ? " — صُرف من: {$account->name}" : ''));
     }
 
     public function edit(Salary $salary)

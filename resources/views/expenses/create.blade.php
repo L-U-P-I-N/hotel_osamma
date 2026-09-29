@@ -56,7 +56,47 @@
             </select>
         </div>
 
-        <input type="hidden" name="payment_method" value="cash">
+        {{-- مصدر المال: طريقة الدفع ثم الوعاء الذي يخرج منه فعلاً --}}
+        <div x-data="{ method: '{{ old('payment_method', $__expenseMethod ?? 'cash') }}' }" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">طريقة الدفع *</label>
+                <select name="payment_method" x-model="method" required
+                        class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-blue-400 bg-white">
+                    <option value="cash">نقداً</option>
+                    <option value="bank_transfer">تحويل بنكي</option>
+                    <option value="later">لاحقاً (يُقيَّد ذمةً على الفندق)</option>
+                </select>
+            </div>
+
+            {{-- الأوعية النقدية تُسرد يدوياً: المُنتقي المشترك يُخفي نفسه عند «نقداً»
+                 لأنه مصمَّم لمقبوضات النزلاء، والمصروف يخرج من درجٍ أو خزنة --}}
+            <div x-show="method === 'cash'" x-cloak>
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">من أي صندوق؟</label>
+                <select name="payment_account_id"
+                        class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-blue-400 bg-white">
+                    @foreach(\App\Models\PaymentAccount::active()->whereIn('type', ['shift_cash', 'safe'])->ordered()->get() as $__acc)
+                    <option value="{{ $__acc->id }}" @selected(old('payment_account_id', $__expenseAccountId ?? null) == $__acc->id)>{{ $__acc->name }}</option>
+                    @endforeach
+                </select>
+                <p class="mt-2 bg-green-50 border border-green-200 rounded-lg p-3 text-xs text-green-700">
+                    سيُخصم هذا المبلغ تلقائياً من صندوق التسوية النقدية اليوم.
+                </p>
+            </div>
+
+            <div x-show="method === 'bank_transfer'" x-cloak>
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">من أي حساب بنكي؟</label>
+                <select name="payment_account_id"
+                        class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-blue-400 bg-white">
+                    @foreach(\App\Models\PaymentAccount::active()->where('type', 'bank')->ordered()->get() as $__acc)
+                    <option value="{{ $__acc->id }}" @selected(old('payment_account_id', $__expenseAccountId ?? null) == $__acc->id)>{{ $__acc->name }}{{ $__acc->bank_name ? ' — ' . $__acc->bank_name : '' }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <p x-show="method === 'later'" x-cloak class="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                لن يخرج مال الآن — يُسجَّل المصروف ذمةً على الفندق تُسدَّد لاحقاً من صفحة «المصروفات المؤجّلة».
+            </p>
+        </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1.5">صرف لموظف في الفندق؟</label>
@@ -87,9 +127,6 @@
                       class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none resize-none focus:border-blue-400">{{ old('description') }}</textarea>
         </div>
 
-        <div class="bg-green-50 border border-green-200 rounded-lg p-3 text-xs text-green-700">
-            سيُخصم هذا المبلغ تلقائياً من صندوق التسوية النقدية اليوم.
-        </div>
 
         <div class="flex gap-3 pt-2">
             <button type="submit" class="px-6 py-2.5 text-white rounded-lg text-sm font-semibold transition" style="background:#0F4C75;">

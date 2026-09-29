@@ -11,7 +11,7 @@ class CashWithdrawal extends Model
     protected $fillable = [
         'cash_settlement_id','shift_id','expense_id','employee_id','amount','currency',
         'withdrawal_date','withdrawn_by_name','handed_by_name','notes',
-        'withdrawal_type','exchange_to_currency','exchange_to_amount','funding_source',
+        'withdrawal_type','exchange_to_currency','exchange_to_amount','funding_source','payment_account_id',
     ];
 
     protected $casts = [
@@ -43,5 +43,11 @@ class CashWithdrawal extends Model
     public function getFundingSourceLabelAttribute(): string
     {
         return $this->funding_source === 'general_safe' ? 'الصندوق العام' : 'الوردية';
+    }
+
+    /** الوعاء المالي الذي خرج منه المبلغ (درج، خزنة، أو حساب بنكي). */
+    public function paymentAccount()
+    {
+        return $this->belongsTo(PaymentAccount::class);
     }
 }

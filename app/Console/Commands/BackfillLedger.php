@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\CashWithdrawal;
 use App\Models\Expense;
 use App\Models\ExtraCharge;
 use App\Models\GuestCredit;
@@ -57,6 +58,7 @@ class BackfillLedger extends Command
         $this->backfillRefunds($journal, $from, $to, $dryRun);
         $this->backfillExpenses($journal, $from, $to, $dryRun);
         $this->backfillSalaries($journal, $from, $to, $dryRun);
+        $this->backfillWithdrawals($journal, $from, $to, $dryRun);
         $this->backfillDamageCharges($journal, $from, $to, $dryRun);
         $this->backfillGuestCredits($journal, $from, $to, $dryRun);
 
@@ -110,7 +112,7 @@ class BackfillLedger extends Command
     /** المصروفات: حساب الفئة مقابل نقدية الوردية أو ذمة دائنة. */
     private function backfillExpenses(JournalService $journal, ?string $from, ?string $to, bool $dry): void
     {
-        $query = Expense::query()->where('currency', 'YER');
+        $query = Expense::query()->with('paymentAccount')->where('currency', 'YER');
         $this->applyDates($query, 'expense_date', $from, $to);
 
         $this->each('المصروفات', $query, function (Expense $expense) use ($journal, $dry) {
@@ -121,7 +123,10 @@ class BackfillLedger extends Command
                 Expense::class, $expense->id, 'expense.recorded',
                 [
                     ['account_code' => Expense::categoryAccountCode($expense->category), 'debit' => $expense->amount],
-                    ['account_code' => $expense->isPaidFromCash() ? '1111' : '2150', 'credit' => $expense->amount],
+                    // «لاحقاً» وحده ذمة دائنة؛ غيره يخرج من وعائه فعلاً
+                    ['account_code' => $expense->payment_method === 'later'
+                        ? '2150'
+                        : $this->containerCode($expense->paymentAccount, $expense->payment_method), 'credit' => $expense->amount],
                 ]
             );
         });
@@ -135,7 +140,7 @@ class BackfillLedger extends Command
     {
         // لا عمود لتاريخ الصرف على قسيمة الراتب؛ الحالة "paid" هي المؤشّر،
         // وتاريخ القيد آخر يوم في شهر القسيمة لا يوم إدخالها.
-        $query = Salary::query()->where('status', 'paid');
+        $query = Salary::query()->with('paymentAccount')->where('status', 'paid');
         $this->applyDates($query, 'updated_at', $from, $to);
 
         $this->each('الرواتب', $query, function (Salary $salary) use ($journal, $dry) {
@@ -157,7 +162,35 @@ class BackfillLedger extends Command
                 Salary::class, $salary->id, 'payroll.paid',
                 [
                     ['account_code' => '2410', 'debit'  => $salary->net_salary],
-                    ['account_code' => '1120', 'credit' => $salary->net_salary],
+                    ['account_code' => $this->containerCode($salary->paymentAccount, 'cash', '1120'), 'credit' => $salary->net_salary],
+                ]
+            );
+        });
+    }
+
+    /**
+     * السحبيات النقدية المستقلة. المرتبطة بمصروف (expense_id) تُستثنى: مصروفها
+     * مُرحَّل أصلاً، وترحيلها ثانيةً يُضاعف المصروف ويُنقص الصندوق مرتين.
+     */
+    private function backfillWithdrawals(JournalService $journal, ?string $from, ?string $to, bool $dry): void
+    {
+        $query = CashWithdrawal::query()->with('paymentAccount')
+            ->where('currency', 'YER')
+            ->where('withdrawal_type', 'expense')
+            ->whereNull('expense_id');
+        $this->applyDates($query, 'withdrawal_date', $from, $to);
+
+        $this->each('السحبيات النقدية', $query, function (CashWithdrawal $withdrawal) use ($journal, $dry) {
+            $fallback = $withdrawal->funding_source === 'general_safe' ? '1120' : '1111';
+
+            $this->posted(
+                $journal, $dry,
+                ($withdrawal->withdrawal_date ?? $withdrawal->created_at)->toDateString(),
+                'مصروف: ' . ($withdrawal->withdrawn_by_name ?? '—'),
+                CashWithdrawal::class, $withdrawal->id, 'expense.shift_withdrawal',
+                [
+                    ['account_code' => Expense::categoryAccountCode('other'), 'debit' => $withdrawal->amount],
+                    ['account_code' => $this->containerCode($withdrawal->paymentAccount, 'cash', $fallback), 'credit' => $withdrawal->amount],
                 ]
             );
         });
@@ -223,11 +256,11 @@ class BackfillLedger extends Command
      * وعاء إن سبقت ربط الأوعية، فنستنتجه من طريقتها بدل افتراض النقدية —
      * فتحويل بنكي قديم لا يُسجَّل في درج الوردية.
      */
-    private function containerCode(?PaymentAccount $account, ?string $method): string
+    private function containerCode(?PaymentAccount $account, ?string $method, string $fallback = '1111'): string
     {
         return $account?->account_code
             ?? PaymentAccount::defaultFor($method ?? 'cash')?->account_code
-            ?? '1111';
+            ?? $fallback;
     }
 
     private function applyDates($query, string $column, ?string $from, ?string $to): void

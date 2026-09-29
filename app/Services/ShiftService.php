@@ -5,6 +5,7 @@ use App\Models\CashWithdrawal;
 use App\Models\Employee;
 use App\Models\Expense;
 use App\Models\Payment;
+use App\Models\PaymentAccount;
 use App\Models\Refund;
 use App\Models\Salary;
 use App\Models\ReservationSegment;
@@ -368,11 +369,14 @@ class ShiftService
             'exchange_to_currency' => $type === 'currency_exchange' ? ($data['exchange_to_currency'] ?? null) : null,
             'exchange_to_amount'   => $type === 'currency_exchange' ? ($data['exchange_to_amount'] ?? null) : null,
             'funding_source'       => $type === 'expense' ? $fundingSource : 'shift',
+            // الوعاء الذي خرج منه النقد فعلاً؛ يُشتقّ من مصدر التمويل إن لم يُختر
+            'payment_account_id'   => $this->resolveWithdrawalAccount($data, $fundingSource)?->id,
         ]);
 
         // ريال يمني فقط حالياً (الشجرة لا تدعم SAR/USD بعد)
         if ($type === 'expense' && $withdrawal->currency === 'YER') {
-            $creditAccount = $fundingSource === 'general_safe' ? '1120' : '1111';
+            $creditAccount = $withdrawal->paymentAccount?->account_code
+                ?? ($fundingSource === 'general_safe' ? '1120' : '1111');
 
             $this->journalService->post(
                 now()->toDateString(),
@@ -448,6 +452,25 @@ class ShiftService
             'total_refunds_sar'     => $rfd['SAR'],
             'total_refunds_usd'     => $rfd['USD'],
         ]);
+    }
+
+    /**
+     * وعاء السحبية: اختيار الموظف إن كان نقدياً، وإلا الافتراضي لمصدر التمويل
+     * (الوردية ⇒ الدرج، الصندوق العام ⇒ الخزنة). السحبية نقدٌ بطبيعتها، فلا
+     * تُقبل فيها الأوعية البنكية.
+     */
+    private function resolveWithdrawalAccount(array $data, string $fundingSource): ?PaymentAccount
+    {
+        if (!empty($data['payment_account_id'])) {
+            $chosen = PaymentAccount::find($data['payment_account_id']);
+            if ($chosen && $chosen->is_cash) {
+                return $chosen;
+            }
+        }
+
+        $type = $fundingSource === 'general_safe' ? PaymentAccount::TYPE_SAFE : PaymentAccount::TYPE_SHIFT_CASH;
+
+        return PaymentAccount::where('type', $type)->active()->ordered()->first();
     }
 
     /**
