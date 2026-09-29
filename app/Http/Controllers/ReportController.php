@@ -898,15 +898,15 @@ class ReportController extends Controller
             $selectedColumns[] = 'stay_status';
         }
 
-        // عمود "مغادرة بواسطة" يظهر فقط في تقرير المغادرين (status = checked_out):
-        // نُلزم إظهاره هناك، ونُخفيه في أي فلتر آخر ولو اختاره الأدمن — فلا معنى له
-        // لنزيل لم يغادر بعد.
-        if ($status === 'checked_out') {
-            if (!in_array('checked_out_by', $selectedColumns, true)) {
-                $selectedColumns[] = 'checked_out_by';
-            }
-        } else {
+        // عمود "مغادرة بواسطة" يُلزَم كلما جاز أن يضمّ التقرير مغادرين — أي في
+        // "المغادرون" وفي "الكل" معاً. كان مقصوراً على فلتر المغادرين وحده، فكان
+        // يختفي من التصدير الافتراضي ("الكل") وهو التصدير الذي يستعمله الموظف
+        // غالباً، فيُسأل "من سجّل خروج هذا النزيل؟" ولا جواب في الورقة.
+        // يبقى مخفياً في "لم يغادر" وحده: لا معنى له لنزيل ما زال مقيماً.
+        if ($status === 'checked_in') {
             $selectedColumns = array_values(array_filter($selectedColumns, fn($c) => $c !== 'checked_out_by'));
+        } elseif (!in_array('checked_out_by', $selectedColumns, true)) {
+            $selectedColumns[] = 'checked_out_by';
         }
 
         $pdf = $this->pdfOptions(pdf_load_view('reports.reservations_pdf', compact('reservations', 'from', 'to', 'total', 'checkedIn', 'checkedOut', 'printedCount', 'selectedColumns', 'status')));

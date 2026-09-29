@@ -78,7 +78,7 @@ class ReservationController extends Controller
             app(\App\Services\ReservationSegmentService::class)->backfillFromHistory($reservation);
         }
 
-        $reservation->load(['guest', 'room.roomType', 'companions', 'payments', 'refunds.processedBy', 'extraCharges', 'roomInspections.images', 'createdBy', 'adminApproval', 'segments.room']);
+        $reservation->load(['guest', 'room.roomType', 'companions', 'payments', 'refunds.processedBy', 'extraCharges', 'roomInspections.images', 'createdBy', 'checkedOutBy', 'adminApproval', 'segments.room']);
         $availableRooms = $reservation->status === 'checked_in'
             ? Room::with('roomType')->where('status', 'available')->orderBy('floor')->orderBy('room_number')->get()
             : collect();

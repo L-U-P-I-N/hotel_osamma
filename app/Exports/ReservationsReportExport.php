@@ -35,8 +35,9 @@ class ReservationsReportExport extends StringValueBinder implements
             'جهة القدوم', 'تاريخ الدخول', 'وقت الدخول', 'الغرض',
             'نوع الهوية', 'رقم الهوية', 'صادر من', 'تاريخ الإصدار',
             'رقم الجوال', 'حالة الدفع', 'المدفوع', 'الإجمالي', 'تم بواسطة',
-            // عمود "مغادرة بواسطة" يظهر فقط في تصدير المغادرين
-            ...($this->status === 'checked_out' ? ['مغادرة بواسطة'] : []),
+            // "مغادرة بواسطة" يظهر كلما جاز أن يضمّ التصدير مغادرين ("الكل"
+            // و"المغادرون")، ويُخفى في "لم يغادر" وحده
+            ...($this->showsCheckedOutBy() ? ['مغادرة بواسطة'] : []),
             'ملاحظات',
         ];
     }
@@ -47,7 +48,12 @@ class ReservationsReportExport extends StringValueBinder implements
         $psLabels  = ['paid' => 'مدفوع', 'partial' => 'جزئي', 'pending' => 'معلق'];
         $g = $r->guest;
         $payNote = $r->payments->first(fn($p) => $p->notes)?->notes;
-        $notes = collect([$r->notes, $payNote])->filter()->implode(' | ');
+        // ملاحظة الخروج تُقرأ من الكشف مع بقية الملاحظات، كما في نسخة PDF
+        $notes = collect([
+            $r->notes,
+            $r->checkout_notes ? '[خروج] ' . $r->checkout_notes : null,
+            $payNote ? '[دفع] ' . $payNote : null,
+        ])->filter()->implode(' | ');
 
         return [
             $r->id,
@@ -68,9 +74,15 @@ class ReservationsReportExport extends StringValueBinder implements
             number_format($r->paid_amount, 0),
             number_format($r->total_amount, 0),
             $r->createdBy?->name ?? '',
-            ...($this->status === 'checked_out' ? [$r->checkedOutBy?->name ?? ''] : []),
+            ...($this->showsCheckedOutBy() ? [$r->checkedOutBy?->name ?? ''] : []),
             $notes,
         ];
+    }
+
+    /** التصدير المقصور على المقيمين وحده هو الذي لا معنى فيه لعمود المغادرة. */
+    private function showsCheckedOutBy(): bool
+    {
+        return $this->status !== 'checked_in';
     }
 
     public function styles(Worksheet $sheet): array

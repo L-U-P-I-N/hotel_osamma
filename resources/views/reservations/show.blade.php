@@ -1104,6 +1104,18 @@
                 <span class="text-gray-400 text-xs font-medium">تاريخ الإنشاء</span>
                 <span class="text-gray-600 text-xs">{{ $reservation->created_at?->format('d/m/Y H:i') ?? '—' }}</span>
             </div>
+            {{-- من سجّل خروج النزيل ومتى — يُسأل عنه عند مراجعة أي مغادرة، وكان
+                 يتطلّب فتح سجل المراجعة لمعرفته --}}
+            @if($reservation->status === 'checked_out')
+            <div class="flex justify-between items-center">
+                <span class="text-gray-400 text-xs font-medium">مغادرة بواسطة</span>
+                <span class="text-gray-700 font-semibold text-sm">{{ $reservation->checkedOutBy?->name ?? '—' }}</span>
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="text-gray-400 text-xs font-medium">وقت المغادرة الفعلي</span>
+                <span class="text-gray-600 text-xs">{{ $reservation->actual_check_out?->format('d/m/Y H:i') ?? '—' }}</span>
+            </div>
+            @endif
             @if($reservation->status === 'checked_in')
             <div class="flex justify-between items-center">
                 <span class="text-gray-400 text-xs font-medium">التجديد التلقائي</span>
