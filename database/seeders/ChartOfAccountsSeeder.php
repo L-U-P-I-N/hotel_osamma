@@ -46,6 +46,7 @@ class ChartOfAccountsSeeder extends Seeder
             ['1240', '1200', 'Corporate Receivable',            'ذمم الشركات والعقود',                 'asset', 'current',      'sales', true, 3],
             ['1250', '1200', 'Employee Advances',               'سلف الموظفين',                        'asset', 'current',      'admin', true, 3],
             ['1260', '1200', 'Other Receivables',               'ذمم مدينة أخرى',                      'asset', 'current',      null, true,  3],
+            ['1265', '1200', 'Third-Party Purchases Receivable','ذمم مشتريات نيابةً عن الغير (بقالة)',  'asset', 'current',      'rooms', true, 3],
             ['1290', '1200', 'Allowance for Doubtful Accounts', 'مخصص الديون المشكوك في تحصيلها',      'asset', 'contra_asset', null, true,  3],
 
             // 1300 Inventory / المخزون
@@ -100,10 +101,12 @@ class ChartOfAccountsSeeder extends Seeder
             ['2130', '2100', 'Travel Agency Commission Payable','عمولات وكالات السفر المستحقة',        'liability', 'current_liability', 'sales', true, 3],
             ['2140', '2100', 'Utilities Payable',               'فواتير المرافق المستحقة',             'liability', 'current_liability', 'utilities', true, 3],
             ['2150', '2100', 'Other Payables',                  'ذمم دائنة أخرى',                      'liability', 'current_liability', null, true, 3],
+            ['2160', '2100', 'Third-Party Collections Payable',  'مستحق لجهات خارجية (بقالة)',          'liability', 'current_liability', null, true, 3],
 
             // 2200 Guest Deposits / أمانات النزلاء
             ['2200', '2000', 'Guest Deposits & Advances',       'أمانات النزلاء والدفعات المقدمة',     'liability', 'current_liability', null, false, 2],
             ['2210', '2200', 'Advance Deposits — Reservations', 'عربون الحجوزات المقدمة',              'liability', 'current_liability', 'rooms', true, 3],
+            ['2215', '2200', 'Held Deposits — Future Bookings',  'عربون محتجز — حجوزات مستقبلية',       'liability', 'current_liability', 'rooms', true, 3],
             ['2220', '2200', 'Guest Key & Damage Deposits',     'تأمينات المفاتيح والأضرار',           'liability', 'current_liability', 'rooms', true, 3],
             ['2230', '2200', 'Unclaimed Guest Credit Balances', 'أرصدة نزلاء دائنة غير مطالَب بها',    'liability', 'current_liability', 'rooms', true, 3],
             ['2240', '2200', 'Gift Vouchers Outstanding',       'قسائم هدايا غير مستخدمة',             'liability', 'current_liability', 'sales', true, 3],
@@ -157,6 +160,7 @@ class ChartOfAccountsSeeder extends Seeder
             ['4170', '4100', 'Extended Stay Revenue',           'إيراد الإقامات الممتدة',              'revenue', 'operating', 'rooms', true, 3],
             ['4180', '4100', 'No-Show & Cancellation Fees',     'رسوم عدم الحضور والإلغاء',            'revenue', 'operating', 'rooms', true, 3],
             ['4190', '4100', 'Rooms Allowances & Rebates',      'خصومات ومسموحات الغرف',               'revenue', 'contra_revenue', 'rooms', true, 3],
+            ['4195', '4100', 'Early Departure Allowances',       'مسموحات إقامة مبكرة المغادرة',        'revenue', 'contra_revenue', 'rooms', true, 3],
 
             // 4200 F&B / الأطعمة والمشروبات
             ['4200', '4000', 'Food & Beverage Revenue',         'إيرادات الأطعمة والمشروبات',          'revenue', 'operating', 'fnb', false, 2],
@@ -226,6 +230,8 @@ class ChartOfAccountsSeeder extends Seeder
             ['5250', '5200', 'Kitchen Fuel & Gas',              'وقود وغاز المطبخ',                    'expense', 'operating', 'fnb', true, 3],
             ['5260', '5200', 'Operating Supplies — F&B',        'مستلزمات تشغيل الأطعمة والمشروبات',   'expense', 'operating', 'fnb', true, 3],
             ['5270', '5200', 'Menu Printing & Decoration',      'طباعة القوائم والتزيين',              'expense', 'operating', 'fnb', true, 3],
+            ['5280', '5200', 'Food & Beverage Waste',            'تالف وهدر الأطعمة والمشروبات',        'expense', 'cogs',      'fnb', true, 3],
+            ['5290', '5200', 'Inventory Count Variance',         'فروق الجرد (عجز/زيادة مخزون)',        'expense', 'cogs',      'fnb', true, 3],
 
             // 5300 Spa / المنتجع
             ['5300', '5000', 'Spa & Recreation Expenses',       'مصروفات المنتجع والترفيه',            'expense', 'operating', 'spa', false, 2],
@@ -252,6 +258,7 @@ class ChartOfAccountsSeeder extends Seeder
             ['6110', '6100', 'Admin Payroll & Wages',           'رواتب وأجور الإدارة',                 'expense', 'payroll',       'admin', true, 3],
             ['6111', '6110', 'Admin Staff Benefits',            'مزايا موظفي الإدارة',                 'expense', 'payroll',       'admin', true, 4],
             ['6112', '6110', 'End of Service Benefits Expense', 'مصروف مكافأة نهاية الخدمة',           'expense', 'payroll',       'admin', true, 4],
+            ['6113', '6110', 'Admin Basic Salaries & Wages',     'رواتب وأجور أساسية — الإدارة',        'expense', 'payroll',       'admin', true, 4],
             ['6120', '6100', 'Office Supplies & Printing',      'قرطاسية ومطبوعات',                    'expense', 'undistributed', 'admin', true, 3],
             ['6130', '6100', 'Professional & Legal Fees',       'أتعاب مهنية وقانونية',                'expense', 'undistributed', 'admin', true, 3],
             ['6140', '6100', 'Bank Charges & Card Commission',  'مصاريف بنكية وعمولات الشبكة',         'expense', 'undistributed', 'admin', true, 3],
@@ -278,6 +285,7 @@ class ChartOfAccountsSeeder extends Seeder
             ['6340', '6300', 'Elevator & HVAC Contracts',       'عقود المصاعد والتكييف',               'expense', 'undistributed', 'maintenance', true, 3],
             ['6350', '6300', 'Grounds & Landscaping',           'الحدائق والمساحات الخارجية',          'expense', 'undistributed', 'maintenance', true, 3],
             ['6360', '6300', 'Waste Removal & Pest Control',    'النفايات ومكافحة الحشرات',            'expense', 'undistributed', 'maintenance', true, 3],
+            ['6390', '6300', 'Loss on Asset Disposal & Damage',  'خسائر تخريد وتلف الأصول',             'expense', 'undistributed', 'maintenance', true, 3],
 
             // 6400 Utilities / المرافق
             ['6400', '6000', 'Utilities',                       'المرافق',                             'expense', 'undistributed', 'utilities', false, 2],

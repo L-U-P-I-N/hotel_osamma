@@ -1,7 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
-use App\Models\Account;
+use App\Models\ChartOfAccount;
 use App\Models\Expense;
 use App\Models\Payment;
 use App\Models\Refund;
@@ -623,7 +623,7 @@ class ReportController extends Controller
             $accountsTree = $this->buildAccountsTree();
 
             if ($request->filled('account_id')) {
-                $drillAccount = Account::find($request->input('account_id'));
+                $drillAccount = ChartOfAccount::find($request->input('account_id'));
                 if ($drillAccount) {
                     $drillLines = $drillAccount->journalLines()
                         ->with('journalEntry')
@@ -664,12 +664,13 @@ class ReportController extends Controller
      */
     private function buildAccountsTree(): \Illuminate\Support\Collection
     {
-        $accounts = Account::orderBy('code')->get();
-        $byParent = $accounts->groupBy('parent_id');
+        // الشجرة الموحّدة (USALI) هي دفتر الأستاذ الآن، والأبوّة فيها بالكود لا بالمعرّف
+        $accounts = ChartOfAccount::active()->orderBy('code')->get();
+        $byParent = $accounts->groupBy('parent_code');
 
-        $build = function ($parentId) use (&$build, $byParent) {
-            return ($byParent->get($parentId) ?? collect())->map(function (Account $account) use (&$build) {
-                $children = $build($account->id);
+        $build = function ($parentCode) use (&$build, $byParent) {
+            return ($byParent->get($parentCode) ?? collect())->map(function (ChartOfAccount $account) use (&$build) {
+                $children = $build($account->code);
                 $account->setAttribute(
                     'effective_balance',
                     $account->balance + $children->sum('effective_balance')
@@ -710,7 +711,7 @@ class ReportController extends Controller
 
     private function generalSafeData(Request $request): array
     {
-        $account = Account::where('code', '1120')->firstOrFail();
+        $account = ChartOfAccount::where('code', '1120')->firstOrFail();
         $from = $request->input('from', now()->startOfMonth()->toDateString());
         $to   = $request->input('to', now()->toDateString());
 
@@ -768,9 +769,9 @@ class ReportController extends Controller
         $shiftsCashTotal = round((float) $shiftBoxes->sum('in_drawer'), 2);
         $totalCashOnHand = round($currentBalance + $shiftsCashTotal, 2);
 
-        // رصيد حساب «نقدية الورديات» (1110) محاسبياً — قد يختلف عن مجموع أدراج
+        // رصيد حساب «درج نقدية الوردية» (1111) محاسبياً — قد يختلف عن مجموع أدراج
         // الورديات المفتوحة لأنه يشمل الورديات المُقفلة أيضاً؛ نعرضه للمقارنة.
-        $shiftsAccountBalance = (float) (Account::where('code', '1110')->first()?->balance ?? 0);
+        $shiftsAccountBalance = (float) (ChartOfAccount::where('code', '1111')->first()?->balance ?? 0);
 
         return compact(
             'account', 'from', 'to', 'openingBalance', 'movements', 'currentBalance',

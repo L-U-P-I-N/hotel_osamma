@@ -43,8 +43,10 @@ class RefundService
                     Refund::class,
                     $refund->id,
                     [
-                        ['account_code' => '4100', 'debit' => $refund->amount],
-                        ['account_code' => '1110', 'credit' => $refund->amount],
+                        // مسموحات الغرف حساب إيراد مقابل: الإيراد الإجمالي يبقى
+                        // سليماً ويظهر الردّ سطراً مستقلاً في قائمة الدخل
+                        ['account_code' => '4190', 'debit' => $refund->amount],
+                        ['account_code' => '1111', 'credit' => $refund->amount],
                     ],
                     $user->id
                 );

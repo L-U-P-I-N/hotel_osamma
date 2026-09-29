@@ -226,8 +226,8 @@ class CheckOutService
                         ExtraCharge::class,
                         $damageCharge->id,
                         [
-                            ['account_code' => '5100', 'debit' => $compensationAmount],
-                            ['account_code' => '1200', 'credit' => $compensationAmount],
+                            ['account_code' => '1210', 'debit' => $compensationAmount],
+                            ['account_code' => '4660', 'credit' => $compensationAmount],
                         ],
                         $user->id
                     );

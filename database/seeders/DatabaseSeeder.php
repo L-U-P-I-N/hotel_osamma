@@ -10,7 +10,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             HotelSeeder::class,
             RolesSeeder::class,
-            AccountsSeeder::class,
+            // AccountsSeeder لم تعد تُبذر: شجرة USALI وحدها دفتر الأستاذ بعد التوحيد
             ChartOfAccountsSeeder::class,
             UserSeeder::class,
             RoomTypeSeeder::class,

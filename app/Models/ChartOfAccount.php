@@ -125,6 +125,50 @@ class ChartOfAccount extends Model
         return $out;
     }
 
+    /**
+     * سطور القيود المرحّلة على هذا الحساب. الربط بالكود لا بالمعرّف: الكود
+     * محاسبيّ ثابت ومعروف (4110، 6330…) فيبقى القيد مقروءاً في أي تصدير أو
+     * نسخة احتياطية دون الرجوع لمفتاح داخلي، وهو نفس أسلوب parent_code.
+     */
+    public function journalLines(): HasMany
+    {
+        return $this->hasMany(JournalLine::class, 'account_code', 'code');
+    }
+
+    /**
+     * رصيد الحساب نفسه (دون فروعه) = مجموع المدين − الدائن أو العكس بحسب
+     * طبيعته، فيكون الرصيد الطبيعي موجباً دائماً.
+     */
+    public function getBalanceAttribute(): float
+    {
+        $sums = $this->journalLines()
+            ->selectRaw('COALESCE(SUM(debit), 0) as total_debit, COALESCE(SUM(credit), 0) as total_credit')
+            ->first();
+
+        $debit  = (float) ($sums->total_debit ?? 0);
+        $credit = (float) ($sums->total_credit ?? 0);
+
+        return $this->normal_balance === 'debit' ? $debit - $credit : $credit - $debit;
+    }
+
+    /**
+     * رصيد الحساب شاملاً كل فروعه — الحساب الأب لا تُرحَّل عليه قيود مباشرةً،
+     * فرصيده هو حاصل جمع أوراقه.
+     */
+    public function getBalanceWithChildrenAttribute(): float
+    {
+        $codes = $this->descendants()->pluck('code')->push($this->code)->all();
+
+        $sums = JournalLine::whereIn('account_code', $codes)
+            ->selectRaw('COALESCE(SUM(debit), 0) as total_debit, COALESCE(SUM(credit), 0) as total_credit')
+            ->first();
+
+        $debit  = (float) ($sums->total_debit ?? 0);
+        $credit = (float) ($sums->total_credit ?? 0);
+
+        return $this->normal_balance === 'debit' ? $debit - $credit : $credit - $debit;
+    }
+
     // ───────────────────────── النطاقات / Scopes ─────────────────────────
 
     /** الحسابات التي تقبل القيود فقط (أوراق الشجرة النشطة) */
@@ -212,7 +256,9 @@ class ChartOfAccount extends Model
     /** الاسم حسب لغة الواجهة الحالية */
     public function getNameAttribute(): string
     {
-        return app()->getLocale() === 'ar' ? $this->name_ar : $this->name_en;
+        return app()->getLocale() === 'ar'
+            ? ($this->name_ar ?: $this->name_en)
+            : ($this->name_en ?: $this->name_ar);
     }
 
     public function getLabelAttribute(): string

@@ -17,9 +17,10 @@ use Illuminate\Support\Facades\DB;
 class GuestCreditService
 {
     /** كود حساب المبالغ المتبقية للنزلاء (خصوم). */
-    private const CREDIT_ACCOUNT = '2300';
-    private const ROOMS_REVENUE  = '4100';
-    private const SHIFT_CASH     = '1110';
+    private const CREDIT_ACCOUNT = '2230';   // أرصدة نزلاء دائنة
+    private const ROOMS_ALLOWANCE = '4195';  // مسموحات إقامة مبكرة المغادرة
+    private const ROOMS_REVENUE  = '4110';   // إيراد السعر المعلن
+    private const SHIFT_CASH     = '1111';   // درج نقدية الوردية
 
     /**
      * يرحّل مبلغاً زائداً دفعه النزيل إلى رصيد باسمه، ويعيد حساب "المدفوع" على
@@ -54,8 +55,8 @@ class GuestCreditService
                 GuestCredit::class,
                 $credit->id,
                 [
-                    ['account_code' => self::ROOMS_REVENUE,  'debit'  => $amount],
-                    ['account_code' => self::CREDIT_ACCOUNT, 'credit' => $amount],
+                    ['account_code' => self::ROOMS_ALLOWANCE, 'debit'  => $amount],
+                    ['account_code' => self::CREDIT_ACCOUNT,  'credit' => $amount],
                 ],
                 $user->id
             );

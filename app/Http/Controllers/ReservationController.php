@@ -1591,8 +1591,8 @@ class ReservationController extends Controller
                     \App\Models\ExtraCharge::class,
                     $charge->id,
                     [
-                        ['account_code' => '5100', 'debit' => $amount],
-                        ['account_code' => '1200', 'credit' => $amount],
+                        ['account_code' => '1210', 'debit' => $amount],
+                        ['account_code' => '4660', 'credit' => $amount],
                     ],
                     auth()->id()
                 );
@@ -1718,12 +1718,12 @@ class ReservationController extends Controller
                     $sourceId,
                     $delta > 0
                         ? [
-                            ['account_code' => '5100', 'debit' => abs($delta)],
-                            ['account_code' => '1200', 'credit' => abs($delta)],
+                            ['account_code' => '1210', 'debit' => abs($delta)],
+                            ['account_code' => '4660', 'credit' => abs($delta)],
                         ]
                         : [
-                            ['account_code' => '1200', 'debit' => abs($delta)],
-                            ['account_code' => '5100', 'credit' => abs($delta)],
+                            ['account_code' => '4660', 'debit' => abs($delta)],
+                            ['account_code' => '1210', 'credit' => abs($delta)],
                         ],
                     auth()->id()
                 );
@@ -1764,8 +1764,8 @@ class ReservationController extends Controller
                     \App\Models\ExtraCharge::class,
                     $sourceId,
                     [
-                        ['account_code' => '1200', 'debit' => $amount],
-                        ['account_code' => '5100', 'credit' => $amount],
+                        ['account_code' => '4660', 'debit' => $amount],
+                        ['account_code' => '1210', 'credit' => $amount],
                     ],
                     auth()->id()
                 );

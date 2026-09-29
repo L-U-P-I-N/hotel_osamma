@@ -165,7 +165,7 @@ class ExpenseController extends Controller
             return;
         }
 
-        $creditAccount = $expense->isPaidFromCash() ? '1110' : '2200';
+        $creditAccount = $expense->isPaidFromCash() ? '1111' : '2150';
 
         app(\App\Services\JournalService::class)->post(
             $expense->expense_date->toDateString(),
@@ -301,8 +301,8 @@ class ExpenseController extends Controller
                 Expense::class,
                 $expense->id,
                 [
-                    ['account_code' => '2200', 'debit' => $expense->amount],
-                    ['account_code' => '1110', 'credit' => $expense->amount],
+                    ['account_code' => '2150', 'debit' => $expense->amount],
+                    ['account_code' => '1111', 'credit' => $expense->amount],
                 ],
                 auth()->id()
             );

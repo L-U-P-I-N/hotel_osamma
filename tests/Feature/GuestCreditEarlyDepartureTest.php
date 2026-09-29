@@ -1,7 +1,7 @@
 <?php
 namespace Tests\Feature;
 
-use App\Models\Account;
+use App\Models\ChartOfAccount;
 use App\Models\GuestCredit;
 use App\Models\Guest;
 use App\Models\JournalLine;
@@ -175,7 +175,11 @@ class GuestCreditEarlyDepartureTest extends TestCase
         $this->assertTrue(app(\App\Services\ReservationSegmentService::class)->reconciles($reservation));
     }
 
-    /** المبلغ ينتقل من الإيراد إلى التزام على الفندق — والنقد يبقى في الصندوق. */
+    /**
+     * المبلغ ينتقل من الإيراد إلى التزام على الفندق — والنقد يبقى في الصندوق.
+     * الطرف المدين حساب مسموحات مقابل (4195) لا إيراد الغرف نفسه: الإيراد
+     * الإجمالي يبقى سليماً ويظهر الردّ سطراً مستقلاً في قائمة الدخل.
+     */
     public function test_the_journal_moves_the_amount_from_revenue_to_a_liability(): void
     {
         $reservation = $this->paidTwoNightStay();
@@ -185,14 +189,16 @@ class GuestCreditEarlyDepartureTest extends TestCase
 
         $credit = GuestCredit::where('reservation_id', $reservation->id)->firstOrFail();
 
-        $revenue   = Account::where('code', '4100')->firstOrFail();
-        $liability = Account::where('code', '2300')->firstOrFail();
+        $allowance = ChartOfAccount::where('code', '4195')->firstOrFail();
+        $liability = ChartOfAccount::where('code', '2230')->firstOrFail();
 
         $lines = JournalLine::whereHas('journalEntry', fn ($q) => $q
             ->where('source_type', GuestCredit::class)->where('source_id', $credit->id))->get();
 
-        $this->assertEquals(20000, (float) $lines->where('account_id', $revenue->id)->sum('debit'));
-        $this->assertEquals(20000, (float) $lines->where('account_id', $liability->id)->sum('credit'));
+        $this->assertEquals(20000, (float) $lines->where('account_code', $allowance->code)->sum('debit'));
+        $this->assertEquals(20000, (float) $lines->where('account_code', $liability->code)->sum('credit'));
+        // إيراد الغرف نفسه لم يُمَس
+        $this->assertSame(0, $lines->where('account_code', '4110')->count());
 
         // لا استرجاع نقدي: المبلغ لم يخرج من الصندوق بعد
         $this->assertSame(0, Refund::where('reservation_id', $reservation->id)->count());

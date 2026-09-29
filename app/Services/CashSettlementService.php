@@ -53,8 +53,8 @@ class CashSettlementService
                 CashWithdrawal::class,
                 $withdrawal->id,
                 [
-                    ['account_code' => '5600', 'debit' => $withdrawal->amount],
-                    ['account_code' => '1110', 'credit' => $withdrawal->amount],
+                    ['account_code' => '6190', 'debit' => $withdrawal->amount],
+                    ['account_code' => '1111', 'credit' => $withdrawal->amount],
                 ],
                 auth()->id()
             );

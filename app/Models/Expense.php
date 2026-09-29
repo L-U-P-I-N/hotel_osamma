@@ -99,12 +99,12 @@ class Expense extends Model
     public static function categoryAccountCode(string $category): string
     {
         return match ($category) {
-            'maintenance' => '5100',
-            'electricity' => '5200',
-            'salary'      => '5300',
-            'cleaning'    => '5400',
-            'food'        => '5500',
-            default       => '5600',
+            'maintenance' => '6330',   // صيانة وإصلاح المعدات
+            'electricity' => '6410',   // الكهرباء
+            'salary'      => '6113',   // رواتب وأجور أساسية — الإدارة
+            'cleaning'    => '5140',   // مواد التنظيف (قسم الغرف)
+            'food'        => '5210',   // تكلفة الأطعمة المباعة
+            default       => '6190',   // مصروفات إدارية أخرى
         };
     }
 

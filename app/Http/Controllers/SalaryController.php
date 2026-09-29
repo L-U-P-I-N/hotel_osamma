@@ -141,7 +141,7 @@ class SalaryController extends Controller
             Salary::class,
             $salary->id,
             [
-                ['account_code' => '2100', 'debit' => $salary->net_salary],
+                ['account_code' => '2410', 'debit' => $salary->net_salary],
                 ['account_code' => '1120', 'credit' => $salary->net_salary],
             ],
             auth()->id()

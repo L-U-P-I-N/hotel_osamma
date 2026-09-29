@@ -51,8 +51,8 @@ class PaymentService
                     Payment::class,
                     $payment->id,
                     [
-                        ['account_code' => '1110', 'debit' => $payment->amount],
-                        ['account_code' => '4100', 'credit' => $payment->amount],
+                        ['account_code' => '1111', 'debit' => $payment->amount],
+                        ['account_code' => '4110', 'credit' => $payment->amount],
                     ],
                     $user->id
                 );

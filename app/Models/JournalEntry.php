@@ -5,7 +5,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class JournalEntry extends Model
 {
-    protected $fillable = ['entry_date', 'description', 'source_type', 'source_id', 'created_by'];
+    protected $fillable = ['entry_date', 'description', 'source_type', 'source_id', 'event', 'batch_ref', 'created_by'];
 
     protected $casts = [
         'entry_date' => 'date',

@@ -39,15 +39,9 @@ class ProductionSeeder extends Seeder
         // ③ المستخدمون الافتراضيون — firstOrCreate فلا يمسّ كلمة مرور قائمة
         $this->runIfMissing('المستخدمين', UserSeeder::class, fn () => User::exists());
 
-        // ④ دليل الحسابات التشغيلي المستخدم في ترحيل القيود
-        $this->runIfMissing(
-            'دليل الحسابات',
-            AccountsSeeder::class,
-            fn () => \App\Models\Account::exists()
-        );
-
-        // ⑤ شجرة حسابات USALI — تُحدَّث دائماً لأنها بيانات مرجعية بحتة،
-        //    فأي حساب جديد يضيفه التحديث يصل تلقائياً دون تدخل.
+        // ④ شجرة حسابات USALI — دفتر الأستاذ الوحيد بعد توحيد الشجرة.
+        //    تُحدَّث دائماً لأنها بيانات مرجعية بحتة، فأي حساب جديد يضيفه
+        //    التحديث يصل تلقائياً دون تدخل.
         $this->call(ChartOfAccountsSeeder::class);
         $this->command?->info('  ✔ شجرة الحسابات: ' . ChartOfAccount::count() . ' حساباً');
 

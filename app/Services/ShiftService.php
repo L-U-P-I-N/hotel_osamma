@@ -372,7 +372,7 @@ class ShiftService
 
         // ريال يمني فقط حالياً (الشجرة لا تدعم SAR/USD بعد)
         if ($type === 'expense' && $withdrawal->currency === 'YER') {
-            $creditAccount = $fundingSource === 'general_safe' ? '1120' : '1110';
+            $creditAccount = $fundingSource === 'general_safe' ? '1120' : '1111';
 
             $this->journalService->post(
                 now()->toDateString(),
