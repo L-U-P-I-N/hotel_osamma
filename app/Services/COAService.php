@@ -335,6 +335,8 @@ class COAService
             'normal_balance' => $account->normal_balance,
             'is_active'      => $account->is_active,
             'level'          => $account->level,
+            // محسوبة من الأبناء الحاضرين هنا لا باستعلام لكل عقدة
+            'is_locked'      => $account->is_system && $children !== [],
             'children'       => array_map(
                 fn (ChartOfAccount $child) => $this->nodeToArray($child, $childrenByParent),
                 $children

@@ -75,6 +75,10 @@
             <span class="coa-chip bg-red-100 text-red-700">موقوف</span>
             @endunless
 
+            @if($canManage && ($node['is_locked'] ?? false))
+            <span class="coa-chip coa-chip-muted" title="حساب أساسي في بنية الشجرة — لا يُعدَّل ولا يُحذف">محميّ</span>
+            @endif
+
             @if($canManage && $node['level'] < 4)
             <a href="{{ route('coa.index', array_merge(request()->query(), ['new' => 1, 'parent' => $node['code'], 'edit' => null])) }}#account-form"
                class="coa-chip border border-gray-200 text-gray-500 hover:border-blue-400 hover:text-blue-600"

@@ -250,6 +250,73 @@ class ChartOfAccountsCrudTest extends TestCase
         $this->assertTrue(ChartOfAccount::where('code', $code)->value('is_active'));
     }
 
+    // ───────────────── الحسابات الأساسية التجميعية ─────────────────
+
+    /**
+     * عظام الشجرة (حساب من البذرة وله فروع) تُقرأ ولا تُكتب: اسمه عنوان سطرٍ
+     * في الميزانية وقائمة الدخل، ورصيده حاصل جمع فروعه لا رصيد خاص به.
+     */
+    public function test_a_structural_parent_account_cannot_be_renamed(): void
+    {
+        $this->actingAs($this->admin)
+            ->put(route('coa.update', '1000'), ['name_ar' => 'الموجودات'])
+            ->assertSessionHas('error');
+
+        $this->assertSame('الأصول', ChartOfAccount::where('code', '1000')->value('name_ar'));
+    }
+
+    public function test_a_structural_parent_account_cannot_be_suspended(): void
+    {
+        $this->actingAs($this->admin)
+            ->put(route('coa.update', '1100'), ['name_ar' => 'النقدية والبنوك', 'suspended' => 1])
+            ->assertSessionHas('error');
+
+        $this->assertTrue(ChartOfAccount::where('code', '1100')->value('is_active'));
+    }
+
+    public function test_a_structural_parent_account_cannot_be_deleted(): void
+    {
+        $this->actingAs($this->admin)
+            ->delete(route('coa.destroy', '1100'))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseHas('chart_of_accounts', ['code' => '1100']);
+    }
+
+    /** لكن الإضافة تحته مفتوحة: هي لا تمسّ بنيته */
+    public function test_a_child_may_still_be_added_under_a_locked_parent(): void
+    {
+        $this->actingAs($this->admin)
+            ->post(route('coa.store'), [
+                'parent_code' => '1100',
+                'code'        => '1190',
+                'name_ar'     => 'نقدية أخرى',
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('chart_of_accounts', ['code' => '1190']);
+    }
+
+    /** وورقة البذرة تبقى قابلة لإعادة التسمية — القفل على البنية لا على كل مبذور */
+    public function test_a_seeded_leaf_is_still_renameable(): void
+    {
+        $this->actingAs($this->admin)
+            ->put(route('coa.update', '1120'), ['name_ar' => 'الخزنة الرئيسية'])
+            ->assertSessionMissing('error');
+
+        $this->assertSame('الخزنة الرئيسية', ChartOfAccount::where('code', '1120')->value('name_ar'));
+    }
+
+    /** والقفل يظهر في الواجهة قبل الضغط لا بعده */
+    public function test_the_form_shows_a_locked_parent_as_read_only(): void
+    {
+        $this->actingAs($this->admin)
+            ->get(route('coa.index', ['edit' => '1000']))
+            ->assertOk()
+            ->assertSee('حساب أساسي في بنية شجرة USALI', false)
+            ->assertSee('محميّ', false);
+    }
+
     // ───────────────── الحذف ─────────────────
 
     public function test_a_user_added_unused_account_is_deletable(): void
@@ -298,11 +365,12 @@ class ChartOfAccountsCrudTest extends TestCase
      */
     public function test_user_edits_survive_a_reseed(): void
     {
-        $this->actingAs($this->admin)->post(route('coa.store'), [
-            'parent_code' => '1120', 'code' => '1123', 'name_ar' => 'صندوق الطوارئ',
-        ]);
+        // التسمية أولاً ثم الفرع: بعد أن يصير 1120 أباً يُقفل فلا يقبل تعديلاً
         $this->actingAs($this->admin)->put(route('coa.update', '1120'), [
             'name_ar' => 'الخزنة الرئيسية', 'notes' => 'بعهدة المدير',
+        ]);
+        $this->actingAs($this->admin)->post(route('coa.store'), [
+            'parent_code' => '1120', 'code' => '1123', 'name_ar' => 'صندوق الطوارئ',
         ]);
 
         $this->seed(ChartOfAccountsSeeder::class);

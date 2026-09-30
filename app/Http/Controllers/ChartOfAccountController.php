@@ -92,6 +92,13 @@ class ChartOfAccountController extends Controller
     public function update(UpdateChartOfAccountRequest $request, string $code): RedirectResponse
     {
         $account = ChartOfAccount::where('code', $code)->firstOrFail();
+
+        // الحسابات الأساسية التجميعية تُقرأ ولا تُكتب — تُحرَس هنا لا في الواجهة
+        // وحدها، فتعطيل الحقل في الصفحة لا يمنع طلباً يصل من خارجها
+        if (($locked = $account->editBlocker()) !== null) {
+            return back()->with('error', $locked);
+        }
+
         $data    = $request->validated();
         // النموذج يعرض «إيقاف الحساب» كما في دفاتر الحسابات المتعارف عليها
         $active  = !$request->boolean('suspended');

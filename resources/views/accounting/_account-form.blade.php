@@ -25,8 +25,10 @@
         'sales' => 'المبيعات والتسويق', 'maintenance' => 'الصيانة', 'utilities' => 'المرافق',
     ];
 
-    $locked     = $account !== null && in_array($account->code, $lockedCodes, true);
-    $blocker    = $account?->deletionBlocker();
+    // قفلان مختلفان: بنيوي يمنع كل تعديل، وترحيليّ يمنع الإيقاف وحده
+    $structureLock = $account?->editBlocker();
+    $postingLock   = $account !== null && in_array($account->code, $lockedCodes, true);
+    $blocker       = $account?->deletionBlocker();
     $fieldClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400';
     $readClass  = 'w-full border border-gray-200 bg-gray-50 text-gray-600 rounded-lg px-3 py-2 text-sm';
 @endphp
@@ -54,10 +56,15 @@
 
         {{-- شريط الأوامر --}}
         <div class="flex items-center gap-2 px-4 py-2.5 bg-gray-50 flex-wrap">
+            @if($structureLock === null)
             <button type="submit"
                     class="px-4 py-1.5 rounded-lg text-white text-sm font-semibold" style="background:#0F4C75;">
                 حفظ
             </button>
+            @else
+            <span class="px-4 py-1.5 rounded-lg text-sm font-semibold text-gray-400 border border-gray-200 bg-white cursor-not-allowed"
+                  title="{{ $structureLock }}">حفظ</span>
+            @endif
 
             <a href="{{ route('coa.index', ['new' => 1] + ($account ? ['parent' => $account->code] : [])) }}"
                class="px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
@@ -80,6 +87,18 @@
                 إغلاق
             </a>
         </div>
+
+        @if($structureLock !== null)
+        <div class="px-4 py-3 bg-slate-50 border-r-4 border-slate-400">
+            <p class="text-sm text-slate-700 flex items-start gap-2">
+                <svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                </svg>
+                <span>{{ $structureLock }}</span>
+            </p>
+        </div>
+        @endif
 
         @if($errors->any())
         <div class="px-4 py-3 bg-red-50 border-r-4 border-red-400">
@@ -118,15 +137,17 @@
                 <label class="block text-xs font-medium text-gray-600 mb-1">
                     اسم الحساب <span class="text-red-500">*</span>
                 </label>
-                <input type="text" name="name_ar" required maxlength="150" class="{{ $fieldClass }}"
-                       value="{{ old('name_ar', $account?->name_ar) }}">
+                <input type="text" name="name_ar" required maxlength="150"
+                       class="{{ $structureLock ? $readClass : $fieldClass }}"
+                       value="{{ old('name_ar', $account?->name_ar) }}" @readonly($structureLock !== null)>
             </div>
 
             <div class="sm:col-span-2">
                 <label class="block text-xs font-medium text-gray-600 mb-1">الاسم بالإنجليزية</label>
-                <input type="text" name="name_en" maxlength="150" class="{{ $fieldClass }}" dir="ltr"
+                <input type="text" name="name_en" maxlength="150" dir="ltr"
+                       class="{{ $structureLock ? $readClass : $fieldClass }}"
                        value="{{ old('name_en', $account?->name_en) }}"
-                       placeholder="يُنسخ من العربي إن تُرك فارغاً">
+                       placeholder="يُنسخ من العربي إن تُرك فارغاً" @readonly($structureLock !== null)>
             </div>
 
             <div class="sm:col-span-2">
@@ -183,7 +204,8 @@
 
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1">القسم (مركز التكلفة)</label>
-                <select name="department" class="{{ $fieldClass }}">
+                <select name="department" class="{{ $structureLock ? $readClass : $fieldClass }}"
+                        @disabled($structureLock !== null)>
                     <option value="">بلا قسم</option>
                     @foreach($deptLabels as $value => $label)
                     <option value="{{ $value }}" @selected(old('department', $account?->department ?? $parent?->department) === $value)>
@@ -195,8 +217,9 @@
 
             <div class="sm:col-span-2">
                 <label class="block text-xs font-medium text-gray-600 mb-1">ملاحظات</label>
-                <input type="text" name="notes" maxlength="500" class="{{ $fieldClass }}"
-                       value="{{ old('notes', $account?->notes) }}">
+                <input type="text" name="notes" maxlength="500"
+                       class="{{ $structureLock ? $readClass : $fieldClass }}"
+                       value="{{ old('notes', $account?->notes) }}" @readonly($structureLock !== null)>
             </div>
         </div>
 
@@ -205,13 +228,14 @@
         <div class="p-4 space-y-3">
             <h4 class="text-xs font-bold text-gray-500">بيانات إضافية</h4>
 
-            <label class="flex items-center gap-2 text-sm {{ $locked ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 cursor-pointer' }}">
+            @php $suspendLock = $structureLock !== null || $postingLock; @endphp
+            <label class="flex items-center gap-2 text-sm {{ $suspendLock ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 cursor-pointer' }}">
                 <input type="checkbox" name="suspended" value="1" class="rounded border-gray-300"
-                       @checked(old('suspended', !$account->is_active)) @disabled($locked)>
+                       @checked(old('suspended', !$account->is_active)) @disabled($suspendLock)>
                 إيقاف الحساب
             </label>
 
-            @if($locked)
+            @if($postingLock)
             <p class="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
                 هذا الحساب مستعمل في ترحيل العمليات اليومية، فإيقافه يُعطّل تسجيلها — ولذلك لا يقبل الإيقاف.
             </p>
@@ -228,7 +252,10 @@
                 </div>
                 <div>
                     <dt class="text-gray-500">المصدر</dt>
-                    <dd class="font-semibold text-gray-700">{{ $account->is_system ? 'شجرة USALI الأساسية' : 'مُضاف يدوياً' }}</dd>
+                    <dd class="font-semibold text-gray-700">
+                        {{ $account->is_system ? 'شجرة USALI الأساسية' : 'مُضاف يدوياً' }}
+                        {{ $structureLock !== null ? '(محميّ)' : '' }}
+                    </dd>
                 </div>
                 <div>
                     <dt class="text-gray-500">الرصيد الحالي</dt>
