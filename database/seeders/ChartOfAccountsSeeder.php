@@ -334,23 +334,47 @@ class ChartOfAccountsSeeder extends Seeder
 
         DB::transaction(static function () use ($accounts): void {
             foreach ($accounts as [$code, $parent, $nameEn, $nameAr, $type, $subtype, $dept, $isPosting, $level]) {
-                ChartOfAccount::updateOrCreate(
-                    ['code' => $code],
-                    [
-                        'parent_code'    => $parent,
-                        'name_en'        => $nameEn,
-                        'name_ar'        => $nameAr,
-                        'type'           => $type,
-                        'subtype'        => $subtype,
-                        'department'     => $dept,
-                        'is_posting'     => $isPosting,
-                        // يُشتق في الموديل، ويُمرَّر هنا ليصمد لو استُدعي بـinsert
-                        'normal_balance' => ChartOfAccount::normalBalanceFor($type, $subtype),
-                        'is_active'      => true,
-                        'level'          => $level,
-                    ]
-                );
+                $existing = ChartOfAccount::where('code', $code)->first();
+
+                // البنية ملك البذرة وتُصحَّح في كل نشر — أما ما يملكه المستخدم
+                // (الاسم، القسم، الإيقاف، الملاحظة) فيُكتب مرة عند الإنشاء ثم
+                // لا يُمس، وإلا مُحي تعديله في أول نشر تالٍ دون أن يدري.
+                $structure = [
+                    'parent_code'    => $parent,
+                    'type'           => $type,
+                    'subtype'        => $subtype,
+                    'is_posting'     => $isPosting,
+                    // يُشتق في الموديل، ويُمرَّر هنا ليصمد لو استُدعي بـinsert
+                    'normal_balance' => ChartOfAccount::normalBalanceFor($type, $subtype),
+                    'level'          => $level,
+                    'is_system'      => true,
+                ];
+
+                if ($existing === null) {
+                    ChartOfAccount::create($structure + [
+                        'code'       => $code,
+                        'name_en'    => $nameEn,
+                        'name_ar'    => $nameAr,
+                        'department' => $dept,
+                        'is_active'  => true,
+                    ]);
+
+                    continue;
+                }
+
+                $existing->update($structure);
             }
+
+            // قابلية الترحيل تُحسم من الشجرة كما هي في القاعدة، لا من مصفوفة
+            // البذرة وحدها: حسابٌ أضاف المستخدم فرعاً تحته صار تجميعياً، وكان
+            // النشر التالي يُعيده قابلاً للترحيل فيُحتسب رصيده مع فروعه مرتين.
+            $parentCodes = ChartOfAccount::whereNotNull('parent_code')
+                ->distinct()
+                ->pluck('parent_code');
+
+            ChartOfAccount::whereIn('code', $parentCodes)
+                ->where('is_posting', true)
+                ->update(['is_posting' => false]);
         });
     }
 }

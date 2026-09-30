@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreChartOfAccountRequest;
+use App\Http\Requests\UpdateChartOfAccountRequest;
 use App\Http\Resources\ChartOfAccountResource;
 use App\Models\ChartOfAccount;
 use App\Services\COAService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /**
  * واجهة شجرة الحسابات: صفحة العرض + نقاط JSON.
@@ -21,16 +25,178 @@ class ChartOfAccountController extends Controller
     {
         $filters = $this->filters($request);
 
+        $canManage = $request->user()?->can('accounts.manage') ?? false;
+
         return view('accounting.chart-of-accounts', [
             'tree'        => $this->coa->buildTree($filters),
             'filters'     => $filters,
             'types'       => ChartOfAccount::TYPES,
             'departments' => ChartOfAccount::DEPARTMENTS,
+            'canManage'   => $canManage,
+            // النموذج يُملأ من الخادم لا من جافاسكربت: الشجرة روابط عادية،
+            // فتعمل الصفحة كاملةً حتى لو تعطّل السكربت، ويبقى الرجوع للخلف سليماً
+            'editing'     => $canManage ? $this->accountBeingEdited($request) : null,
+            'creating'    => $canManage ? $this->accountBeingCreated($request) : null,
+            'parents'     => $canManage ? $this->selectableParents() : collect(),
+            'lockedCodes' => $canManage ? $this->coa->hardcodedPostingCodes() : [],
             'totals'      => [
                 'all'     => ChartOfAccount::count(),
                 'posting' => ChartOfAccount::postingAccounts()->count(),
             ],
         ]);
+    }
+
+    /** إنشاء حساب فرعي جديد تحت أب مختار */
+    public function store(StoreChartOfAccountRequest $request): RedirectResponse
+    {
+        $data   = $request->validated();
+        $parent = ChartOfAccount::where('code', $data['parent_code'])->firstOrFail();
+
+        $account = DB::transaction(static function () use ($data, $parent): ChartOfAccount {
+            $level = $parent->level + 1;
+
+            $account = ChartOfAccount::create([
+                'code'        => $data['code'],
+                'parent_code' => $parent->code,
+                'name_ar'     => $data['name_ar'],
+                // الاسم الإنجليزي اختياري: يُستعمل في تصدير JSON فقط، وتركه
+                // فارغاً يجعل الحساب بلا اسم هناك، فيُنسخ العربي بدلاً منه
+                'name_en'     => ($data['name_en'] ?? null) ?: $data['name_ar'],
+                // النوع والطبيعة الفرعية من الأب: الفرع لا يخالف أصله، وإلا
+                // جمعت التقارير أصلاً تحت خصوم
+                'type'        => $parent->type,
+                'subtype'     => $parent->subtype,
+                'department'  => $data['department'] ?? $parent->department,
+                'level'       => $level,
+                // الترحيل للأوراق في المستوى الثالث فصاعداً — والموديل يفرضها
+                'is_posting'  => $level >= 3,
+                'is_active'   => true,
+                'is_system'   => false,
+                'notes'       => $data['notes'] ?? null,
+            ]);
+
+            // الأب صار تجميعياً بمجرد أن صار له فرع، وإلا حُسب رصيده مع فروعه
+            if ($parent->is_posting) {
+                $parent->update(['is_posting' => false]);
+            }
+
+            return $account;
+        });
+
+        return redirect()
+            ->route('coa.index', ['edit' => $account->code])
+            ->with('success', "أُضيف الحساب {$account->code} — {$account->name_ar}");
+    }
+
+    /** تعديل ما يجوز تعديله: الاسم، القسم، الملاحظة، الإيقاف */
+    public function update(UpdateChartOfAccountRequest $request, string $code): RedirectResponse
+    {
+        $account = ChartOfAccount::where('code', $code)->firstOrFail();
+        $data    = $request->validated();
+        // النموذج يعرض «إيقاف الحساب» كما في دفاتر الحسابات المتعارف عليها
+        $active  = !$request->boolean('suspended');
+
+        if (!$active && ($blocker = $this->deactivationBlocker($account)) !== null) {
+            return back()->withInput()->with('error', $blocker);
+        }
+
+        $account->update([
+            'name_ar'    => $data['name_ar'],
+            'name_en'    => ($data['name_en'] ?? null) ?: $data['name_ar'],
+            'department' => $data['department'] ?? null,
+            'notes'      => $data['notes'] ?? null,
+            'is_active'  => $active,
+        ]);
+
+        return redirect()
+            ->route('coa.index', ['edit' => $account->code])
+            ->with('success', "حُفظ الحساب {$account->code}");
+    }
+
+    /** حذف حساب أضافه المستخدم ولم يُستعمل — وما عداه يُوقَف لا يُحذف */
+    public function destroy(Request $request, string $code): RedirectResponse
+    {
+        abort_unless($request->user()?->can('accounts.manage'), 403);
+
+        $account = ChartOfAccount::where('code', $code)->firstOrFail();
+
+        if (($blocker = $account->deletionBlocker()) !== null) {
+            return back()->with('error', $blocker);
+        }
+
+        $parent = $account->parent;
+        $label  = $account->code . ' — ' . $account->name_ar;
+
+        DB::transaction(static function () use ($account, $parent): void {
+            $account->delete();
+
+            // آخر فرع رحل، فيعود الأب ورقةً قابلة للترحيل كما كان
+            if ($parent !== null && $parent->level >= 3 && !$parent->children()->exists()) {
+                $parent->update(['is_posting' => true]);
+            }
+        });
+
+        return redirect()
+            ->route('coa.index', $parent ? ['edit' => $parent->code] : [])
+            ->with('success', "حُذف الحساب {$label}");
+    }
+
+    /**
+     * سبب منع الإيقاف بالعربية، أو null. الأكواد المثبّتة في شيفرة الترحيل لا
+     * تُوقَف: JournalService يرفض الحساب الموقوف، فالعطل لا يظهر لحظة الإيقاف
+     * بل لحظة تسجيل دفعةٍ لنزيل حقيقي بعد أيام.
+     */
+    private function deactivationBlocker(ChartOfAccount $account): ?string
+    {
+        if (in_array($account->code, $this->coa->hardcodedPostingCodes(), true)) {
+            return 'الحساب ' . $account->code . ' مستعمل في ترحيل العمليات اليومية '
+                 . '(الدفعات أو المصروفات أو الرواتب) فلا يمكن إيقافه — إيقافه يُعطّل تسجيلها.';
+        }
+
+        if ($account->children()->where('is_active', true)->exists()) {
+            return 'للحساب فروع نشطة — أوقِفها أولاً.';
+        }
+
+        return null;
+    }
+
+    /** الحساب المطلوب تعديله من رابط الشجرة */
+    private function accountBeingEdited(Request $request): ?ChartOfAccount
+    {
+        $code = $request->query('edit');
+
+        return $code ? ChartOfAccount::where('code', $code)->first() : null;
+    }
+
+    /**
+     * أب الحساب الجديد. عند الضغط على «جديد» من عقدة في الشجرة يأتي كودها
+     * فيُقترح أول رقم حرّ تحته، وإلا فُتح النموذج فارغاً ليختار المستخدم أباً.
+     */
+    private function accountBeingCreated(Request $request): ?array
+    {
+        if (!$request->has('new')) {
+            return null;
+        }
+
+        $parent = ChartOfAccount::where('code', $request->query('parent'))->first();
+
+        return [
+            'parent'        => $parent,
+            'suggested'     => $parent?->nextChildCode(),
+            'parent_locked' => $parent !== null,
+        ];
+    }
+
+    /** الحسابات التي تصلح آباءً: دون المستوى الرابع وبلا قيود مرحَّلة عليها */
+    private function selectableParents()
+    {
+        return ChartOfAccount::query()
+            ->where('level', '<', 4)
+            ->where('is_active', true)
+            ->orderBy('code')
+            ->get()
+            ->reject(static fn (ChartOfAccount $a) => $a->hasJournalLines())
+            ->values();
     }
 
     /** الشجرة كاملةً بصيغة JSON متداخلة */

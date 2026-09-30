@@ -514,6 +514,14 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/accounting/chart-of-accounts/{code}', [\App\Http\Controllers\ChartOfAccountController::class, 'show'])->name('coa.show');
     });
 
+    // تحرير الدليل — مفصول عن العرض: مطالع التقارير يقرأ، ومن يملك
+    // accounts.manage وحده يُضيف ويُعدّل ويُوقف
+    Route::middleware('permission:accounts.manage')->group(function () {
+        Route::post('/accounting/chart-of-accounts', [\App\Http\Controllers\ChartOfAccountController::class, 'store'])->name('coa.store');
+        Route::put('/accounting/chart-of-accounts/{code}', [\App\Http\Controllers\ChartOfAccountController::class, 'update'])->name('coa.update');
+        Route::delete('/accounting/chart-of-accounts/{code}', [\App\Http\Controllers\ChartOfAccountController::class, 'destroy'])->name('coa.destroy');
+    });
+
     // إعدادات التسعير — المدير هو من يحدد نطاق أقل وأعلى سعر لكل نوع
     Route::middleware('permission:pricing.manage')->group(function () {
         Route::get('/pricing', [\App\Http\Controllers\PricingController::class, 'index'])->name('pricing.index');

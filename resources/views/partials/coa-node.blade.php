@@ -15,10 +15,22 @@
         'expense'   => ['cls' => 'bg-orange-100 text-orange-700',   'label' => 'مصروفات'],
     ];
     $style = $typeStyles[$node['type']] ?? ['cls' => 'bg-gray-100 text-gray-600', 'label' => $node['type']];
+
+    // $canManage و$selectedCode يتسرّبان من الصفحة الحاضنة عبر @include ويصلان
+    // إلى كل عمق في الاستدعاء الذاتي؛ يُعطيان قيمة افتراضية كي تصلح العقدة
+    // للعرض المجرّد أيضاً (تصدير، صفحة أخرى) دون تمريرهما.
+    $canManage   = $canManage   ?? false;
+    $selectedCode = $selectedCode ?? null;
+    $isSelected  = $selectedCode !== null && $selectedCode === $node['code'];
+
+    // الترقيم هرمي بخاناته، فالحساب المختار يقع تحت كل عقدة تُطابق خاناتها
+    // الأولى — بهذا يُفتح المسار من الجذر إليه بدل أن يختفي داخل فرع مطويّ.
+    $onSelectedPath = $selectedCode !== null
+        && str_starts_with($selectedCode, substr($node['code'], 0, $node['level']));
 @endphp
 
-<li x-data="{ open: {{ $node['level'] <= 1 ? 'true' : 'false' }} }" class="coa-node">
-    <div class="coa-row" style="--indent: {{ ($node['level'] - 1) * 1.25 }}rem;">
+<li x-data="{ open: {{ $node['level'] <= 1 || $onSelectedPath ? 'true' : 'false' }} }" class="coa-node">
+    <div class="coa-row {{ $isSelected ? 'coa-row-selected' : '' }}" style="--indent: {{ ($node['level'] - 1) * 1.25 }}rem;">
 
         {{-- زر الطي / التوسيع، أو نقطة للورقة --}}
         @if($hasChildren)
@@ -36,7 +48,12 @@
 
         <span class="coa-code">{{ $node['code'] }}</span>
 
+        @if($canManage)
+        <a href="{{ route('coa.index', array_merge(request()->query(), ['edit' => $node['code'], 'new' => null, 'parent' => null])) }}#account-form"
+           class="coa-name-ar text-gray-800 hover:text-blue-700 hover:underline {{ $node['level'] <= 2 ? 'font-bold' : '' }}">{{ $node['name_ar'] }}</a>
+        @else
         <span class="coa-name-ar text-gray-800 {{ $node['level'] <= 2 ? 'font-bold' : '' }}">{{ $node['name_ar'] }}</span>
+        @endif
         <span class="coa-name-en text-gray-400" dir="ltr">{{ $node['name_en'] }}</span>
 
         <span class="coa-badges">
@@ -57,6 +74,12 @@
             @unless($node['is_active'])
             <span class="coa-chip bg-red-100 text-red-700">موقوف</span>
             @endunless
+
+            @if($canManage && $node['level'] < 4)
+            <a href="{{ route('coa.index', array_merge(request()->query(), ['new' => 1, 'parent' => $node['code'], 'edit' => null])) }}#account-form"
+               class="coa-chip border border-gray-200 text-gray-500 hover:border-blue-400 hover:text-blue-600"
+               title="إضافة حساب فرعي تحت {{ $node['code'] }}">+ فرعي</a>
+            @endif
         </span>
     </div>
 

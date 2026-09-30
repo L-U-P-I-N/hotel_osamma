@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\ChartOfAccount;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
 
@@ -262,6 +263,47 @@ class COAService
     // ───────────────────────── داخلي / Internal ─────────────────────────
 
     /** @return Collection<int,ChartOfAccount> */
+    /**
+     * أكواد الحسابات المثبّتة في شيفرة الترحيل — تُقرأ من الشيفرة نفسها لا من
+     * قائمة مكتوبة يدوياً، فلا تتقادم حين يُضاف ترحيل جديد.
+     *
+     * إيقاف أحدها أو حذفه لا يُخطئ لحظة التعديل بل لحظة وقوع العملية على نزيل
+     * حقيقي — لأن JournalService يرفض الحساب الموقوف عند الترحيل — فيُحرس هنا.
+     *
+     * @return array<int,string>
+     */
+    public function hardcodedPostingCodes(): array
+    {
+        static $cached = null;
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        $codes = [];
+
+        foreach (File::allFiles(app_path()) as $file) {
+            if ($file->getExtension() !== 'php') {
+                continue;
+            }
+            preg_match_all("/'account_code'\s*=>\s*'(\\d{4})'/", $file->getContents(), $matches);
+            $codes = array_merge($codes, $matches[1]);
+        }
+
+        // خريطة فئات المصروف تُبنى ديناميكياً فلا يلتقطها المسح النصّي
+        foreach (['maintenance', 'electricity', 'salary', 'cleaning', 'food', 'other'] as $category) {
+            $codes[] = \App\Models\Expense::categoryAccountCode($category);
+        }
+
+        // وأكواد خدمة متبقيات النزلاء ثوابت في الصنف
+        foreach ((new \ReflectionClass(\App\Services\GuestCreditService::class))->getConstants() as $value) {
+            if (is_string($value) && preg_match('/^\\d{4}$/', $value)) {
+                $codes[] = $value;
+            }
+        }
+
+        return $cached = array_values(array_unique(array_filter($codes)));
+    }
+
     private function queryAccounts(array $filters): Collection
     {
         return ChartOfAccount::query()

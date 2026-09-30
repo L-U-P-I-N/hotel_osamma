@@ -22,6 +22,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property bool $is_posting
  * @property string $normal_balance
  * @property bool $is_active
+ * @property bool $is_system
+ * @property string|null $notes
  * @property int $level
  */
 class ChartOfAccount extends Model
@@ -50,11 +52,13 @@ class ChartOfAccount extends Model
         'code', 'parent_code', 'name_en', 'name_ar',
         'type', 'subtype', 'department',
         'is_posting', 'normal_balance', 'is_active', 'level',
+        'is_system', 'notes',
     ];
 
     protected $casts = [
         'is_posting' => 'boolean',
         'is_active'  => 'boolean',
+        'is_system'  => 'boolean',
         'level'      => 'integer',
     ];
 
@@ -249,6 +253,81 @@ class ChartOfAccount extends Model
     public function isLeaf(): bool
     {
         return $this->children()->count() === 0;
+    }
+
+    /** هل رُحِّل على هذا الحساب قيد واحد على الأقل؟ */
+    public function hasJournalLines(): bool
+    {
+        return $this->journalLines()->exists();
+    }
+
+    /**
+     * الحساب الختامي: إلى أين يُرحَّل رصيده في نهاية السنة. الإيرادات
+     * والمصروفات تُقفل في قائمة الدخل، وما عداها يُرحَّل في الميزانية.
+     */
+    public function getClosingStatementAttribute(): string
+    {
+        return in_array($this->type, ['revenue', 'expense'], true)
+            ? 'قائمة الدخل'
+            : 'الميزانية العمومية';
+    }
+
+    /**
+     * أول كود حرّ تحت هذا الحساب، أو null إن امتلأت فروعه أو بلغ آخر مستوى.
+     *
+     * الترقيم هرمي بأربع خانات: الجذر X000، ثم XY00، ثم XYZ0، ثم XYZW —
+     * فابن حسابٍ في المستوى N يختلف عنه في الخانة رقم N وحدها. لذا يُشتق
+     * الكود من بنية الشجرة لا من عدّاد، فيبقى الرقم دالاً على موضعه.
+     */
+    public function nextChildCode(): ?string
+    {
+        if ($this->level >= 4) {
+            return null;
+        }
+
+        $taken  = $this->children()->pluck('code')->flip();
+        $digits = str_split(str_pad($this->code, 4, '0'));
+
+        for ($digit = 1; $digit <= 9; $digit++) {
+            $candidate       = $digits;
+            $candidate[$this->level] = (string) $digit;
+
+            // الخانات بعد موضع الابن تبقى أصفاراً — وهي ما يحجزه لأبنائه هو
+            for ($i = $this->level + 1; $i < 4; $i++) {
+                $candidate[$i] = '0';
+            }
+
+            $code = implode('', $candidate);
+            if (!$taken->has($code) && !static::where('code', $code)->exists()) {
+                return $code;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * سبب منع الحذف بالعربية، أو null إن كان الحذف مسموحاً.
+     *
+     * الحذف في المحاسبة استثناء لا قاعدة: حساب رُحِّل عليه قيد جزءٌ من سجل
+     * التدقيق، وحساب من البذرة كوده مثبّت في شيفرة الترحيل. فلا يُحذف إلا ما
+     * أضافه المستخدم ولم يُستعمل بعد؛ وما عداه يُوقَف ولا يُمحى.
+     */
+    public function deletionBlocker(): ?string
+    {
+        if ($this->is_system) {
+            return 'حساب أساسي من شجرة USALI — يُمكن إيقافه لا حذفه.';
+        }
+
+        if ($this->children()->exists()) {
+            return 'للحساب فروع — احذفها أولاً أو أوقِف الحساب.';
+        }
+
+        if ($this->hasJournalLines()) {
+            return 'رُحِّلت على الحساب قيود — سجل التدقيق لا يُحذف منه، والبديل إيقاف الحساب.';
+        }
+
+        return null;
     }
 
     // ───────────────────────── العرض / Presentation ─────────────────────────

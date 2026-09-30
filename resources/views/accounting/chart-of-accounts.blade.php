@@ -20,6 +20,8 @@
         border-bottom:1px solid #f3f4f6; transition:background .15s;
     }
     .coa-row:hover { background:#f9fafb; }
+    .coa-row-selected { background:#eff6ff; box-shadow:inset 3px 0 0 #0F4C75; }
+    html.dark .coa-row-selected { background:#22303d; }
     html.dark .coa-row { border-bottom-color:#33383f; }
     html.dark .coa-row:hover { background:#2d323a; }
 
@@ -63,7 +65,7 @@
 @endpush
 
 @section('content')
-<div class="max-w-5xl mx-auto space-y-5" dir="rtl">
+<div class="{{ $canManage ? 'max-w-7xl' : 'max-w-5xl' }} mx-auto space-y-5" dir="rtl">
 
     {{-- ملخص + فلاتر --}}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
@@ -77,11 +79,19 @@
                     عملة التقارير: <strong>{{ config('hotel.base_currency') }}</strong>.
                 </p>
             </div>
-            <a href="{{ route('coa.tree', request()->query()) }}" target="_blank"
-               class="px-4 py-2 border rounded-lg text-sm font-medium transition hover:bg-gray-50"
-               style="border-color:#0F4C75;color:#0F4C75;">
-                تصدير JSON
-            </a>
+            <div class="flex items-center gap-2">
+                @if($canManage)
+                <a href="{{ route('coa.index', ['new' => 1]) }}#account-form"
+                   class="px-4 py-2 rounded-lg text-sm font-semibold text-white" style="background:#0F4C75;">
+                    + حساب جديد
+                </a>
+                @endif
+                <a href="{{ route('coa.tree', request()->query()) }}" target="_blank"
+                   class="px-4 py-2 border rounded-lg text-sm font-medium transition hover:bg-gray-50"
+                   style="border-color:#0F4C75;color:#0F4C75;">
+                    تصدير JSON
+                </a>
+            </div>
         </div>
 
         <form method="GET" action="{{ route('coa.index') }}" class="grid grid-cols-1 sm:grid-cols-4 gap-3">
@@ -110,11 +120,19 @@
             </div>
 
             <div class="flex items-end">
-                <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-                    <input type="checkbox" name="posting_only" value="1" @checked($filters['posting_only'] ?? false)
-                           class="rounded border-gray-300">
-                    القابلة للترحيل فقط
-                </label>
+                <div class="space-y-1.5">
+                    <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                        <input type="checkbox" name="posting_only" value="1" @checked($filters['posting_only'] ?? false)
+                               class="rounded border-gray-300">
+                        القابلة للترحيل فقط
+                    </label>
+                    {{-- بدون هذا الخيار يختفي الحساب فور إيقافه فلا يبقى سبيل لإعادته --}}
+                    <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                        <input type="checkbox" name="only_active" value="0" @checked(!($filters['only_active'] ?? true))
+                               class="rounded border-gray-300">
+                        إظهار الموقوفة
+                    </label>
+                </div>
             </div>
 
             <div class="flex items-end gap-2">
@@ -127,6 +145,8 @@
             </div>
         </form>
     </div>
+
+    <div class="grid grid-cols-1 {{ $canManage ? 'lg:grid-cols-2' : '' }} gap-5 items-start">
 
     {{-- الشجرة --}}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
@@ -152,10 +172,20 @@
         @else
         <ul class="coa-tree" x-ref="tree">
             @foreach($tree as $node)
-                @include('partials.coa-node', ['node' => $node])
+                @include('partials.coa-node', [
+                    'node'         => $node,
+                    'canManage'    => $canManage,
+                    'selectedCode' => $editing?->code,
+                ])
             @endforeach
         </ul>
         @endif
+    </div>
+
+    @if($canManage)
+        @include('accounting._account-form')
+    @endif
+
     </div>
 </div>
 @endsection
