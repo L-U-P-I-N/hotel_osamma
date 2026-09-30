@@ -10,7 +10,7 @@
         <div class="text-9xl font-bold text-amber-200 mb-4">419</div>
         <h1 class="text-2xl font-bold text-gray-800 mb-2">انتهت صلاحية الصفحة</h1>
         <p class="text-gray-500 mb-6">{{ $friendly ?? 'بقيت الصفحة مفتوحة مدة طويلة فانتهت صلاحيتها ولم يُحفظ أي شيء. ارجع للصفحة واضغط الحفظ من جديد.' }}</p>
-        <a href="{{ url('/dashboard') }}" class="text-white px-6 py-2 rounded-lg transition inline-block" style="background:#0F4C75">العودة للرئيسية</a>
+        <a href="{{ url('/dashboard') }}" class="text-white px-6 py-2 rounded-lg transition inline-block" style="background:var(--ui-accent);color:var(--ui-accent-fg)">العودة للرئيسية</a>
     </div>
 </body>
 </html>

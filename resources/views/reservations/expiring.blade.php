@@ -36,7 +36,7 @@
                 <div class="text-[11px] font-semibold text-green-700 mt-1">النزلاء الموجودون الآن</div>
             </div>
             <div class="rounded-xl border border-gray-200 bg-white px-3 py-2 min-w-[8.5rem]">
-                <div class="text-xl font-black leading-none" style="color:#0F4C75;" data-count="total">{{ $total }}</div>
+                <div class="text-xl font-black leading-none" style="color:var(--ui-accent);" data-count="total">{{ $total }}</div>
                 <div class="text-[11px] font-semibold text-gray-500 mt-1" data-count-label="total">إجمالي النزلاء (الكل)</div>
             </div>
             <div class="rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 min-w-[8.5rem]">
@@ -112,7 +112,7 @@
             </select>
         </div>
 
-        <button type="submit" class="px-4 py-2 text-white rounded-lg text-sm font-medium self-end" style="background:#0F4C75;">بحث</button>
+        <button type="submit" class="px-4 py-2 text-white rounded-lg text-sm font-medium self-end" style="background:var(--ui-accent);color:var(--ui-accent-fg);">بحث</button>
 
         {{-- يُعرَض/يُخفى عبر JS مع كل فلترة حيّة (لا يُعاد رسمه بإعادة تحميل) --}}
         <a href="{{ route('reservations.expiring') }}" id="clearFilters"

@@ -66,7 +66,7 @@
                 @if(!empty($member['phone']))
                 <a href="tel:{{ $member['phone'] }}" dir="ltr"
                    class="text-[11px] font-mono font-bold px-2 py-1 rounded-lg flex-shrink-0 transition hover:brightness-95"
-                   style="background:#e8f0f7; color:#0F4C75;">{{ $member['phone'] }}</a>
+                   style="background:var(--ui-accent-bg);color:var(--ui-accent);">{{ $member['phone'] }}</a>
                 @endif
             </li>
             @endforeach

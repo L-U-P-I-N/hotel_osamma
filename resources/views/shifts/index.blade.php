@@ -937,7 +937,7 @@
                 @endif
                 <div class="flex justify-between items-center border-t border-gray-200 pt-2">
                     <span class="font-semibold text-gray-700">الصافي حسب النظام</span>
-                    <span class="font-bold text-lg" style="color:#0F4C75">{{ number_format($activeShift->net_balance_yer, 0) }} ر.ي</span>
+                    <span class="font-bold text-lg" style="color:var(--ui-accent)">{{ number_format($activeShift->net_balance_yer, 0) }} ر.ي</span>
                 </div>
             </div>
 
@@ -998,7 +998,7 @@
             </div>
 
             <button type="submit" class="w-full py-2.5 text-white rounded-lg text-sm font-semibold transition"
-                    style="background:#0F4C75;"
+                    style="background:var(--ui-accent);color:var(--ui-accent-fg);"
                     onclick="return confirm('هل أنت متأكد من إقفال الوردية؟')">
                 تأكيد الإقفال
             </button>
@@ -1116,7 +1116,7 @@
             <div class="flex gap-3">
                 <button type="submit"
                         class="flex-1 py-2.5 text-white rounded-lg text-sm font-semibold transition hover:opacity-90"
-                        style="background:#0F4C75;"
+                        style="background:var(--ui-accent);color:var(--ui-accent-fg);"
                         onclick="return confirm('تأكيد فصل المستلمات والسحبيات المحددة وإقفالها كوردية بالتاريخ المحدد؟')">
                     تأكيد الإقفال
                 </button>

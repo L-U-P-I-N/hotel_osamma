@@ -91,8 +91,8 @@
 {{-- بطاقات الملخص --}}
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
     <div class="rounded-xl p-5 border-2 col-span-2 lg:col-span-1" style="background:#e8f0f7; border-color:#0F4C75;">
-        <p class="text-xs font-medium" style="color:#0F4C75;">إجمالي الإيرادات (ر.ي)</p>
-        <p class="text-2xl font-bold mt-1" style="color:#0F4C75;">{{ number_format($totalRevenue, 0) }}</p>
+        <p class="text-xs font-medium" style="color:var(--ui-accent);">إجمالي الإيرادات (ر.ي)</p>
+        <p class="text-2xl font-bold mt-1" style="color:var(--ui-accent);">{{ number_format($totalRevenue, 0) }}</p>
         <p class="text-xs mt-0.5" style="color:#5b90c5;">ريال يمني</p>
     </div>
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">

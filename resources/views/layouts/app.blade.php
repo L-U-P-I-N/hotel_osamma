@@ -130,6 +130,8 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="/css/app-theme.css?v={{ @filemtime(public_path('css/app-theme.css')) ?: '1' }}">
+    {{-- بعد app-theme.css: نظام تصميم الصفحات المشترك يرث توكيناته ويصحّح ما يلزم --}}
+    <link rel="stylesheet" href="/css/ui-kit.css?v={{ @filemtime(public_path('css/ui-kit.css')) ?: '1' }}">
     @stack('styles')
 </head>
 <body class="bg-slate-50 text-gray-800">
@@ -634,7 +636,7 @@
                 <span class="text-xs text-gray-400 hidden lg:block">{{ now()->isoFormat('dddd، D MMMM Y') }}</span>
                 <div class="w-px h-5 bg-gray-200 hidden lg:block"></div>
                 <span class="hidden md:inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold"
-                      style="background:#e8f0f7; color:#0F4C75;">
+                      style="background:var(--ui-accent-bg);color:var(--ui-accent);">
                     {{ auth()->user()->roles->first()?->name ?? '' }}
                 </span>
                 {{-- فريق التطوير: ثابت في الشريط فيظهر في كل الصفحات --}}

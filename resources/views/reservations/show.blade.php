@@ -2674,7 +2674,7 @@ function openOldDebtModal(reservationId, balance, checkInDate) {
 <div id="partialInvoiceModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto"
      onclick="if(event.target===this) this.classList.add('hidden')">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto my-auto" onclick="event.stopPropagation()">
-        <div class="px-6 py-5 rounded-t-2xl flex items-center justify-between" style="background:#0F4C75;">
+        <div class="px-6 py-5 rounded-t-2xl flex items-center justify-between" style="background:var(--ui-accent);color:var(--ui-accent-fg);">
             <div class="flex items-center gap-3">
                 <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
                     <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>

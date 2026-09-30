@@ -13,7 +13,7 @@
         <div class="text-xs text-gray-500 mt-1">إجمالي المستحق للنزلاء (ر.ي)</div>
     </div>
     <div class="bg-white rounded-xl border border-gray-100 p-4">
-        <div class="text-2xl font-black leading-none" style="color:#0F4C75;">{{ $openCount }}</div>
+        <div class="text-2xl font-black leading-none" style="color:var(--ui-accent);">{{ $openCount }}</div>
         <div class="text-xs text-gray-500 mt-1">عدد الأرصدة القائمة</div>
     </div>
     <div class="bg-white rounded-xl border border-gray-100 p-4">
@@ -46,7 +46,7 @@
                 @endforeach
             </select>
         </div>
-        <button type="submit" class="px-4 py-2 text-white rounded-lg text-sm font-medium self-end" style="background:#0F4C75;">بحث</button>
+        <button type="submit" class="px-4 py-2 text-white rounded-lg text-sm font-medium self-end" style="background:var(--ui-accent);color:var(--ui-accent-fg);">بحث</button>
         @if($search !== '' || $status !== \App\Models\GuestCredit::STATUS_OPEN)
         <a href="{{ route('guest-credits.index') }}"
            class="inline-flex items-center gap-1.5 px-4 py-2 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition self-end">
@@ -85,7 +85,7 @@
                 <tr class="hover:bg-gray-50 transition-colors">
                     <td class="px-4 py-3 text-xs">
                         <a href="{{ route('reservations.show', $credit->reservation_id) }}"
-                           class="font-mono font-semibold hover:underline" style="color:#0F4C75;">#{{ $credit->reservation_id }}</a>
+                           class="font-mono font-semibold hover:underline" style="color:var(--ui-accent);">#{{ $credit->reservation_id }}</a>
                     </td>
                     <td class="px-4 py-3 font-medium text-gray-800">{{ $credit->guest?->full_name ?? '—' }}</td>
                     <td class="px-4 py-3 text-gray-600">{{ $credit->reservation?->room?->room_number ?? '—' }}</td>

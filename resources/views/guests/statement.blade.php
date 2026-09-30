@@ -19,7 +19,7 @@
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-5">
     <div class="flex items-center gap-4">
         <div class="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-bold flex-shrink-0"
-             style="background:#0F4C75;">
+             style="background:var(--ui-accent);color:var(--ui-accent-fg);">
             {{ mb_substr($guest->full_name, 0, 1) }}
         </div>
         <div class="flex-1">

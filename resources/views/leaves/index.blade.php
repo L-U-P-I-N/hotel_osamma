@@ -13,7 +13,7 @@
 <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
     @can('hr.create')
     <a href="{{ route('leaves.create') }}"
-       class="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm transition" style="background:#0F4C75;">
+       class="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm transition" style="background:var(--ui-accent);color:var(--ui-accent-fg);">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
         تسجيل إجازة
     </a>
@@ -96,7 +96,7 @@
                     </td>
                     <td class="px-4 py-3 text-gray-600 whitespace-nowrap">{{ $leave->from_date->format('d/m/Y') }}</td>
                     <td class="px-4 py-3 text-gray-600 whitespace-nowrap">{{ $leave->to_date->format('d/m/Y') }}</td>
-                    <td class="px-4 py-3 font-bold text-center" style="color:#0F4C75;">{{ $leave->days }}</td>
+                    <td class="px-4 py-3 font-bold text-center" style="color:var(--ui-accent);">{{ $leave->days }}</td>
                     <td class="px-4 py-3 text-gray-500 max-w-xs truncate">{{ $leave->notes ?? '—' }}</td>
                     <td class="px-4 py-3 text-gray-400 text-xs">{{ $leave->creator?->name ?? '—' }}</td>
                     @can('hr.delete')

@@ -61,7 +61,7 @@
         </div>
 
         <div class="flex gap-3 pt-2">
-            <button type="submit" class="px-6 py-2.5 text-white rounded-lg text-sm font-semibold transition" style="background:#0F4C75;">
+            <button type="submit" class="px-6 py-2.5 text-white rounded-lg text-sm font-semibold transition" style="background:var(--ui-accent);color:var(--ui-accent-fg);">
                 حفظ التغييرات
             </button>
             <a href="{{ route('employees.index') }}" class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50 transition">

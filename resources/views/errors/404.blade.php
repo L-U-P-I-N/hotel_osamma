@@ -15,14 +15,14 @@
         <div class="text-8xl font-bold mb-4" style="color:#d1e4f1;">404</div>
         <h1 class="text-xl font-bold text-gray-800 mb-2">الصفحة غير موجودة</h1>
         <p class="text-gray-500 mb-2 text-sm">{{ $friendly ?? 'الصفحة التي تبحث عنها غير موجودة أو تم حذفها' }}</p>
-        <p class="text-sm mb-6" style="color:#0F4C75;">سيتم تحويلك للرئيسية تلقائياً خلال ثوانٍ...</p>
+        <p class="text-sm mb-6" style="color:var(--ui-accent);">سيتم تحويلك للرئيسية تلقائياً خلال ثوانٍ...</p>
 
         <!-- شريط التقدم -->
         <div class="w-48 mx-auto h-1 bg-gray-200 rounded-full mb-6 overflow-hidden">
             <div id="progress-bar" class="h-full rounded-full transition-all" style="background:#0F4C75; width:100%; animation: shrink 4s linear forwards;"></div>
         </div>
 
-        <a href="/dashboard" class="inline-block text-white px-8 py-2.5 rounded-lg text-sm font-semibold transition" style="background:#0F4C75;">
+        <a href="/dashboard" class="inline-block text-white px-8 py-2.5 rounded-lg text-sm font-semibold transition" style="background:var(--ui-accent);color:var(--ui-accent-fg);">
             العودة للرئيسية الآن
         </a>
     </div>

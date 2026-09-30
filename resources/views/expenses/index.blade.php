@@ -5,318 +5,205 @@
 @section('content')
 <div dir="rtl">
 
-<div class="flex items-center justify-between mb-5 flex-wrap gap-2">
-    <div class="flex gap-2 flex-wrap">
-        <a href="{{ route('expenses.pdf', request()->query()) }}"
-           class="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-            PDF
-        </a>
-        <a href="{{ route('expenses.excel', request()->query()) }}"
-           class="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-            Excel
-        </a>
-    </div>
-    <div class="flex gap-2">
-        @can('expenses.create')
-        <a href="{{ route('expenses.create') }}" class="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm transition" style="background:#0F4C75;">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-            تسجيل مصروف
-        </a>
-        @endcan
-    </div>
-
-</div>
-
-@if(session('success'))
-<div class="mb-4 bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-3 text-sm">{{ session('success') }}</div>
-@endif
-
-<!-- Summary Cards -->
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-5">
-    <div class="bg-white rounded-xl shadow-sm border border-red-100 p-4">
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-xs text-gray-500 mb-1">إجمالي المصروفات</p>
-                <p class="text-2xl font-bold text-red-600">{{ number_format($stats['total'], 0) }}</p>
-            </div>
-            <div class="text-3xl">💰</div>
+    <div class="ui-head">
+        <h2 class="ui-head-title">المصروفات</h2>
+        <p class="ui-head-meta">
+            <b>{{ number_format($stats['count']) }}</b> عملية بإجمالي
+            <b>{{ number_format($stats['total'], 0) }}</b> ر.ي
+        </p>
+        <div class="ui-head-actions">
+            <a href="{{ route('expenses.pdf', request()->query()) }}" class="ui-btn">PDF</a>
+            <a href="{{ route('expenses.excel', request()->query()) }}" class="ui-btn">Excel</a>
+            @can('expenses.create')
+            <a href="{{ route('expenses.create') }}" class="ui-btn ui-btn--primary">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                تسجيل مصروف
+            </a>
+            @endcan
         </div>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm border border-blue-100 p-4">
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-xs text-gray-500 mb-1">عدد المصروفات</p>
-                <p class="text-2xl font-bold text-blue-600">{{ $stats['count'] }}</p>
-            </div>
-            <div class="text-3xl">📊</div>
-        </div>
-    </div>
+    @if(session('success'))
+    <div class="ui-note ui-note--ok" style="margin-bottom:.75rem;">{{ session('success') }}</div>
+    @endif
 
-    <div class="bg-white rounded-xl shadow-sm border border-purple-100 p-4">
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-xs text-gray-500 mb-1">المتوسط</p>
-                <p class="text-2xl font-bold text-purple-600">{{ number_format($stats['average'], 0) }}</p>
-            </div>
-            <div class="text-3xl">📈</div>
-        </div>
-    </div>
+    <dl class="ui-stats">
+        <div class="ui-stat"><dt>إجمالي المصروفات</dt><dd class="num--neg">{{ number_format($stats['total'], 0) }}</dd></div>
+        <div class="ui-stat"><dt>عدد المصروفات</dt><dd>{{ number_format($stats['count']) }}</dd></div>
+        <div class="ui-stat"><dt>المتوسط</dt><dd>{{ number_format($stats['average'], 0) }}</dd></div>
+        <div class="ui-stat"><dt>الأقل</dt><dd>{{ number_format($stats['min'], 0) }}</dd></div>
+        <div class="ui-stat"><dt>الأعلى</dt><dd>{{ number_format($stats['max'], 0) }}</dd></div>
+    </dl>
 
-    <div class="bg-white rounded-xl shadow-sm border border-green-100 p-4">
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-xs text-gray-500 mb-1">الأقل</p>
-                <p class="text-2xl font-bold text-green-600">{{ number_format($stats['min'], 0) }}</p>
-            </div>
-            <div class="text-3xl">↓</div>
-        </div>
-    </div>
-
-    <div class="bg-white rounded-xl shadow-sm border border-orange-100 p-4">
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-xs text-gray-500 mb-1">الأعلى</p>
-                <p class="text-2xl font-bold text-orange-600">{{ number_format($stats['max'], 0) }}</p>
-            </div>
-            <div class="text-3xl">↑</div>
-        </div>
-    </div>
-</div>
-
-<!-- Chart Section -->
-@if($byCategory->count() > 0)
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-5">
-    <h3 class="font-semibold text-gray-700 mb-4">توزيع المصروفات حسب الفئة</h3>
-    <div class="flex flex-col lg:flex-row gap-5">
-        <div class="flex-1 h-80 flex items-center justify-center">
-            <canvas id="categoryChart"></canvas>
-        </div>
-        <div class="lg:w-64">
-            <div class="space-y-2">
-                @php $colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#6C5CE7']; @endphp
-                @foreach($byCategory as $cat => $data)
-                <div class="flex items-center justify-between text-sm">
-                    <div class="flex items-center gap-2">
-                        <div class="w-3 h-3 rounded-full" style="background:{{ $colors[array_search($cat, array_keys($byCategory->toArray())) % count($colors)] }};"></div>
-                        <span class="text-gray-700">{{ $categories[$cat] ?? $cat }}</span>
+    {{--
+        التوزيع حسب الفئة: أعمدة مرتّبة تنازلياً بلون واحد، لا دائرةً ملوّنة.
+        المطلوب هنا مقارنة مقادير، والعين تقارن الأطوال ولا تقارن زوايا القطاعات —
+        وكانت الدائرة مصحوبةً بقائمة الأرقام نفسها، فالعمود يجمع الاثنين في مكان
+        واحد. ولأن السلسلة واحدة فلا حاجة لألوان تصنيفية أصلاً، فيصحّ في الوضعين
+        الليلي والنهاري بلا استثناءات.
+    --}}
+    @if($byCategory->count() > 0)
+    @php $maxCat = max($byCategory->pluck('total')->all() ?: [1]); @endphp
+    <div class="ui-panel">
+        <div class="ui-panel-head"><span class="ui-panel-title">التوزيع حسب الفئة</span></div>
+        <div class="ui-panel-body">
+            <ul style="list-style:none;margin:0;padding:0;display:grid;gap:.5rem;">
+                @foreach($byCategory->sortByDesc('total') as $cat => $data)
+                @php $pct = $maxCat > 0 ? round($data['total'] / $maxCat * 100) : 0; @endphp
+                <li>
+                    <div style="display:flex;align-items:baseline;gap:.5rem;font-size:.75rem;margin-bottom:.1875rem;">
+                        <span style="color:var(--ui-ink);">{{ $categories[$cat] ?? $cat }}</span>
+                        <span class="num" style="margin-inline-start:auto;font-weight:700;">{{ number_format($data['total'], 0) }}</span>
+                        <span class="num num--zero" style="min-width:2.5rem;">{{ $pct }}%</span>
                     </div>
-                    <span class="font-semibold text-gray-900">{{ number_format($data['total'], 0) }}</span>
+                    <div style="height:.375rem;border-radius:999px;background:var(--ui-line-soft);overflow:hidden;">
+                        <div style="height:100%;width:{{ $pct }}%;border-radius:999px;background:var(--ui-accent);"></div>
+                    </div>
+                </li>
+                @endforeach
+            </ul>
+        </div>
+    </div>
+    @endif
+
+    @if(isset($byMethod) && $byMethod->count() > 0)
+    <div class="ui-panel">
+        <div class="ui-panel-head"><span class="ui-panel-title">حسب طريقة الدفع</span></div>
+        <div class="ui-panel-body">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(11rem,1fr));gap:.5rem;">
+                @foreach($byMethod as $method => $data)
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.5rem .625rem;border:1px solid var(--ui-line);border-radius:.5rem;background:var(--ui-sunken);">
+                    <div>
+                        <div style="font-size:.75rem;font-weight:600;color:var(--ui-ink);">{{ \App\Models\Expense::paymentMethodLabel($method) }}</div>
+                        <div style="font-size:.625rem;color:var(--ui-ink-3);">{{ $data['count'] }} عملية</div>
+                    </div>
+                    <div class="num t-strong">{{ number_format($data['total'], 0) }}</div>
                 </div>
                 @endforeach
             </div>
         </div>
     </div>
-</div>
-@endif
+    @endif
 
-<!-- Summary by payment method (مدموج من صفحة التقرير) -->
-@if(isset($byMethod) && $byMethod->count() > 0)
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-5">
-    <h3 class="font-semibold text-gray-700 mb-4">ملخص حسب طريقة الدفع</h3>
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        @foreach($byMethod as $method => $data)
-        <div class="flex items-center justify-between p-3 rounded-lg border border-gray-100 bg-gray-50">
-            <div>
-                <p class="text-sm font-medium text-gray-700">{{ \App\Models\Expense::paymentMethodLabel($method) }}</p>
-                <p class="text-xs text-gray-400">{{ $data['count'] }} عملية</p>
-            </div>
-            <p class="font-bold text-gray-900">{{ number_format($data['total'], 0) }} <span class="text-xs font-normal text-gray-400">ر.ي</span></p>
-        </div>
-        @endforeach
-    </div>
-</div>
-@endif
+    {{-- الفلاتر --}}
+    <form method="GET" class="ui-bar">
+        <label class="ui-search">
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.8"/>
+                <path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+            <input type="search" name="search" value="{{ request('search') }}"
+                   placeholder="اسم المستلم أو الوصف…" aria-label="بحث في المصروفات">
+        </label>
 
-<!-- Filters -->
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-5">
-    <form method="GET" class="flex flex-wrap gap-3 items-end">
-        <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-gray-500">الفئة</label>
-            <select name="category" onchange="this.form.submit()"
-                    class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white min-w-[140px]">
-                <option value="">جميع الفئات</option>
-                @foreach($categories as $key => $label)
-                <option value="{{ $key }}" {{ request('category')==$key?'selected':'' }}>{{ $label }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-gray-500">طريقة الدفع</label>
-            <select name="payment_method" onchange="this.form.submit()"
-                    class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white min-w-[140px]">
-                <option value="">الكل</option>
-                <option value="cash" {{ request('payment_method')=='cash'?'selected':'' }}>نقداً من الصندوق</option>
-                <option value="bank_transfer" {{ request('payment_method')=='bank_transfer'?'selected':'' }}>تحويل بنكي</option>
-                <option value="later" {{ request('payment_method')=='later'?'selected':'' }}>لاحقاً</option>
-            </select>
-        </div>
-        <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-gray-500">من تاريخ</label>
-            <input type="date" name="date_from" value="{{ request('date_from') }}" onchange="this.form.submit()"
-                   class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white">
-        </div>
-        <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-gray-500">إلى تاريخ</label>
-            <input type="date" name="date_to" value="{{ request('date_to') }}" onchange="this.form.submit()"
-                   class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white">
-        </div>
-        <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-gray-500">الوردية</label>
-            <select name="shift_id" onchange="this.form.submit()"
-                    class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white min-w-[180px]">
-                <option value="">جميع الورديات</option>
-                @foreach($availableShifts as $shift)
-                <option value="{{ $shift->id }}" {{ request('shift_id') == $shift->id ? 'selected' : '' }}>
-                    {{ $shift->shift_date->format('d/m/Y') }}
-                    @if(auth()->user()->isAdmin()) — {{ $shift->user->name }} @endif
-                    ({{ $shift->is_closed ? 'مقفلة' : 'مفتوحة' }})
-                </option>
-                @endforeach
-            </select>
-        </div>
-        <div class="flex flex-col gap-1 flex-1 min-w-[180px]">
-            <label class="text-xs font-medium text-gray-500">بحث</label>
-            <input type="text" name="search" value="{{ request('search') }}" placeholder="اسم المستلم أو الوصف..."
-                   class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition bg-white">
-        </div>
+        <select name="category" onchange="this.form.submit()" aria-label="الفئة">
+            <option value="">جميع الفئات</option>
+            @foreach($categories as $key => $label)
+            <option value="{{ $key }}" @selected(request('category') == $key)>{{ $label }}</option>
+            @endforeach
+        </select>
+
+        <select name="payment_method" onchange="this.form.submit()" aria-label="طريقة الدفع">
+            <option value="">كل طرق الدفع</option>
+            <option value="cash" @selected(request('payment_method')=='cash')>نقداً من الصندوق</option>
+            <option value="bank_transfer" @selected(request('payment_method')=='bank_transfer')>تحويل بنكي</option>
+            <option value="later" @selected(request('payment_method')=='later')>لاحقاً</option>
+        </select>
+
+        <label class="inline" for="ex-from">من</label>
+        <input id="ex-from" type="date" name="date_from" value="{{ request('date_from') }}" onchange="this.form.submit()">
+        <label class="inline" for="ex-to">إلى</label>
+        <input id="ex-to" type="date" name="date_to" value="{{ request('date_to') }}" onchange="this.form.submit()">
+
+        <select name="shift_id" onchange="this.form.submit()" aria-label="الوردية">
+            <option value="">جميع الورديات</option>
+            @foreach($availableShifts as $shift)
+            <option value="{{ $shift->id }}" @selected(request('shift_id') == $shift->id)>
+                {{ $shift->shift_date->format('d/m/Y') }}
+                @if(auth()->user()->isAdmin()) — {{ $shift->user->name }} @endif
+                ({{ $shift->is_closed ? 'مقفلة' : 'مفتوحة' }})
+            </option>
+            @endforeach
+        </select>
+
         <button type="submit" class="sr-only">بحث</button>
         @if(request()->hasAny(['category','payment_method','date_from','date_to','search','shift_id']))
-        <a href="{{ route('expenses.index') }}"
-           class="flex items-center gap-1.5 px-3 py-2 text-xs text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition self-end">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-            مسح
-        </a>
+        <a href="{{ route('expenses.index') }}" class="ui-btn">مسح الفلاتر</a>
         @endif
     </form>
-</div>
 
-<!-- Table -->
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-    <div class="overflow-x-auto">
-        <table class="w-full text-sm" dir="rtl" id="expensesTable">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">التاريخ</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الفئة</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المبلغ (ر.ي)</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">طريقة الدفع</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">اسم المستلم</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الوصف</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">سُجِّل بواسطة</th>
-                    @canany(['expenses.edit','expenses.delete'])
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">إجراءات</th>
-                    @endcanany
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-50">
-                @forelse($expenses as $expense)
-                <tr class="hover:bg-gray-50">
-                    <td class="px-4 py-3 text-gray-600 whitespace-nowrap">{{ $expense->expense_date->format('d/m/Y') }}</td>
-                    <td class="px-4 py-3">
-                        <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                            {{ \App\Models\Expense::categoryLabel($expense->category) }}
-                        </span>
-                    </td>
-                    <td class="px-4 py-3 font-bold text-red-600">{{ number_format($expense->amount, 0) }}</td>
-                    <td class="px-4 py-3">
-                        @php $pm = $expense->payment_method ?? 'cash'; @endphp
-                        <span class="px-2 py-0.5 rounded-full text-xs font-medium
-                            {{ $pm === 'cash' ? 'bg-green-100 text-green-800' : ($pm === 'bank_transfer' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600') }}">
-                            {{ \App\Models\Expense::paymentMethodLabel($pm) }}
-                        </span>
-                    </td>
-                    <td class="px-4 py-3 text-gray-700">
-                        {{ $expense->recipient_name ?? '—' }}
-                        @if($expense->employee_id)
-                        <a href="{{ route('employees.withdrawals', $expense->employee_id) }}"
-                           class="inline-block mr-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 hover:bg-amber-200"
-                           title="مصروف لموظف — يُخصم من راتبه">موظف</a>
-                        @endif
-                    </td>
-                    <td class="px-4 py-3 text-gray-500 max-w-xs truncate">{{ $expense->description ?? '—' }}</td>
-                    <td class="px-4 py-3 text-gray-500">{{ $expense->paidBy?->name ?? '—' }}</td>
-                    @canany(['expenses.edit','expenses.delete'])
-                    <td class="px-4 py-3">
-                        <div class="flex items-center gap-2">
+    {{-- الجدول --}}
+    <div class="ui-panel">
+        <div class="ui-table-wrap">
+            <table class="ui-table" dir="rtl" id="expensesTable">
+                <thead>
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>الفئة</th>
+                        <th class="num">المبلغ (ر.ي)</th>
+                        <th>طريقة الدفع</th>
+                        <th>اسم المستلم</th>
+                        <th>الوصف</th>
+                        <th>سُجِّل بواسطة</th>
+                        @canany(['expenses.edit','expenses.delete'])
+                        <th class="t-actions">إجراءات</th>
+                        @endcanany
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($expenses as $expense)
+                    @php $pm = $expense->payment_method ?? 'cash'; @endphp
+                    <tr>
+                        <td style="white-space:nowrap;color:var(--ui-ink-2);">{{ $expense->expense_date->format('d/m/Y') }}</td>
+                        <td><span class="ui-chip">{{ \App\Models\Expense::categoryLabel($expense->category) }}</span></td>
+                        <td class="num num--neg t-strong">{{ number_format($expense->amount, 0) }}</td>
+                        <td>
+                            <span class="ui-chip {{ $pm === 'cash' ? 'ui-chip--ok' : ($pm === 'bank_transfer' ? 'ui-chip--info' : 'ui-chip--warn') }}">
+                                {{ \App\Models\Expense::paymentMethodLabel($pm) }}
+                            </span>
+                        </td>
+                        <td>
+                            {{ $expense->recipient_name ?? '—' }}
+                            @if($expense->employee_id)
+                            <a href="{{ route('employees.withdrawals', $expense->employee_id) }}"
+                               class="ui-chip ui-chip--warn" title="مصروف لموظف — يُخصم من راتبه">موظف</a>
+                            @endif
+                        </td>
+                        <td style="color:var(--ui-ink-2);max-width:16rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                            {{ $expense->description ?? '—' }}
+                        </td>
+                        <td style="color:var(--ui-ink-2);">{{ $expense->paidBy?->name ?? '—' }}</td>
+                        @canany(['expenses.edit','expenses.delete'])
+                        <td class="t-actions">
                             @can('expenses.edit')
-                            <a href="{{ route('expenses.edit', $expense) }}" class="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition">تعديل</a>
+                            <a href="{{ route('expenses.edit', $expense) }}" class="ui-btn ui-btn--sm">تعديل</a>
                             @endcan
                             @can('expenses.delete')
-                            <form method="POST" action="{{ route('expenses.destroy', $expense) }}" onsubmit="return confirm('هل أنت متأكد من حذف هذا المصروف؟')">
+                            <form method="POST" action="{{ route('expenses.destroy', $expense) }}" style="display:inline;"
+                                  onsubmit="return confirm('حذف هذا المصروف؟')">
                                 @csrf @method('DELETE')
-                                <button type="submit" class="text-xs px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition">حذف</button>
+                                <button type="submit" class="ui-btn ui-btn--sm ui-btn--danger">حذف</button>
                             </form>
                             @endcan
-                        </div>
-                    </td>
-                    @endcanany
-                </tr>
-                @empty
-                <tr><td colspan="8" class="px-4 py-8 text-center text-gray-400">لا توجد مصروفات مسجّلة</td></tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
-    @if($expenses->hasPages())
-    <div class="px-4 py-3 border-t border-gray-100">
-        <x-pagination-info :items="$expenses" />
-        {{ $expenses->links() }}
-    </div>
-    @endif
-</div>
+                        </td>
+                        @endcanany
+                    </tr>
+                    @empty
+                    <tr><td colspan="8"><div class="ui-empty">لا توجد مصروفات مسجّلة</div></td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
-<script>
-    @if($byCategory->count() > 0)
-    const ctx = document.getElementById('categoryChart')?.getContext('2d');
-    if (ctx) {
-        new Chart(ctx, {
-            type: 'pie',
-            data: {
-                labels: [
-                    @foreach($byCategory as $cat => $data)
-                    '{{ $categories[$cat] ?? $cat }}',
-                    @endforeach
-                ],
-                datasets: [{
-                    data: [
-                        @foreach($byCategory as $cat => $data)
-                        {{ $data['total'] }},
-                        @endforeach
-                    ],
-                    backgroundColor: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#6C5CE7', '#F0A500', '#FF6B9D'],
-                    borderColor: '#fff',
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: { usePointStyle: true, padding: 15 }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.label + ': ' + number_format(context.parsed, 0) + ' ر.ي';
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
-    @endif
-
-    function number_format(num, decimals = 0) {
-        return num.toFixed(decimals).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    }
-</script>
+        @if($expenses->hasPages())
+        <div class="ui-actions">
+            <x-pagination-info :items="$expenses" />
+            <div style="margin-inline-start:auto;">{{ $expenses->links() }}</div>
+        </div>
+        @endif
+    </div>
 
 </div>
 @endsection

@@ -346,7 +346,7 @@
             @can('checkin.create')
             <a href="{{ route('checkin.create') }}"
                class="flex items-center gap-3 rounded-xl px-4 py-2.5 text-white transition hover:opacity-90 shadow-sm"
-               style="background:#0F4C75;">
+               style="background:var(--ui-accent);color:var(--ui-accent-fg);">
                 <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
                     <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
                 </div>

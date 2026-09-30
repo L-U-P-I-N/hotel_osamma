@@ -86,7 +86,7 @@
 
             <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 flex justify-between items-center">
                 <span class="text-sm font-medium text-gray-700">صافي الراتب:</span>
-                <span class="text-xl font-bold" :class="net < 0 ? 'text-red-600' : ''" style="color:#0F4C75;"
+                <span class="text-xl font-bold" :class="net < 0 ? 'text-red-600' : ''" style="color:var(--ui-accent);"
                       :style="net < 0 ? 'color:#dc2626' : 'color:#0F4C75'"
                       x-text="net.toLocaleString('en-US') + ' ر.ي'"></span>
             </div>
@@ -99,7 +99,7 @@
             </div>
 
             <div class="flex gap-3 pt-2">
-                <button type="submit" class="px-6 py-2.5 text-white rounded-lg text-sm font-semibold transition" style="background:#0F4C75;">
+                <button type="submit" class="px-6 py-2.5 text-white rounded-lg text-sm font-semibold transition" style="background:var(--ui-accent);color:var(--ui-accent-fg);">
                     حفظ التعديلات
                 </button>
                 <a href="{{ route('salaries.index') }}" class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50 transition">

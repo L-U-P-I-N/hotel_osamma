@@ -192,7 +192,7 @@ html.dark .filter-chip.bg-white { background: #1e293b !important; }
                 @can('rooms.create')
                 <a href="{{ route('rooms.create') }}"
                    class="flex items-center gap-2 px-4 py-2.5 text-white rounded-xl text-sm font-medium transition"
-                   style="background:#0F4C75;">
+                   style="background:var(--ui-accent);color:var(--ui-accent-fg);">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     إضافة غرفة
                 </a>
@@ -290,13 +290,13 @@ html.dark .filter-chip.bg-white { background: #1e293b !important; }
                 </div>
                 <div class="flex items-baseline gap-1">
                     {{-- محسوب: مجموع سعرَي القسمين، لا سعر يدوي --}}
-                    <span class="text-base font-black" style="color:#0F4C75;">{{ number_format($room->fullSuitePrice(), 0) }}</span>
+                    <span class="text-base font-black" style="color:var(--ui-accent);">{{ number_format($room->fullSuitePrice(), 0) }}</span>
                     <span class="text-[10px] text-indigo-500 font-medium">ر.ي كامل (محسوب)</span>
                 </div>
             </div>
             @else
             <div class="flex items-baseline gap-1 mt-1">
-                <span class="text-base font-black" style="color:#0F4C75;">
+                <span class="text-base font-black" style="color:var(--ui-accent);">
                     {{ number_format($room->priceFor('YER'), 0) }}
                 </span>
                 <span class="text-[10px] text-gray-400 font-medium">ر.ي / ليلة</span>
@@ -310,7 +310,7 @@ html.dark .filter-chip.bg-white { background: #1e293b !important; }
             @can('rooms.edit')
             <a href="{{ route('rooms.edit', array_merge(['room' => $room->id], request()->only(['status', 'type', 'sub_type', 'floor']))) }}"
                class="room-action-btn hover:bg-blue-50 font-semibold"
-               style="color:#0F4C75;">
+               style="color:var(--ui-accent);">
                 تعديل
             </a>
             @endcan
@@ -386,7 +386,7 @@ html.dark .filter-chip.bg-white { background: #1e293b !important; }
          class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
 
         {{-- Modal header --}}
-        <div class="px-6 py-4 flex items-center justify-between" style="background:#0F4C75;">
+        <div class="px-6 py-4 flex items-center justify-between" style="background:var(--ui-accent);color:var(--ui-accent-fg);">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
                     <span class="text-white font-black text-base" x-text="selectedRoom.room_number"></span>
@@ -414,7 +414,7 @@ html.dark .filter-chip.bg-white { background: #1e293b !important; }
                 </div>
                 <div class="rounded-xl p-3 text-center" style="background:#e8f0f7;">
                     <div class="text-[10px] font-semibold uppercase tracking-wide mb-1" style="color:#0F4C75; opacity:0.7;">السعر/ليلة</div>
-                    <div class="font-black text-base leading-none" style="color:#0F4C75;" x-text="selectedRoomPrice.toLocaleString()"></div>
+                    <div class="font-black text-base leading-none" style="color:var(--ui-accent);" x-text="selectedRoomPrice.toLocaleString()"></div>
                     <div class="text-[9px] font-bold mt-0.5" style="color:#0F4C75; opacity:0.6;">ر.ي</div>
                 </div>
             </div>
@@ -459,7 +459,7 @@ html.dark .filter-chip.bg-white { background: #1e293b !important; }
                     </select>
                     <button type="submit"
                             class="px-5 py-2.5 text-white text-sm font-bold rounded-xl transition hover:opacity-90 shadow-sm"
-                            style="background:#0F4C75;">
+                            style="background:var(--ui-accent);color:var(--ui-accent-fg);">
                         حفظ
                     </button>
                 </div>
@@ -518,7 +518,7 @@ html.dark .filter-chip.bg-white { background: #1e293b !important; }
                 </select>
                 <button type="button" @click="applyBulkStatus()" :disabled="bulkApplying"
                         class="px-5 py-2 text-white text-sm font-bold rounded-xl transition hover:opacity-90 shadow-sm disabled:opacity-50"
-                        style="background:#0F4C75;">
+                        style="background:var(--ui-accent);color:var(--ui-accent-fg);">
                     <span x-text="bulkApplying ? 'جارٍ التطبيق...' : 'تطبيق على المحدَّد'"></span>
                 </button>
             </div>
@@ -530,7 +530,7 @@ html.dark .filter-chip.bg-white { background: #1e293b !important; }
                        class="border-2 border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:bg-white focus:border-blue-400 outline-none transition w-40">
                 <button type="button" @click="applyBulkPrice()" :disabled="bulkApplying || !bulkPrice"
                         class="px-5 py-2 text-white text-sm font-bold rounded-xl transition hover:opacity-90 shadow-sm disabled:opacity-50"
-                        style="background:#0F4C75;">
+                        style="background:var(--ui-accent);color:var(--ui-accent-fg);">
                     <span x-text="bulkApplying ? 'جارٍ التطبيق...' : 'تطبيق على المحدَّد'"></span>
                 </button>
             </div>

@@ -100,7 +100,7 @@
         <div class="flex items-center justify-between flex-wrap gap-3 mb-3">
             <div class="text-sm font-bold text-gray-800">
                 @if($selectedUser)
-                    حساب <span style="color:#0F4C75;">{{ $selectedUser->name }}</span>
+                    حساب <span style="color:var(--ui-accent);">{{ $selectedUser->name }}</span>
                 @else
                     إجمالي كل الموظفين
                 @endif
@@ -367,7 +367,7 @@
                    class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
             <span class="text-sm font-semibold whitespace-nowrap">كل الفترات</span>
         </label>
-        <button type="submit" class="px-4 py-2 text-sm text-white rounded-lg transition" style="background:#0F4C75;">عرض</button>
+        <button type="submit" class="px-4 py-2 text-sm text-white rounded-lg transition" style="background:var(--ui-accent);color:var(--ui-accent-fg);">عرض</button>
     </form>
 
     @if($summary && $summary->isEmpty())
@@ -396,7 +396,7 @@
         </div>
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
             <p class="text-xs text-gray-500 mb-1">عجوزات مخصومة</p>
-            <p class="text-lg font-bold" style="color:#0F4C75;">{{ $grandDeductedCount }} / {{ $grandDeficitCount }}</p>
+            <p class="text-lg font-bold" style="color:var(--ui-accent);">{{ $grandDeductedCount }} / {{ $grandDeficitCount }}</p>
         </div>
     </div>
 
@@ -517,7 +517,7 @@
             <input type="date" name="date" value="{{ $date }}"
                    class="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400">
         </div>
-        <button type="submit" class="px-4 py-2 text-white rounded-lg text-sm" style="background:#0F4C75;">عرض</button>
+        <button type="submit" class="px-4 py-2 text-white rounded-lg text-sm" style="background:var(--ui-accent);color:var(--ui-accent-fg);">عرض</button>
         <a href="{{ route('reports.dailyClose.pdf', ['date' => $date]) }}"
            class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 flex items-center gap-2 transition">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
@@ -624,7 +624,7 @@
                         <td class="px-4 py-2.5 text-gray-500 text-xs">{{ $shift->closed_at?->format('H:i') ?? '—' }}</td>
                         <td class="px-4 py-2.5 text-green-700">{{ number_format($shift->total_received_yer, 0) }}</td>
                         <td class="px-4 py-2.5 text-red-600">{{ number_format($shift->total_withdrawals_yer, 0) }}</td>
-                        <td class="px-4 py-2.5 font-semibold" style="color:#0F4C75;">{{ number_format($net, 0) }}</td>
+                        <td class="px-4 py-2.5 font-semibold" style="color:var(--ui-accent);">{{ number_format($net, 0) }}</td>
                         <td class="px-4 py-2.5 font-semibold {{ $shift->shortfall < 0 ? 'text-red-600' : 'text-gray-400' }}">{{ $shift->shortfall != 0 ? number_format($shift->shortfall, 0) : '—' }}</td>
                         <td class="px-4 py-2.5">
                             @if($shift->is_closed)
@@ -659,7 +659,7 @@
             </div>
             <div class="flex justify-between items-center py-3 bg-blue-50 rounded-lg px-3 mt-2">
                 <span class="font-bold text-gray-700">الرصيد النقدي المتوقع</span>
-                <span class="text-xl font-bold" style="color:#0F4C75;">{{ number_format($expectedCash, 0) }} ر.ي</span>
+                <span class="text-xl font-bold" style="color:var(--ui-accent);">{{ number_format($expectedCash, 0) }} ر.ي</span>
             </div>
         </div>
     </div>

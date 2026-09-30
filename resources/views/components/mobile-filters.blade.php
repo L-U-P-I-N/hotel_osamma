@@ -15,7 +15,7 @@
 
     <div x-show="open" x-cloak class="mt-2 bg-white border border-gray-200 rounded-lg p-4 space-y-3">
         {{ $slot }}
-        <button type="submit" class="w-full px-4 py-2 text-sm font-medium text-white rounded-lg transition" style="background:#0F4C75;">
+        <button type="submit" class="w-full px-4 py-2 text-sm font-medium text-white rounded-lg transition" style="background:var(--ui-accent);color:var(--ui-accent-fg);">
             {{ $submit_text }}
         </button>
     </div>

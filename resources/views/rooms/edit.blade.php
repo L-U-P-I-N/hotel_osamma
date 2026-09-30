@@ -153,7 +153,7 @@
             </div>
 
             <div class="flex gap-3 pt-2">
-                <button type="submit" class="flex items-center gap-2 px-6 py-2.5 text-white rounded-lg text-sm font-medium transition" style="background:#0F4C75;">
+                <button type="submit" class="flex items-center gap-2 px-6 py-2.5 text-white rounded-lg text-sm font-medium transition" style="background:var(--ui-accent);color:var(--ui-accent-fg);">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                     حفظ التغييرات
                 </button>
@@ -187,7 +187,7 @@
                     <option value="maintenance"      {{ $room->status === 'maintenance'      ? 'selected' : '' }}>صيانة</option>
                 </select>
             </div>
-            <button type="submit" class="px-5 py-2.5 text-white rounded-lg text-sm font-medium transition" style="background:#0F4C75;">
+            <button type="submit" class="px-5 py-2.5 text-white rounded-lg text-sm font-medium transition" style="background:var(--ui-accent);color:var(--ui-accent-fg);">
                 تحديث الحالة
             </button>
         </form>

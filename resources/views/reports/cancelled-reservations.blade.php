@@ -22,7 +22,7 @@
                 <input type="text" name="search" value="{{ $search }}" placeholder="اسم النزيل..."
                        class="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 bg-white">
             </div>
-            <button type="submit" class="px-4 py-2 text-white rounded-lg text-sm font-medium" style="background:#0F4C75;">فلترة</button>
+            <button type="submit" class="px-4 py-2 text-white rounded-lg text-sm font-medium" style="background:var(--ui-accent);color:var(--ui-accent-fg);">فلترة</button>
             <a href="{{ route('reports.cancelledReservations') }}" class="px-3 py-2 text-xs text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">إعادة تعيين</a>
         </form>
         <a href="{{ route('reports.cancelledReservations.pdf', ['from' => $from, 'to' => $to, 'search' => $search]) }}"
@@ -34,7 +34,7 @@
 
     <div class="grid grid-cols-2 gap-4">
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 text-center">
-            <div class="text-2xl font-bold" style="color:#0F4C75;">{{ $totalCancelled }}</div>
+            <div class="text-2xl font-bold" style="color:var(--ui-accent);">{{ $totalCancelled }}</div>
             <div class="text-xs text-gray-500 mt-0.5">حجز ملغى في الفترة</div>
         </div>
         <div class="bg-white rounded-xl shadow-sm border border-red-100 p-4 text-center">

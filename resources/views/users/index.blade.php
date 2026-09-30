@@ -38,7 +38,7 @@
             <div class="grid grid-cols-3 gap-3">
                 <div class="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3">
                     <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:#e8f0f7;">
-                        <svg class="w-5 h-5" style="color:#0F4C75;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5" style="color:var(--ui-accent);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/>
                         </svg>
                     </div>
@@ -91,7 +91,7 @@
             </a>
             <button @click="addModal=true"
                     class="flex items-center gap-2 px-4 py-2.5 text-white rounded-xl text-sm font-medium transition shadow-sm hover:shadow-md"
-                    style="background:#0F4C75;">
+                    style="background:var(--ui-accent);color:var(--ui-accent-fg);">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
                 </svg>
@@ -123,7 +123,7 @@
             <option value="active"   {{ request('status') === 'active'   ? 'selected' : '' }}>نشط</option>
             <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }}>معطّل</option>
         </select>
-        <button type="submit" class="px-4 py-2 text-sm font-medium text-white rounded-lg transition" style="background:#0F4C75;">بحث</button>
+        <button type="submit" class="px-4 py-2 text-sm font-medium text-white rounded-lg transition" style="background:var(--ui-accent);color:var(--ui-accent-fg);">بحث</button>
         @if(request()->hasAny(['search','role','status']))
         <a href="{{ route('users.index') }}"
            class="flex items-center gap-1 px-3 py-2 text-xs text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
@@ -175,7 +175,7 @@
                                 <div class="font-semibold text-gray-800 flex items-center gap-1.5">
                                     {{ $user->name }}
                                     @if($isMe)
-                                    <span class="text-[10px] px-1.5 py-0.5 rounded-md font-medium" style="background:#e8f0f7; color:#0F4C75;">أنت</span>
+                                    <span class="text-[10px] px-1.5 py-0.5 rounded-md font-medium" style="background:var(--ui-accent-bg);color:var(--ui-accent);">أنت</span>
                                     @endif
                                 </div>
                                 <div class="text-xs text-gray-400 mt-0.5">{{ $user->employee_id }}</div>
@@ -197,7 +197,7 @@
                     <td class="px-4 py-3.5">
                         @php $roleName = $user->roles->first()?->name ?? '—'; @endphp
                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold"
-                              style="background:#e8f0f7; color:#0F4C75;">
+                              style="background:var(--ui-accent-bg);color:var(--ui-accent);">
                             @if($isAdm)
                             <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
                             @endif
@@ -331,7 +331,7 @@
      x-transition:enter-end="opacity-100 scale-100">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-7 text-center">
         <div class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5" style="background:#e8f0f7;">
-            <svg class="w-8 h-8" style="color:#0F4C75;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-8 h-8" style="color:var(--ui-accent);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
             </svg>
         </div>
@@ -348,7 +348,7 @@
         </div>
         <button @click="backupCodeModal=false"
                 class="w-full text-white py-3 rounded-xl font-semibold text-sm transition hover:opacity-90"
-                style="background:#0F4C75;">
+                style="background:var(--ui-accent);color:var(--ui-accent-fg);">
             حسناً، تم الحفظ
         </button>
     </div>
@@ -365,7 +365,7 @@
         <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
             <div class="flex items-center gap-3">
                 <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:#e8f0f7;">
-                    <svg class="w-4 h-4" style="color:#0F4C75;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4" style="color:var(--ui-accent);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
                     </svg>
                 </div>
@@ -429,7 +429,7 @@
             <div class="pt-2 flex gap-3">
                 <button type="submit"
                         class="flex-1 text-white py-3 rounded-xl font-semibold transition text-sm hover:opacity-90"
-                        style="background:#0F4C75;">
+                        style="background:var(--ui-accent);color:var(--ui-accent-fg);">
                     إنشاء المستخدم
                 </button>
                 <button type="button" @click="addModal=false"
@@ -469,7 +469,7 @@
 
             <div class="bg-gray-50 rounded-xl p-4 flex items-center gap-3 mb-2">
                 <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-base flex-shrink-0"
-                     style="background:#0F4C75;" x-text="editUser.name ? editUser.name.charAt(0) : '?'"></div>
+                     style="background:var(--ui-accent);color:var(--ui-accent-fg);" x-text="editUser.name ? editUser.name.charAt(0) : '?'"></div>
                 <div>
                     <p class="font-semibold text-gray-800" x-text="editUser.name"></p>
                     <p class="text-xs text-gray-400" x-text="editUser.role"></p>
@@ -506,7 +506,7 @@
             <div class="flex gap-3 pt-2">
                 <button type="submit"
                         class="flex-1 text-white py-3 rounded-xl font-semibold transition text-sm hover:opacity-90"
-                        style="background:#0F4C75;">
+                        style="background:var(--ui-accent);color:var(--ui-accent-fg);">
                     حفظ التغييرات
                 </button>
                 <button type="button" @click="editModal=false"

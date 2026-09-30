@@ -36,7 +36,7 @@
                     @endforeach
                 </select>
             </div>
-            <button type="submit" class="px-4 py-2 text-white rounded-lg text-sm font-semibold" style="background:#0F4C75;">عرض</button>
+            <button type="submit" class="px-4 py-2 text-white rounded-lg text-sm font-semibold" style="background:var(--ui-accent);color:var(--ui-accent-fg);">عرض</button>
         </form>
 
         @php $netAfter = $baseSalary - $monthTotal; @endphp

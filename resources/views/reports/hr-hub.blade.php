@@ -59,8 +59,8 @@
     </div>
 
     <div class="mx-4 mb-4 rounded-xl p-5 border" style="background:#e8f0f7; border-color:#9fbedd;">
-        <div class="text-xs" style="color:#0F4C75;">إجمالي صافي الرواتب — {{ $year }}</div>
-        <div class="text-3xl font-bold mt-1" style="color:#0F4C75;">{{ number_format($totalNet, 0) }} <span class="text-lg font-normal">ر.ي</span></div>
+        <div class="text-xs" style="color:var(--ui-accent);">إجمالي صافي الرواتب — {{ $year }}</div>
+        <div class="text-3xl font-bold mt-1" style="color:var(--ui-accent);">{{ number_format($totalNet, 0) }} <span class="text-lg font-normal">ر.ي</span></div>
     </div>
 
     <div class="mx-4 mb-4 bg-white rounded-xl border border-gray-100">
@@ -88,7 +88,7 @@
                         <td class="px-4 py-3 text-gray-700">{{ number_format($data['total_base'], 0) }}</td>
                         <td class="px-4 py-3 text-green-600">{{ number_format($data['total_bonus'], 0) }}</td>
                         <td class="px-4 py-3 text-red-500">{{ number_format($data['total_ded'], 0) }}</td>
-                        <td class="px-4 py-3 font-bold" style="color:#0F4C75;">{{ number_format($data['total_net'], 0) }}</td>
+                        <td class="px-4 py-3 font-bold" style="color:var(--ui-accent);">{{ number_format($data['total_net'], 0) }}</td>
                         <td class="px-4 py-3 text-xs">
                             <span class="text-green-600">{{ $data['paid'] }} مدفوع</span>
                             @if($data['pending'] > 0) / <span class="text-amber-600">{{ $data['pending'] }} معلق</span>@endif
@@ -128,7 +128,7 @@
                         <td class="px-4 py-3 text-gray-700">{{ number_format($sal->base_salary, 0) }}</td>
                         <td class="px-4 py-3 text-green-600">{{ number_format($sal->bonuses, 0) }}</td>
                         <td class="px-4 py-3 text-red-500">{{ number_format($sal->deductions, 0) }}</td>
-                        <td class="px-4 py-3 font-bold" style="color:#0F4C75;">{{ number_format($sal->net_salary, 0) }}</td>
+                        <td class="px-4 py-3 font-bold" style="color:var(--ui-accent);">{{ number_format($sal->net_salary, 0) }}</td>
                         <td class="px-4 py-3">
                             @if($sal->status === 'paid')
                             <span class="px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700">مدفوع</span>
@@ -180,7 +180,7 @@
     {{-- Summary Row --}}
     <div class="grid grid-cols-3 gap-3 mx-4 mb-4">
         <div class="bg-gray-50 rounded-xl border border-gray-100 p-4 text-center">
-            <div class="text-2xl font-bold" style="color:#0F4C75">{{ $staffData->sum('checkins') }}</div>
+            <div class="text-2xl font-bold" style="color:var(--ui-accent)">{{ $staffData->sum('checkins') }}</div>
             <div class="text-xs text-gray-500 mt-0.5">إجمالي الحجوزات</div>
         </div>
         <div class="bg-gray-50 rounded-xl border border-gray-100 p-4 text-center">
@@ -201,7 +201,7 @@
              @click="open = !open">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
-                     style="background:#0F4C75;">
+                     style="background:var(--ui-accent);color:var(--ui-accent-fg);">
                     {{ mb_substr($row['user']->name, 0, 1) }}
                 </div>
                 <div>
@@ -212,7 +212,7 @@
                             <span>•</span>
                         @endif
                         @if($row['user']->roles->first())
-                            <span style="color:#0F4C75;">{{ $row['user']->roles->first()->name }}</span>
+                            <span style="color:var(--ui-accent);">{{ $row['user']->roles->first()->name }}</span>
                         @endif
                     </div>
                 </div>
@@ -276,7 +276,7 @@
                         @endphp
                         <tr class="hover:bg-blue-50 transition">
                             <td class="px-4 py-2.5 text-gray-400">#{{ $res->id }}</td>
-                            <td class="px-4 py-2.5 font-bold whitespace-nowrap" style="color:#0F4C75">{{ $res->display_room_number }}</td>
+                            <td class="px-4 py-2.5 font-bold whitespace-nowrap" style="color:var(--ui-accent)">{{ $res->display_room_number }}</td>
                             <td class="px-4 py-2.5 text-gray-500 whitespace-nowrap">{{ $res->room?->roomType?->name ?? '—' }}</td>
                             <td class="px-4 py-2.5 font-medium text-gray-800 whitespace-nowrap">
                                 <a href="{{ route('reservations.show', $res) }}" class="hover:underline hover:text-blue-600">

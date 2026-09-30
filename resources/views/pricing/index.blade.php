@@ -55,7 +55,7 @@
                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
             </div>
             <div class="flex items-end">
-                <button type="submit" class="w-full px-4 py-2 text-white rounded-lg text-sm font-medium transition" style="background:#0F4C75;">
+                <button type="submit" class="w-full px-4 py-2 text-white rounded-lg text-sm font-medium transition" style="background:var(--ui-accent);color:var(--ui-accent-fg);">
                     حفظ نطاق الجناح
                 </button>
             </div>
@@ -112,7 +112,7 @@
                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
                     </div>
                     <div class="flex items-end">
-                        <button type="submit" class="w-full px-4 py-2 text-white rounded-lg text-sm font-medium transition" style="background:#0F4C75;">
+                        <button type="submit" class="w-full px-4 py-2 text-white rounded-lg text-sm font-medium transition" style="background:var(--ui-accent);color:var(--ui-accent-fg);">
                             حفظ
                         </button>
                     </div>

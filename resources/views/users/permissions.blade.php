@@ -63,7 +63,7 @@
                 <div class="min-w-0 flex-1">
                     <h2 class="font-black text-gray-900 text-lg leading-tight">{{ $user->name }}</h2>
                     <div class="flex items-center gap-2 mt-1.5 flex-wrap">
-                        <span class="text-xs px-2 py-0.5 rounded-md font-bold" style="background:#e8f0f7; color:#0F4C75;">
+                        <span class="text-xs px-2 py-0.5 rounded-md font-bold" style="background:var(--ui-accent-bg);color:var(--ui-accent);">
                             {{ $user->roles->first()?->name ?? 'موظف' }}
                         </span>
                         <span class="text-xs text-gray-400 font-mono">{{ $user->employee_id }}</span>
@@ -79,7 +79,7 @@
                 <div class="flex-shrink-0 w-full sm:w-64">
                     <div class="flex items-baseline justify-between mb-1.5">
                         <span class="text-xs font-semibold text-gray-500">الصلاحيات الممنوحة</span>
-                        <span class="text-sm font-black" style="color:#0F4C75;" dir="ltr">
+                        <span class="text-sm font-black" style="color:var(--ui-accent);" dir="ltr">
                             <span x-text="summary.granted">{{ $grantedCount }}</span><span class="text-gray-300 font-normal"> / </span><span class="text-gray-400 font-bold" x-text="summary.total">{{ $totalCount }}</span>
                         </span>
                     </div>
@@ -238,7 +238,7 @@
                  class="bg-white rounded-2xl border border-gray-200 py-12 text-center">
                 <p class="text-gray-500 text-sm">لا صلاحية تطابق «<span class="font-bold" x-text="search"></span>»</p>
                 <button type="button" @click="search = ''; filter = 'all'"
-                        class="mt-3 px-4 py-2 rounded-xl text-xs font-bold text-white" style="background:#0F4C75;">
+                        class="mt-3 px-4 py-2 rounded-xl text-xs font-bold text-white" style="background:var(--ui-accent);color:var(--ui-accent-fg);">
                     عرض الكل
                 </button>
             </div>
@@ -277,7 +277,7 @@
          class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
             <div class="px-5 py-4 border-b border-gray-100" style="background:#e8f0f7;">
-                <h3 class="font-bold" style="color:#0F4C75;">نسخ صلاحيات موظف آخر</h3>
+                <h3 class="font-bold" style="color:var(--ui-accent);">نسخ صلاحيات موظف آخر</h3>
             </div>
             <div class="p-5">
                 <p class="text-sm text-gray-600 mb-3">
@@ -293,7 +293,7 @@
                 <div class="flex gap-2 mt-5">
                     <button type="button" @click="copyPermissions()" :disabled="busy || !copySourceId"
                             class="flex-1 py-2.5 rounded-xl text-white text-sm font-bold transition disabled:opacity-40"
-                            style="background:#0F4C75;">
+                            style="background:var(--ui-accent);color:var(--ui-accent-fg);">
                         نسخ الصلاحيات
                     </button>
                     <button type="button" @click="copyOpen = false"

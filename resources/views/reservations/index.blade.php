@@ -128,7 +128,7 @@
                     <td class="px-4 py-3 text-xs text-gray-500">{{ $res->createdBy?->name ?? '—' }}</td>
                     <td class="px-4 py-3">
                         <div class="flex items-center gap-2 flex-wrap">
-                            <a href="{{ route('reservations.show', $res) }}" class="text-xs font-medium" style="color:#0F4C75;">عرض</a>
+                            <a href="{{ route('reservations.show', $res) }}" class="text-xs font-medium" style="color:var(--ui-accent);">عرض</a>
                             @if($res->status === 'confirmed')
                             @can('checkin.create')
                             <form method="POST" action="{{ route('reservations.checkin', $res) }}" onsubmit="return confirm('تسجيل الدخول للحجز #{{ $res->id }}؟')">

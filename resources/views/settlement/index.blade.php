@@ -26,7 +26,7 @@
             <!-- Net Balance Display -->
             <div class="text-center px-5 py-3 rounded-xl" style="background:#e8f0f7;">
                 <p class="text-xs text-gray-500 mb-0.5">الرصيد المتوقع</p>
-                <p class="text-2xl font-bold" style="color:#0F4C75;">{{ number_format($settlement->net_balance, 0) }}</p>
+                <p class="text-2xl font-bold" style="color:var(--ui-accent);">{{ number_format($settlement->net_balance, 0) }}</p>
                 <p class="text-xs text-gray-400">ر.ي</p>
             </div>
             @if($settlement->status === 'open')
@@ -53,7 +53,7 @@
     </div>
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 text-center" style="border-color:#0F4C75; border-width:2px;">
         <p class="text-xs text-gray-500 mb-1">الصافي</p>
-        <p class="text-xl font-bold" style="color:#0F4C75;">{{ number_format($settlement->net_balance, 0) }} <span class="text-xs font-normal text-gray-400">ر.ي</span></p>
+        <p class="text-xl font-bold" style="color:var(--ui-accent);">{{ number_format($settlement->net_balance, 0) }} <span class="text-xs font-normal text-gray-400">ر.ي</span></p>
     </div>
 </div>
 
@@ -95,7 +95,7 @@
         @if($settlement->status === 'open')
         @can('expenses.create')
         <a href="{{ route('expenses.create') }}"
-           class="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm transition" style="background:#0F4C75;">
+           class="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm transition" style="background:var(--ui-accent);color:var(--ui-accent-fg);">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             تسجيل مصروف
         </a>
@@ -149,7 +149,7 @@
         <!-- System balance -->
         <div class="rounded-xl p-4 mb-4 text-center" style="background:#e8f0f7;">
             <p class="text-xs text-gray-500 mb-1">المبلغ المتوقع في الصندوق</p>
-            <p class="text-2xl font-bold" style="color:#0F4C75;">{{ number_format($settlement->net_balance, 0) }} <span class="text-sm font-normal">ر.ي</span></p>
+            <p class="text-2xl font-bold" style="color:var(--ui-accent);">{{ number_format($settlement->net_balance, 0) }} <span class="text-sm font-normal">ر.ي</span></p>
         </div>
 
         <!-- Actual amount input -->

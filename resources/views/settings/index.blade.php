@@ -59,7 +59,7 @@
                             PNG أو JPG أو WEBP — بحد أقصى 2 ميجابايت. يُفضَّل شعار مربّع بخلفية شفافة (PNG).
                         </p>
                     </div>
-                    <button type="submit" class="px-5 py-2.5 text-white rounded-lg text-sm font-semibold transition" style="background:#0F4C75;">
+                    <button type="submit" class="px-5 py-2.5 text-white rounded-lg text-sm font-semibold transition" style="background:var(--ui-accent);color:var(--ui-accent-fg);">
                         حفظ الشعار
                     </button>
                 </form>
@@ -107,7 +107,7 @@
             </div>
 
             <div class="flex items-center gap-3 pt-1">
-                <button type="submit" class="px-5 py-2.5 text-white rounded-lg text-sm font-semibold transition" style="background:#0F4C75;">
+                <button type="submit" class="px-5 py-2.5 text-white rounded-lg text-sm font-semibold transition" style="background:var(--ui-accent);color:var(--ui-accent-fg);">
                     حفظ بيانات الفندق
                 </button>
                 <span class="text-xs text-gray-400">اترك أي حقل فارغاً ليُخفى من الرأس بدل أن يظهر شرطة.</span>
@@ -176,7 +176,7 @@
             </div>
 
             <div class="flex items-center gap-3 pt-1">
-                <button type="submit" class="px-5 py-2.5 text-white rounded-lg text-sm font-semibold transition" style="background:#0F4C75;">
+                <button type="submit" class="px-5 py-2.5 text-white rounded-lg text-sm font-semibold transition" style="background:var(--ui-accent);color:var(--ui-accent-fg);">
                     حفظ بيانات الدخول
                 </button>
                 <span class="text-xs text-gray-400">

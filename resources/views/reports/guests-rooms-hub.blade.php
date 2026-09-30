@@ -71,7 +71,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div class="bg-gray-50 rounded-xl border border-gray-100 p-5">
                 <div class="text-xs text-gray-500">إجمالي الضيوف المسجلين</div>
-                <div class="text-3xl font-bold mt-1" style="color:#0F4C75;">{{ $totalGuests }}</div>
+                <div class="text-3xl font-bold mt-1" style="color:var(--ui-accent);">{{ $totalGuests }}</div>
             </div>
             <div class="bg-gray-50 rounded-xl border border-gray-100 p-5">
                 <div class="text-xs text-gray-500">ضيوف جدد في الفترة</div>
@@ -92,7 +92,7 @@
                     @forelse($byNationality as $nat)
                     <div class="px-6 py-3 flex items-center justify-between">
                         <span class="text-sm text-gray-700">{{ $nat->nationality ?: 'غير محدد' }}</span>
-                        <span class="text-sm font-bold" style="color:#0F4C75;">{{ $nat->count }}</span>
+                        <span class="text-sm font-bold" style="color:var(--ui-accent);">{{ $nat->count }}</span>
                     </div>
                     @empty
                     <div class="px-6 py-6 text-center text-gray-400 text-sm">لا توجد بيانات</div>

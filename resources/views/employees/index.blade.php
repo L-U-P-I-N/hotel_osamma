@@ -5,116 +5,119 @@
 @section('content')
 <div dir="rtl">
 
-<!-- Header -->
-<div class="flex items-center justify-between mb-5">
-    <p class="text-sm text-gray-500">إجمالي الموظفين: {{ $employees->total() }}</p>
-    <div class="flex items-center gap-2 flex-wrap">
-        <a href="{{ route('employees.statements') }}"
-           class="flex items-center gap-2 px-4 py-2 border-2 rounded-lg text-sm font-medium transition"
-           style="border-color:#0F4C75; color:#0F4C75;">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-            كشف حساب الموظفين
-        </a>
-        @can('hr.create')
-        <a href="{{ route('employees.create') }}" class="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm transition" style="background:#0F4C75;">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-            إضافة موظف
-        </a>
-        @endcan
-    </div>
-</div>
+    <div class="ui-head">
+        <h2 class="ui-head-title">الموظفون</h2>
+        <p class="ui-head-meta"><b>{{ number_format($employees->total()) }}</b> موظفاً</p>
 
-<!-- Table -->
-<div class="bg-white rounded-xl shadow-sm border border-gray-100">
-    <div class="overflow-x-auto">
-        <table class="w-full text-sm" dir="rtl">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">#</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الاسم</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الوظيفة</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الراتب الإجمالي</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">رقم الهاتف</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">تاريخ التوظيف</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الحالة</th>
-                    @canany(['hr.edit','hr.delete'])
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">إجراءات</th>
-                    @endcanany
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-50">
-                @forelse($employees as $employee)
-                <tr class="hover:bg-gray-50">
-                    <td class="px-4 py-3 text-gray-500">{{ $employee->id }}</td>
-                    <td class="px-4 py-3">
-                        <span class="font-semibold text-gray-800">{{ $employee->name }}</span>
-                        <span class="block mt-0.5 text-xs">
-                            <a href="{{ route('employees.statement', $employee) }}"
-                               class="text-blue-600 hover:text-blue-800 hover:underline font-semibold">كشف الحساب</a>
-                            <span class="text-gray-300 mx-1">·</span>
-                            <a href="{{ route('employees.withdrawals', $employee) }}"
-                               class="text-blue-600 hover:text-blue-800 hover:underline">كشف المسحوبات</a>
-                            <span class="text-gray-300 mx-1">·</span>
-                            <a href="{{ route('employees.deductions', $employee) }}"
-                               class="text-red-600 hover:text-red-800 hover:underline">الخصومات</a>
-                        </span>
-                    </td>
-                    <td class="px-4 py-3 text-gray-600">{{ $employee->position }}</td>
-                    <td class="px-4 py-3 font-medium" style="color:#0F4C75;">
-                        {{ number_format($employee->total_salary, 0) }}
-                        <div class="text-[11px] font-normal text-gray-400 mt-0.5">
-                            أساسي {{ number_format((float) $employee->base_salary, 0) }}
-                            @if((float) $employee->food_allowance > 0)
-                            + صرفية {{ number_format((float) $employee->food_allowance, 0) }}
+        <div class="ui-head-actions">
+            <a href="{{ route('employees.statements') }}" class="ui-btn">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                كشف حساب الموظفين
+            </a>
+            @can('hr.create')
+            <a href="{{ route('employees.create') }}" class="ui-btn ui-btn--primary">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                إضافة موظف
+            </a>
+            @endcan
+        </div>
+    </div>
+
+    <div class="ui-panel">
+        <div class="ui-table-wrap">
+            <table class="ui-table" dir="rtl">
+                <thead>
+                    <tr>
+                        <th>الاسم</th>
+                        <th>الوظيفة</th>
+                        {{-- الراتب هو الرقم الذي يُمسح بالعين، فيقف في عمود محاذىً --}}
+                        <th class="num">الراتب الإجمالي</th>
+                        <th>رقم الهاتف</th>
+                        <th>تاريخ التوظيف</th>
+                        <th>الحالة</th>
+                        @canany(['hr.edit','hr.delete'])
+                        <th class="t-actions">إجراءات</th>
+                        @endcanany
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($employees as $employee)
+                    <tr>
+                        <td>
+                            <span class="t-strong">{{ $employee->name }}</span>
+                            <span class="t-sub">
+                                <a href="{{ route('employees.statement', $employee) }}"
+                                   style="color:var(--ui-accent);font-weight:600;">كشف الحساب</a>
+                                ·
+                                <a href="{{ route('employees.withdrawals', $employee) }}"
+                                   style="color:var(--ui-accent);">كشف المسحوبات</a>
+                                ·
+                                <a href="{{ route('employees.deductions', $employee) }}"
+                                   style="color:var(--ui-neg);">الخصومات</a>
+                            </span>
+                        </td>
+                        <td style="color:var(--ui-ink-2);">{{ $employee->position }}</td>
+                        <td class="num">
+                            <span class="t-strong">{{ number_format($employee->total_salary, 0) }}</span>
+                            <span class="t-sub">
+                                أساسي {{ number_format((float) $employee->base_salary, 0) }}
+                                @if((float) $employee->food_allowance > 0)
+                                + صرفية {{ number_format((float) $employee->food_allowance, 0) }}
+                                @endif
+                            </span>
+                        </td>
+                        <td style="color:var(--ui-ink-2);">{{ $employee->phone ?? '—' }}</td>
+                        <td style="color:var(--ui-ink-2);">{{ $employee->hire_date->format('d/m/Y') }}</td>
+                        <td>
+                            @if($employee->is_active)
+                            <span class="ui-chip ui-chip--ok">نشط</span>
+                            @else
+                            <span class="ui-chip ui-chip--bad">غير نشط</span>
                             @endif
-                        </div>
-                    </td>
-                    <td class="px-4 py-3 text-gray-600">{{ $employee->phone ?? '-' }}</td>
-                    <td class="px-4 py-3 text-gray-600">{{ $employee->hire_date->format('d/m/Y') }}</td>
-                    <td class="px-4 py-3">
-                        @if($employee->is_active)
-                        <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">نشط</span>
-                        @else
-                        <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">غير نشط</span>
-                        @endif
-                    </td>
-                    @canany(['hr.edit','hr.delete'])
-                    <td class="px-4 py-3">
-                        <div class="flex items-center gap-2">
+                        </td>
+                        @canany(['hr.edit','hr.delete'])
+                        <td class="t-actions">
                             @can('hr.edit')
-                            <a href="{{ route('employees.edit', $employee) }}" class="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition">تعديل</a>
+                            <a href="{{ route('employees.edit', $employee) }}" class="ui-btn ui-btn--sm">تعديل</a>
                             @endcan
                             @can('hr.delete')
-                            <form method="POST" action="{{ route('employees.destroy', $employee) }}" onsubmit="return confirm('هل أنت متأكد من حذف هذا الموظف؟')">
+                            <form method="POST" action="{{ route('employees.destroy', $employee) }}"
+                                  style="display:inline;"
+                                  onsubmit="return confirm('حذف الموظف {{ $employee->name }}؟')">
                                 @csrf @method('DELETE')
-                                <button type="submit" class="text-xs px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition">حذف</button>
+                                <button type="submit" class="ui-btn ui-btn--sm ui-btn--danger">حذف</button>
                             </form>
                             @endcan
-                        </div>
-                    </td>
-                    @endcanany
-                </tr>
-                @empty
-                <tr><td colspan="8" class="px-4 py-8">
-                    <x-empty-state
-                        icon="👥"
-                        title="لا يوجد موظفون"
-                        message="ابدأ بإضافة موظف جديد لفريقك"
-                        action_text="إضافة موظف"
-                        action_url="{{ route('employees.create') }}"
-                    />
-                </td></tr>
-                @endforelse
-            </tbody>
-        </table>
+                        </td>
+                        @endcanany
+                    </tr>
+                    @empty
+                    <tr><td colspan="7" style="padding:0;">
+                        <x-empty-state
+                            icon="👥"
+                            title="لا يوجد موظفون"
+                            message="ابدأ بإضافة موظف جديد لفريقك"
+                            action_text="إضافة موظف"
+                            action_url="{{ route('employees.create') }}"
+                        />
+                    </td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        @if($employees->hasPages())
+        <div class="ui-actions">
+            <x-pagination-info :items="$employees" />
+            <div style="margin-inline-start:auto;">{{ $employees->links() }}</div>
+        </div>
+        @endif
     </div>
-    @if($employees->hasPages())
-    <div class="px-4 py-3 border-t border-gray-100">
-        <x-pagination-info :items="$employees" />
-        {{ $employees->links() }}
-    </div>
-    @endif
-</div>
 
 </div>
 @endsection

@@ -375,8 +375,10 @@ class ChartOfAccountsTest extends TestCase
 
         $html = $this->actingAs($admin)->get('/accounting/chart-of-accounts')->getContent();
 
+        // ألوان الصفحة تُشتق من توكينات نظام الواجهة المشترك، وهي وحدها التي
+        // تُقلب تحت html.dark — فلا نسخة ليلية لكل صفحة تتفرّق عن أخواتها
         $this->assertStringContainsString('.coa {', $html, 'لا توجد كتلة متغيرات للصفحة');
-        $this->assertStringContainsString('html.dark .coa {', $html, 'المتغيرات بلا مقابل ليلي');
+        $this->assertStringContainsString('var(--ui-', $html, 'الصفحة لا تشتق من نظام الواجهة');
 
         // عناصر الصفحة نفسها (coa-*) لا تحمل لوناً ثابتاً في style — ألوان
         // القالب العام خارج نطاق هذا الاختبار، ولها معالجتها في app-theme.css

@@ -16,46 +16,28 @@
     الألوان متغيرات تُقلب كتلةً واحدة في الوضع الليلي، فلا تتناثر قيم ثابتة.
 */
 .coa {
-    --coa-bg:        #ffffff;
-    --coa-bg-sunken: #f8fafc;
-    --coa-line:      #e9edf2;
-    --coa-line-soft: #f1f5f9;
-    --coa-ink:       #1e293b;
-    --coa-ink-2:     #64748b;
-    --coa-ink-3:     #94a3b8;
-    --coa-accent:    #0F4C75;
-    --coa-accent-bg: #eef5fb;
-    --coa-negative:  #b4232a;
-    --coa-hover:     #f6f9fc;
-    --coa-locked:    #efedea;
+    /* أسماء مستعارة لتوكينات نظام الواجهة المشترك (ui-kit.css) — مصدر واحد
+       للألوان في كل الشاشات، وقلبٌ واحد للوضع الليلي بدل نسخة لكل صفحة */
+    --coa-bg:        var(--ui-bg);
+    --coa-bg-sunken: var(--ui-sunken);
+    --coa-locked:    var(--ui-locked);
+    --coa-line:      var(--ui-line);
+    --coa-line-soft: var(--ui-line-soft);
+    --coa-ink:       var(--ui-ink);
+    --coa-ink-2:     var(--ui-ink-2);
+    --coa-ink-3:     var(--ui-ink-3);
+    --coa-accent:    var(--ui-accent);
+    --coa-accent-bg: var(--ui-accent-bg);
+    --coa-negative:  var(--ui-neg);
+    --coa-hover:     var(--ui-hover);
 
-    --coa-asset:     #1d6fa5;
-    --coa-liability: #b0424a;
-    --coa-equity:    #7a5bb5;
-    --coa-revenue:   #1c7a5e;
-    --coa-expense:   #a8632a;
+    --coa-asset:     var(--ui-asset);
+    --coa-liability: var(--ui-liability);
+    --coa-equity:    var(--ui-equity);
+    --coa-revenue:   var(--ui-revenue);
+    --coa-expense:   var(--ui-expense);
 
-    --coa-mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Menlo, Consolas, monospace;
-}
-html.dark .coa {
-    --coa-bg:        #24282f;
-    --coa-bg-sunken: #1b1e22;
-    --coa-line:      #33383f;
-    --coa-line-soft: #2a2e35;
-    --coa-ink:       #dfe1e5;
-    --coa-ink-2:     #a1a6ae;
-    --coa-ink-3:     #71767f;
-    --coa-accent:    #7fb0dd;
-    --coa-accent-bg: #22303d;
-    --coa-negative:  #e58a8a;
-    --coa-hover:     #2d323a;
-    --coa-locked:    #1b1e22;
-
-    --coa-asset:     #7fb0dd;
-    --coa-liability: #e58a8a;
-    --coa-equity:    #a89ce0;
-    --coa-revenue:   #75c091;
-    --coa-expense:   #db9a63;
+    --coa-mono: var(--ui-mono);
 }
 
 /* ── هيكل الصفحة ─────────────────────────────────────────────── */
@@ -83,11 +65,9 @@ html.dark .coa {
 }
 .coa-btn:hover { border-color: var(--coa-accent); color: var(--coa-accent); }
 .coa-btn--primary {
-    background: var(--coa-accent); border-color: var(--coa-accent); color: #fff;
+    background: var(--coa-accent); border-color: var(--coa-accent); color: var(--ui-accent-fg);
 }
-.coa-btn--primary:hover { filter: brightness(1.12); color: #fff; }
-html.dark .coa-btn--primary { color: #12161b; }
-html.dark .coa-btn--primary:hover { color: #12161b; }
+.coa-btn--primary:hover { filter: brightness(1.12); color: var(--ui-accent-fg); }
 .coa-btn--danger { color: var(--coa-negative); }
 .coa-btn--danger:hover { border-color: var(--coa-negative); color: var(--coa-negative); }
 .coa-btn[disabled], .coa-btn.is-off {
@@ -161,8 +141,7 @@ html.dark .coa-btn--primary:hover { color: #12161b; }
     background: var(--coa-bg-sunken); flex-shrink: 0;
 }
 .coa-pane-title {
-    font-size: .6875rem; font-weight: 700; letter-spacing: .04em;
-    color: var(--coa-ink-3); text-transform: uppercase;
+    font-size: .75rem; font-weight: 700; color: var(--coa-ink-2);
 }
 .coa-pane-body { overflow: auto; flex: 1 1 auto; min-height: 0; -webkit-overflow-scrolling: touch; }
 @media (max-width: 1023px) { .coa-pane-body { max-height: 65vh; } }
@@ -177,7 +156,7 @@ html.dark .coa-btn--primary:hover { color: #12161b; }
 .coa-colhead {
     display: flex; padding: .3125rem .75rem; gap: .5rem;
     border-bottom: 1px solid var(--coa-line-soft); background: var(--coa-bg);
-    font-size: .625rem; font-weight: 700; letter-spacing: .04em; color: var(--coa-ink-3);
+    font-size: .6875rem; font-weight: 700; color: var(--coa-ink-3);
     position: sticky; top: 0; z-index: 2;
 }
 .coa-colhead span:last-child { margin-inline-start: auto; }
@@ -290,7 +269,7 @@ a.coa-name:hover { color: var(--coa-accent); text-decoration: underline; text-un
         box-shadow: 0 -12px 32px rgba(15, 23, 42, .18);
         animation: coa-sheet .18s ease-out;
     }
-    html.dark .coa-pane--detail.has-content { box-shadow: 0 -12px 32px rgba(0,0,0,.5); }
+    html.dark .coa-pane--detail.has-content { box-shadow: 0 -12px 32px rgba(0, 0, 0, .5); }
     .coa-pane--detail:not(.has-content) { display: none; }
 
     /* مقبض يُعرّف اللوحة ورقةً منزلقة لا جزءاً من الصفحة */
@@ -339,18 +318,16 @@ a.coa-name:hover { color: var(--coa-accent); text-decoration: underline; text-un
 .coa-hint { font-size: .6875rem; color: var(--coa-ink-3); margin-top: .25rem; }
 
 .coa-section {
-    padding: .625rem .875rem .375rem; font-size: .625rem; font-weight: 700;
-    letter-spacing: .04em; color: var(--coa-ink-3); text-transform: uppercase;
+    padding: .625rem .875rem .375rem; font-size: .75rem; font-weight: 700;
+    color: var(--coa-ink-2);
 }
 .coa-note {
     margin: 0 .875rem .75rem; padding: .5rem .625rem; border-radius: .5rem;
     font-size: .6875rem; line-height: 1.6;
     border: 1px solid var(--coa-line); background: var(--coa-bg-sunken); color: var(--coa-ink-2);
 }
-.coa-note--warn { border-color: #e0b563; background: #fdf7ea; color: #7a5a17; }
-html.dark .coa-note--warn { border-color: #6b5527; background: #2b2417; color: var(--coa-amber, #d8ad66); }
-.coa-note--error { border-color: #e3a3a3; background: #fdf1f1; color: #8f2c2c; }
-html.dark .coa-note--error { border-color: #6b3636; background: #2d1c1c; color: var(--coa-negative); }
+.coa-note--warn  { border-color: var(--ui-warn-line); background: var(--ui-warn-bg); color: var(--ui-warn); }
+.coa-note--error { border-color: var(--ui-err-line);  background: var(--ui-err-bg);  color: var(--ui-neg); }
 
 .coa-actions {
     display: flex; gap: .5rem; align-items: center; flex-shrink: 0;

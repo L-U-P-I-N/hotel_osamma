@@ -61,7 +61,7 @@
 
         <div class="grid grid-cols-3 gap-3 mb-4">
             <div class="bg-gray-50 rounded-xl border border-gray-100 p-4 text-center">
-                <div class="text-2xl font-bold" style="color:#0F4C75;">{{ $dailyReservations->count() }}</div>
+                <div class="text-2xl font-bold" style="color:var(--ui-accent);">{{ $dailyReservations->count() }}</div>
                 <div class="text-xs text-gray-500 mt-0.5">إجمالي النزلاء</div>
             </div>
             <div class="bg-gray-50 rounded-xl border border-gray-100 p-4 text-center">
@@ -77,7 +77,7 @@
         <div class="bg-white rounded-xl border border-gray-100">
             <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
                 <h3 class="font-semibold text-gray-700 text-sm">
-                    قائمة النزلاء ليوم <span style="color:#0F4C75;">{{ \Carbon\Carbon::parse($date)->format('d/m/Y') }}</span>
+                    قائمة النزلاء ليوم <span style="color:var(--ui-accent);">{{ \Carbon\Carbon::parse($date)->format('d/m/Y') }}</span>
                 </h3>
                 <span class="text-sm text-gray-400">{{ $dailyReservations->count() }} نزيل</span>
             </div>
@@ -183,7 +183,7 @@
 
         <div class="grid grid-cols-3 gap-4">
             <div class="bg-gray-50 rounded-xl border border-gray-100 p-5 text-center">
-                <div class="text-3xl font-bold" style="color:#0F4C75;">{{ $totalRooms }}</div>
+                <div class="text-3xl font-bold" style="color:var(--ui-accent);">{{ $totalRooms }}</div>
                 <div class="text-sm text-gray-500 mt-1">إجمالي الغرف</div>
             </div>
             <div class="bg-gray-50 rounded-xl border border-gray-100 p-5 text-center">
@@ -363,7 +363,7 @@
 
         <div class="grid grid-cols-3 gap-3">
             <div class="bg-white rounded-xl border border-gray-100 p-4 text-center shadow-sm">
-                <div class="text-2xl font-bold" style="color:#0F4C75;">{{ $total }}</div>
+                <div class="text-2xl font-bold" style="color:var(--ui-accent);">{{ $total }}</div>
                 <div class="text-xs text-gray-500 mt-0.5">إجمالي الحجوزات</div>
             </div>
             <div class="bg-white rounded-xl border border-green-100 p-4 text-center shadow-sm">

@@ -19,7 +19,7 @@
         </div>
         @endif
 
-        <a href="{{ url('/dashboard') }}" class="text-white px-6 py-2 rounded-lg transition" style="background:#0F4C75">العودة للرئيسية</a>
+        <a href="{{ url('/dashboard') }}" class="text-white px-6 py-2 rounded-lg transition" style="background:var(--ui-accent);color:var(--ui-accent-fg)">العودة للرئيسية</a>
     </div>
 </body>
 </html>

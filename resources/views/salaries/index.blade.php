@@ -5,107 +5,99 @@
 @section('content')
 <div dir="rtl">
 
-<!-- Header & Filter -->
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-5">
-    <form method="GET" class="flex flex-wrap gap-3 items-end">
-        <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">الشهر</label>
-            <select name="month" class="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none">
-                @foreach(range(1,12) as $m)
-                <option value="{{ $m }}" {{ $month == $m ? 'selected' : '' }}>{{ \App\Models\Salary::monthName($m) }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">السنة</label>
-            <select name="year" class="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none">
-                @foreach(range(now()->year, now()->year - 3, -1) as $y)
-                <option value="{{ $y }}" {{ $year == $y ? 'selected' : '' }}>{{ $y }}</option>
-                @endforeach
-            </select>
-        </div>
-        <button type="submit" class="px-4 py-2 text-white rounded-lg text-sm transition" style="background:#0F4C75;">عرض</button>
+    <div class="ui-head">
+        <h2 class="ui-head-title">رواتب {{ \App\Models\Salary::monthName($month) }} {{ $year }}</h2>
+        <p class="ui-head-meta">
+            <b>{{ $salaries->count() }}</b> قسيمة بصافٍ قدره
+            <b>{{ number_format($salaries->sum('net_salary'), 0) }}</b> ر.ي
+        </p>
         @can('hr.create')
-        <a href="{{ route('salaries.create') }}" class="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm transition mr-auto" style="background:#0F4C75;">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-            إنشاء قسيمة راتب
-        </a>
+        <div class="ui-head-actions">
+            <a href="{{ route('salaries.create') }}" class="ui-btn ui-btn--primary">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                إنشاء قسيمة راتب
+            </a>
+        </div>
         @endcan
-    </form>
-</div>
-
-<!-- Salaries Table -->
-<div class="bg-white rounded-xl shadow-sm border border-gray-100">
-    <div class="px-6 py-4 border-b border-gray-100">
-        <h3 class="font-semibold text-gray-700">رواتب {{ \App\Models\Salary::monthName($month) }} {{ $year }}</h3>
     </div>
-    <div class="overflow-x-auto">
-        <table class="w-full text-sm" dir="rtl">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الموظف</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الراتب الأساسي</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المكافآت</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">إجمالي الخصومات</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الصافي</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الحالة</th>
-                    @can('hr.edit')
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">إجراءات</th>
-                    @endcan
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-50">
-                @forelse($salaries as $salary)
-                <tr class="hover:bg-gray-50">
-                    <td class="px-4 py-3 font-semibold text-gray-800">{{ $salary->employee->name }}</td>
-                    <td class="px-4 py-3 text-gray-600">{{ number_format($salary->base_salary, 2) }}</td>
-                    <td class="px-4 py-3 text-green-700">{{ number_format($salary->bonuses, 2) }}</td>
-                    <td class="px-4 py-3 text-red-600"
-                        title="خصومات يدوية: {{ number_format($salary->deductions, 0) }} — خصومات مسجَّلة: {{ number_format($salary->recorded_deductions, 0) }} — مسحوبات: {{ number_format($salary->withdrawals_deduction, 0) }} — غياب/إجازة: {{ number_format($salary->attendance_deduction, 0) }}">
-                        {{ number_format($salary->total_deductions, 2) }}
-                    </td>
-                    <td class="px-4 py-3 font-bold" style="color:#0F4C75;">{{ number_format($salary->net_salary, 2) }}</td>
-                    <td class="px-4 py-3">
-                        @if($salary->status === 'paid')
-                        <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">مدفوعة</span>
-                        @else
-                        <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">مسودة</span>
-                        @endif
-                    </td>
-                    @can('hr.edit')
-                    <td class="px-4 py-3">
-                        <div class="flex items-center gap-2">
-                            {{-- PDF slip --}}
-                            <a href="{{ route('salaries.pdf', $salary) }}" target="_blank"
-                               class="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-                                تصدير PDF
-                            </a>
+
+    <form method="GET" class="ui-bar">
+        <label class="inline" for="sal-month">الشهر</label>
+        <select id="sal-month" name="month" onchange="this.form.submit()">
+            @foreach(range(1,12) as $m)
+            <option value="{{ $m }}" @selected($month == $m)>{{ \App\Models\Salary::monthName($m) }}</option>
+            @endforeach
+        </select>
+        <label class="inline" for="sal-year">السنة</label>
+        <select id="sal-year" name="year" onchange="this.form.submit()">
+            @foreach(range(now()->year, now()->year - 3, -1) as $y)
+            <option value="{{ $y }}" @selected($year == $y)>{{ $y }}</option>
+            @endforeach
+        </select>
+        <button type="submit" class="ui-btn">عرض</button>
+    </form>
+
+    <div class="ui-panel">
+        <div class="ui-table-wrap">
+            <table class="ui-table" dir="rtl">
+                <thead>
+                    <tr>
+                        <th>الموظف</th>
+                        <th class="num">الراتب الأساسي</th>
+                        <th class="num">المكافآت</th>
+                        <th class="num">إجمالي الخصومات</th>
+                        <th class="num">الصافي</th>
+                        <th>الحالة</th>
+                        @can('hr.edit')
+                        <th class="t-actions">إجراءات</th>
+                        @endcan
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($salaries as $salary)
+                    <tr>
+                        <td class="t-strong">{{ $salary->employee->name }}</td>
+                        <td class="num num--muted">{{ number_format($salary->base_salary, 0) }}</td>
+                        <td class="num num--pos">{{ number_format($salary->bonuses, 0) }}</td>
+                        <td class="num num--neg"
+                            title="خصومات يدوية: {{ number_format($salary->deductions, 0) }} — خصومات مسجَّلة: {{ number_format($salary->recorded_deductions, 0) }} — مسحوبات: {{ number_format($salary->withdrawals_deduction, 0) }} — غياب/إجازة: {{ number_format($salary->attendance_deduction, 0) }}">
+                            {{ number_format($salary->total_deductions, 0) }}
+                        </td>
+                        <td class="num t-strong" style="color:var(--ui-accent);">{{ number_format($salary->net_salary, 0) }}</td>
+                        <td>
+                            @if($salary->status === 'paid')
+                            <span class="ui-chip ui-chip--ok">مدفوعة</span>
+                            @else
+                            <span class="ui-chip ui-chip--warn">مسودة</span>
+                            @endif
+                        </td>
+                        @can('hr.edit')
+                        <td class="t-actions">
+                            <a href="{{ route('salaries.pdf', $salary) }}" target="_blank" class="ui-btn ui-btn--sm">PDF</a>
+
                             @if($salary->status === 'draft')
-                            {{-- Edit --}}
-                            <a href="{{ route('salaries.edit', $salary) }}"
-                               class="text-xs px-2.5 py-1.5 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 transition">
-                                تعديل
-                            </a>
-                            {{-- Mark paid — مع تحديد من أين صُرف الراتب فعلاً --}}
-                            <div x-data="{ open: false }" class="relative">
-                                <button type="button" @click="open = !open"
-                                        class="text-xs px-2.5 py-1.5 rounded-lg text-white transition" style="background:#0F4C75;">
-                                    مدفوعة
-                                </button>
+                            <a href="{{ route('salaries.edit', $salary) }}" class="ui-btn ui-btn--sm">تعديل</a>
+
+                            {{-- الصرف يسأل عن الوعاء الذي خرج منه المال قبل أن يُسجَّل --}}
+                            <span x-data="{ open: false }" style="position:relative;display:inline-block;">
+                                <button type="button" class="ui-btn ui-btn--sm ui-btn--primary" @click="open = !open">مدفوعة</button>
                                 <form x-show="open" x-cloak @click.outside="open = false"
                                       method="POST" action="{{ route('salaries.markPaid', $salary) }}"
                                       x-data="{ method: 'cash' }"
-                                      class="absolute left-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-200 p-3 space-y-2 z-30 text-right">
+                                      class="ui-panel"
+                                      style="position:absolute;inset-inline-start:0;top:calc(100% + .375rem);width:15rem;z-index:30;
+                                             margin:0;padding:.625rem;text-align:start;box-shadow:0 8px 24px rgba(15,23,42,.14);">
                                     @csrf @method('PATCH')
-                                    <p class="text-xs font-bold text-gray-700">من أين صُرف الراتب؟</p>
-                                    <select name="payment_method" x-model="method"
-                                            class="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs outline-none bg-white">
+                                    <p style="font-size:.6875rem;font-weight:700;color:var(--ui-ink);margin-bottom:.375rem;">
+                                        من أين صُرف الراتب؟
+                                    </p>
+                                    <select name="payment_method" x-model="method" class="ui-input" style="height:2rem;margin-bottom:.375rem;">
                                         <option value="cash">نقداً</option>
                                         <option value="bank_transfer">تحويل بنكي</option>
                                     </select>
-                                    <select name="payment_account_id"
-                                            class="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs outline-none bg-white">
+                                    <select name="payment_account_id" class="ui-input" style="height:2rem;">
                                         <template x-if="method === 'cash'">
                                             <optgroup label="نقداً">
                                                 @foreach(\App\Models\PaymentAccount::active()->whereIn('type', ['shift_cash','safe'])->ordered()->get() as $__acc)
@@ -121,45 +113,41 @@
                                             </optgroup>
                                         </template>
                                     </select>
-                                    <button type="submit" class="w-full py-1.5 rounded-lg text-white text-xs font-bold transition" style="background:#0F4C75;">
-                                        تأكيد الصرف
-                                    </button>
+                                    <button type="submit" class="ui-btn ui-btn--primary" style="width:100%;margin-top:.5rem;">تأكيد الصرف</button>
                                 </form>
-                            </div>
-                            {{-- Delete --}}
+                            </span>
+
                             @can('hr.delete')
-                            <form method="POST" action="{{ route('salaries.destroy', $salary) }}"
-                                  onsubmit="return confirm('هل تريد حذف قسيمة الراتب هذه؟')">
+                            <form method="POST" action="{{ route('salaries.destroy', $salary) }}" style="display:inline;"
+                                  onsubmit="return confirm('حذف قسيمة الراتب هذه؟')">
                                 @csrf @method('DELETE')
-                                <button type="submit" class="text-xs px-2.5 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition">
-                                    حذف
-                                </button>
+                                <button type="submit" class="ui-btn ui-btn--sm ui-btn--danger">حذف</button>
                             </form>
                             @endcan
                             @endif
-                        </div>
-                    </td>
-                    @endcan
-                </tr>
-                @empty
-                <tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">لا توجد رواتب لهذا الشهر</td></tr>
-                @endforelse
-            </tbody>
-            @if($salaries->isNotEmpty())
-            <tfoot class="bg-gray-50">
-                <tr>
-                    <td class="px-4 py-3 font-bold text-gray-700">الإجمالي</td>
-                    <td class="px-4 py-3 font-bold text-gray-700">{{ number_format($salaries->sum('base_salary'), 2) }}</td>
-                    <td class="px-4 py-3 font-bold text-green-700">{{ number_format($salaries->sum('bonuses'), 2) }}</td>
-                    <td class="px-4 py-3 font-bold text-red-600">{{ number_format($salaries->sum('total_deductions'), 2) }}</td>
-                    <td class="px-4 py-3 font-bold" style="color:#0F4C75;">{{ number_format($salaries->sum('net_salary'), 2) }}</td>
-                    <td colspan="2"></td>
-                </tr>
-            </tfoot>
-            @endif
-        </table>
+                        </td>
+                        @endcan
+                    </tr>
+                    @empty
+                    <tr><td colspan="7"><div class="ui-empty">لا توجد رواتب لهذا الشهر</div></td></tr>
+                    @endforelse
+                </tbody>
+
+                @if($salaries->isNotEmpty())
+                <tfoot>
+                    <tr>
+                        <td>الإجمالي</td>
+                        <td class="num">{{ number_format($salaries->sum('base_salary'), 0) }}</td>
+                        <td class="num num--pos">{{ number_format($salaries->sum('bonuses'), 0) }}</td>
+                        <td class="num num--neg">{{ number_format($salaries->sum('total_deductions'), 0) }}</td>
+                        <td class="num" style="color:var(--ui-accent);">{{ number_format($salaries->sum('net_salary'), 0) }}</td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tfoot>
+                @endif
+            </table>
+        </div>
     </div>
-</div>
 
 </div>
 @endsection

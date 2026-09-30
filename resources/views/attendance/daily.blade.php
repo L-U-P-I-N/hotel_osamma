@@ -31,7 +31,7 @@
             <input type="date" name="date" value="{{ $date }}"
                    class="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400">
         </div>
-        <button type="submit" class="px-4 py-2 text-white rounded-lg text-sm transition" style="background:#0F4C75;">عرض</button>
+        <button type="submit" class="px-4 py-2 text-white rounded-lg text-sm transition" style="background:var(--ui-accent);color:var(--ui-accent-fg);">عرض</button>
     </form>
 </div>
 
@@ -47,7 +47,7 @@
                 <h3 class="font-semibold text-gray-700">حضور يوم {{ \Carbon\Carbon::parse($date)->format('d/m/Y') }}</h3>
                 <p class="text-xs text-gray-400 mt-0.5">{{ $employees->count() }} موظف</p>
             </div>
-            <button type="submit" class="px-5 py-2 text-white rounded-lg text-sm font-semibold transition" style="background:#0F4C75;">
+            <button type="submit" class="px-5 py-2 text-white rounded-lg text-sm font-semibold transition" style="background:var(--ui-accent);color:var(--ui-accent-fg);">
                 حفظ الحضور
             </button>
         </div>
@@ -115,7 +115,7 @@
             </table>
         </div>
         <div class="px-5 py-3 border-t border-gray-100 flex justify-end">
-            <button type="submit" class="px-6 py-2 text-white rounded-lg text-sm font-semibold transition" style="background:#0F4C75;">
+            <button type="submit" class="px-6 py-2 text-white rounded-lg text-sm font-semibold transition" style="background:var(--ui-accent);color:var(--ui-accent-fg);">
                 حفظ الحضور
             </button>
         </div>

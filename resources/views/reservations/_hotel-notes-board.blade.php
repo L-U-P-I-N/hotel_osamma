@@ -44,7 +44,7 @@
                 @can('checkin.create')
                 <button type="button" @click="showForm = !showForm; if (showForm) collapsed = false"
                         class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white transition"
-                        style="background:#0F4C75;">
+                        style="background:var(--ui-accent);color:var(--ui-accent-fg);">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
                     <span x-text="showForm ? 'إغلاق' : 'إضافة ملاحظة'"></span>
                 </button>
