@@ -255,6 +255,12 @@ class ChartOfAccount extends Model
         return $this->children()->count() === 0;
     }
 
+    /** الوعاء المالي (صندوق أو بنك) المرتبط بهذا الحساب، إن وُجد */
+    public function paymentAccount(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(PaymentAccount::class, 'account_code', 'code');
+    }
+
     /** هل رُحِّل على هذا الحساب قيد واحد على الأقل؟ */
     public function hasJournalLines(): bool
     {
@@ -353,6 +359,11 @@ class ChartOfAccount extends Model
 
         if ($this->hasJournalLines()) {
             return 'رُحِّلت على الحساب قيود — سجل التدقيق لا يُحذف منه، والبديل إيقاف الحساب.';
+        }
+
+        // حساب وعاءٍ مالي يُدار من صفحته لا من هنا، وحذفه يقطع ارتباط الوعاء به
+        if (($vessel = $this->paymentAccount) !== null) {
+            return 'هذا حساب الوعاء المالي «' . $vessel->name . '» — يُدار من صفحة الصناديق والبنوك.';
         }
 
         return null;

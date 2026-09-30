@@ -46,16 +46,23 @@ class PaymentAccountController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $this->validatePayload($request);
+        $validated = $this->withColumnDefaults($this->validatePayload($request));
 
-        // حساب الوعاء في شجرة USALI يُنشأ آلياً تحت أبيه الصحيح، فلا يُضطر
-        // المستخدم لتحرير دليل الحسابات كلما فتح حساباً بنكياً جديداً
-        $ledger = PaymentAccount::createLedgerAccount($validated['type'], $validated['name']);
+        // الإنشاء خطوتان — حساب في الشجرة ثم الوعاء — فيلزم أن تنجحا معاً أو
+        // تفشلا معاً. بدون المعاملة كان فشل الخطوة الثانية يترك حساباً يتيماً
+        // في دليل الحسابات بينما تظهر للمستخدم رسالة خطأ، فيظن أن شيئاً لم يُنشأ.
+        [$account, $ledger] = DB::transaction(static function () use ($validated) {
+            // حساب الوعاء في شجرة USALI يُنشأ آلياً تحت أبيه الصحيح، فلا يُضطر
+            // المستخدم لتحرير دليل الحسابات كلما فتح حساباً بنكياً جديداً
+            $ledger = PaymentAccount::createLedgerAccount($validated['type'], $validated['name']);
 
-        $account = PaymentAccount::create($validated + [
-            'account_code' => $ledger->code,
-            'is_active'    => true,
-        ]);
+            $account = PaymentAccount::create($validated + [
+                'account_code' => $ledger->code,
+                'is_active'    => true,
+            ]);
+
+            return [$account, $ledger];
+        });
 
         $this->enforceSingleDefault($account);
 
@@ -66,7 +73,7 @@ class PaymentAccountController extends Controller
 
     public function update(Request $request, PaymentAccount $paymentAccount)
     {
-        $validated = $this->validatePayload($request, $paymentAccount);
+        $validated = $this->withColumnDefaults($this->validatePayload($request, $paymentAccount));
         $old = $paymentAccount->toArray();
 
         // النوع لا يُغيَّر بعد الإنشاء: تغييره ينقل الوعاء إلى فرع آخر من الشجرة
@@ -112,6 +119,24 @@ class PaymentAccountController extends Controller
             'type.required' => 'نوع الوعاء مطلوب',
             'type.in'       => 'نوع الوعاء غير معروف',
         ]);
+    }
+
+    /**
+     * الحقول الرقمية الاختيارية تصل من النموذج نصاً فارغاً فتتحوّل null، بينما
+     * أعمدتها NOT NULL بقيم افتراضية — فترتدّ من القاعدة خطأً غامضاً («أحد
+     * الحقول المطلوبة وصل فارغاً») بعد أن يكون حساب الشجرة قد أُنشئ. تُملأ هنا
+     * صراحةً بقيمها الافتراضية بدل أن يُترك الأمر للقاعدة.
+     *
+     * @param  array<string,mixed>  $validated
+     * @return array<string,mixed>
+     */
+    private function withColumnDefaults(array $validated): array
+    {
+        $validated['commission_rate'] = $validated['commission_rate'] ?? 0;
+        $validated['sort_order']      = $validated['sort_order'] ?? 0;
+        $validated['is_default']      = (bool) ($validated['is_default'] ?? false);
+
+        return $validated;
     }
 
     /** وسيلة افتراضية واحدة لكل نوع — وإلا صار الاختيار التلقائي عشوائياً. */

@@ -164,6 +164,13 @@ class ChartOfAccountController extends Controller
             return 'للحساب فروع نشطة — أوقِفها أولاً.';
         }
 
+        // إيقاف حساب وعاءٍ نشط يُعطّل قبضه وصرفه دون أن يظهر ذلك في صفحته
+        $vessel = $account->paymentAccount;
+        if ($vessel !== null && $vessel->is_active) {
+            return 'هذا حساب الوعاء المالي «' . $vessel->name . '» وهو نشط — '
+                 . 'عطّله من صفحة الصناديق والبنوك ليُوقَف حسابه معه.';
+        }
+
         return null;
     }
 

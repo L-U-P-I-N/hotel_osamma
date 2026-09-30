@@ -237,9 +237,13 @@ class ChartOfAccountsCrudTest extends TestCase
 
     public function test_an_unused_account_can_be_suspended_and_restored(): void
     {
+        // حسابٌ لا تستعمله شيفرة الترحيل ولا هو حساب وعاءٍ مالي نشط
         $code = ChartOfAccount::where('is_posting', true)
             ->whereNotIn('code', app(\App\Services\COAService::class)->hardcodedPostingCodes())
+            ->whereNotIn('code', \App\Models\PaymentAccount::pluck('account_code'))
             ->value('code');
+
+        $this->assertNotNull($code, 'لم يُوجد حساب صالح للاختبار');
 
         $this->actingAs($this->admin)
             ->put(route('coa.update', $code), ['name_ar' => 'اسم', 'suspended' => 1])

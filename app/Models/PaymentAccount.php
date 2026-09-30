@@ -136,28 +136,38 @@ class PaymentAccount extends Model
         $parentCode = self::PARENT_CODES[$type] ?? '1100';
         $parent     = ChartOfAccount::where('code', $parentCode)->firstOrFail();
 
-        $base = (int) $parentCode;
-        for ($candidate = $base + 1; $candidate < $base + 100; $candidate++) {
-            $code = (string) $candidate;
-            if (ChartOfAccount::where('code', $code)->exists()) {
-                continue;
-            }
+        // الكود يُشتق من موضع الحساب في الشجرة لا بزيادة عدّاد. الزيادة العمياء
+        // كانت تُنتج 1101 تحت 1100 (وخاناته تقول إنه ليس ابناً لها)، وبعد امتلاء
+        // فروع 1130 كانت تتجاوزه إلى 1141 — وهو ابن 1140 لا 1130. فينسب رصيد
+        // بنكٍ إلى مستحقات شبكات الدفع دون أن يُخطئ شيء.
+        $code = $parent->nextChildCode();
 
-            return ChartOfAccount::create([
-                'code'           => $code,
-                'parent_code'    => $parentCode,
-                'name_ar'        => $name,
-                'name_en'        => $name,
-                'type'           => 'asset',
-                'subtype'        => 'current',
-                'department'     => $parent->department,
-                'is_posting'     => true,
-                'normal_balance' => 'debit',
-                'is_active'      => true,
-                'level'          => ($parent->level ?? 2) + 1,
-            ]);
+        if ($code === null) {
+            throw new \RuntimeException(
+                "امتلأت فروع الحساب {$parentCode} ({$parent->name_ar}) — "
+                . 'أضف الحساب يدوياً من دليل الحسابات تحت أبٍ آخر ثم اربطه.'
+            );
         }
 
-        throw new \RuntimeException("لا يوجد كود شاغر تحت الحساب {$parentCode} — راجع دليل الحسابات.");
+        $account = ChartOfAccount::create([
+            'code'           => $code,
+            'parent_code'    => $parentCode,
+            'name_ar'        => $name,
+            'name_en'        => $name,
+            'type'           => 'asset',
+            'subtype'        => 'current',
+            'department'     => $parent->department,
+            'is_posting'     => true,
+            'normal_balance' => 'debit',
+            'is_active'      => true,
+            'level'          => $parent->level + 1,
+        ]);
+
+        // الأب صار تجميعياً بمجرد أن صار له فرع، وإلا حُسب رصيده مع فروعه مرتين
+        if ($parent->is_posting) {
+            $parent->update(['is_posting' => false]);
+        }
+
+        return $account;
     }
 }
