@@ -1,96 +1,110 @@
 {{--
-    عقدة واحدة في شجرة الحسابات — تستدعي نفسها لأبنائها.
-    $node: مصفوفة من COAService::buildTree()
+    سطر واحد في دليل الحسابات — يستدعي نفسه لفروعه.
+
+    السطر يقرأ كسطر دفتر: الكود، ثم الاسم، ثم الرصيد محاذىً لليسار. لا شارات
+    في حالة السكون: نوع الحساب يحمله لونُ كوده، ومستواه تحمله إزاحته ووزن خطه،
+    وكونه تجميعياً يحمله وزن رصيده الأخف (رصيدُه جمعُ فروعه لا واقعة مقيَّدة).
+    ما عدا ذلك يظهر عند التحويم أو الاختيار وحدهما — فشاشةٌ فيها ٢٢٤ سطراً
+    تفقد قابلية المسح إن حمل كل سطر منها خمس شارات.
+
+    $node        : عقدة من COAService::buildTree(..., withBalances: true)
+    $canManage   : هل يملك المستخدم تحرير الدليل
+    $selectedCode: كود الحساب المفتوح في لوحة التفاصيل
 --}}
 @php
-    $hasChildren = !empty($node['children']);
-    // فئات Tailwind بدل الألوان الثابتة (inline hex) — تُظلَّم تلقائياً في
-    // الوضع الليلي عبر app-theme.css العام، بدل ألوان زاهية ثابتة تؤذي العين
-    // على خلفية داكنة.
-    $typeStyles  = [
-        'asset'     => ['cls' => 'bg-blue-100 text-blue-700',       'label' => 'أصول'],
-        'liability' => ['cls' => 'bg-red-100 text-red-700',         'label' => 'خصوم'],
-        'equity'    => ['cls' => 'bg-violet-100 text-violet-700',   'label' => 'حقوق ملكية'],
-        'revenue'   => ['cls' => 'bg-emerald-100 text-emerald-700', 'label' => 'إيرادات'],
-        'expense'   => ['cls' => 'bg-orange-100 text-orange-700',   'label' => 'مصروفات'],
-    ];
-    $style = $typeStyles[$node['type']] ?? ['cls' => 'bg-gray-100 text-gray-600', 'label' => $node['type']];
-
-    // $canManage و$selectedCode يتسرّبان من الصفحة الحاضنة عبر @include ويصلان
-    // إلى كل عمق في الاستدعاء الذاتي؛ يُعطيان قيمة افتراضية كي تصلح العقدة
-    // للعرض المجرّد أيضاً (تصدير، صفحة أخرى) دون تمريرهما.
-    $canManage   = $canManage   ?? false;
+    $hasChildren  = !empty($node['children']);
+    $canManage    = $canManage    ?? false;
     $selectedCode = $selectedCode ?? null;
-    $isSelected  = $selectedCode !== null && $selectedCode === $node['code'];
 
-    // الترقيم هرمي بخاناته، فالحساب المختار يقع تحت كل عقدة تُطابق خاناتها
-    // الأولى — بهذا يُفتح المسار من الجذر إليه بدل أن يختفي داخل فرع مطويّ.
+    $isSelected = $selectedCode !== null && $selectedCode === $node['code'];
+
+    // الترقيم هرمي بخاناته، فالمختار يقع تحت كل عقدة تُطابق خاناتها الأولى —
+    // بهذا يُفتح المسار من الجذر إليه بدل أن يختفي داخل فرع مطويّ.
     $onSelectedPath = $selectedCode !== null
         && str_starts_with($selectedCode, substr($node['code'], 0, $node['level']));
+
+    $balance   = $node['balance'] ?? null;
+    $isRollup  = !$node['is_posting'];
+    $searchKey = $node['code'] . ' ' . $node['name_ar'] . ' ' . $node['name_en'];
 @endphp
 
-<li x-data="{ open: {{ $node['level'] <= 1 || $onSelectedPath ? 'true' : 'false' }} }" class="coa-node">
-    <div class="coa-row {{ $isSelected ? 'coa-row-selected' : '' }}" style="--indent: {{ ($node['level'] - 1) * 1.25 }}rem;">
+<li class="coa-node"
+    data-code="{{ $node['code'] }}"
+    data-search="{{ mb_strtolower($searchKey) }}"
+    x-data="{ open: {{ $node['level'] <= 1 || $onSelectedPath ? 'true' : 'false' }} }">
 
-        {{-- زر الطي / التوسيع، أو نقطة للورقة --}}
+    <div class="coa-row coa-row--t-{{ $node['type'] }}
+                @if($isSelected) is-selected @endif
+                @unless($node['is_active']) is-suspended @endunless"
+         style="--depth: {{ $node['level'] - 1 }}">
+
+        {{-- الطي --}}
         @if($hasChildren)
-        <button type="button" @click="open = !open"
-                class="coa-toggle" :aria-expanded="open.toString()"
-                :aria-label="open ? 'طيّ {{ $node['code'] }}' : 'توسيع {{ $node['code'] }}'">
-            <svg class="w-3.5 h-3.5 transition-transform" :class="open && '-rotate-90'"
-                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
+        <button type="button" class="coa-twisty" @click.stop="open = !open"
+                :aria-expanded="open.toString()"
+                aria-label="طيّ أو توسيع {{ $node['code'] }}">
+            <svg viewBox="0 0 16 16" aria-hidden="true" :class="open && 'is-open'">
+                <path d="M10 4L6 8l4 4" fill="none" stroke="currentColor" stroke-width="1.75"
+                      stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
         </button>
         @else
-        <span class="coa-leaf-dot" aria-hidden="true"></span>
+        <span class="coa-twisty coa-twisty--leaf" aria-hidden="true"></span>
         @endif
 
+        {{-- الكود: لونه هو نوع الحساب --}}
         <span class="coa-code">{{ $node['code'] }}</span>
 
-        @if($canManage)
-        <a href="{{ route('coa.index', array_merge(request()->query(), ['edit' => $node['code'], 'new' => null, 'parent' => null])) }}#account-form"
-           class="coa-name-ar text-gray-800 hover:text-blue-700 hover:underline {{ $node['level'] <= 2 ? 'font-bold' : '' }}">{{ $node['name_ar'] }}</a>
-        @else
-        <span class="coa-name-ar text-gray-800 {{ $node['level'] <= 2 ? 'font-bold' : '' }}">{{ $node['name_ar'] }}</span>
+        @if($canManage && ($node['is_locked'] ?? false))
+        <svg class="coa-lock" viewBox="0 0 12 12" aria-hidden="true">
+            <title>حساب أساسي في بنية الشجرة — لا يُعدَّل ولا يُحذف</title>
+            <path d="M3 5V3.5a3 3 0 016 0V5M2.5 5h7v5.5h-7z" fill="none"
+                  stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/>
+        </svg>
         @endif
-        <span class="coa-name-en text-gray-400" dir="ltr">{{ $node['name_en'] }}</span>
 
-        <span class="coa-badges">
-            <span class="coa-chip {{ $style['cls'] }}">
-                {{ $style['label'] }}
-            </span>
+        {{-- الاسم --}}
+        @if($canManage)
+        <a href="{{ route('coa.index', array_merge(request()->query(), ['edit' => $node['code'], 'new' => null, 'parent' => null])) }}#coa-detail"
+           class="coa-name" data-coa-open>{{ $node['name_ar'] }}</a>
+        @else
+        <span class="coa-name">{{ $node['name_ar'] }}</span>
+        @endif
 
-            <span class="coa-chip coa-chip-muted" title="الرصيد الطبيعي">
-                {{ $node['normal_balance'] === 'debit' ? 'مدين' : 'دائن' }}
-            </span>
+        <span class="coa-name-en" dir="ltr">{{ $node['name_en'] }}</span>
 
-            @if($node['is_posting'])
-            <span class="coa-chip bg-emerald-100 text-emerald-700" title="يقبل القيود">قابل للترحيل</span>
+        {{-- إضافة فرع — تظهر عند التحويم وحده --}}
+        @if($canManage && $node['level'] < 4)
+        <a href="{{ route('coa.index', array_merge(request()->query(), ['new' => 1, 'parent' => $node['code'], 'edit' => null])) }}#coa-detail"
+           class="coa-add" data-coa-open title="إضافة حساب فرعي تحت {{ $node['code'] }}"
+           aria-label="إضافة حساب فرعي تحت {{ $node['code'] }}">+</a>
+        @endif
+
+        @unless($node['is_active'])
+        <span class="coa-flag">موقوف</span>
+        @endunless
+
+        {{-- الرصيد: الرقم هو ما يُمسح بالعين، فيقف وحده في عموده --}}
+        @if($balance !== null)
+        <span class="coa-amount {{ $isRollup ? 'is-rollup' : '' }} {{ $balance < 0 ? 'is-negative' : '' }}" dir="ltr">
+            @if(abs($balance) < 0.005)
+                <span class="coa-zero">—</span>
             @else
-            <span class="coa-chip coa-chip-muted" title="حساب تجميعي">تجميعي</span>
-            @endif
-
-            @unless($node['is_active'])
-            <span class="coa-chip bg-red-100 text-red-700">موقوف</span>
-            @endunless
-
-            @if($canManage && ($node['is_locked'] ?? false))
-            <span class="coa-chip coa-chip-muted" title="حساب أساسي في بنية الشجرة — لا يُعدَّل ولا يُحذف">محميّ</span>
-            @endif
-
-            @if($canManage && $node['level'] < 4)
-            <a href="{{ route('coa.index', array_merge(request()->query(), ['new' => 1, 'parent' => $node['code'], 'edit' => null])) }}#account-form"
-               class="coa-chip border border-gray-200 text-gray-500 hover:border-blue-400 hover:text-blue-600"
-               title="إضافة حساب فرعي تحت {{ $node['code'] }}">+ فرعي</a>
+                {{ $balance < 0 ? '(' . number_format(abs($balance), 0) . ')' : number_format($balance, 0) }}
             @endif
         </span>
+        @endif
     </div>
 
     @if($hasChildren)
-    <ul x-show="open" x-cloak x-collapse class="coa-children">
+    <ul class="coa-children" x-show="open" x-cloak x-collapse
+        style="--guide: {{ ($node['level'] - 1) * 1.375 }}rem">
         @foreach($node['children'] as $child)
-            @include('partials.coa-node', ['node' => $child])
+            @include('partials.coa-node', [
+                'node'         => $child,
+                'canManage'    => $canManage,
+                'selectedCode' => $selectedCode,
+            ])
         @endforeach
     </ul>
     @endif

@@ -21,9 +21,10 @@ class COAService
      * @param  array{type?:string,department?:string,only_active?:bool,posting_only?:bool}  $filters
      * @return array<int,array<string,mixed>>
      */
-    public function buildTree(array $filters = []): array
+    public function buildTree(array $filters = [], bool $withBalances = false): array
     {
         $accounts = $this->queryAccounts($filters);
+        $sums     = $withBalances ? $this->journalSums() : [];
 
         // تجميع الأبناء حسب كود الأب — O(n) بدل بحث متكرر
         $childrenByParent = [];
@@ -45,9 +46,36 @@ class COAService
         usort($roots, static fn ($a, $b) => strcmp($a->code, $b->code));
 
         return array_map(
-            fn (ChartOfAccount $root) => $this->nodeToArray($root, $childrenByParent),
+            fn (ChartOfAccount $root) => $this->nodeToArray($root, $childrenByParent, $sums),
             $roots
         );
+    }
+
+    /**
+     * مجاميع المدين والدائن لكل حساب في استعلام واحد.
+     *
+     * الرصيد يُحسب في الذاكرة بعده لا باستعلام لكل عقدة: الشجرة ٢٢٤ حساباً،
+     * فاستدعاء balance لكل واحدة كان سيعني ٢٢٤ استعلاماً لعرض صفحة واحدة.
+     *
+     * @return array<string,array{debit:float,credit:float}>
+     */
+    private function journalSums(): array
+    {
+        $rows = \Illuminate\Support\Facades\DB::table('journal_lines')
+            ->groupBy('account_code')
+            ->select(
+                'account_code',
+                \Illuminate\Support\Facades\DB::raw('COALESCE(SUM(debit), 0) as d'),
+                \Illuminate\Support\Facades\DB::raw('COALESCE(SUM(credit), 0) as c')
+            )
+            ->get();
+
+        $out = [];
+        foreach ($rows as $row) {
+            $out[$row->account_code] = ['debit' => (float) $row->d, 'credit' => (float) $row->c];
+        }
+
+        return $out;
     }
 
     /**
@@ -319,9 +347,31 @@ class COAService
      * @param  array<string,array<int,ChartOfAccount>>  $childrenByParent
      * @return array<string,mixed>
      */
-    private function nodeToArray(ChartOfAccount $account, array $childrenByParent): array
+    private function nodeToArray(ChartOfAccount $account, array $childrenByParent, array $sums = []): array
     {
         $children = $childrenByParent[$account->code] ?? [];
+
+        $mapped = array_map(
+            fn (ChartOfAccount $child) => $this->nodeToArray($child, $childrenByParent, $sums),
+            $children
+        );
+
+        // رصيد الحساب نفسه موجب حين يوافق طبيعته (مدين للأصول، دائن للخصوم)،
+        // ورصيد الأب حاصل جمع أوراقه — فالأب لا تُرحَّل عليه قيود.
+        $own = null;
+        if ($sums !== []) {
+            $s     = $sums[$account->code] ?? ['debit' => 0.0, 'credit' => 0.0];
+            $own   = $account->normal_balance === 'debit'
+                ? $s['debit'] - $s['credit']
+                : $s['credit'] - $s['debit'];
+        }
+
+        $rolled = $own;
+        if ($sums !== []) {
+            foreach ($mapped as $child) {
+                $rolled += $child['balance'] ?? 0.0;
+            }
+        }
 
         return [
             'code'           => $account->code,
@@ -337,10 +387,9 @@ class COAService
             'level'          => $account->level,
             // محسوبة من الأبناء الحاضرين هنا لا باستعلام لكل عقدة
             'is_locked'      => $account->is_system && $children !== [],
-            'children'       => array_map(
-                fn (ChartOfAccount $child) => $this->nodeToArray($child, $childrenByParent),
-                $children
-            ),
+            'own_balance'    => $own,
+            'balance'        => $rolled,
+            'children'       => $mapped,
         ];
     }
 }

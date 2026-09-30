@@ -28,7 +28,8 @@ class ChartOfAccountController extends Controller
         $canManage = $request->user()?->can('accounts.manage') ?? false;
 
         return view('accounting.chart-of-accounts', [
-            'tree'        => $this->coa->buildTree($filters),
+            // الأرصدة تُحمَّل مع الشجرة: المحاسب يقرأ الرقم قبل الاسم
+            'tree'        => $this->coa->buildTree($filters, true),
             'filters'     => $filters,
             'types'       => ChartOfAccount::TYPES,
             'departments' => ChartOfAccount::DEPARTMENTS,

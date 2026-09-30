@@ -394,7 +394,7 @@ class ChartOfAccountsCrudTest extends TestCase
         $this->actingAs($this->admin)
             ->get(route('coa.index', ['edit' => '1120']))
             ->assertOk()
-            ->assertSee('بيانات إضافية', false)
+            ->assertSee('التحرير', false)
             ->assertSee('إيقاف الحساب', false);
 
         $viewer = $this->viewerWithoutManage();

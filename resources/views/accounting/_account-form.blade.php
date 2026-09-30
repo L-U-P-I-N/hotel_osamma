@@ -1,14 +1,12 @@
 {{--
-    نموذج الحساب — «دليل الحسابات» بترتيبه المتعارف عليه في برامج المحاسبة:
-    شريط أوامر، ثم بيانات الحساب، ثم بياناته الإضافية.
+    لوحة الحساب — قراءة أولاً ثم تحرير.
 
-    الحقول المشتقّة (النوع، الطبيعة، الحساب الختامي) تُعرض ولا تُدخَل: كلها
-    تتبع الحساب الأب أو نوعه، وإدخالها يدوياً يفتح باب حسابٍ يخالف أصله.
+    ترتيبها يتبع ترتيب السؤال في ذهن المحاسب: ما هذا الحساب (الكود والاسم)، ثم
+    كم رصيده، ثم أين موقعه في الشجرة وما طبيعته، ثم ما الذي يجوز تغييره. الحقول
+    المشتقّة (النوع، الطبيعة، الحساب الختامي) تُعرض حقائقَ لا حقولَ إدخال، لأنها
+    كلها تتبع الحساب الأب — وإدخالها يدوياً يفتح باب حسابٍ يخالف أصله.
 
-    $editing  : ChartOfAccount|null — حساب يُعدَّل
-    $creating : array|null          — ['parent' => ?ChartOfAccount, 'suggested' => ?string]
-    $parents  : Collection<ChartOfAccount>
-    $lockedCodes : array<string>    — أكواد لا تُوقَف (مستعملة في الترحيل)
+    $editing / $creating / $parents / $lockedCodes — من ChartOfAccountController
 --}}
 @php
     $isNew   = $creating !== null;
@@ -29,247 +27,210 @@
     $structureLock = $account?->editBlocker();
     $postingLock   = $account !== null && in_array($account->code, $lockedCodes, true);
     $blocker       = $account?->deletionBlocker();
-    $fieldClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400';
-    $readClass  = 'w-full border border-gray-200 bg-gray-50 text-gray-600 rounded-lg px-3 py-2 text-sm';
+    $suspendLock   = $structureLock !== null || $postingLock;
+
+    $effectiveType = $account?->type ?? $parent?->type;
+    $balance       = $account?->balance_with_children;
 @endphp
 
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden" id="account-form">
+@if(!$isNew && $account === null)
+    {{-- لا حساب مختار: دعوة إلى الفعل بدل نموذج فارغ يوحي بأنه جاهز للحفظ --}}
+    <div class="coa-pane-head">
+        <span class="coa-pane-title">بيانات الحساب</span>
+    </div>
+    <div class="coa-empty" style="padding:2.5rem 1.25rem;">
+        <svg viewBox="0 0 48 48" fill="none" style="width:2.5rem;height:2.5rem;margin:0 auto .75rem;opacity:.35;">
+            <path d="M8 10h14l3 4h15v24H8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M16 24h16M16 30h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <p style="margin-bottom:.25rem;">اختر حساباً من الشجرة لعرض بياناته ورصيده.</p>
+        <p style="font-size:.6875rem;">أو أضف حساباً فرعياً بعلامة <strong>+</strong> على أيّ سطر.</p>
+    </div>
+@else
+<form method="POST"
+      action="{{ $isNew ? route('coa.store') : route('coa.update', $account->code) }}"
+      class="coa-detail">
+    @csrf
+    @unless($isNew) @method('PUT') @endunless
 
-    @if(!$isNew && $account === null)
-        {{-- لا حساب مختار: إرشاد بدل نموذج فارغ يوحي بأنه جاهز للحفظ --}}
-        <div class="px-5 py-3 border-b border-gray-100 bg-gray-50">
-            <h3 class="text-sm font-bold text-gray-700">بيانات الحساب</h3>
-        </div>
-        <div class="p-8 text-center">
-            <p class="text-sm text-gray-500 mb-4">اختر حساباً من الشجرة لعرض بياناته وتعديلها،<br>أو أضف حساباً فرعياً جديداً.</p>
-            <a href="{{ route('coa.index', ['new' => 1]) }}"
-               class="inline-block px-4 py-2 text-white rounded-lg text-sm font-semibold" style="background:#0F4C75;">
-                + حساب جديد
-            </a>
-        </div>
-    @else
-    <form method="POST"
-          action="{{ $isNew ? route('coa.store') : route('coa.update', $account->code) }}"
-          class="divide-y divide-gray-100">
-        @csrf
-        @unless($isNew) @method('PUT') @endunless
-
-        {{-- شريط الأوامر --}}
-        <div class="flex items-center gap-2 px-4 py-2.5 bg-gray-50 flex-wrap">
-            @if($structureLock === null)
-            <button type="submit"
-                    class="px-4 py-1.5 rounded-lg text-white text-sm font-semibold" style="background:#0F4C75;">
-                حفظ
-            </button>
-            @else
-            <span class="px-4 py-1.5 rounded-lg text-sm font-semibold text-gray-400 border border-gray-200 bg-white cursor-not-allowed"
-                  title="{{ $structureLock }}">حفظ</span>
-            @endif
-
-            <a href="{{ route('coa.index', ['new' => 1] + ($account ? ['parent' => $account->code] : [])) }}"
-               class="px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                جديد
-            </a>
-
-            @if(!$isNew && $blocker === null)
-            <button type="submit" form="delete-{{ $account->code }}"
-                    onclick="return confirm('حذف الحساب {{ $account->code }} نهائياً؟')"
-                    class="px-3 py-1.5 rounded-lg border border-red-200 bg-white text-sm font-medium text-red-600 hover:bg-red-50">
-                حذف
-            </button>
-            @elseif(!$isNew)
-            <span class="px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-400 cursor-not-allowed"
-                  title="{{ $blocker }}">حذف</span>
-            @endif
-
-            <a href="{{ route('coa.index') }}"
-               class="px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 mr-auto">
-                إغلاق
-            </a>
-        </div>
-
-        @if($structureLock !== null)
-        <div class="px-4 py-3 bg-slate-50 border-r-4 border-slate-400">
-            <p class="text-sm text-slate-700 flex items-start gap-2">
-                <svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                </svg>
-                <span>{{ $structureLock }}</span>
+    {{-- ترويسة: هوية الحساب ورصيده --}}
+    <div class="coa-pane-head" style="align-items:flex-start;gap:.625rem;padding:.75rem;">
+        <div style="min-width:0;flex:1;">
+            <div style="display:flex;align-items:center;gap:.5rem;">
+                <span class="coa-code coa-row--t-{{ $effectiveType }}"
+                      style="font-size:.9375rem;">{{ $isNew ? ($creating['suggested'] ?? '····') : $account->code }}</span>
+                <span style="font-size:.625rem;font-weight:700;color:var(--coa-ink-3);">
+                    {{ $typeLabels[$effectiveType] ?? '' }}
+                </span>
+            </div>
+            <p style="font-size:.8125rem;font-weight:700;margin-top:.125rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                {{ $isNew ? 'حساب جديد' : $account->name_ar }}
             </p>
         </div>
+
+        @unless($isNew)
+        <div style="text-align:end;flex-shrink:0;">
+            <div style="font-size:.5625rem;color:var(--coa-ink-3);">الرصيد شاملاً الفروع</div>
+            <div dir="ltr" class="coa-amount {{ $balance < 0 ? 'is-negative' : '' }}"
+                 style="font-size:1rem;font-weight:600;min-width:0;">
+                {{ $balance < 0 ? '(' . number_format(abs($balance), 2) . ')' : number_format($balance, 2) }}
+            </div>
+        </div>
+        @endunless
+    </div>
+
+    <div class="coa-detail-scroll">
+
+        @if($structureLock !== null)
+        <p class="coa-note coa-note--warn" style="margin-top:.75rem;">{{ $structureLock }}</p>
         @endif
 
         @if($errors->any())
-        <div class="px-4 py-3 bg-red-50 border-r-4 border-red-400">
-            <ul class="text-sm text-red-700 space-y-1">
-                @foreach($errors->all() as $error)
-                <li>• {{ $error }}</li>
-                @endforeach
-            </ul>
+        <div class="coa-note coa-note--error" style="margin-top:.75rem;">
+            @foreach($errors->all() as $error)
+            <div>• {{ $error }}</div>
+            @endforeach
         </div>
         @endif
 
-        {{-- بيانات الحساب --}}
-        <div class="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-
+        {{-- الهوية المحاسبية: حقائق تُقرأ، لا حقول تُملأ --}}
+        @unless($isNew)
+        <dl class="coa-ident">
             <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">الرقم التسلسلي</label>
-                <input type="text" class="{{ $readClass }}" value="{{ $isNew ? '—' : $account->id }}" readonly>
+                <dt>الحساب الأب</dt>
+                <dd>{{ $parent ? $parent->code . ' — ' . $parent->name_ar : 'حساب رئيسي' }}</dd>
             </div>
-
             <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">
-                    رقم الحساب @if($isNew)<span class="text-red-500">*</span>@endif
-                </label>
-                @if($isNew)
-                <input type="text" name="code" inputmode="numeric" maxlength="4" required
-                       class="{{ $fieldClass }} font-mono"
-                       value="{{ old('code', $creating['suggested']) }}"
-                       placeholder="أربع خانات">
-                <p class="text-[11px] text-gray-400 mt-1">مقترح تلقائياً من موضعه تحت الأب — يمكن تغييره.</p>
-                @else
-                <input type="text" class="{{ $readClass }} font-mono" value="{{ $account->code }}" readonly>
-                @endif
+                <dt>طبيعة الحساب</dt>
+                <dd>{{ $account->normal_balance === 'debit' ? 'مدين' : 'دائن' }}</dd>
             </div>
-
-            <div class="sm:col-span-2">
-                <label class="block text-xs font-medium text-gray-600 mb-1">
-                    اسم الحساب <span class="text-red-500">*</span>
-                </label>
-                <input type="text" name="name_ar" required maxlength="150"
-                       class="{{ $structureLock ? $readClass : $fieldClass }}"
-                       value="{{ old('name_ar', $account?->name_ar) }}" @readonly($structureLock !== null)>
-            </div>
-
-            <div class="sm:col-span-2">
-                <label class="block text-xs font-medium text-gray-600 mb-1">الاسم بالإنجليزية</label>
-                <input type="text" name="name_en" maxlength="150" dir="ltr"
-                       class="{{ $structureLock ? $readClass : $fieldClass }}"
-                       value="{{ old('name_en', $account?->name_en) }}"
-                       placeholder="يُنسخ من العربي إن تُرك فارغاً" @readonly($structureLock !== null)>
-            </div>
-
-            <div class="sm:col-span-2">
-                <label class="block text-xs font-medium text-gray-600 mb-1">
-                    الحساب الأب @if($isNew)<span class="text-red-500">*</span>@endif
-                </label>
-                @if($isNew && ($creating['parent_locked'] ?? false))
-                    <input type="hidden" name="parent_code" value="{{ $parent->code }}">
-                    <input type="text" class="{{ $readClass }}" readonly
-                           value="{{ $parent->code }} — {{ $parent->name_ar }}">
-                @elseif($isNew)
-                    <select name="parent_code" required class="{{ $fieldClass }}">
-                        <option value="">— اختر الحساب الأب —</option>
-                        @foreach($parents as $candidate)
-                        <option value="{{ $candidate->code }}" @selected(old('parent_code') === $candidate->code)>
-                            {{ str_repeat('—', $candidate->level - 1) }}
-                            {{ $candidate->code }} — {{ $candidate->name_ar }}
-                        </option>
-                        @endforeach
-                    </select>
-                    <p class="text-[11px] text-gray-400 mt-1">
-                        لا تظهر هنا الحسابات التي رُحِّلت عليها قيود ولا حسابات المستوى الرابع.
-                    </p>
-                @else
-                    <input type="text" class="{{ $readClass }}" readonly
-                           value="{{ $parent ? $parent->code . ' — ' . $parent->name_ar : 'حساب رئيسي (بلا أب)' }}">
-                @endif
-            </div>
-
             <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">نوع الحساب</label>
-                <input type="text" class="{{ $readClass }}" readonly
-                       value="{{ $typeLabels[$parent?->type ?? $account?->type] ?? '—' }}">
-                @if($isNew)
-                <p class="text-[11px] text-gray-400 mt-1">يتبع الحساب الأب.</p>
-                @endif
+                <dt>الحساب الختامي</dt>
+                <dd>{{ $account->closing_statement }}</dd>
             </div>
-
             <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">طبيعة الحساب</label>
-                @php
-                    $balance = $account?->normal_balance
-                        ?? ($parent ? \App\Models\ChartOfAccount::normalBalanceFor($parent->type, $parent->subtype) : null);
-                @endphp
-                <input type="text" class="{{ $readClass }}" readonly
-                       value="{{ $balance === 'debit' ? 'مدين' : ($balance === 'credit' ? 'دائن' : '—') }}">
+                <dt>المستوى</dt>
+                <dd>{{ $account->level }} — {{ $account->is_posting ? 'قابل للترحيل' : 'تجميعي' }}</dd>
             </div>
-
-            <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">الحساب الختامي</label>
-                <input type="text" class="{{ $readClass }}" readonly
-                       value="{{ $account?->closing_statement ?? ($parent ? (in_array($parent->type, ['revenue','expense'], true) ? 'قائمة الدخل' : 'الميزانية العمومية') : '—') }}">
+            <div style="grid-column:1/-1;">
+                <dt>المصدر</dt>
+                <dd>
+                    {{ $account->is_system ? 'شجرة USALI الأساسية' : 'مُضاف يدوياً' }}
+                    {{ $structureLock !== null ? '· محميّ' : '' }}
+                </dd>
             </div>
+        </dl>
+        @endunless
 
-            <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">القسم (مركز التكلفة)</label>
-                <select name="department" class="{{ $structureLock ? $readClass : $fieldClass }}"
-                        @disabled($structureLock !== null)>
-                    <option value="">بلا قسم</option>
-                    @foreach($deptLabels as $value => $label)
-                    <option value="{{ $value }}" @selected(old('department', $account?->department ?? $parent?->department) === $value)>
-                        {{ $label }}
+        {{-- ما يُدخله المستخدم --}}
+        <div class="coa-section">{{ $isNew ? 'الحساب الجديد' : 'التحرير' }}</div>
+
+        @if($isNew)
+        <div class="coa-field">
+            <label for="coa-parent">الحساب الأب <span class="req">*</span></label>
+            @if($creating['parent_locked'] ?? false)
+                <input type="hidden" name="parent_code" value="{{ $parent->code }}">
+                <input id="coa-parent" type="text" class="coa-input" readonly
+                       value="{{ $parent->code }} — {{ $parent->name_ar }}">
+            @else
+                <select id="coa-parent" name="parent_code" required class="coa-input">
+                    <option value="">— اختر الحساب الأب —</option>
+                    @foreach($parents as $candidate)
+                    <option value="{{ $candidate->code }}" @selected(old('parent_code') === $candidate->code)>
+                        {{ str_repeat('· ', max(0, $candidate->level - 1)) }}{{ $candidate->code }} — {{ $candidate->name_ar }}
                     </option>
                     @endforeach
                 </select>
-            </div>
-
-            <div class="sm:col-span-2">
-                <label class="block text-xs font-medium text-gray-600 mb-1">ملاحظات</label>
-                <input type="text" name="notes" maxlength="500"
-                       class="{{ $structureLock ? $readClass : $fieldClass }}"
-                       value="{{ old('notes', $account?->notes) }}" @readonly($structureLock !== null)>
-            </div>
+                <p class="coa-hint">لا تظهر هنا الحسابات التي رُحِّلت عليها قيود ولا حسابات المستوى الرابع.</p>
+            @endif
         </div>
 
-        {{-- بيانات إضافية --}}
-        @unless($isNew)
-        <div class="p-4 space-y-3">
-            <h4 class="text-xs font-bold text-gray-500">بيانات إضافية</h4>
+        <div class="coa-field">
+            <label for="coa-code">رقم الحساب <span class="req">*</span></label>
+            <input id="coa-code" type="text" name="code" inputmode="numeric" maxlength="4" required
+                   class="coa-input is-mono" value="{{ old('code', $creating['suggested']) }}" placeholder="····">
+            <p class="coa-hint">مقترح من موضعه تحت الأب — يمكن تغييره.</p>
+        </div>
+        @endif
 
-            @php $suspendLock = $structureLock !== null || $postingLock; @endphp
-            <label class="flex items-center gap-2 text-sm {{ $suspendLock ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 cursor-pointer' }}">
-                <input type="checkbox" name="suspended" value="1" class="rounded border-gray-300"
+        <div class="coa-field">
+            <label for="coa-name">اسم الحساب <span class="req">*</span></label>
+            <input id="coa-name" type="text" name="name_ar" required maxlength="150" class="coa-input"
+                   value="{{ old('name_ar', $account?->name_ar) }}" @readonly($structureLock !== null)>
+        </div>
+
+        <div class="coa-field">
+            <label for="coa-name-en">الاسم بالإنجليزية</label>
+            <input id="coa-name-en" type="text" name="name_en" maxlength="150" dir="ltr" class="coa-input"
+                   value="{{ old('name_en', $account?->name_en) }}"
+                   placeholder="يُنسخ من العربي إن تُرك فارغاً" @readonly($structureLock !== null)>
+        </div>
+
+        <div class="coa-field">
+            <label for="coa-dept">القسم (مركز التكلفة)</label>
+            <select id="coa-dept" name="department" class="coa-input" @disabled($structureLock !== null)>
+                <option value="">بلا قسم</option>
+                @foreach($deptLabels as $value => $label)
+                <option value="{{ $value }}" @selected(old('department', $account?->department ?? $parent?->department) === $value)>
+                    {{ $label }}
+                </option>
+                @endforeach
+            </select>
+        </div>
+
+        <div class="coa-field">
+            <label for="coa-notes">ملاحظات</label>
+            <input id="coa-notes" type="text" name="notes" maxlength="500" class="coa-input"
+                   value="{{ old('notes', $account?->notes) }}" @readonly($structureLock !== null)>
+        </div>
+
+        @unless($isNew)
+        <div class="coa-section">الحالة</div>
+        <div class="coa-field">
+            <label class="coa-toggle" style="width:100%;height:2.25rem;
+                   {{ $suspendLock ? 'opacity:.55;cursor:not-allowed;' : 'cursor:pointer;' }}">
+                <input type="checkbox" name="suspended" value="1"
                        @checked(old('suspended', !$account->is_active)) @disabled($suspendLock)>
                 إيقاف الحساب
             </label>
 
-            @if($postingLock)
-            <p class="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            @if($postingLock && $structureLock === null)
+            <p class="coa-note coa-note--warn" style="margin:.5rem 0 0;">
                 هذا الحساب مستعمل في ترحيل العمليات اليومية، فإيقافه يُعطّل تسجيلها — ولذلك لا يقبل الإيقاف.
             </p>
             @endif
-
-            <dl class="grid grid-cols-2 gap-3 text-xs pt-2 border-t border-gray-100">
-                <div>
-                    <dt class="text-gray-500">المستوى</dt>
-                    <dd class="font-semibold text-gray-700">{{ $account->level }}</dd>
-                </div>
-                <div>
-                    <dt class="text-gray-500">قابل للترحيل</dt>
-                    <dd class="font-semibold text-gray-700">{{ $account->is_posting ? 'نعم' : 'لا (تجميعي)' }}</dd>
-                </div>
-                <div>
-                    <dt class="text-gray-500">المصدر</dt>
-                    <dd class="font-semibold text-gray-700">
-                        {{ $account->is_system ? 'شجرة USALI الأساسية' : 'مُضاف يدوياً' }}
-                        {{ $structureLock !== null ? '(محميّ)' : '' }}
-                    </dd>
-                </div>
-                <div>
-                    <dt class="text-gray-500">الرصيد الحالي</dt>
-                    <dd class="font-semibold text-gray-700">{{ number_format($account->balance_with_children, 2) }}</dd>
-                </div>
-            </dl>
         </div>
         @endunless
-    </form>
+    </div>
 
-    @if(!$isNew && $blocker === null)
-    <form id="delete-{{ $account->code }}" method="POST" action="{{ route('coa.destroy', $account->code) }}" class="hidden">
-        @csrf @method('DELETE')
-    </form>
-    @endif
-    @endif
-</div>
+    {{-- شريط الأوامر: ثابت أسفل اللوحة فلا يحتاج المستخدم للنزول إليه --}}
+    <div class="coa-actions">
+        @if($structureLock === null)
+        <button type="submit" class="coa-btn coa-btn--primary">حفظ</button>
+        @else
+        <span class="coa-btn coa-btn--primary is-off" title="{{ $structureLock }}">حفظ</span>
+        @endif
+
+        @unless($isNew)
+        <a href="{{ route('coa.index', array_merge(request()->query(), ['new' => 1, 'parent' => $account->code, 'edit' => null])) }}#coa-detail"
+           class="coa-btn" data-coa-open>+ فرعي</a>
+        @endunless
+
+        @if(!$isNew && $blocker === null)
+        <button type="submit" form="coa-delete" class="coa-btn coa-btn--danger"
+                onclick="return confirm('حذف الحساب {{ $account->code }} — {{ $account->name_ar }} نهائياً؟')">حذف</button>
+        @elseif(!$isNew)
+        <span class="coa-btn coa-btn--danger is-off" title="{{ $blocker }}">حذف</span>
+        @endif
+
+        <a href="{{ route('coa.index', request()->except(['edit','new','parent'])) }}"
+           class="coa-btn" style="margin-inline-start:auto;">إغلاق</a>
+    </div>
+</form>
+
+@if(!$isNew && $blocker === null)
+<form id="coa-delete" method="POST" action="{{ route('coa.destroy', $account->code) }}" hidden>
+    @csrf @method('DELETE')
+</form>
+@endif
+@endif

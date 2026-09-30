@@ -365,20 +365,27 @@ class ChartOfAccountsTest extends TestCase
     }
 
     /**
-     * الشارات يجب أن تستخدم فئات Tailwind (bg-blue-100 إلخ) لا ألوان hex
-     * ثابتة inline — وإلا تبقى زاهية على خلفية داكنة رغم تبديل الوضع الليلي،
-     * لأن ورقة الأنماط العامة app-theme.css لا تعرف كيف تُظلِّم inline style.
+     * ألوان الصفحة يجب أن تُقلب كتلةً واحدة في الوضع الليلي: تُعرَّف متغيرات
+     * على .coa وتُعاد تعريفها تحت html.dark. لونٌ ثابت مكتوب في style مباشرةً
+     * يبقى زاهياً على خلفية داكنة، لأن ورقة app-theme.css لا تُظلِّم inline style.
      */
-    public function test_type_badges_use_dark_mode_safe_tailwind_classes_not_inline_hex(): void
+    public function test_page_colours_are_theme_variables_not_hard_coded_inline(): void
     {
         $admin = User::role('admin')->firstOrFail();
 
         $html = $this->actingAs($admin)->get('/accounting/chart-of-accounts')->getContent();
 
-        $this->assertStringContainsString('bg-blue-100', $html);
-        $this->assertStringNotContainsString('style="background:#eff6ff', $html);
-        $this->assertStringNotContainsString('style="background:#ecfdf5', $html);
-        $this->assertStringNotContainsString('style="background:#fef2f2', $html);
+        $this->assertStringContainsString('.coa {', $html, 'لا توجد كتلة متغيرات للصفحة');
+        $this->assertStringContainsString('html.dark .coa {', $html, 'المتغيرات بلا مقابل ليلي');
+
+        // عناصر الصفحة نفسها (coa-*) لا تحمل لوناً ثابتاً في style — ألوان
+        // القالب العام خارج نطاق هذا الاختبار، ولها معالجتها في app-theme.css
+        preg_match_all(
+            '/<[^>]*class="[^"]*\bcoa-[^"]*"[^>]*style="[^"]*(?:background|color)\s*:\s*#[0-9a-fA-F]{3,6}[^>]*>/',
+            $html,
+            $inline
+        );
+        $this->assertSame([], $inline[0], 'لون ثابت في style لا يُظلَّم في الوضع الليلي');
     }
 
     public function test_tree_json_endpoint_returns_nested_children(): void
