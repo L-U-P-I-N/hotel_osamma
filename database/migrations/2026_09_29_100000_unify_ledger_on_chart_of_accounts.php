@@ -1,5 +1,6 @@
 <?php
 
+use Database\Seeders\ChartOfAccountsSeeder;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +24,16 @@ use Illuminate\Support\Facades\Schema;
  *
  * جدول accounts يبقى قائماً (مجمَّداً بلا استعمال) كي يظل التراجع ممكناً؛ يُحذف
  * في ترحيلة تنظيف لاحقة بعد استقرار التوحيد.
+ *
+ * ── قابلة للاستئناف ──
+ * MySQL يُثبّت تغييرات البنية فور تنفيذها ولا يتراجع عنها مع المعاملة، فتوقّفُ
+ * الترحيلة في منتصفها يترك العمود مضافاً بينما لا تُسجَّل الترحيلة كمنفَّذة —
+ * وكل إعادة محاولة كانت تصطدم بـ«العمود موجود سلفاً». لذا كل خطوة هنا تفحص
+ * حالتها قبل تنفيذها، فإعادة التشغيل تُكمل من حيث توقّفت لا من البداية.
+ *
+ * وهي مستقلة عن ترتيب البذور: تُشغّل بذرة شجرة الحسابات بنفسها (وهي عديمة
+ * الأثر التراكمي) قبل النقل، لأن بعض أكواد الوجهة أُضيفت للشجرة في نفس الإصدار
+ * والبذور تعمل بعد الترحيلات — فكانت تلك الأكواد غائبة لحظة النقل.
  */
 return new class extends Migration
 {
@@ -63,23 +74,38 @@ return new class extends Migration
 
     public function up(): void
     {
+        // أُنجزت سابقاً: العمود القديم مُزال فلا شيء لنقله
+        if (!Schema::hasColumn('journal_lines', 'account_id')) {
+            return;
+        }
+
+        // أكواد الوجهة يجب أن تكون موجودة قبل النقل. البذرة عديمة الأثر التراكمي
+        // (updateOrCreate على code) فتشغيلها هنا آمن، ويرفع الاعتماد على ترتيب
+        // البذور الذي أسقط المحاولة الأولى. ولا تُشغَّل على استضافة جديدة بلا
+        // قيود: لا شيء لتُنسَب أكوادُه، وبذرة النشر هي صاحبة الشجرة هناك.
+        if (DB::table('journal_lines')->exists()) {
+            (new ChartOfAccountsSeeder())->run();
+        }
+
         $before = $this->ledgerTotals();
 
-        Schema::table('journal_lines', function (Blueprint $table) {
-            $table->string('account_code', 20)->nullable()->after('account_id');
-            $table->index('account_code');
-        });
+        if (!Schema::hasColumn('journal_lines', 'account_code')) {
+            Schema::table('journal_lines', function (Blueprint $table) {
+                $table->string('account_code', 20)->nullable()->after('account_id');
+            });
+        }
+
+        if (!$this->hasIndex('journal_lines', 'journal_lines_account_code_index')) {
+            Schema::table('journal_lines', function (Blueprint $table) {
+                $table->index('account_code');
+            });
+        }
 
         $this->repointLines();
 
-        // لا يُسمح ببقاء سطر بلا حساب جديد: إما نُقل أو تسقط الترحيلة
-        $orphans = DB::table('journal_lines')->whereNull('account_code')->count();
-        if ($orphans > 0) {
-            throw new RuntimeException(
-                "توقفت الترحيلة: {$orphans} سطر قيدٍ لم يجد حسابه في شجرة USALI. "
-                . 'راجع خريطة النقل قبل إعادة المحاولة — لم يُحذف أي بيان.'
-            );
-        }
+        // لا يُسمح ببقاء سطر بلا حساب جديد: إما نُقل أو تسقط الترحيلة، ونُسمّي
+        // الحسابات العالقة بأسمائها كي تُعرَف المشكلة من الرسالة وحدها
+        $this->assertNoOrphans();
 
         $after = $this->ledgerTotals();
         if (round($before['debit'], 2) !== round($after['debit'], 2)
@@ -90,14 +116,84 @@ return new class extends Migration
             );
         }
 
-        Schema::table('journal_lines', function (Blueprint $table) {
-            $table->dropConstrainedForeignId('account_id');
+        // محاولة سابقة قد تكون أسقطت المفتاح وتوقّفت قبل العمود، فنفصل الخطوتين
+        $hadForeignKey = $this->hasForeignKeyOn('journal_lines', 'account_id');
+        Schema::table('journal_lines', function (Blueprint $table) use ($hadForeignKey) {
+            if ($hadForeignKey) {
+                $table->dropForeign(['account_id']);
+            }
+            $table->dropColumn('account_id');
         });
 
         Schema::table('journal_lines', function (Blueprint $table) {
             $table->string('account_code', 20)->nullable(false)->change();
-            $table->foreign('account_code')->references('code')->on('chart_of_accounts');
         });
+
+        if (!$this->hasForeignKeyOn('journal_lines', 'account_code')) {
+            Schema::table('journal_lines', function (Blueprint $table) {
+                $table->foreign('account_code')->references('code')->on('chart_of_accounts');
+            });
+        }
+    }
+
+    /**
+     * يرمي رسالة تُسمّي الحسابات القديمة التي لم تجد مقابلاً، وعدد سطور كلٍّ
+     * منها. الرسالة السابقة كانت تقول العدد فقط، فلا تدلّ على سبب التوقف.
+     */
+    private function assertNoOrphans(): void
+    {
+        $orphans = DB::table('journal_lines')
+            ->leftJoin('accounts', 'accounts.id', '=', 'journal_lines.account_id')
+            ->whereNull('journal_lines.account_code')
+            ->groupBy('accounts.code', 'accounts.name')
+            ->select('accounts.code', 'accounts.name', DB::raw('COUNT(*) as lines_count'))
+            ->get();
+
+        if ($orphans->isEmpty()) {
+            return;
+        }
+
+        $details = $orphans
+            ->map(fn ($row) => ($row->code ?? 'بلا حساب') . ' (' . ($row->name ?? '—') . '): '
+                . $row->lines_count . ' سطر')
+            ->implode('، ');
+
+        throw new RuntimeException(
+            'توقفت الترحيلة: حسابات قديمة بلا مقابل في شجرة USALI — ' . $details . '. '
+            . 'أضف تحويلها إلى خريطة النقل في هذه الترحيلة ثم أعد المحاولة — لم يُحذف أي بيان.'
+        );
+    }
+
+    /** فحص وجود فهرس باسمه — الأسماء ثابتة باصطلاح Laravel. */
+    private function hasIndex(string $table, string $index): bool
+    {
+        try {
+            foreach (Schema::getIndexes($table) as $existing) {
+                if (($existing['name'] ?? null) === $index) {
+                    return true;
+                }
+            }
+        } catch (\Throwable $e) {
+            // إصدار لا يدعم القراءة: نفترض غيابه ونترك الإنشاء يُخطئ إن تكرّر
+        }
+
+        return false;
+    }
+
+    /** فحص وجود مفتاح أجنبي على عمود بعينه. */
+    private function hasForeignKeyOn(string $table, string $column): bool
+    {
+        try {
+            foreach (Schema::getForeignKeys($table) as $foreign) {
+                if (in_array($column, $foreign['columns'] ?? [], true)) {
+                    return true;
+                }
+            }
+        } catch (\Throwable $e) {
+            // كما أعلاه
+        }
+
+        return false;
     }
 
     public function down(): void
