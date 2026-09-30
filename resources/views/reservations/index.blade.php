@@ -6,7 +6,7 @@
 <div x-data="{ search: '{{ request('search') }}' }">
 
 <!-- Search & Filters -->
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-5">
+<div class="ui-card p-4 mb-5">
     <form method="GET" class="flex flex-wrap gap-3 items-end">
         <div class="flex flex-col gap-1 flex-1 min-w-48">
             <label class="text-xs font-medium text-gray-500">بحث</label>
@@ -63,7 +63,7 @@
 </div>
 
 <!-- Table -->
-<div class="bg-white rounded-xl shadow-sm border border-gray-100">
+<div class="ui-card">
     <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
         <h3 class="font-semibold text-gray-700">قائمة الحجوزات
             <span class="mr-2 text-sm font-normal text-gray-400">({{ $reservations->total() }} حجز)</span>
@@ -79,23 +79,23 @@
         @endcan
     </div>
     <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50 border-b border-gray-100">
+        <table class="w-full text-sm ui-dense">
+            <thead class="ui-thead">
                 <tr>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">#</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">النزيل</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الغرفة</th>
+                    <th class="ui-th">#</th>
+                    <th class="ui-th">النزيل</th>
+                    <th class="ui-th">الغرفة</th>
                     <th class="px-2 py-3 text-center text-xs font-medium text-gray-500" title="ملاحظات فورية">📌</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الدخول</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الخروج</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الإجمالي</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الدفع</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الحالة</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">بواسطة</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">إجراءات</th>
+                    <th class="ui-th">الدخول</th>
+                    <th class="ui-th">الخروج</th>
+                    <th class="ui-th">الإجمالي</th>
+                    <th class="ui-th">الدفع</th>
+                    <th class="ui-th">الحالة</th>
+                    <th class="ui-th">بواسطة</th>
+                    <th class="ui-th">إجراءات</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @forelse($reservations as $res)
                 @php
                     $statusColors = ['confirmed'=>'bg-blue-100 text-blue-800','checked_in'=>'bg-green-100 text-green-800','checked_out'=>'bg-gray-100 text-gray-800'];

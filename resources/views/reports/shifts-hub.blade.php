@@ -16,7 +16,7 @@
 @endif
 
 {{-- ─── Tab bar ─── --}}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100">
+<div class="ui-card">
     <div class="flex border-b border-gray-100 overflow-x-auto">
         @php
         $tabs = [
@@ -371,7 +371,7 @@
     </form>
 
     @if($summary && $summary->isEmpty())
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-10 text-center text-gray-400">لا توجد ورديات مقفلة في هذه الفترة</div>
+    <div class="ui-card p-10 text-center text-gray-400">لا توجد ورديات مقفلة في هذه الفترة</div>
     @else
     @php
         $grandTotalDeficit  = $summary->sum('total_deficit');
@@ -381,7 +381,7 @@
         $grandDeductedCount = $summary->sum('deducted_count');
     @endphp
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div class="ui-card p-4">
             <p class="text-xs text-gray-500 mb-1">إجمالي المستلمات</p>
             <p class="text-lg font-bold text-green-700">{{ number_format($grandTotalReceived, 0) }} <span class="text-sm font-normal">ر.ي</span></p>
         </div>
@@ -394,29 +394,29 @@
             <p class="text-xs text-gray-500 mb-1">إجمالي الزيادات</p>
             <p class="text-lg font-bold text-amber-700">{{ number_format($grandTotalSurplus, 0) }} <span class="text-sm font-normal">ر.ي</span></p>
         </div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div class="ui-card p-4">
             <p class="text-xs text-gray-500 mb-1">عجوزات مخصومة</p>
             <p class="text-lg font-bold" style="color:var(--ui-accent);">{{ $grandDeductedCount }} / {{ $grandDeficitCount }}</p>
         </div>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+    <div class="ui-card">
         <div class="px-5 py-3 border-b border-gray-100">
             <h3 class="font-semibold text-gray-700 text-sm">تفاصيل العجز لكل موظف</h3>
         </div>
         <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead class="bg-gray-50"><tr>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الموظف</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">عدد الورديات</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">إجمالي المستلمات</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">إجمالي السحبيات</th>
+            <table class="w-full text-sm ui-dense">
+                <thead class="ui-thead"><tr>
+                    <th class="ui-th">الموظف</th>
+                    <th class="ui-th">عدد الورديات</th>
+                    <th class="ui-th">إجمالي المستلمات</th>
+                    <th class="ui-th">إجمالي السحبيات</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-red-600">مجموع العجز</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-amber-600">مجموع الزيادة</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">ورديات العجز</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المخصوم</th>
+                    <th class="ui-th">ورديات العجز</th>
+                    <th class="ui-th">المخصوم</th>
                 </tr></thead>
-                <tbody class="divide-y divide-gray-50">
+                <tbody class="ui-divide">
                     @foreach($summary as $row)
                     <tr x-data="{ open: false }" class="hover:bg-gray-50">
                         <td class="px-4 py-3">
@@ -545,7 +545,7 @@
             <p class="text-2xl font-bold {{ $netDay >= 0 ? 'text-blue-700' : 'text-red-600' }}">{{ number_format($netDay, 0) }}</p>
             <p class="text-xs text-gray-400">ر.ي</p>
         </div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div class="ui-card p-4">
             <p class="text-xs text-gray-500 mb-1">عدد الدفعات</p>
             <p class="text-2xl font-bold text-gray-700">{{ $paymentCount }}</p>
             <p class="text-xs text-gray-400">{{ $reservationCount }} حجز</p>
@@ -553,15 +553,15 @@
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+        <div class="ui-card">
             <div class="px-5 py-3 border-b border-gray-100"><h3 class="font-semibold text-gray-700 text-sm">الإيرادات حسب طريقة الدفع</h3></div>
-            <table class="w-full text-sm">
-                <thead class="bg-gray-50"><tr>
+            <table class="w-full text-sm ui-dense">
+                <thead class="ui-thead"><tr>
                     <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">الطريقة</th>
                     <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">عدد الدفعات</th>
                     <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">المبلغ (ر.ي)</th>
                 </tr></thead>
-                <tbody class="divide-y divide-gray-50">
+                <tbody class="ui-divide">
                     @forelse($revenueByMethod as $row)
                     <tr>
                         <td class="px-4 py-2.5">
@@ -578,15 +578,15 @@
                 </tbody>
             </table>
         </div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+        <div class="ui-card">
             <div class="px-5 py-3 border-b border-gray-100"><h3 class="font-semibold text-gray-700 text-sm">المصروفات حسب الفئة</h3></div>
-            <table class="w-full text-sm">
-                <thead class="bg-gray-50"><tr>
+            <table class="w-full text-sm ui-dense">
+                <thead class="ui-thead"><tr>
                     <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">الفئة</th>
                     <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">العدد</th>
                     <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">المبلغ (ر.ي)</th>
                 </tr></thead>
-                <tbody class="divide-y divide-gray-50">
+                <tbody class="ui-divide">
                     @forelse($expensesByCategory as $row)
                     <tr>
                         <td class="px-4 py-2.5 text-gray-700">{{ \App\Models\Expense::categoryLabel($row->category) }}</td>
@@ -601,11 +601,11 @@
         </div>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-5">
+    <div class="ui-card mb-5">
         <div class="px-5 py-3 border-b border-gray-100"><h3 class="font-semibold text-gray-700 text-sm">ورديات اليوم</h3></div>
         <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead class="bg-gray-50"><tr>
+            <table class="w-full text-sm ui-dense">
+                <thead class="ui-thead"><tr>
                     <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">الموظف</th>
                     <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">البدء</th>
                     <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">الإقفال</th>
@@ -615,7 +615,7 @@
                     <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">عجز/فائض</th>
                     <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">الحالة</th>
                 </tr></thead>
-                <tbody class="divide-y divide-gray-50">
+                <tbody class="ui-divide">
                     @forelse($dailyShifts as $shift)
                     @php $net = $shift->net_balance_yer; @endphp
                     <tr>
@@ -642,7 +642,7 @@
         </div>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+    <div class="ui-card p-5">
         <h3 class="font-semibold text-gray-700 text-sm mb-4">تسوية الكاش (ريال يمني)</h3>
         <div class="space-y-2 text-sm">
             <div class="flex justify-between items-center py-2 border-b border-gray-100">

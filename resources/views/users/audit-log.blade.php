@@ -36,7 +36,7 @@
     </div>
 </div>
 
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+<div class="ui-card p-5">
     <form method="GET" class="flex flex-wrap gap-3 items-end mb-4">
         <div class="flex flex-col gap-1">
             <label class="text-xs font-medium text-gray-500">الموظف</label>
@@ -73,7 +73,7 @@
     </form>
 </div>
 
-<div class="bg-white rounded-xl shadow-sm border border-gray-100">
+<div class="ui-card">
     <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
         <h3 class="font-semibold text-gray-700">سجل الأحداث والتغييرات</h3>
         <button onclick="window.print()" class="text-xs px-3 py-1.5 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition">
@@ -81,15 +81,15 @@
         </button>
     </div>
     <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50"><tr>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">التاريخ والوقت</th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الموظف</th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الحدث</th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">النموذج / التفاصيل</th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">عنوان IP</th>
+        <table class="w-full text-sm ui-dense">
+            <thead class="ui-thead"><tr>
+                <th class="ui-th">التاريخ والوقت</th>
+                <th class="ui-th">الموظف</th>
+                <th class="ui-th">الحدث</th>
+                <th class="ui-th">النموذج / التفاصيل</th>
+                <th class="ui-th">عنوان IP</th>
             </tr></thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @php
                     $actionEmojis = [
                         'create'=>'✨', 'update'=>'✏️', 'delete'=>'🗑️', 'login'=>'🔓',

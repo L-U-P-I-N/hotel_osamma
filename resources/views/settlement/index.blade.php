@@ -6,7 +6,7 @@
 <div x-data="settlementPage()" x-init="init()" dir="rtl">
 
 <!-- Settlement Header -->
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-5">
+<div class="ui-card p-5 mb-5">
     <div class="flex items-center justify-between flex-wrap gap-4">
         <div>
             <div class="flex items-center gap-3">
@@ -43,15 +43,15 @@
 
 <!-- Summary Row -->
 <div class="grid grid-cols-3 gap-4 mb-5">
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 text-center">
+    <div class="ui-card p-4 text-center">
         <p class="text-xs text-gray-500 mb-1">إجمالي الإيرادات</p>
         <p class="text-xl font-bold text-green-600">{{ number_format($settlement->total_received, 0) }} <span class="text-xs font-normal text-gray-400">ر.ي</span></p>
     </div>
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 text-center">
+    <div class="ui-card p-4 text-center">
         <p class="text-xs text-gray-500 mb-1">إجمالي المصروفات</p>
         <p class="text-xl font-bold text-red-600">{{ number_format($settlement->total_withdrawals, 0) }} <span class="text-xs font-normal text-gray-400">ر.ي</span></p>
     </div>
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 text-center" style="border-color:#0F4C75; border-width:2px;">
+    <div class="ui-card p-4 text-center" style="border-color:#0F4C75; border-width:2px;">
         <p class="text-xs text-gray-500 mb-1">الصافي</p>
         <p class="text-xl font-bold" style="color:var(--ui-accent);">{{ number_format($settlement->net_balance, 0) }} <span class="text-xs font-normal text-gray-400">ر.ي</span></p>
     </div>
@@ -59,18 +59,18 @@
 
 <!-- Payment Details Table -->
 @if($perCurrency['payment_details']->isNotEmpty())
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-5">
+<div class="ui-card mb-5">
     <div class="px-6 py-4 border-b border-gray-100">
         <h3 class="font-semibold text-gray-700">تفاصيل الإيرادات النقدية</h3>
     </div>
     <div class="overflow-x-auto">
-        <table class="w-full text-sm" dir="rtl">
-            <thead class="bg-gray-50"><tr>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">التاريخ</th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الغرفة</th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المبلغ (ر.ي)</th>
+        <table class="w-full text-sm ui-dense" dir="rtl">
+            <thead class="ui-thead"><tr>
+                <th class="ui-th">التاريخ</th>
+                <th class="ui-th">الغرفة</th>
+                <th class="ui-th">المبلغ (ر.ي)</th>
             </tr></thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @foreach($perCurrency['payment_details'] as $p)
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 text-gray-600">{{ \Carbon\Carbon::parse($p->payment_date)->format('d/m/Y H:i') }}</td>
@@ -86,7 +86,7 @@
 
 <!-- Cash Expenses -->
 @php $cashExpenses = $settlement->withdrawals->where('withdrawal_type', 'expense'); @endphp
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-5">
+<div class="ui-card mb-5">
     <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
         <div>
             <h3 class="font-semibold text-gray-700">المصروفات النقدية من الصندوق</h3>
@@ -103,15 +103,15 @@
         @endif
     </div>
     <div class="overflow-x-auto">
-        <table class="w-full text-sm" dir="rtl">
-            <thead class="bg-gray-50"><tr>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">التاريخ</th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الفئة</th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المبلغ (ر.ي)</th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المستلم</th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">البيان</th>
+        <table class="w-full text-sm ui-dense" dir="rtl">
+            <thead class="ui-thead"><tr>
+                <th class="ui-th">التاريخ</th>
+                <th class="ui-th">الفئة</th>
+                <th class="ui-th">المبلغ (ر.ي)</th>
+                <th class="ui-th">المستلم</th>
+                <th class="ui-th">البيان</th>
             </tr></thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @forelse($cashExpenses as $w)
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 text-gray-600">{{ \Carbon\Carbon::parse($w->withdrawal_date)->format('d/m/Y H:i') }}</td>

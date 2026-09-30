@@ -8,7 +8,7 @@
      x-init="balance = {{ $reservation->balance }}">
 
 <!-- Guest Summary -->
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+<div class="ui-card p-5">
     <h3 class="font-semibold text-gray-700 mb-4">ملخص الحجز</h3>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div class="bg-gray-50 rounded-lg p-3 text-center">
@@ -181,7 +181,7 @@
     @endif
 
     <!-- Room Inspection -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+    <div class="ui-card p-5">
         <h3 class="font-semibold text-gray-700 mb-4">فحص الغرفة</h3>
 
         <div class="flex items-center gap-3 mb-4">
@@ -292,7 +292,7 @@
     </div>
 
     <!-- Submit -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+    <div class="ui-card p-5">
         {{-- تحصيل دَين المشتريات (بقالة) — منفصل عن صندوق الفندق، إلزامي قبل الخروج --}}
         @if($reservation->purchases_debt > 0)
         <input type="hidden" name="collect_purchases" :value="collectPurchases ? 1 : 0">

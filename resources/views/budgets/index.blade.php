@@ -57,7 +57,7 @@
 </div>
 
 {{-- Tabs for different views --}}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-5">
+<div class="ui-card mb-5">
     <div class="flex gap-4 px-5 py-4 border-b border-gray-100 overflow-x-auto">
         <button @click="activeTab = 'overview'" :class="activeTab === 'overview' ? 'border-b-2 border-blue-600 text-blue-600 font-semibold' : 'text-gray-600'" class="pb-1 text-sm transition whitespace-nowrap">
             📊 نظرة عامة
@@ -75,8 +75,8 @@
 
     {{-- Tab: Overview (Full Table) --}}
     <div x-show="activeTab === 'overview'" class="overflow-x-auto">
-        <table class="w-full text-sm" dir="rtl">
-            <thead class="bg-gray-50">
+        <table class="w-full text-sm ui-dense" dir="rtl">
+            <thead class="ui-thead">
                 <tr>
                     <th class="px-4 py-3 text-right font-medium text-gray-600">الشهر</th>
                     <th class="px-4 py-3 text-center font-medium text-gray-600 hidden md:table-cell">الهدف الإيرادي</th>
@@ -87,7 +87,7 @@
                     <th class="px-4 py-3 text-center font-medium text-gray-600">إجراءات</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @foreach($months as $m)
                 @php
                     $revPct   = $m['revenue_target'] > 0 ? round(($m['actual_revenue'] / $m['revenue_target']) * 100) : 0;
@@ -119,7 +119,7 @@
 
     {{-- Tab: Revenue --}}
     <div x-show="activeTab === 'revenue'" class="p-5">
-        <table class="w-full text-sm" dir="rtl">
+        <table class="w-full text-sm ui-dense" dir="rtl">
             <thead class="bg-gray-50 rounded-lg">
                 <tr>
                     <th class="px-4 py-3 text-right font-medium text-gray-600">الشهر</th>
@@ -128,7 +128,7 @@
                     <th class="px-4 py-3 text-center font-medium text-gray-600">التقدم</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @foreach($months as $m)
                 @php $revPct = $m['revenue_target'] > 0 ? ($m['actual_revenue'] / $m['revenue_target']) * 100 : 0; @endphp
                 <tr class="hover:bg-gray-50">
@@ -151,7 +151,7 @@
 
     {{-- Tab: Expenses --}}
     <div x-show="activeTab === 'expenses'" class="p-5">
-        <table class="w-full text-sm" dir="rtl">
+        <table class="w-full text-sm ui-dense" dir="rtl">
             <thead class="bg-gray-50 rounded-lg">
                 <tr>
                     <th class="px-4 py-3 text-right font-medium text-gray-600">الشهر</th>
@@ -160,7 +160,7 @@
                     <th class="px-4 py-3 text-center font-medium text-gray-600">الوفر/الزيادة</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @foreach($months as $m)
                 @php
                     $expDiff = $m['expense_limit'] - $m['actual_expense'];
@@ -183,7 +183,7 @@
 
     {{-- Tab: Profit --}}
     <div x-show="activeTab === 'profit'" class="p-5">
-        <table class="w-full text-sm" dir="rtl">
+        <table class="w-full text-sm ui-dense" dir="rtl">
             <thead class="bg-gray-50 rounded-lg">
                 <tr>
                     <th class="px-4 py-3 text-right font-medium text-gray-600">الشهر</th>
@@ -192,7 +192,7 @@
                     <th class="px-4 py-3 text-center font-medium text-gray-600">الفرق</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @foreach($months as $m)
                 @php $diff = $m['net_actual'] - $m['net_budget']; @endphp
                 <tr class="hover:bg-gray-50">

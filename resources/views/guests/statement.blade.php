@@ -16,7 +16,7 @@
 </div>
 
 {{-- Guest Card --}}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-5">
+<div class="ui-card p-5 mb-5">
     <div class="flex items-center gap-4">
         <div class="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-bold flex-shrink-0"
              style="background:var(--ui-accent);color:var(--ui-accent-fg);">
@@ -52,7 +52,7 @@
 @endif
 
 {{-- Transaction Timeline --}}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-5">
+<div class="ui-card p-5 mb-5">
     <h3 class="font-bold text-lg text-gray-800 mb-4">سجل جميع العمليات</h3>
     <div class="relative">
         <div class="space-y-3">
@@ -103,7 +103,7 @@
     $balance = $res->total_amount - $res->paid_amount;
     $nights  = $res->check_in_date->diffInDays($res->check_out_date);
 @endphp
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-4">
+<div class="ui-card mb-4">
     {{-- Reservation header --}}
     <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2">
         <div class="flex items-center gap-3">
@@ -138,7 +138,7 @@
 
         {{-- Payments list --}}
         @if($res->payments->isNotEmpty())
-        <table class="w-full text-sm">
+        <table class="w-full text-sm ui-dense">
             <thead>
                 <tr class="text-xs text-gray-500 border-b border-gray-100">
                     <th class="pb-2 text-right">تاريخ الدفع</th>
@@ -148,7 +148,7 @@
                     <th class="pb-2"></th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @foreach($res->payments as $pmt)
                 <tr>
                     <td class="py-2 text-gray-600">{{ $pmt->payment_date?->format('d/m/Y H:i') ?? '—' }}</td>

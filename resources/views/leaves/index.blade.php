@@ -21,7 +21,7 @@
 </div>
 
 {{-- Filters --}}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-5">
+<div class="ui-card p-4 mb-5">
     <form method="GET" class="flex flex-wrap gap-3 items-end">
         <div class="flex flex-col gap-1">
             <label class="text-xs font-medium text-gray-500">الموظف</label>
@@ -65,24 +65,24 @@
 </div>
 
 {{-- Table --}}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100">
+<div class="ui-card">
     <div class="overflow-x-auto">
-        <table class="w-full text-sm" dir="rtl">
-            <thead class="bg-gray-50">
+        <table class="w-full text-sm ui-dense" dir="rtl">
+            <thead class="ui-thead">
                 <tr>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الموظف</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">النوع</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">من</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">إلى</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الأيام</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">ملاحظات</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">سُجِّل بواسطة</th>
+                    <th class="ui-th">الموظف</th>
+                    <th class="ui-th">النوع</th>
+                    <th class="ui-th">من</th>
+                    <th class="ui-th">إلى</th>
+                    <th class="ui-th">الأيام</th>
+                    <th class="ui-th">ملاحظات</th>
+                    <th class="ui-th">سُجِّل بواسطة</th>
                     @can('hr.delete')
                     <th class="px-4 py-3"></th>
                     @endcan
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @forelse($leaves as $leave)
                 @php
                     $typeColors = ['annual'=>'bg-blue-100 text-blue-800','sick'=>'bg-yellow-100 text-yellow-800','emergency'=>'bg-red-100 text-red-800','unpaid'=>'bg-gray-100 text-gray-700'];

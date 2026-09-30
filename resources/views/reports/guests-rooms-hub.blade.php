@@ -6,7 +6,7 @@
 <div dir="rtl" class="space-y-5">
 
 {{-- Tab Bar --}}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100">
+<div class="ui-card">
     <div class="flex border-b border-gray-100">
         <a href="{{ route('reports.guestsRoomsHub', array_merge(request()->only(['from', 'to']), ['tab' => 'guests'])) }}"
            class="px-5 py-3 text-sm font-medium border-b-2 transition
@@ -88,7 +88,7 @@
                 <div class="px-6 py-4 border-b border-gray-100">
                     <h3 class="font-semibold text-gray-700">الجنسيات (أعلى 10)</h3>
                 </div>
-                <div class="divide-y divide-gray-50">
+                <div class="ui-divide">
                     @forelse($byNationality as $nat)
                     <div class="px-6 py-3 flex items-center justify-between">
                         <span class="text-sm text-gray-700">{{ $nat->nationality ?: 'غير محدد' }}</span>
@@ -105,12 +105,12 @@
                     <h3 class="font-semibold text-gray-700">الضيوف الأكثر حجزاً في الفترة</h3>
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead class="bg-gray-50"><tr>
-                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الاسم</th>
-                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">عدد الحجوزات</th>
+                    <table class="w-full text-sm ui-dense">
+                        <thead class="ui-thead"><tr>
+                            <th class="ui-th">الاسم</th>
+                            <th class="ui-th">عدد الحجوزات</th>
                         </tr></thead>
-                        <tbody class="divide-y divide-gray-50">
+                        <tbody class="ui-divide">
                             @forelse($topGuests as $g)
                             <tr>
                                 <td class="px-4 py-3 font-medium text-gray-800">{{ $g->full_name }}</td>
@@ -134,17 +134,17 @@
                 <h3 class="font-semibold text-gray-700">أداء الغرف</h3>
             </div>
             <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead class="bg-gray-50">
+                <table class="w-full text-sm ui-dense">
+                    <thead class="ui-thead">
                         <tr>
-                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">رقم الغرفة</th>
-                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">النوع</th>
-                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الحالة</th>
-                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">عدد الحجوزات</th>
-                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الإيرادات (ر.ي)</th>
+                            <th class="ui-th">رقم الغرفة</th>
+                            <th class="ui-th">النوع</th>
+                            <th class="ui-th">الحالة</th>
+                            <th class="ui-th">عدد الحجوزات</th>
+                            <th class="ui-th">الإيرادات (ر.ي)</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-50">
+                    <tbody class="ui-divide">
                         @php
                             $statusLabels = ['available'=>'متاحة','occupied'=>'مشغولة','maintenance'=>'صيانة','under_inspection'=>'فحص'];
                             $statusColors = ['available'=>'bg-green-100 text-green-700','occupied'=>'bg-blue-100 text-blue-700','maintenance'=>'bg-red-100 text-red-700','under_inspection'=>'bg-yellow-100 text-yellow-700'];

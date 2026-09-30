@@ -5,7 +5,7 @@
 @php
     $hidden = $hidden ?? [];
 @endphp
-<form method="GET" action="{{ $action }}" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+<form method="GET" action="{{ $action }}" class="ui-card p-5">
     @foreach($hidden as $name => $value)
     <input type="hidden" name="{{ $name }}" value="{{ $value }}">
     @endforeach

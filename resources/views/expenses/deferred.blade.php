@@ -69,21 +69,21 @@
         <p class="text-xs text-gray-600">إجمالي: <strong>{{ number_format($deferredExpenses->sum('amount'), 0) }} ر.ي</strong> — <strong>{{ $deferredExpenses->count() }}</strong> مصروفات</p>
     </div>
     <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50">
+        <table class="w-full text-sm ui-dense">
+            <thead class="ui-thead">
                 <tr>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الحالة</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">التاريخ</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الفئة</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المستلم</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المبلغ (ر.ي)</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الأيام</th>
+                    <th class="ui-th">الحالة</th>
+                    <th class="ui-th">التاريخ</th>
+                    <th class="ui-th">الفئة</th>
+                    <th class="ui-th">المستلم</th>
+                    <th class="ui-th">المبلغ (ر.ي)</th>
+                    <th class="ui-th">الأيام</th>
                     @can('expenses.edit')
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500">الإجراء</th>
                     @endcan
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @forelse($deferredExpenses as $exp)
                 @php
                     $daysAgo = $exp->expense_date->diffInDays(today());
@@ -143,18 +143,18 @@
         <p class="text-xs text-gray-600">إجمالي: <strong>{{ number_format($recentlySettled->sum('amount'), 0) }} ر.ي</strong> — <strong>{{ $recentlySettled->count() }}</strong> ديون محصلة</p>
     </div>
     <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50">
+        <table class="w-full text-sm ui-dense">
+            <thead class="ui-thead">
                 <tr>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الحالة</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">تاريخ المصروف</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المستلم</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المبلغ (ر.ي)</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">تاريخ التسوية</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">بواسطة</th>
+                    <th class="ui-th">الحالة</th>
+                    <th class="ui-th">تاريخ المصروف</th>
+                    <th class="ui-th">المستلم</th>
+                    <th class="ui-th">المبلغ (ر.ي)</th>
+                    <th class="ui-th">تاريخ التسوية</th>
+                    <th class="ui-th">بواسطة</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @foreach($recentlySettled as $exp)
                 @php
                     $settledDaysAgo = $exp->settled_at->diffInDays(today());

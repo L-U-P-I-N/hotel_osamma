@@ -6,7 +6,7 @@
 <div dir="rtl" class="space-y-5">
 
 {{-- Tab Bar --}}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100">
+<div class="ui-card">
     <div class="flex border-b border-gray-100">
         <a href="{{ route('reports.hrHub', array_merge(request()->only(['year']), ['tab' => 'salaries'])) }}"
            class="px-5 py-3 text-sm font-medium border-b-2 transition
@@ -68,19 +68,19 @@
             <h3 class="font-semibold text-gray-700">ملخص شهري — {{ $year }}</h3>
         </div>
         <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead class="bg-gray-50">
+            <table class="w-full text-sm ui-dense">
+                <thead class="ui-thead">
                     <tr>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الشهر</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">عدد الموظفين</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">إجمالي الأساسي</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المكافآت</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الخصومات</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الصافي</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">مدفوع / معلق</th>
+                        <th class="ui-th">الشهر</th>
+                        <th class="ui-th">عدد الموظفين</th>
+                        <th class="ui-th">إجمالي الأساسي</th>
+                        <th class="ui-th">المكافآت</th>
+                        <th class="ui-th">الخصومات</th>
+                        <th class="ui-th">الصافي</th>
+                        <th class="ui-th">مدفوع / معلق</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-50">
+                <tbody class="ui-divide">
                     @forelse($byMonth as $month => $data)
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-3 font-medium text-gray-800">{{ $monthNames[$month] ?? $month }}</td>
@@ -108,19 +108,19 @@
             <h3 class="font-semibold text-gray-700">تفاصيل الرواتب</h3>
         </div>
         <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead class="bg-gray-50">
+            <table class="w-full text-sm ui-dense">
+                <thead class="ui-thead">
                     <tr>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الموظف</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الشهر</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الأساسي</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">مكافآت</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">خصومات</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الصافي</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الحالة</th>
+                        <th class="ui-th">الموظف</th>
+                        <th class="ui-th">الشهر</th>
+                        <th class="ui-th">الأساسي</th>
+                        <th class="ui-th">مكافآت</th>
+                        <th class="ui-th">خصومات</th>
+                        <th class="ui-th">الصافي</th>
+                        <th class="ui-th">الحالة</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-50">
+                <tbody class="ui-divide">
                     @foreach($salaries as $sal)
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-3 font-medium text-gray-800">{{ $sal->employee->name ?? '—' }}</td>
@@ -196,7 +196,7 @@
     {{-- Per-employee expandable cards --}}
     <div class="mx-4 mb-4 space-y-3">
     @forelse($staffData->sortByDesc('checkins') as $row)
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden" x-data="{ open: false }">
+    <div class="ui-card overflow-hidden" x-data="{ open: false }">
         <div class="px-5 py-4 flex items-center justify-between cursor-pointer select-none hover:bg-gray-50 transition"
              @click="open = !open">
             <div class="flex items-center gap-3">
@@ -244,7 +244,7 @@
             @else
             <div class="overflow-x-auto">
                 <table class="w-full text-xs">
-                    <thead class="bg-gray-50">
+                    <thead class="ui-thead">
                         <tr>
                             <th class="px-4 py-2.5 text-right text-gray-500 font-medium whitespace-nowrap">#</th>
                             <th class="px-4 py-2.5 text-right text-gray-500 font-medium whitespace-nowrap">الغرفة</th>
@@ -258,7 +258,7 @@
                             <th class="px-4 py-2.5 text-right text-gray-500 font-medium whitespace-nowrap">الحالة</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-50">
+                    <tbody class="ui-divide">
                         @foreach($row['reservations'] as $res)
                         @php
                             $statusInfo = match($res->status) {

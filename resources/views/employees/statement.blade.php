@@ -60,7 +60,7 @@
     </div>
 
     {{-- فلتر الفترة --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+    <div class="ui-card p-4">
         <form method="GET" class="flex flex-wrap gap-3 items-end">
             <div class="flex flex-col gap-1">
                 <label class="text-xs font-medium text-gray-500">من تاريخ</label>
@@ -78,12 +78,12 @@
 
     {{-- بطاقات الملخص --}}
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div class="ui-card p-4">
             <div class="text-xs text-gray-500">إجمالي المسحوبات والصرفيات</div>
             <div class="text-xl font-black text-amber-700 mt-1">{{ number_format($totals['advances'], 0) }} <span class="text-xs font-normal text-gray-400">ر.ي</span></div>
             <div class="text-[11px] text-gray-400 mt-0.5">منها طعام وشراب: {{ number_format($totals['food_spent'], 0) }}</div>
         </div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div class="ui-card p-4">
             <div class="text-xs text-gray-500">المخصوم من الراتب</div>
             <div class="text-xl font-black text-red-700 mt-1">{{ number_format($totals['chargeable'], 0) }} <span class="text-xs font-normal text-gray-400">ر.ي</span></div>
             <div class="text-[11px] text-gray-400 mt-0.5">بلا صرفية الطعام ضمن حدّها</div>
@@ -93,7 +93,7 @@
             <div class="text-xl font-black text-emerald-800 mt-1">{{ number_format($totals['remaining'], 0) }} <span class="text-xs font-normal text-emerald-600">ر.ي</span></div>
             <div class="text-[11px] text-emerald-600 mt-0.5">عن {{ $monthly->count() }} شهر</div>
         </div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div class="ui-card p-4">
             <div class="text-xs text-gray-500">صافي الرواتب المستحقة</div>
             <div class="text-xl font-black text-gray-800 mt-1">{{ number_format($totals['salaries_net'], 0) }} <span class="text-xs font-normal text-gray-400">ر.ي</span></div>
             <div class="text-[11px] text-gray-400 mt-0.5">
@@ -103,13 +103,13 @@
     </div>
 
     {{-- التفصيل الشهري: راتب الشهر، ما صُرف منه، والمتبقي له --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+    <div class="ui-card">
         <div class="px-5 py-3 border-b border-gray-100">
             <h3 class="font-bold text-gray-800 text-sm">الراتب والمسحوبات شهرياً</h3>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-sm text-right">
-                <thead class="bg-gray-50">
+                <thead class="ui-thead">
                     <tr class="text-xs text-gray-500">
                         <th class="px-4 py-2.5 font-medium">الشهر</th>
                         <th class="px-4 py-2.5 font-medium">الراتب الأساسي</th>
@@ -120,7 +120,7 @@
                         <th class="px-4 py-2.5 font-medium">حالة الراتب</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-50">
+                <tbody class="ui-divide">
                     @foreach($monthly as $m)
                     <tr>
                         <td class="px-4 py-2.5 whitespace-nowrap font-semibold text-gray-700">{{ $monthNames[$m['month']] ?? $m['month'] }} {{ $m['year'] }}</td>
@@ -159,13 +159,13 @@
     </div>
 
     {{-- الرواتب --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+    <div class="ui-card">
         <div class="px-5 py-3 border-b border-gray-100">
             <h3 class="font-bold text-gray-800 text-sm">الرواتب</h3>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-sm text-right">
-                <thead class="bg-gray-50">
+                <thead class="ui-thead">
                     <tr class="text-xs text-gray-500">
                         <th class="px-4 py-2.5 font-medium">الشهر</th>
                         <th class="px-4 py-2.5 font-medium">الأساسي</th>
@@ -177,7 +177,7 @@
                         <th class="px-4 py-2.5 font-medium">الحالة</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-50">
+                <tbody class="ui-divide">
                     @forelse($salaries as $s)
                     <tr>
                         <td class="px-4 py-2.5 whitespace-nowrap font-semibold text-gray-700">{{ $monthNames[$s->month] ?? $s->month }} {{ $s->year }}</td>
@@ -205,7 +205,7 @@
 
     {{-- الخصومات المسجَّلة: كل خصم بسببه وتاريخه ومَن سجّله --}}
     @if($deductionRecords->isNotEmpty())
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+    <div class="ui-card">
         <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
             <h3 class="font-bold text-gray-800 text-sm">الخصومات المسجَّلة</h3>
             <span class="text-xs font-bold text-red-700 bg-red-50 px-2.5 py-1 rounded-lg">
@@ -214,7 +214,7 @@
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-sm text-right">
-                <thead class="bg-gray-50">
+                <thead class="ui-thead">
                     <tr class="text-xs text-gray-500">
                         <th class="px-4 py-2.5 font-medium">التاريخ</th>
                         <th class="px-4 py-2.5 font-medium">المبلغ</th>
@@ -223,7 +223,7 @@
                         <th class="px-4 py-2.5 font-medium">سجّله</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-50">
+                <tbody class="ui-divide">
                     @foreach($deductionRecords as $d)
                     <tr>
                         <td class="px-4 py-2.5 whitespace-nowrap text-gray-600">{{ $d->deduction_date->format('d/m/Y') }}</td>
@@ -240,7 +240,7 @@
     @endif
 
     {{-- السلف والمسحوبات --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+    <div class="ui-card">
         <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
             <h3 class="font-bold text-gray-800 text-sm">السلف والمسحوبات</h3>
             <span class="text-xs font-bold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg">
@@ -249,7 +249,7 @@
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-sm text-right">
-                <thead class="bg-gray-50">
+                <thead class="ui-thead">
                     <tr class="text-xs text-gray-500">
                         <th class="px-4 py-2.5 font-medium">التاريخ</th>
                         <th class="px-4 py-2.5 font-medium">المبلغ</th>
@@ -259,7 +259,7 @@
                         <th class="px-4 py-2.5 font-medium">الوردية</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-50">
+                <tbody class="ui-divide">
                     @forelse($advances as $a)
                     <tr>
                         <td class="px-4 py-2.5 whitespace-nowrap text-gray-600">{{ $a->expense_date?->format('d/m/Y') }}</td>
@@ -279,7 +279,7 @@
 
     {{-- الحضور والإجازات --}}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <div class="ui-card p-5">
             <h3 class="font-bold text-gray-800 text-sm mb-4">ملخص الحضور</h3>
             <div class="grid grid-cols-3 gap-3 text-center">
                 <div class="rounded-xl p-3 bg-green-50 border border-green-100">
@@ -297,14 +297,14 @@
             </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div class="ui-card">
             <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
                 <h3 class="font-bold text-gray-800 text-sm">الإجازات</h3>
                 <span class="text-xs text-gray-500">{{ $totals['leave_days'] }} يوم</span>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-sm text-right">
-                    <thead class="bg-gray-50">
+                    <thead class="ui-thead">
                         <tr class="text-xs text-gray-500">
                             <th class="px-4 py-2.5 font-medium">النوع</th>
                             <th class="px-4 py-2.5 font-medium">من</th>
@@ -312,7 +312,7 @@
                             <th class="px-4 py-2.5 font-medium">أيام</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-50">
+                    <tbody class="ui-divide">
                         @forelse($leaves as $l)
                         <tr>
                             <td class="px-4 py-2.5 text-gray-700">{{ $leaveTypes[$l->type] ?? $l->type }}</td>

@@ -881,7 +881,7 @@
                 <svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 <span>هذه الرسوم محتسَبة ضمن إجمالي الغرفة وتظهر في الفاتورة، وتدخل إيرادات الفندق عند تحصيلها.</span>
             </div>
-            <div class="divide-y divide-gray-50">
+            <div class="ui-divide">
                 @foreach($hotelCharges as $charge)
                 <div class="px-5 py-2.5 flex items-center justify-between text-sm">
                     <div class="min-w-0 flex-1">
@@ -940,7 +940,7 @@
                 <svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 <span>دَين مشتريات يُحصَّل من النزيل عند الخروج ويُسلَّم للبقالة — لا يدخل صندوق الفندق ولا يظهر في تقاريره.</span>
             </div>
-            <div class="divide-y divide-gray-50">
+            <div class="ui-divide">
                 @foreach($purchaseCharges as $charge)
                 <div class="px-5 py-2.5 flex items-center justify-between text-sm">
                     <div class="min-w-0 flex-1">
@@ -1011,7 +1011,7 @@
                 <h3 class="font-bold text-gray-800 text-sm">الأضرار المسجّلة</h3>
                 <span class="mr-auto px-2 py-0.5 bg-red-50 text-red-700 text-xs font-bold rounded-full">{{ $damageInspections->count() }}</span>
             </div>
-            <div class="divide-y divide-gray-50">
+            <div class="ui-divide">
                 @foreach($damageInspections as $insp)
                 <div class="p-4 space-y-2.5 text-sm">
                     <div class="flex items-center justify-between">

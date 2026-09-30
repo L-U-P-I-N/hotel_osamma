@@ -29,7 +29,7 @@
 <div class="max-w-2xl mx-auto space-y-5">
 
     {{-- ───── بيانات الغرفة ───── --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+    <div class="ui-card p-6">
         <div class="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
             <a href="{{ route('rooms.index', $returnFilters) }}" class="text-gray-400 hover:text-gray-600">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
@@ -164,7 +164,7 @@
 
     {{-- ───── تغيير الحالة ───── --}}
     @canany(['rooms.edit', 'rooms.maintenance'])
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+    <div class="ui-card p-6">
         <h3 class="text-base font-semibold text-gray-800 mb-4 pb-3 border-b border-gray-100">تغيير حالة الغرفة</h3>
 
         <div class="flex items-center gap-2 mb-4">

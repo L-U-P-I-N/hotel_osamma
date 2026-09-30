@@ -19,7 +19,7 @@
     </div>
 
     {{-- فلتر الفترة --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+    <div class="ui-card p-4">
         <form method="GET" class="flex flex-wrap gap-3 items-end">
             <div class="flex flex-col gap-1">
                 <label class="text-xs font-medium text-gray-500">من تاريخ</label>
@@ -37,25 +37,25 @@
 
     {{-- بطاقات الإجمالي --}}
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div class="ui-card p-4">
             <div class="text-xs text-gray-500">إجمالي صافي الرواتب</div>
             <div class="text-xl font-black text-gray-800 mt-1">{{ number_format($totals['salaries_net'], 0) }} <span class="text-xs font-normal text-gray-400">ر.ي</span></div>
         </div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div class="ui-card p-4">
             <div class="text-xs text-gray-500">المدفوع</div>
             <div class="text-xl font-black text-green-700 mt-1">{{ number_format($totals['salaries_paid'], 0) }} <span class="text-xs font-normal text-gray-400">ر.ي</span></div>
         </div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div class="ui-card p-4">
             <div class="text-xs text-gray-500">غير المدفوع (مستحق للموظفين)</div>
             <div class="text-xl font-black text-red-700 mt-1">{{ number_format($totals['salaries_due'], 0) }} <span class="text-xs font-normal text-gray-400">ر.ي</span></div>
         </div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div class="ui-card p-4">
             <div class="text-xs text-gray-500">إجمالي السلف والمسحوبات</div>
             <div class="text-xl font-black text-amber-700 mt-1">{{ number_format($totals['advances'], 0) }} <span class="text-xs font-normal text-gray-400">ر.ي</span></div>
         </div>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+    <div class="ui-card overflow-x-auto">
         <table class="w-full text-sm text-right">
             <thead class="bg-gray-800 text-white">
                 <tr class="text-xs">
@@ -75,7 +75,7 @@
                     <th class="px-4 py-3 font-bold"></th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
+            <tbody class="ui-divide">
                 @forelse($rows as $row)
                 <tr class="hover:bg-gray-50 transition">
                     <td class="px-3 py-3 text-gray-400 text-xs">{{ $row['seq'] }}</td>

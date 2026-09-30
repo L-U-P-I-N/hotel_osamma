@@ -38,7 +38,7 @@
     @endphp
 
     @foreach($sections as $key => $s)
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+    <div class="ui-card">
         <button @click="open['{{ $key }}'] = !open['{{ $key }}']"
                 class="w-full flex items-center justify-between px-5 py-4 text-right">
             <span class="flex items-center gap-2.5">
@@ -55,15 +55,15 @@
             @else
 
                 @if($key === 'orphanPayments')
-                <div class="overflow-x-auto"><table class="w-full text-sm">
-                    <thead class="bg-gray-50"><tr>
+                <div class="overflow-x-auto"><table class="w-full text-sm ui-dense">
+                    <thead class="ui-thead"><tr>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">التاريخ</th>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">النزيل / الغرفة</th>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المبلغ</th>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">استلمها</th>
                         <th class="px-4 py-2"></th>
                     </tr></thead>
-                    <tbody class="divide-y divide-gray-50">
+                    <tbody class="ui-divide">
                         @foreach($orphanPayments as $p)
                         <tr>
                             <td class="px-4 py-2 text-gray-500 text-xs whitespace-nowrap">{{ $p->payment_date?->format('d/m/Y H:i') }}</td>
@@ -77,8 +77,8 @@
                 </table></div>
 
                 @elseif($key === 'orphanWithdrawals')
-                <div class="overflow-x-auto"><table class="w-full text-sm">
-                    <thead class="bg-gray-50"><tr>
+                <div class="overflow-x-auto"><table class="w-full text-sm ui-dense">
+                    <thead class="ui-thead"><tr>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">التاريخ</th>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المستلم</th>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">مَن سلّمه</th>
@@ -90,7 +90,7 @@
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الوردية المرشَّحة</th>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">البيان</th>
                     </tr></thead>
-                    <tbody class="divide-y divide-gray-50">
+                    <tbody class="ui-divide">
                         @foreach($orphanWithdrawals as $w)
                         @php $suggested = $w->suggested_shift; @endphp
                         <tr>
@@ -123,15 +123,15 @@
                 </table></div>
 
                 @elseif($key === 'orphanExpenses')
-                <div class="overflow-x-auto"><table class="w-full text-sm">
-                    <thead class="bg-gray-50"><tr>
+                <div class="overflow-x-auto"><table class="w-full text-sm ui-dense">
+                    <thead class="ui-thead"><tr>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">التاريخ</th>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المستلم</th>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المبلغ</th>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">سجّله</th>
                         <th class="px-4 py-2"></th>
                     </tr></thead>
-                    <tbody class="divide-y divide-gray-50">
+                    <tbody class="ui-divide">
                         @foreach($orphanExpenses as $e)
                         <tr>
                             <td class="px-4 py-2 text-gray-500 text-xs whitespace-nowrap">{{ $e->expense_date?->format('d/m/Y') }}</td>
@@ -145,15 +145,15 @@
                 </table></div>
 
                 @elseif($key === 'misPayments')
-                <div class="overflow-x-auto"><table class="w-full text-sm">
-                    <thead class="bg-gray-50"><tr>
+                <div class="overflow-x-auto"><table class="w-full text-sm ui-dense">
+                    <thead class="ui-thead"><tr>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">تاريخ المستلمة</th>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">تاريخ ورديتها الحالية</th>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">النزيل</th>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المبلغ</th>
                         <th class="px-4 py-2"></th>
                     </tr></thead>
-                    <tbody class="divide-y divide-gray-50">
+                    <tbody class="ui-divide">
                         @foreach($misattributedPayments as $p)
                         <tr>
                             <td class="px-4 py-2 text-gray-500 text-xs whitespace-nowrap">{{ $p->payment_date?->format('d/m/Y H:i') }}</td>
@@ -167,15 +167,15 @@
                 </table></div>
 
                 @elseif($key === 'misWithdrawals')
-                <div class="overflow-x-auto"><table class="w-full text-sm">
-                    <thead class="bg-gray-50"><tr>
+                <div class="overflow-x-auto"><table class="w-full text-sm ui-dense">
+                    <thead class="ui-thead"><tr>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">تاريخ السحب</th>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">تاريخ ورديته الحالية</th>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المستلم</th>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المبلغ</th>
                         <th class="px-4 py-2"></th>
                     </tr></thead>
-                    <tbody class="divide-y divide-gray-50">
+                    <tbody class="ui-divide">
                         @foreach($misattributedWithdrawals as $w)
                         <tr>
                             <td class="px-4 py-2 text-gray-500 text-xs whitespace-nowrap">{{ $w->withdrawal_date?->format('d/m/Y H:i') }}</td>
@@ -189,15 +189,15 @@
                 </table></div>
 
                 @elseif($key === 'misExpenses')
-                <div class="overflow-x-auto"><table class="w-full text-sm">
-                    <thead class="bg-gray-50"><tr>
+                <div class="overflow-x-auto"><table class="w-full text-sm ui-dense">
+                    <thead class="ui-thead"><tr>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">تاريخ المصروف</th>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">تاريخ ورديته الحالية</th>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المستلم</th>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المبلغ</th>
                         <th class="px-4 py-2"></th>
                     </tr></thead>
-                    <tbody class="divide-y divide-gray-50">
+                    <tbody class="ui-divide">
                         @foreach($misattributedExpenses as $e)
                         <tr>
                             <td class="px-4 py-2 text-gray-500 text-xs whitespace-nowrap">{{ $e->expense_date?->format('d/m/Y') }}</td>
@@ -211,14 +211,14 @@
                 </table></div>
 
                 @elseif($key === 'staleShifts')
-                <div class="overflow-x-auto"><table class="w-full text-sm">
-                    <thead class="bg-gray-50"><tr>
+                <div class="overflow-x-auto"><table class="w-full text-sm ui-dense">
+                    <thead class="ui-thead"><tr>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الوردية</th>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الموظف</th>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الفروقات</th>
                         <th class="px-4 py-2"></th>
                     </tr></thead>
-                    <tbody class="divide-y divide-gray-50">
+                    <tbody class="ui-divide">
                         @foreach($staleShifts as $row)
                         <tr>
                             <td class="px-4 py-2 text-gray-700 text-xs whitespace-nowrap">{{ $row['shift']->shift_date->format('d/m/Y') }} @if($row['shift']->is_closed)<span class="text-gray-400">(مقفلة)</span>@else<span class="text-emerald-600">(مفتوحة)</span>@endif</td>
@@ -234,14 +234,14 @@
                 <p class="px-4 py-3 text-xs text-gray-400 border-t border-gray-50">يُصحَّح تلقائياً عند تنفيذ أي عملية نقل/تعديل على الوردية (تُعيد احتساب مجاميعها).</p>
 
                 @elseif($key === 'corruptedShifts')
-                <div class="overflow-x-auto"><table class="w-full text-sm">
-                    <thead class="bg-gray-50"><tr>
+                <div class="overflow-x-auto"><table class="w-full text-sm ui-dense">
+                    <thead class="ui-thead"><tr>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الوردية</th>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الموظف</th>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">is_closed</th>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">closed_at</th>
                     </tr></thead>
-                    <tbody class="divide-y divide-gray-50">
+                    <tbody class="ui-divide">
                         @foreach($corruptedShifts as $cs)
                         <tr>
                             <td class="px-4 py-2 text-gray-700 text-xs whitespace-nowrap">#{{ $cs->id }} — {{ $cs->shift_date->format('d/m/Y') }}</td>
@@ -254,13 +254,13 @@
                 </table></div>
 
                 @elseif($key === 'duplicateOpen')
-                <div class="overflow-x-auto"><table class="w-full text-sm">
-                    <thead class="bg-gray-50"><tr>
+                <div class="overflow-x-auto"><table class="w-full text-sm ui-dense">
+                    <thead class="ui-thead"><tr>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الوردية</th>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الموظف</th>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">وقت الفتح</th>
                     </tr></thead>
-                    <tbody class="divide-y divide-gray-50">
+                    <tbody class="ui-divide">
                         @foreach($duplicateOpenShifts as $ds)
                         <tr>
                             <td class="px-4 py-2 text-gray-700 text-xs whitespace-nowrap">#{{ $ds->id }} — {{ $ds->shift_date->format('d/m/Y') }}</td>

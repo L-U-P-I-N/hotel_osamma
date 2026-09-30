@@ -31,7 +31,7 @@
     </div>
     @endif
 
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+    <div class="ui-card p-6">
         <h3 class="font-semibold text-gray-700 mb-1">نطاق سعر الجناح كاملاً (غرفتان)</h3>
         <p class="text-xs text-gray-500 mb-4">
             يُفرض عند حجز الجناح بقسميه معاً، ويسري على <strong>كل</strong> الأجنحة مهما كان تصنيف أقسامها.
@@ -62,7 +62,7 @@
         </form>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+    <div class="ui-card p-6">
         <h3 class="font-semibold text-gray-700 mb-1">نطاق سعر الليلة لكل نوع</h3>
         <p class="text-xs text-gray-500 mb-4">
             «السعر الأساسي» هو ما يُقترح على الموظف، ويجب أن يقع داخل النطاق.

@@ -5,7 +5,7 @@
 @section('content')
 <div dir="rtl" class="max-w-xl mx-auto">
 
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+<div class="ui-card p-6">
     <h2 class="text-lg font-bold text-gray-800 mb-6">تعديل المصروف</h2>
 
     <form method="POST" action="{{ route('expenses.update', $expense) }}" class="space-y-4">

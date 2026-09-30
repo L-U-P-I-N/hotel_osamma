@@ -14,7 +14,7 @@
     </div>
 </div>
 
-<div class="bg-white rounded-xl shadow-sm border border-gray-100">
+<div class="ui-card">
     <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
         <h3 class="font-semibold text-gray-800">الاسترجاعات</h3>
         <form class="flex gap-2">
@@ -28,7 +28,7 @@
     <div class="py-12 text-center text-gray-400 text-sm">لا توجد استرجاعات</div>
     @else
     <div class="overflow-x-auto">
-        <table class="w-full text-sm" dir="rtl">
+        <table class="w-full text-sm ui-dense" dir="rtl">
             <thead class="bg-gray-50 text-xs text-gray-500">
                 <tr>
                     <th class="px-4 py-3 text-right">#</th>
@@ -41,7 +41,7 @@
                     <th class="px-4 py-3 text-right">التاريخ</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @foreach($refunds as $refund)
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 text-gray-400">{{ $refund->id }}</td>

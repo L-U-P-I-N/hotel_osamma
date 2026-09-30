@@ -135,7 +135,7 @@
 </div>
 
 {{-- ─── Users Table ─────────────────────────────────────────────────────── --}}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+<div class="ui-card overflow-hidden">
     <div class="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
         <span class="text-sm font-semibold text-gray-700">
             قائمة المستخدمين
@@ -144,8 +144,8 @@
     </div>
 
     <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50 border-b border-gray-100">
+        <table class="w-full text-sm ui-dense">
+            <thead class="ui-thead">
                 <tr>
                     <th class="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">الموظف</th>
                     <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">اسم الدخول</th>
@@ -155,7 +155,7 @@
                     <th class="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">الإجراءات</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @forelse($users as $user)
                 @php
                     $colors = ['#0F4C75','#1a6fa8','#065f46','#92400e','#6d28d9','#be123c','#0369a1','#15803d'];

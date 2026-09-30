@@ -21,7 +21,7 @@
 </div>
 
 {{-- Filter --}}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-5">
+<div class="ui-card p-4 mb-5">
     <form method="GET" class="flex flex-wrap gap-3 items-end">
         <div>
             <label class="block text-xs font-medium text-gray-600 mb-1">الشهر</label>
@@ -49,7 +49,7 @@
 </div>
 
 @if($employees->isEmpty())
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-10 text-center text-gray-400">
+<div class="ui-card p-10 text-center text-gray-400">
     لا يوجد موظفون نشطون
 </div>
 @else
@@ -83,7 +83,7 @@
 </div>
 
 {{-- Monthly Sheet --}}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100">
+<div class="ui-card">
     <div class="px-5 py-3 border-b border-gray-100">
         <h3 class="font-semibold text-gray-700 text-sm">
             كشف {{ \App\Models\Salary::monthName($month) }} {{ $year }}
@@ -91,7 +91,7 @@
     </div>
     <div class="overflow-x-auto">
         <table class="text-xs" style="min-width: max-content;">
-            <thead class="bg-gray-50">
+            <thead class="ui-thead">
                 <tr>
                     <th class="px-4 py-2 text-right font-medium text-gray-600 sticky right-0 bg-gray-50 z-10 min-w-[140px]">الموظف</th>
                     @for($d = 1; $d <= $daysInMonth; $d++)
@@ -107,7 +107,7 @@
                     <th class="px-3 py-2 text-center font-medium text-yellow-600 min-w-[48px]">تأخير</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @foreach($employees as $emp)
                 @php
                     $empPresent = 0; $empAbsent = 0; $empLate = 0;

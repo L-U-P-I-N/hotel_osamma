@@ -52,8 +52,8 @@
             <div class="py-6 text-center text-gray-400 text-sm">لا يوجد</div>
             @else
             <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead class="bg-gray-50 border-b border-gray-100">
+                <table class="w-full text-sm ui-dense">
+                    <thead class="ui-thead">
                         <tr>
                             <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">الغرفة</th>
                             <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">اسم النزيل</th>
@@ -61,11 +61,11 @@
                             <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">المهنة</th>
                             <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">جهة القدوم</th>
                             <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">تاريخ الدخول</th>
-                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">بيانات المرافقين</th>
+                            <th class="ui-th">بيانات المرافقين</th>
                             <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">ملاحظة</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-50">
+                    <tbody class="ui-divide">
                         @foreach($todaySection['rows'] as $res)
                         <tr class="hover:bg-gray-50">
                             <td class="px-4 py-3 font-semibold text-gray-800 whitespace-nowrap">{{ $res->display_room_number }}</td>
@@ -106,8 +106,8 @@
         <div class="py-12 text-center text-gray-400 text-sm">لا توجد حجوزات في هذه الفترة</div>
         @else
         <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead class="bg-gray-50 border-b border-gray-100">
+            <table class="w-full text-sm ui-dense">
+                <thead class="ui-thead">
                     <tr>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">الغرفة</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">اسم النزيل</th>
@@ -121,12 +121,12 @@
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">رقم الهوية</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">صادر من</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">تاريخ الإصدار</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">بيانات المرافقين</th>
+                        <th class="ui-th">بيانات المرافقين</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">ملاحظة</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">حالة الإقامة</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-50">
+                <tbody class="ui-divide">
                     @foreach($reservations as $res)
                     @php
                         $inTime = $res->check_in_time ?: $res->check_in_date?->format('H:i');

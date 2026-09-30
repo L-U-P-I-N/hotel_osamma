@@ -5,7 +5,7 @@
 @section('content')
 <div dir="rtl" class="max-w-2xl mx-auto">
 
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+<div class="ui-card p-6">
     <h2 class="text-lg font-bold text-gray-800 mb-6">بيانات الموظف</h2>
 
     <form method="POST" action="{{ route('employees.store') }}" class="space-y-4">

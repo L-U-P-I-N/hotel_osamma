@@ -6,7 +6,7 @@
 <div dir="rtl" class="max-w-5xl mx-auto space-y-6">
 
     {{-- بطاقة الملخص --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+    <div class="ui-card p-6">
         <div class="flex items-start justify-between flex-wrap gap-3 mb-5">
             <div>
                 <h2 class="text-lg font-bold text-gray-800">{{ $employee->name }}</h2>
@@ -89,7 +89,7 @@
 
     {{-- تسجيل خصم جديد --}}
     @can('hr.edit')
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="ui-card overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-100">
             <h3 class="font-bold text-gray-800 text-sm">تسجيل خصم جديد</h3>
             <p class="text-xs text-gray-400 mt-0.5">يُخصم من راتب الشهر الذي يقع فيه تاريخ الخصم</p>
@@ -139,24 +139,24 @@
     @endcan
 
     {{-- سجل الخصومات --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="ui-card overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-100">
             <h3 class="font-bold text-gray-800 text-sm">سجل الخصومات — {{ \App\Models\Salary::monthName($month) }} {{ $year }}</h3>
         </div>
         <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead class="bg-gray-50">
+            <table class="w-full text-sm ui-dense">
+                <thead class="ui-thead">
                     <tr>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">#</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">التاريخ</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المبلغ (ر.ي)</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">السبب</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">البيان</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">سجّله</th>
+                        <th class="ui-th">#</th>
+                        <th class="ui-th">التاريخ</th>
+                        <th class="ui-th">المبلغ (ر.ي)</th>
+                        <th class="ui-th">السبب</th>
+                        <th class="ui-th">البيان</th>
+                        <th class="ui-th">سجّله</th>
                         <th class="px-4 py-3"></th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-50">
+                <tbody class="ui-divide">
                     @forelse($deductions as $i => $d)
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-3 text-gray-500">{{ $i + 1 }}</td>

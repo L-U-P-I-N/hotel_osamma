@@ -23,7 +23,7 @@
 {{-- ===== وردية مفتوحة ===== --}}
 
 {{-- رأس الوردية --}}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-5 flex items-center justify-between flex-wrap gap-3">
+<div class="ui-card p-4 mb-5 flex items-center justify-between flex-wrap gap-3">
     <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
             <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -80,30 +80,23 @@
     $rfd  = $activeShift->total_refunds_yer;
     $net  = $activeShift->net_balance_yer;
 @endphp
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-        <p class="text-xs text-gray-500 mb-1">المستلمات</p>
-        <p class="text-xl font-bold text-green-700">{{ number_format($recv, 0) }} <span class="text-sm font-normal">ر.ي</span></p>
-    </div>
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-        <p class="text-xs text-gray-500 mb-1">السحبيات</p>
-        <p class="text-xl font-bold text-red-600">{{ number_format($wdr, 0) }} <span class="text-sm font-normal">ر.ي</span></p>
-    </div>
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-        <p class="text-xs text-gray-500 mb-1">الاسترجاعات</p>
-        <p class="text-xl font-bold text-rose-600">{{ number_format($rfd, 0) }} <span class="text-sm font-normal">ر.ي</span></p>
-    </div>
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-        <p class="text-xs text-gray-500 mb-1">الصافي</p>
-        <p class="text-xl font-bold {{ $net >= 0 ? 'text-primary-800' : 'text-red-700' }}">{{ number_format($net, 0) }} <span class="text-sm font-normal">ر.ي</span></p>
-    </div>
-</div>
+{{-- شريط واحد بأرقام جدولية تصطفّ خاناته، بدل أربع بطاقات متباعدة --}}
+<dl class="ui-stats">
+    <div class="ui-stat"><dt>المستلمات</dt>
+        <dd class="num--pos">{{ number_format($recv, 0) }} <span class="unit">ر.ي</span></dd></div>
+    <div class="ui-stat"><dt>السحبيات</dt>
+        <dd class="num--neg">{{ number_format($wdr, 0) }} <span class="unit">ر.ي</span></dd></div>
+    <div class="ui-stat"><dt>الاسترجاعات</dt>
+        <dd class="num--neg">{{ number_format($rfd, 0) }} <span class="unit">ر.ي</span></dd></div>
+    <div class="ui-stat"><dt>الصافي</dt>
+        <dd style="color:{{ $net >= 0 ? 'var(--ui-accent)' : 'var(--ui-neg)' }};">{{ number_format($net, 0) }} <span class="unit">ر.ي</span></dd></div>
+</dl>
 
 {{-- المستلمات + السحبيات --}}
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
 @php $canReassign = auth()->user()->can('payments.create') || auth()->user()->isAdmin(); @endphp
-<div class="bg-white rounded-xl shadow-sm border border-gray-100">
+<div class="ui-card">
     <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-3 flex-wrap">
         <h3 class="font-semibold text-gray-700">المستلمات ({{ $activeShift->payments->count() }})</h3>
         @if($canReassign)
@@ -125,8 +118,8 @@
     </div>
     @if($activeShift->payments->count() > 0)
     <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50"><tr>
+        <table class="w-full text-sm ui-dense">
+            <thead class="ui-thead"><tr>
                 @if($canReassign)
                 <th class="px-4 py-2 text-center w-10">
                     <input type="checkbox" title="تحديد الكل"
@@ -140,7 +133,7 @@
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المبلغ</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الطريقة</th>
             </tr></thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @foreach($activeShift->payments as $p)
                 <tr :class="selectedPayments.includes({{ $p->id }}) ? 'bg-indigo-50' : ''">
                     @if($canReassign)
@@ -174,7 +167,7 @@
     @endif
 </div>
 
-<div class="bg-white rounded-xl shadow-sm border border-gray-100">
+<div class="ui-card">
     <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-3 flex-wrap">
         <h3 class="font-semibold text-gray-700">السحبيات ({{ $activeShift->withdrawals->count() }})</h3>
         @if($canReassign)
@@ -198,8 +191,8 @@
     </div>
     @if($activeShift->withdrawals->count() > 0)
     <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50"><tr>
+        <table class="w-full text-sm ui-dense">
+            <thead class="ui-thead"><tr>
                 @if($canReassign)
                 <th class="px-4 py-2 text-center w-10">
                     <input type="checkbox" title="تحديد الكل"
@@ -219,7 +212,7 @@
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">إجراءات</th>
                 @endcanany
             </tr></thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @foreach($activeShift->withdrawals as $w)
                 <tr class="{{ $w->isExchange() ? 'bg-yellow-50' : '' }}" :class="selectedWithdrawals.includes({{ $w->id }}) ? 'bg-indigo-50' : ''">
                     @if($canReassign)
@@ -327,14 +320,14 @@
         <p class="text-xs text-amber-600 mt-0.5">لا تُحتسب ضمن درج هذه الوردية — للتوضيح فقط</p>
     </div>
     <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50"><tr>
+        <table class="w-full text-sm ui-dense">
+            <thead class="ui-thead"><tr>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الوقت</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المبلغ</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">البيان</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المستلم</th>
             </tr></thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @foreach($generalSafeWithdrawals as $gw)
                 <tr>
                     <td class="px-4 py-2 text-gray-500 text-xs whitespace-nowrap">{{ $gw->created_at?->format('H:i') }}</td>
@@ -350,20 +343,20 @@
 @endif
 
 @if($activeShift->refunds->count() > 0)
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 mt-5">
+<div class="ui-card mt-5">
     <div class="px-5 py-4 border-b border-gray-100">
         <h3 class="font-semibold text-gray-700">الاسترجاعات ({{ $activeShift->refunds->count() }})</h3>
     </div>
     <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50"><tr>
+        <table class="w-full text-sm ui-dense">
+            <thead class="ui-thead"><tr>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الوقت</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">النزيل</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المبلغ</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الطريقة</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">السبب</th>
             </tr></thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @foreach($activeShift->refunds as $r)
                 <tr>
                     <td class="px-4 py-2 text-gray-400 text-xs">{{ $r->refunded_at->format('H:i') }}</td>
@@ -401,8 +394,8 @@
         </div>
     </div>
     <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50"><tr>
+        <table class="w-full text-sm ui-dense">
+            <thead class="ui-thead"><tr>
                 <th class="px-4 py-2 text-center w-10">
                     <input type="checkbox" title="تحديد الكل"
                            @change="selectedOrphans = $event.target.checked ? {{ $orphanPayments->pluck('id')->toJson() }} : []"
@@ -418,7 +411,7 @@
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">نقل إلى وردية محدَّدة</th>
                 @endif
             </tr></thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @foreach($orphanPayments as $op)
                 <tr :class="selectedOrphans.includes({{ $op->id }}) ? 'bg-amber-50' : ''">
                     <td class="px-4 py-2 text-center">
@@ -485,8 +478,8 @@
         </div>
     </div>
     <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50"><tr>
+        <table class="w-full text-sm ui-dense">
+            <thead class="ui-thead"><tr>
                 <th class="px-4 py-2 text-center w-10">
                     <input type="checkbox" title="تحديد الكل"
                            @change="selectedOrphanWithdrawals = $event.target.checked ? {{ $orphanWithdrawals->pluck('id')->toJson() }} : []"
@@ -499,7 +492,7 @@
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المستلم</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">ملاحظات</th>
             </tr></thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @foreach($orphanWithdrawals as $ow)
                 <tr :class="selectedOrphanWithdrawals.includes({{ $ow->id }}) ? 'bg-amber-50' : ''">
                     <td class="px-4 py-2 text-center">
@@ -522,7 +515,7 @@
 @else
 {{-- ===== لا توجد وردية ===== --}}
 <div class="max-w-md mx-auto">
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-10 text-center">
+    <div class="ui-card p-10 text-center">
         <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
             <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -554,8 +547,8 @@
         </a>
     </div>
     <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50"><tr>
+        <table class="w-full text-sm ui-dense">
+            <thead class="ui-thead"><tr>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الموظف</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">حالة الوردية</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">آخر وردية</th>
@@ -563,7 +556,7 @@
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الفرق</th>
                 <th class="px-4 py-2"></th>
             </tr></thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @foreach($allUsersStatus as $us)
                 @php $ls = $us['lastShift']; @endphp
                 <tr class="hover:bg-gray-50">
@@ -614,26 +607,26 @@
 
 {{-- ورديات سابقة --}}
 @if($recentShifts->where('is_closed', true)->count() > 0)
-<div class="mt-5 bg-white rounded-xl shadow-sm border border-gray-100">
+<div class="mt-5 ui-card">
     <div class="px-5 py-3 border-b border-gray-100">
         <h3 class="font-semibold text-gray-700 text-sm">الورديات السابقة</h3>
     </div>
     <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50"><tr>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">التاريخ</th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">البداية</th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">النهاية</th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المستلمات (ر.ي)</th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">السحبيات (ر.ي)</th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الصافي (ر.ي)</th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الفعلي (ر.ي)</th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الفرق</th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">ملاحظات الإقفال</th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">إعادة الفتح</th>
+        <table class="w-full text-sm ui-dense">
+            <thead class="ui-thead"><tr>
+                <th class="ui-th">التاريخ</th>
+                <th class="ui-th">البداية</th>
+                <th class="ui-th">النهاية</th>
+                <th class="ui-th">المستلمات (ر.ي)</th>
+                <th class="ui-th">السحبيات (ر.ي)</th>
+                <th class="ui-th">الصافي (ر.ي)</th>
+                <th class="ui-th">الفعلي (ر.ي)</th>
+                <th class="ui-th">الفرق</th>
+                <th class="ui-th">ملاحظات الإقفال</th>
+                <th class="ui-th">إعادة الفتح</th>
                 <th class="px-4 py-3"></th>
             </tr></thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @foreach($recentShifts->where('is_closed', true) as $s)
                 @php
                     $net = $s->net_balance_yer;
@@ -761,21 +754,21 @@
 @if(auth()->user()->isAdmin())
 @can('shifts.reopen')
 @if($reopenableShifts->isNotEmpty())
-<div class="mt-5 bg-white rounded-xl shadow-sm border border-gray-100">
+<div class="mt-5 ui-card">
     <div class="px-5 py-3 border-b border-gray-100">
         <h3 class="font-semibold text-gray-700 text-sm">إعادة فتح وردية موظف آخر</h3>
         <p class="text-xs text-gray-400 mt-0.5">ورديات مقفلة لموظفين لا يملكون وردية مفتوحة حالياً</p>
     </div>
     <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50"><tr>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الموظف</th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">التاريخ</th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">وقت الإقفال</th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الصافي (ر.ي)</th>
+        <table class="w-full text-sm ui-dense">
+            <thead class="ui-thead"><tr>
+                <th class="ui-th">الموظف</th>
+                <th class="ui-th">التاريخ</th>
+                <th class="ui-th">وقت الإقفال</th>
+                <th class="ui-th">الصافي (ر.ي)</th>
                 <th class="px-4 py-3"></th>
             </tr></thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @foreach($reopenableShifts as $s)
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 font-medium text-gray-700">{{ $s->user?->name ?? '—' }}</td>

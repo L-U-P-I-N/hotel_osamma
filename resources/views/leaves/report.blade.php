@@ -19,12 +19,12 @@
     </a>
 </div>
 
-<div class="bg-white rounded-xl shadow-sm border border-gray-100">
+<div class="ui-card">
     <div class="px-5 py-4 border-b border-gray-100">
         <h3 class="font-semibold text-gray-800">ملخص الإجازات — {{ $year }}</h3>
     </div>
 
-    <div class="divide-y divide-gray-50">
+    <div class="ui-divide">
         @foreach($summary as $emp)
         @php
             $annualColor = match(true) {

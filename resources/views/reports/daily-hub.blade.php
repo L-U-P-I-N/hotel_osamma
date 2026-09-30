@@ -13,7 +13,7 @@
 @endif
 
 {{-- Tab Bar --}}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100">
+<div class="ui-card">
     <div class="flex border-b border-gray-100">
         <a href="{{ route('reports.dailyHub', ['tab' => 'daily', 'date' => $date]) }}"
            class="px-5 py-3 text-sm font-medium border-b-2 transition
@@ -86,7 +86,7 @@
             @else
             <div class="overflow-x-auto">
                 <table class="w-full text-xs">
-                    <thead class="bg-gray-50 border-b border-gray-100">
+                    <thead class="ui-thead">
                         <tr>
                             <th class="px-3 py-2.5 text-right font-medium text-gray-500 whitespace-nowrap">الغرفة</th>
                             <th class="px-3 py-2.5 text-right font-medium text-gray-500 whitespace-nowrap">اسم النزيل</th>
@@ -106,7 +106,7 @@
                             <th class="px-3 py-2.5 text-right font-medium text-gray-500 whitespace-nowrap">ملاحظات</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-50">
+                    <tbody class="ui-divide">
                         @foreach($dailyReservations as $res)
                         @php
                             $idTypeMap = ['national_id'=>'بطاقة','passport'=>'جواز','residence'=>'إقامة'];
@@ -208,13 +208,13 @@
                 <h3 class="font-semibold text-gray-700 text-sm">تفاصيل الإشغال اليومي</h3>
             </div>
             <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead class="bg-gray-50"><tr>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">التاريخ</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">نسبة الإشغال</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">شريط</th>
+                <table class="w-full text-sm ui-dense">
+                    <thead class="ui-thead"><tr>
+                        <th class="ui-th">التاريخ</th>
+                        <th class="ui-th">نسبة الإشغال</th>
+                        <th class="ui-th">شريط</th>
                     </tr></thead>
-                    <tbody class="divide-y divide-gray-50">
+                    <tbody class="ui-divide">
                         @forelse($dailyOccupancy as $day)
                         <tr>
                             <td class="px-4 py-3 text-gray-600">{{ $day['date'] }}</td>
@@ -389,7 +389,7 @@
             @else
             <div class="overflow-x-auto">
                 <table class="w-full text-xs">
-                    <thead class="bg-gray-50 border-b border-gray-100">
+                    <thead class="ui-thead">
                         <tr>
                             <th class="px-3 py-2.5 text-right font-medium text-gray-500 whitespace-nowrap">#</th>
                             <th class="px-3 py-2.5 text-right font-medium text-gray-500 whitespace-nowrap">الغرفة</th>
@@ -409,7 +409,7 @@
                             <th class="px-3 py-2.5 text-right font-medium text-gray-500 whitespace-nowrap">ملاحظات</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-50">
+                    <tbody class="ui-divide">
                         @foreach($reservations as $r)
                         @php
                             $g = $r->guest;

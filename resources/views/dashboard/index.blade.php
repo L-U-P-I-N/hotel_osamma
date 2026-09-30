@@ -239,7 +239,7 @@
 
     {{-- ── كارد النزلاء المسجلون (التمرير الوحيد) ── --}}
     @can('checkin.view')
-    <div class="lg:col-span-2 flex flex-col min-h-0 bg-white rounded-xl shadow-sm border border-gray-100">
+    <div class="lg:col-span-2 flex flex-col min-h-0 ui-card">
         <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
             <div class="flex items-center gap-2">
                 <h3 class="font-semibold text-gray-800">النزلاء المسجلون</h3>
@@ -270,18 +270,18 @@
         </div>
         @else
         <div class="flex-1 overflow-y-auto min-h-0 slim-scroll">
-            <table class="w-full text-sm" dir="rtl">
+            <table class="w-full text-sm ui-dense" dir="rtl">
                 <thead class="bg-gray-50 sticky top-0 z-10">
                     <tr>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">النزيل</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الغرفة</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الدخول</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الخروج</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المدة</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">إجراءات</th>
+                        <th class="ui-th">النزيل</th>
+                        <th class="ui-th">الغرفة</th>
+                        <th class="ui-th">الدخول</th>
+                        <th class="ui-th">الخروج</th>
+                        <th class="ui-th">المدة</th>
+                        <th class="ui-th">إجراءات</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-50">
+                <tbody class="ui-divide">
                     @foreach($expiringGuests as $res)
                     @php
                         $daysLeft = (int) now()->startOfDay()->diffInDays($res->check_out_date->copy()->startOfDay(), false);
@@ -391,7 +391,7 @@
 
         {{-- مؤشرات مضغوطة: الإشغال + المصروفات --}}
         <div class="flex-shrink-0 grid grid-cols-2 gap-2">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
+            <div class="ui-card p-3">
                 <div class="flex items-center justify-between mb-2">
                     <p class="text-xs text-gray-500">معدل الإشغال</p>
                     <span class="text-lg">📊</span>
@@ -403,7 +403,7 @@
                 <p class="text-xs text-gray-400 mt-1.5">{{ $occupiedRooms }} من {{ $totalRooms }} غرفة</p>
             </div>
 
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
+            <div class="ui-card p-3">
                 <div class="flex items-center justify-between mb-2">
                     <p class="text-xs text-gray-500">مصروفات اليوم</p>
                     <span class="text-lg">💸</span>
@@ -422,7 +422,7 @@
 
         {{-- مخطط إيرادات الأسبوع (يملأ المساحة المتبقية) --}}
         @if($weeklyRevenue)
-        <div class="flex-1 min-h-0 bg-white rounded-xl shadow-sm border border-gray-100 p-3 flex flex-col">
+        <div class="flex-1 min-h-0 ui-card p-3 flex flex-col">
             <div class="flex items-center justify-between mb-2 flex-shrink-0">
                 <div>
                     <h3 class="font-semibold text-gray-800 text-sm">إيرادات الأسبوع</h3>

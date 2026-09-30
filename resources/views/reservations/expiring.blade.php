@@ -70,7 +70,7 @@
 </div>
 
 <!-- Filters -->
-<form method="GET" action="{{ route('reservations.expiring') }}" id="filters" class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-5">
+<form method="GET" action="{{ route('reservations.expiring') }}" id="filters" class="ui-card p-4 mb-5">
     <div class="flex flex-wrap gap-3 items-end">
 
         {{-- Search: name or room --}}

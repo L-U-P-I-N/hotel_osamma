@@ -183,7 +183,7 @@
                     </div>
                 </header>
 
-                <div class="divide-y divide-gray-50">
+                <div class="ui-divide">
                     @foreach($permissions as $key => $permission)
                     @php $isSensitive = in_array($key, $sensitive, true); @endphp
                     <div data-permission-row

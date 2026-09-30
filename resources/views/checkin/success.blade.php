@@ -12,7 +12,7 @@
         <p class="text-gray-500">رقم الحجز: <span class="font-bold text-primary-800">#{{ $reservation->id }}</span></p>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-5">
+    <div class="ui-card p-6 mb-5">
         <h2 class="font-semibold text-gray-700 mb-4">ملخص الحجز</h2>
         <div class="grid grid-cols-2 gap-3 text-sm">
             <div><span class="text-gray-500">النزيل:</span> <span class="font-medium">{{ $reservation->guest?->full_name ?? '—' }}</span></div>

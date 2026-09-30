@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="max-w-lg">
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+    <div class="ui-card p-6">
         <form action="{{ route('seasonal-prices.update', $seasonalPrice) }}" method="POST" class="space-y-4">
             @csrf @method('PUT')
             @if($errors->any())

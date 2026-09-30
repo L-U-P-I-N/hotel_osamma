@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="max-w-2xl">
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-4">
+    <div class="ui-card p-6 mb-4">
         <h3 class="font-semibold text-gray-800 mb-3">بيانات الحجز</h3>
         <div class="grid grid-cols-2 gap-3 text-sm">
             <div><span class="text-gray-500">النزيل:</span> <strong>{{ $reservation->guest?->full_name }}</strong></div>
@@ -18,7 +18,7 @@
         الحد الأقصى للاسترجاع: <strong>{{ number_format($reservation->paid_amount, 0) }} ر.ي</strong>
     </div>
 
-    <form action="{{ route('refunds.store', $reservation) }}" method="POST" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+    <form action="{{ route('refunds.store', $reservation) }}" method="POST" class="ui-card p-6">
         @csrf
         @if($errors->any())
         <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">

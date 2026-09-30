@@ -15,7 +15,7 @@ html.dark .peer:checked ~ .room-type-card .rt-label { color:#dbeafe; }
 
 @section('content')
 <div class="max-w-2xl mx-auto">
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+<div class="ui-card p-6">
     <div class="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
         <a href="{{ route('rooms.index') }}" class="text-gray-400 hover:text-gray-600">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>

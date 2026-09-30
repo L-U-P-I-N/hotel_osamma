@@ -6,7 +6,7 @@
 <div dir="rtl" class="max-w-4xl mx-auto space-y-6">
 
     {{-- بطاقة الملخص --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+    <div class="ui-card p-6">
         <div class="flex items-center justify-between mb-5">
             <div>
                 <h2 class="text-lg font-bold text-gray-800">{{ $employee->name }}</h2>
@@ -122,25 +122,25 @@
     </div>
 
     {{-- جدول المسحوبات --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="ui-card overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-100">
             <h3 class="font-bold text-gray-800 text-sm">تفاصيل المسحوبات — {{ \App\Models\Salary::monthName($month) }} {{ $year }}</h3>
         </div>
         <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead class="bg-gray-50">
+            <table class="w-full text-sm ui-dense">
+                <thead class="ui-thead">
                     <tr>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">#</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">التاريخ</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">وقت التسجيل</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المبلغ (ر.ي)</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الفئة</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الوصف</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">صرفها له</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الوردية</th>
+                        <th class="ui-th">#</th>
+                        <th class="ui-th">التاريخ</th>
+                        <th class="ui-th">وقت التسجيل</th>
+                        <th class="ui-th">المبلغ (ر.ي)</th>
+                        <th class="ui-th">الفئة</th>
+                        <th class="ui-th">الوصف</th>
+                        <th class="ui-th">صرفها له</th>
+                        <th class="ui-th">الوردية</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-50">
+                <tbody class="ui-divide">
                     @forelse($withdrawals as $i => $w)
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-3 text-gray-500">{{ $i + 1 }}</td>

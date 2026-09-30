@@ -29,7 +29,7 @@
 </div>
 
 {{-- فلترة --}}
-<form method="GET" class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+<form method="GET" class="ui-card p-4">
     <div class="flex flex-wrap gap-3 items-end">
         <div class="flex flex-col gap-1 flex-1 min-w-48">
             <label class="text-xs font-medium text-gray-500">بحث باسم النزيل أو رقم الغرفة أو رقم الحجز</label>
@@ -58,22 +58,22 @@
 </form>
 
 {{-- الجدول --}}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100">
+<div class="ui-card">
     <div class="overflow-x-auto">
-        <table class="w-full text-sm" dir="rtl">
-            <thead class="bg-gray-50 border-b border-gray-100">
+        <table class="w-full text-sm ui-dense" dir="rtl">
+            <thead class="ui-thead">
                 <tr>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الحجز</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">النزيل</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الغرفة</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المبلغ</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">السبب</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الحالة</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">سُجّل بواسطة</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">إجراءات</th>
+                    <th class="ui-th">الحجز</th>
+                    <th class="ui-th">النزيل</th>
+                    <th class="ui-th">الغرفة</th>
+                    <th class="ui-th">المبلغ</th>
+                    <th class="ui-th">السبب</th>
+                    <th class="ui-th">الحالة</th>
+                    <th class="ui-th">سُجّل بواسطة</th>
+                    <th class="ui-th">إجراءات</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @forelse($credits as $credit)
                 @php
                     $statusCls = [

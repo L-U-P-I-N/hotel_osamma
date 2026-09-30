@@ -281,6 +281,38 @@ textarea.ui-input { height: auto; padding: .5rem .625rem; line-height: 1.6; }
 .ui-stat dt { font-size: .625rem; color: var(--ui-ink-3); margin-bottom: .1875rem; }
 .ui-stat dd {
     font-size: 1rem; font-weight: 700; color: var(--ui-ink);
-    font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; text-align: start;
+    /* اتجاه ltr يحفظ ترتيب الرقم وإشارته، وright يُبقيه في بداية القراءة العربية */
+    font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; text-align: right;
 }
 .ui-stat dd .unit { font-size: .6875rem; font-weight: 500; color: var(--ui-ink-3); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   أصناف جسرية — لتحويل الصفحات القائمة دون إعادة كتابتها
+
+   الصفحات الثقيلة (الورديات، التقارير) فيها منطق Alpine ونوافذ متداخلة،
+   وإعادة كتابتها مخاطرة بلا مقابل. هذه الأصناف تستبدل أنماط Tailwind المكرّرة
+   في مكانها، فيتغيّر المظهر والكثافة ويبقى السلوك كما هو حرفياً.
+
+   .ui-card كـ.ui-panel لكن بلا overflow:hidden — الصفحات القائمة فيها قوائم
+   منسدلة داخل البطاقات، وقصّها كان سيُخفيها.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.ui-card {
+    border: 1px solid var(--ui-line); border-radius: .625rem; background: var(--ui-bg);
+}
+
+.ui-thead { background: var(--ui-sunken); }
+.ui-thead th, th.ui-th {
+    position: sticky; top: 0; z-index: 1;
+    padding: .4375rem .75rem; text-align: start; white-space: nowrap;
+    font-size: .6875rem; font-weight: 700; color: var(--ui-ink-3);
+    background: var(--ui-sunken); border-bottom: 1px solid var(--ui-line);
+}
+
+/* كثافة الجدول: نفس .ui-table لكن تُضاف إلى جدول قائم بأصنافه */
+.ui-dense th, .ui-dense td { padding: .4375rem .75rem; }
+.ui-dense td { border-bottom: 1px solid var(--ui-line-soft); color: var(--ui-ink); }
+.ui-dense tbody tr { transition: background .1s; }
+.ui-dense tbody tr:hover { background: var(--ui-hover); }
+.ui-divide > tr + tr { border-top: 1px solid var(--ui-line-soft); }
+.ui-row:hover { background: var(--ui-hover); }

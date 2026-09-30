@@ -8,19 +8,19 @@
         @endphp
 
         @if($totalResults === 0)
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 py-16 text-center text-gray-400">
+        <div class="ui-card py-16 text-center text-gray-400">
             لا توجد نتائج مطابقة لـ «{{ $q }}»
         </div>
         @else
 
         {{-- النزلاء --}}
         @if($guests->isNotEmpty())
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="ui-card overflow-hidden">
             <div class="px-5 py-3 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full bg-blue-500"></span>
                 <h3 class="font-semibold text-gray-700 text-sm">نزلاء ({{ $guests->count() }})</h3>
             </div>
-            <div class="divide-y divide-gray-50">
+            <div class="ui-divide">
                 @foreach($guests as $guest)
                 <a href="{{ route('guests.statement', $guest) }}"
                    class="flex items-center justify-between gap-3 px-5 py-3 hover:bg-gray-50 transition">
@@ -37,12 +37,12 @@
 
         {{-- المرافقون --}}
         @if($companions->isNotEmpty())
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="ui-card overflow-hidden">
             <div class="px-5 py-3 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full bg-violet-500"></span>
                 <h3 class="font-semibold text-gray-700 text-sm">مرافقون ({{ $companions->count() }})</h3>
             </div>
-            <div class="divide-y divide-gray-50">
+            <div class="ui-divide">
                 @foreach($companions as $companion)
                 @php $mainGuest = $companion->reservation?->guest; @endphp
                 <div class="flex items-center justify-between gap-3 px-5 py-3">
@@ -72,12 +72,12 @@
 
         {{-- الموظفون --}}
         @if($employees->isNotEmpty())
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="ui-card overflow-hidden">
             <div class="px-5 py-3 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
                 <h3 class="font-semibold text-gray-700 text-sm">موظفون ({{ $employees->count() }})</h3>
             </div>
-            <div class="divide-y divide-gray-50">
+            <div class="ui-divide">
                 @foreach($employees as $employee)
                 <a href="{{ route('employees.statement', $employee) }}"
                    class="flex items-center justify-between gap-3 px-5 py-3 hover:bg-gray-50 transition">
@@ -94,12 +94,12 @@
 
         {{-- مستخدمو النظام --}}
         @if($users->isNotEmpty())
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="ui-card overflow-hidden">
             <div class="px-5 py-3 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full bg-amber-500"></span>
                 <h3 class="font-semibold text-gray-700 text-sm">مستخدمو النظام ({{ $users->count() }})</h3>
             </div>
-            <div class="divide-y divide-gray-50">
+            <div class="ui-divide">
                 @foreach($users as $user)
                 <a href="{{ route('users.statement', $user) }}"
                    class="flex items-center justify-between gap-3 px-5 py-3 hover:bg-gray-50 transition">

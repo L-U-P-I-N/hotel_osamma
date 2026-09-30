@@ -88,7 +88,7 @@
             @endcan
 
             {{-- قائمة الملاحظات --}}
-            <div x-show="items.length > 0" x-cloak class="divide-y divide-gray-50">
+            <div x-show="items.length > 0" x-cloak class="ui-divide">
                 <template x-for="note in items" :key="note.id">
                     <div class="px-4 py-2.5 flex items-start gap-2.5" :class="cardClass(note)">
                         <span class="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5"

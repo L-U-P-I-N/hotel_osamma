@@ -48,7 +48,7 @@
     </div>
 
     {{-- صناديق المستخدمين المرتبطة بالصندوق العام --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+    <div class="ui-card">
         <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2">
             <div>
                 <h3 class="font-bold text-gray-800 text-sm">صناديق المستخدمين (الورديات المفتوحة)</h3>
@@ -61,7 +61,7 @@
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-sm text-right">
-                <thead class="bg-gray-50">
+                <thead class="ui-thead">
                     <tr class="text-xs text-gray-500">
                         <th class="px-4 py-2.5 font-medium">الموظف</th>
                         <th class="px-4 py-2.5 font-medium">تاريخ الوردية</th>
@@ -73,7 +73,7 @@
                         <th class="px-4 py-2.5 font-medium"></th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-50">
+                <tbody class="ui-divide">
                     @forelse($shiftBoxes as $box)
                     <tr>
                         <td class="px-4 py-2.5 font-bold text-gray-800">{{ $box['user'] }}</td>
@@ -108,7 +108,7 @@
     </div>
 
     {{-- فلتر الفترة --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+    <div class="ui-card p-4">
         <form method="GET" class="flex flex-wrap gap-3 items-end">
             <div class="flex flex-col gap-1">
                 <label class="text-xs font-medium text-gray-500">من تاريخ</label>
@@ -126,22 +126,22 @@
 
     {{-- ملخص الفترة --}}
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div class="ui-card p-4">
             <div class="text-xs text-gray-500">الرصيد الافتتاحي</div>
             <div class="text-xl font-bold text-gray-700 mt-1">{{ number_format($openingBalance, 0) }} ر.ي</div>
         </div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div class="ui-card p-4">
             <div class="text-xs text-gray-500">إجمالي الوارد خلال الفترة</div>
             <div class="text-xl font-bold text-green-700 mt-1">{{ number_format($movements->sum('in'), 0) }} ر.ي</div>
         </div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div class="ui-card p-4">
             <div class="text-xs text-gray-500">إجمالي الصادر خلال الفترة</div>
             <div class="text-xl font-bold text-red-700 mt-1">{{ number_format($movements->sum('out'), 0) }} ر.ي</div>
         </div>
     </div>
 
     {{-- جدول الحركات --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+    <div class="ui-card overflow-x-auto">
         <table class="w-full text-right border-collapse">
             <thead>
                 <tr class="bg-gray-800 text-white text-sm">

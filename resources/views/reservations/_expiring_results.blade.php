@@ -2,23 +2,23 @@
      إعادة تحميل الصفحة (فلا يُفقد تركيز حقل البحث أثناء الكتابة). --}}
 <div data-total="{{ $total }}" data-overdue="{{ $overdueCount }}" data-today="{{ $todayCount }}"
      data-present="{{ $presentCount }}" data-departed="{{ $departedCount }}" data-departed-today="{{ $departedTodayCount }}">
-<div class="bg-white rounded-xl shadow-sm border border-gray-100">
+<div class="ui-card">
     <div class="overflow-x-auto">
-        <table class="w-full text-sm" dir="rtl">
-            <thead class="bg-gray-50">
+        <table class="w-full text-sm ui-dense" dir="rtl">
+            <thead class="ui-thead">
                 <tr>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">#</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">النزيل</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الغرفة</th>
+                    <th class="ui-th">#</th>
+                    <th class="ui-th">النزيل</th>
+                    <th class="ui-th">الغرفة</th>
                     <th class="px-2 py-3 text-center text-xs font-medium text-gray-500" title="ملاحظات فورية">📌</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">تاريخ الدخول</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">تاريخ الخروج</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المدة المتبقية</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المبلغ المتبقي</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">إجراءات</th>
+                    <th class="ui-th">تاريخ الدخول</th>
+                    <th class="ui-th">تاريخ الخروج</th>
+                    <th class="ui-th">المدة المتبقية</th>
+                    <th class="ui-th">المبلغ المتبقي</th>
+                    <th class="ui-th">إجراءات</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100" x-data="{ renewOpen: null }">
+            <tbody class="ui-divide" x-data="{ renewOpen: null }">
                 @forelse($reservations as $res)
                 @php
                     $isCheckedOut = $res->status === 'checked_out';

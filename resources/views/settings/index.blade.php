@@ -20,7 +20,7 @@
     @endif
 
     {{-- شعار الفندق --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+    <div class="ui-card p-6">
         <div class="mb-5 pb-4 border-b border-gray-100">
             <h2 class="text-lg font-semibold text-gray-800">شعار الفندق</h2>
             <p class="text-sm text-gray-500 mt-1">
@@ -81,7 +81,7 @@
     </div>
 
     {{-- بيانات الفندق: تُطبع في رأس كل فاتورة وتقرير --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+    <div class="ui-card p-6">
         <div class="mb-5 pb-4 border-b border-gray-100">
             <h2 class="text-lg font-semibold text-gray-800">بيانات الفندق</h2>
             <p class="text-sm text-gray-500 mt-1">
@@ -116,7 +116,7 @@
     </div>
 
     {{-- بيانات الدخول: تخصّ حساب المستخدم الحالي وحده --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+    <div class="ui-card p-6">
         <div class="mb-5 pb-4 border-b border-gray-100">
             <h2 class="text-lg font-semibold text-gray-800">بيانات الدخول</h2>
             <p class="text-sm text-gray-500 mt-1">

@@ -33,7 +33,7 @@
     </div>
 
     <div class="grid grid-cols-2 gap-4">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 text-center">
+        <div class="ui-card p-4 text-center">
             <div class="text-2xl font-bold" style="color:var(--ui-accent);">{{ $totalCancelled }}</div>
             <div class="text-xs text-gray-500 mt-0.5">حجز ملغى في الفترة</div>
         </div>
@@ -55,19 +55,19 @@
         <div class="py-12 text-center text-gray-400 text-sm">لا توجد حجوزات ملغاة في هذه الفترة</div>
         @else
         <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead class="bg-gray-50 border-b border-gray-100">
+            <table class="w-full text-sm ui-dense">
+                <thead class="ui-thead">
                     <tr>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">تاريخ الإلغاء</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">اسم النزيل</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">الغرفة</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">تاريخ الحجز الأصلي</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">سبب الإلغاء</th>
+                        <th class="ui-th">سبب الإلغاء</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">ألغاه</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">المتأخرات وقت الإلغاء</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-50">
+                <tbody class="ui-divide">
                     @foreach($reservations as $res)
                     @php $balance = max(0, (float)$res->total_amount - (float)$res->paid_amount); @endphp
                     <tr class="hover:bg-gray-50">

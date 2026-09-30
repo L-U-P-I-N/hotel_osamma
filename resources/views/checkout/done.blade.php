@@ -188,7 +188,7 @@
     <div class="px-5 py-4 border-b border-gray-50">
         <h3 class="font-semibold text-gray-800 text-sm">آخر المدفوعات</h3>
     </div>
-    <div class="divide-y divide-gray-50">
+    <div class="ui-divide">
         @foreach($lastPayments as $p)
         <div class="px-5 py-3 flex items-center justify-between text-sm">
             <div class="flex items-center gap-3">

@@ -6,7 +6,7 @@
 <div dir="rtl">
 
 {{-- Filter & Export --}}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-5">
+<div class="ui-card p-4 mb-5">
     {{-- تصفية سريعة: يوم / أسبوع / شهر / سنة --}}
     <div class="flex flex-wrap gap-2 mb-4">
         @php
@@ -82,80 +82,108 @@
     $expenseRatio = $totalRevenue > 0 ? ($totalExpenses / $totalRevenue) * 100 : 0;
 @endphp
 
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-5">
-    <div class="bg-white rounded-xl shadow-sm border border-green-100 p-4">
-        <div class="flex items-center justify-between mb-2">
-            <p class="text-xs font-medium text-gray-500">إجمالي الإيرادات</p>
-            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        </div>
-        <p class="text-2xl font-bold text-green-700">{{ number_format($totalRevenue, 0) }}</p>
-        <p class="text-xs text-gray-400 mt-1">ر.ي</p>
-    </div>
+@php $days = \Carbon\Carbon::parse($from)->diffInDays(\Carbon\Carbon::parse($to)) + 1; @endphp
+@php $coverage = $totalExpenses > 0 ? ($totalRevenue / $totalExpenses) : 0; @endphp
 
-    <div class="bg-white rounded-xl shadow-sm border border-red-100 p-4">
-        <div class="flex items-center justify-between mb-2">
-            <p class="text-xs font-medium text-gray-500">إجمالي المصروفات</p>
-            <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-        </div>
-        <p class="text-2xl font-bold text-red-600">{{ number_format($totalExpenses, 0) }}</p>
-        <p class="text-xs text-gray-400 mt-1">{{ number_format($expenseRatio, 1) }}% من الإيراد</p>
+{{-- شريط واحد تصطفّ أرقامه، بدل خمس بطاقات ملوّنة متباعدة --}}
+<dl class="ui-stats">
+    <div class="ui-stat">
+        <dt>إجمالي الإيرادات</dt>
+        <dd class="num--pos">{{ number_format($totalRevenue, 0) }} <span class="unit">ر.ي</span></dd>
     </div>
-
-    <div class="rounded-xl p-4 shadow-sm border {{ $netProfit >= 0 ? 'bg-blue-50 border-blue-100' : 'bg-red-50 border-red-200' }}">
-        <div class="flex items-center justify-between mb-2">
-            <p class="text-xs font-medium text-gray-500">{{ $netProfit >= 0 ? 'صافي الربح' : 'صافي الخسارة' }}</p>
-            <svg class="w-5 h-5 {{ $netProfit >= 0 ? 'text-blue-600' : 'text-red-600' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
-        </div>
-        <p class="text-2xl font-bold {{ $netProfit >= 0 ? 'text-blue-700' : 'text-red-700' }}">{{ number_format($netProfit, 0) }}</p>
-        <p class="text-xs text-gray-400 mt-1">{{ $netProfit >= 0 ? '+' : '' }}{{ number_format($margin, 1) }}% هامش</p>
+    <div class="ui-stat">
+        <dt>إجمالي المصروفات</dt>
+        <dd class="num--neg">{{ number_format($totalExpenses, 0) }}</dd>
+        <div class="ui-hint">{{ number_format($expenseRatio, 1) }}% من الإيراد</div>
     </div>
-
-    <div class="bg-white rounded-xl shadow-sm border border-purple-100 p-4">
-        <p class="text-xs font-medium text-gray-500 mb-2">متوسط يومي</p>
-        @php $days = \Carbon\Carbon::parse($from)->diffInDays(\Carbon\Carbon::parse($to)) + 1; @endphp
-        <p class="text-2xl font-bold text-purple-700">{{ number_format($totalRevenue / $days, 0) }}</p>
-        <p class="text-xs text-gray-400 mt-1">إيراد يومي</p>
+    <div class="ui-stat">
+        <dt>{{ $netProfit >= 0 ? 'صافي الربح' : 'صافي الخسارة' }}</dt>
+        {{-- السالب بين قوسين كما في الدفاتر: الإشارة وحدها تُفقد في المسح السريع --}}
+        <dd style="color:{{ $netProfit >= 0 ? 'var(--ui-accent)' : 'var(--ui-neg)' }};">
+            {{ $netProfit < 0 ? '(' . number_format(abs($netProfit), 0) . ')' : number_format($netProfit, 0) }}
+        </dd>
+        <div class="ui-hint">{{ number_format($margin, 1) }}% هامش</div>
     </div>
-
-    <div class="bg-white rounded-xl shadow-sm border border-amber-100 p-4">
-        <p class="text-xs font-medium text-gray-500 mb-2">نسبة التغطية</p>
-        @php $coverage = $totalExpenses > 0 ? ($totalRevenue / $totalExpenses) : 0; @endphp
-        <p class="text-2xl font-bold text-amber-700">{{ number_format($coverage, 2) }}x</p>
-        <p class="text-xs text-gray-400 mt-1">الإيراد يغطي المصروفات</p>
+    <div class="ui-stat">
+        <dt>متوسط يومي</dt>
+        <dd>{{ number_format($totalRevenue / $days, 0) }}</dd>
+        <div class="ui-hint">إيراد يومي</div>
     </div>
-</div>
+    <div class="ui-stat">
+        <dt>نسبة التغطية</dt>
+        <dd>{{ number_format($coverage, 2) }}x</dd>
+        <div class="ui-hint">الإيراد يغطي المصروفات</div>
+    </div>
+</dl>
 
-{{-- Charts Row --}}
+{{--
+    التوزيع: أعمدة مرتّبة تنازلياً بلون واحد، لا دائرتان ملوّنتان.
+    المطلوب مقارنة مقادير، والعين تقارن الأطوال ولا تقارن زوايا القطاعات. والرسم
+    كان يأتي من chart.js عبر CDN — فإن انقطع الإنترنت عن الفندق بقي مكانه فارغاً
+    وفيه أهمّ ما في التقرير. هذه الأعمدة تُرسم من الخادم فتظهر دائماً.
+--}}
+@php
+    $revMax = max($revenueByMethod->pluck('total')->all() ?: [1]);
+    $expMax = max($expensesByCategory->pluck('total')->all() ?: [1]);
+@endphp
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
-    {{-- Revenue Chart --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <h3 class="font-semibold text-gray-700 text-sm mb-3">توزيع الإيرادات حسب الطريقة</h3>
-        <canvas id="revenueChart" height="80"></canvas>
+    <div class="ui-card">
+        <div class="ui-panel-head"><span class="ui-panel-title">توزيع الإيرادات حسب الطريقة</span></div>
+        <div class="ui-panel-body">
+            @forelse($revenueByMethod->sortByDesc('total') as $row)
+            @php $pct = $revMax > 0 ? round($row->total / $revMax * 100) : 0; @endphp
+            <div style="margin-bottom:.5rem;">
+                <div style="display:flex;align-items:baseline;gap:.5rem;font-size:.75rem;margin-bottom:.1875rem;">
+                    <span>{{ match($row->method) {'cash'=>'نقداً','bank_transfer'=>'تحويل بنكي','pos'=>'POS',default=>$row->method} }}</span>
+                    <span class="num" style="margin-inline-start:auto;font-weight:700;">{{ number_format($row->total, 0) }}</span>
+                </div>
+                <div style="height:.375rem;border-radius:999px;background:var(--ui-line-soft);overflow:hidden;">
+                    <div style="height:100%;width:{{ $pct }}%;border-radius:999px;background:var(--ui-pos);"></div>
+                </div>
+            </div>
+            @empty
+            <div class="ui-empty">لا إيرادات في الفترة</div>
+            @endforelse
+        </div>
     </div>
 
-    {{-- Expense Chart --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <h3 class="font-semibold text-gray-700 text-sm mb-3">توزيع المصروفات حسب الفئة</h3>
-        <canvas id="expenseChart" height="80"></canvas>
+    <div class="ui-card">
+        <div class="ui-panel-head"><span class="ui-panel-title">توزيع المصروفات حسب الفئة</span></div>
+        <div class="ui-panel-body">
+            @forelse($expensesByCategory->sortByDesc('total') as $row)
+            @php $pct = $expMax > 0 ? round($row->total / $expMax * 100) : 0; @endphp
+            <div style="margin-bottom:.5rem;">
+                <div style="display:flex;align-items:baseline;gap:.5rem;font-size:.75rem;margin-bottom:.1875rem;">
+                    <span>{{ \App\Models\Expense::categoryLabel($row->category) }}</span>
+                    <span class="num" style="margin-inline-start:auto;font-weight:700;">{{ number_format($row->total, 0) }}</span>
+                </div>
+                <div style="height:.375rem;border-radius:999px;background:var(--ui-line-soft);overflow:hidden;">
+                    <div style="height:100%;width:{{ $pct }}%;border-radius:999px;background:var(--ui-neg);"></div>
+                </div>
+            </div>
+            @empty
+            <div class="ui-empty">لا مصروفات في الفترة</div>
+            @endforelse
+        </div>
     </div>
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
     {{-- Revenue breakdown table --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+    <div class="ui-card">
         <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
             <h3 class="font-semibold text-gray-700 text-sm">تفصيل الإيرادات</h3>
             <span class="text-sm font-bold text-green-700">{{ number_format($totalRevenue, 0) }} ر.ي</span>
         </div>
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50">
+        <table class="w-full text-sm ui-dense">
+            <thead class="ui-thead">
                 <tr>
                     <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">المصدر</th>
                     <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">المبلغ (ر.ي)</th>
                     <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">النسبة</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @foreach($revenueByMethod as $row)
                 <tr>
                     <td class="px-4 py-2.5 text-gray-700">
@@ -176,20 +204,20 @@
     </div>
 
     {{-- Expense breakdown table --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+    <div class="ui-card">
         <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
             <h3 class="font-semibold text-gray-700 text-sm">تفصيل المصروفات</h3>
             <span class="text-sm font-bold text-red-600">{{ number_format($totalExpenses, 0) }} ر.ي</span>
         </div>
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50">
+        <table class="w-full text-sm ui-dense">
+            <thead class="ui-thead">
                 <tr>
                     <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">الفئة</th>
                     <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">المبلغ (ر.ي)</th>
                     <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">النسبة من الإيرادات</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @foreach($expensesByCategory as $row)
                 <tr>
                     <td class="px-4 py-2.5 text-gray-700">
@@ -212,14 +240,14 @@
 
 {{-- مَن استلم الإيراد: مسؤولية كل موظف عن النقدية التي مرّت بيده --}}
 @if($revenueByReceiver->isNotEmpty())
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-5">
+<div class="ui-card mb-5">
     <div class="px-5 py-3 border-b border-gray-100">
         <h3 class="font-semibold text-gray-700 text-sm">الإيراد حسب مَن استلمه</h3>
         <p class="text-xs text-gray-400 mt-0.5">ما قبضه كل موظف خلال الفترة — وكم منه نقداً بيده</p>
     </div>
     <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50">
+        <table class="w-full text-sm ui-dense">
+            <thead class="ui-thead">
                 <tr>
                     <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">الموظف المستلم</th>
                     <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">عدد الدفعات</th>
@@ -228,7 +256,7 @@
                     <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">النسبة</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @foreach($revenueByReceiver as $row)
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-2.5 font-semibold text-gray-800">{{ $row->name }}</td>
@@ -247,7 +275,7 @@
 @endif
 
 {{-- تفصيل كل دفعة: ممّن، ولأي غرفة/حجز، ومَن استلمها وفي أي وردية --}}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-5">
+<div class="ui-card mb-5">
     <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2">
         <div>
             <h3 class="font-semibold text-gray-700 text-sm">تفاصيل الإيرادات (كل دفعة)</h3>
@@ -256,8 +284,8 @@
         <span class="text-xs text-gray-500">{{ $revenueDetails->count() }} دفعة معروضة</span>
     </div>
     <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50">
+        <table class="w-full text-sm ui-dense">
+            <thead class="ui-thead">
                 <tr>
                     <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">التاريخ</th>
                     <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">من (الدافع)</th>
@@ -270,7 +298,7 @@
                     <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">ملاحظات</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @forelse($revenueDetails as $p)
                 @php $res = $p->reservation; @endphp
                 <tr class="hover:bg-gray-50">
@@ -307,11 +335,11 @@
 
 {{-- Monthly trend --}}
 @if($monthlyTrend->isNotEmpty())
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-5">
+<div class="ui-card p-5 mb-5">
     <h3 class="font-semibold text-gray-700 text-sm mb-4">الاتجاه الشهري</h3>
     <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50">
+        <table class="w-full text-sm ui-dense">
+            <thead class="ui-thead">
                 <tr>
                     <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">الشهر</th>
                     <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">الإيرادات</th>
@@ -320,7 +348,7 @@
                     <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">الهامش</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @foreach($monthlyTrend as $row)
                 @php $monthNet = $row->revenue - $row->expenses; @endphp
                 <tr class="hover:bg-gray-50">
@@ -361,80 +389,7 @@
 @endsection
 
 @push('scripts')
-@php
-    // لون ثابت لكل عنصر (لا يتغيّر بترتيب البيانات) — من الباليت الفئوي المُتحقَّق
-    // منه (تباين واضح بين كل لونين متجاورين، آمن لعمى الألوان). "اللون يتبع
-    // الكيان لا رتبته": بدل تلوين حسب موضع العنصر في القائمة (يتغيّر مع كل فترة
-    // زمنية إذ يُعاد ترتيب الفئات حسب المبلغ)، كل طريقة دفع/فئة مصروف لها لون
-    // ثابت دائماً — راجع مهارة dataviz (references/palette.md).
-    $categoricalPalette = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948'];
-    $methodColorMap = ['cash' => $categoricalPalette[0], 'bank_transfer' => $categoricalPalette[1], 'pos' => $categoricalPalette[2]];
-    $categoryColorMap = [
-        'maintenance' => $categoricalPalette[0], 'salary'  => $categoricalPalette[1],
-        'electricity' => $categoricalPalette[2], 'food'    => $categoricalPalette[3],
-        'cleaning'    => $categoricalPalette[4], 'other'   => $categoricalPalette[5],
-    ];
-
-    $revenueLabels = $revenueByMethod->map(fn($r) => match($r->method) {
-        'cash' => 'نقداً',
-        'bank_transfer' => 'تحويل بنكي',
-        'pos' => 'POS',
-        default => $r->method,
-    });
-    $revenueColors = $revenueByMethod->map(fn($r) => $methodColorMap[$r->method] ?? '#898781');
-    $expenseLabels = $expensesByCategory->map(fn($r) => \App\Models\Expense::categoryLabel($r->category));
-    $expenseColors = $expensesByCategory->map(fn($r) => $categoryColorMap[$r->category] ?? '#898781');
-@endphp
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <script>
-(function() {
-    // Revenue Pie Chart
-    const revenueCtx = document.getElementById('revenueChart');
-    if (revenueCtx) {
-        new Chart(revenueCtx, {
-            type: 'doughnut',
-            data: {
-                labels: @json($revenueLabels),
-                datasets: [{
-                    data: @json($revenueByMethod->pluck('total')),
-                    backgroundColor: @json($revenueColors),
-                    borderColor: '#fff',
-                    borderWidth: 2,
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { position: 'bottom', labels: { font: { size: 12 } } }
-                }
-            }
-        });
-    }
-
-    // Expense Pie Chart
-    const expenseCtx = document.getElementById('expenseChart');
-    if (expenseCtx) {
-        new Chart(expenseCtx, {
-            type: 'doughnut',
-            data: {
-                labels: @json($expenseLabels),
-                datasets: [{
-                    data: @json($expensesByCategory->pluck('total')),
-                    backgroundColor: @json($expenseColors),
-                    borderColor: '#fff',
-                    borderWidth: 2,
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { position: 'bottom', labels: { font: { size: 12 } } }
-                }
-            }
-        });
-    }
-})();
-
 function exportToExcel() {
     const table = document.body.innerHTML;
     const link = document.createElement('a');

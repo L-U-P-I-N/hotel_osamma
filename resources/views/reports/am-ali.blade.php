@@ -36,7 +36,7 @@
         — إلى <b class="text-gray-700">{{ \Carbon\Carbon::parse($date)->addDay()->format('Y/m/d') }} الساعة 1 ظهراً</b>
     </div>
 
-    <div id="amAliReport" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+    <div id="amAliReport" class="ui-card overflow-x-auto">
         <table class="w-full text-right border-collapse">
             <thead>
                 <tr class="bg-gray-800 text-white text-sm">

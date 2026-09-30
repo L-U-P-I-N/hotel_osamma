@@ -6,7 +6,7 @@
 <div class="space-y-5" dir="rtl" x-data="{ tab: '{{ request('tab', 'list') }}' }">
 
 {{-- Tabs --}}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100">
+<div class="ui-card">
     <div class="flex border-b border-gray-100">
         <button @click="tab='list'"
                 :class="tab==='list' ? 'border-b-2 border-blue-600 text-blue-700 bg-blue-50/50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'"
@@ -45,21 +45,21 @@
     </div>
 
     <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50">
+        <table class="w-full text-sm ui-dense">
+            <thead class="ui-thead">
                 <tr>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">النزيل</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الغرفة</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الحالة</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الإجمالي</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المدفوع</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المتبقي</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">تاريخ الدخول</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">تاريخ الخروج</th>
+                    <th class="ui-th">النزيل</th>
+                    <th class="ui-th">الغرفة</th>
+                    <th class="ui-th">الحالة</th>
+                    <th class="ui-th">الإجمالي</th>
+                    <th class="ui-th">المدفوع</th>
+                    <th class="ui-th">المتبقي</th>
+                    <th class="ui-th">تاريخ الدخول</th>
+                    <th class="ui-th">تاريخ الخروج</th>
                     <th class="px-4 py-3"></th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @forelse($reservations as $res)
                 @php $balance = $res->total_amount - $res->paid_amount; @endphp
                 <tr class="hover:bg-gray-50">
@@ -154,33 +154,33 @@
     </div>
 
     {{-- Chart --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-5">
+    <div class="ui-card p-5 mb-5">
         <h3 class="font-semibold text-gray-700 text-sm mb-4">توزيع الديون حسب فترة التأخر</h3>
         <canvas id="debtsAgeChart" height="60"></canvas>
     </div>
 
     {{-- Detailed table --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+    <div class="ui-card">
         <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
             <h3 class="font-semibold text-gray-700 text-sm">تفاصيل الديون مصنّفة حسب العمر</h3>
             <span class="text-xs text-gray-400">اليوم: {{ now()->format('d/m/Y') }}</span>
         </div>
         <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead class="bg-gray-50">
+            <table class="w-full text-sm ui-dense">
+                <thead class="ui-thead">
                     <tr>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">النزيل</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الغرفة</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">تاريخ الخروج</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">أيام</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الإجمالي</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المدفوع</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المتبقي</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">التصنيف</th>
+                        <th class="ui-th">النزيل</th>
+                        <th class="ui-th">الغرفة</th>
+                        <th class="ui-th">تاريخ الخروج</th>
+                        <th class="ui-th">أيام</th>
+                        <th class="ui-th">الإجمالي</th>
+                        <th class="ui-th">المدفوع</th>
+                        <th class="ui-th">المتبقي</th>
+                        <th class="ui-th">التصنيف</th>
                         <th class="px-4 py-3"></th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-50">
+                <tbody class="ui-divide">
                     @forelse($agedReservations as $res)
                     @php
                         $balance  = $res->total_amount - $res->paid_amount;

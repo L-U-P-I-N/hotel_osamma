@@ -5,7 +5,7 @@
 @section('content')
 <div dir="rtl" class="max-w-xl mx-auto">
 
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+<div class="ui-card p-6">
     <div class="flex items-center justify-between mb-6">
         <h2 class="text-lg font-bold text-gray-800">تعديل قسيمة الراتب</h2>
         <a href="{{ route('salaries.index') }}" class="text-sm text-gray-500 hover:text-gray-700">← العودة</a>

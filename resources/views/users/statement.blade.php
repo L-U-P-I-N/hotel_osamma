@@ -16,7 +16,7 @@
 </div>
 
 {{-- User Card + date filter --}}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-5">
+<div class="ui-card p-5 mb-5">
     <div class="flex items-center gap-4 flex-wrap">
         <div class="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-bold flex-shrink-0"
              style="background:var(--ui-accent);color:var(--ui-accent-fg);">
@@ -63,13 +63,13 @@
 </div>
 
 {{-- Shifts --}}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-5">
+<div class="ui-card mb-5">
     <div class="px-5 py-4 border-b border-gray-100">
         <h3 class="font-bold text-gray-800">الورديات ({{ $shifts->count() }})</h3>
     </div>
     <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50"><tr>
+        <table class="w-full text-sm ui-dense">
+            <thead class="ui-thead"><tr>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">التاريخ</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المستلمات</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">السحبيات</th>
@@ -78,7 +78,7 @@
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الفرق</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الحالة</th>
             </tr></thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @forelse($shifts as $s)
                 <tr>
                     <td class="px-4 py-2 text-gray-600">{{ $s->shift_date->format('d/m/Y') }}</td>
@@ -108,19 +108,19 @@
 </div>
 
 {{-- Payments received --}}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-5">
+<div class="ui-card mb-5">
     <div class="px-5 py-4 border-b border-gray-100">
         <h3 class="font-bold text-gray-800">المستلمات ({{ $payments->count() }})</h3>
     </div>
     <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50"><tr>
+        <table class="w-full text-sm ui-dense">
+            <thead class="ui-thead"><tr>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">التاريخ</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">الغرفة / النزيل</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">طريقة الدفع</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المبلغ</th>
             </tr></thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @forelse($payments as $p)
                 <tr>
                     <td class="px-4 py-2 text-gray-600 whitespace-nowrap">{{ $p->payment_date?->format('d/m/Y H:i') ?? '—' }}</td>
@@ -144,19 +144,19 @@
 </div>
 
 {{-- Withdrawals --}}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100">
+<div class="ui-card">
     <div class="px-5 py-4 border-b border-gray-100">
         <h3 class="font-bold text-gray-800">السحبيات ({{ $withdrawals->count() }})</h3>
     </div>
     <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50"><tr>
+        <table class="w-full text-sm ui-dense">
+            <thead class="ui-thead"><tr>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">التاريخ</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">النوع</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">استلمه</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">المبلغ</th>
             </tr></thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @forelse($withdrawals as $w)
                 <tr>
                     <td class="px-4 py-2 text-gray-600 whitespace-nowrap">{{ $w->withdrawal_date?->format('d/m/Y H:i') ?? '—' }}</td>

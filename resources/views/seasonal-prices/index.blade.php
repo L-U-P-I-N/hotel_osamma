@@ -11,7 +11,7 @@
     {{-- نموذج إضافة --}}
     @can('rooms.edit')
     <div class="lg:col-span-1">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <div class="ui-card p-5">
             <h3 class="font-semibold text-gray-800 mb-4">إضافة سعر موسمي</h3>
             <form action="{{ route('seasonal-prices.store') }}" method="POST" class="space-y-3">
                 @csrf
@@ -85,14 +85,14 @@
 
     {{-- قائمة الأسعار --}}
     <div class="lg:col-span-2">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+        <div class="ui-card">
             <div class="px-5 py-4 border-b border-gray-100">
                 <h3 class="font-semibold text-gray-800">الأسعار الموسمية المسجلة</h3>
             </div>
             @if($seasons->isEmpty())
             <div class="py-10 text-center text-gray-400 text-sm">لا توجد أسعار موسمية</div>
             @else
-            <div class="divide-y divide-gray-50">
+            <div class="ui-divide">
                 @foreach($seasons as $season)
                 @php
                     $isActive = now()->between($season->from_date, $season->to_date);

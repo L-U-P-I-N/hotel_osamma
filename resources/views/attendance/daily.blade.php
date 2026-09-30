@@ -24,7 +24,7 @@
 </div>
 
 {{-- Date Filter --}}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-5">
+<div class="ui-card p-4 mb-5">
     <form method="GET" class="flex items-end gap-3">
         <div>
             <label class="block text-xs font-medium text-gray-600 mb-1">التاريخ</label>
@@ -41,7 +41,7 @@
     @csrf
     <input type="hidden" name="date" value="{{ $date }}">
 
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+    <div class="ui-card">
         <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
             <div>
                 <h3 class="font-semibold text-gray-700">حضور يوم {{ \Carbon\Carbon::parse($date)->format('d/m/Y') }}</h3>
@@ -56,19 +56,19 @@
         <div class="p-10 text-center text-gray-400">لا يوجد موظفون نشطون</div>
         @else
         <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead class="bg-gray-50">
+            <table class="w-full text-sm ui-dense">
+                <thead class="ui-thead">
                     <tr>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الموظف</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المنصب</th>
+                        <th class="ui-th">الموظف</th>
+                        <th class="ui-th">المنصب</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 w-40">الحالة *</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 w-32">وقت الدخول</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 w-32">وقت الخروج</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">ملاحظة</th>
+                        <th class="ui-th">ملاحظة</th>
                         <th class="px-4 py-3"></th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-50">
+                <tbody class="ui-divide">
                     @foreach($employees as $emp)
                     @php $rec = $records[$emp->id] ?? null; @endphp
                     <tr class="hover:bg-gray-50">

@@ -6,7 +6,7 @@
 <div dir="rtl">
 
 {{-- Tabs Navigation --}}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-5">
+<div class="ui-card mb-5">
     <div class="flex overflow-x-auto">
         @php
         $hubTabs = [
@@ -38,7 +38,7 @@
 
 <div class="space-y-5">
 {{-- فلتر + تصدير --}}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+<div class="ui-card p-4">
     <div class="flex flex-wrap gap-3 items-end justify-between">
         <form method="GET" class="flex flex-wrap gap-3 items-end">
             <input type="hidden" name="tab" value="revenue">
@@ -95,17 +95,17 @@
         <p class="text-2xl font-bold mt-1" style="color:var(--ui-accent);">{{ number_format($totalRevenue, 0) }}</p>
         <p class="text-xs mt-0.5" style="color:#5b90c5;">ريال يمني</p>
     </div>
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+    <div class="ui-card p-5">
         <p class="text-xs text-gray-500 font-medium">عدد الدفعات</p>
         <p class="text-2xl font-bold text-gray-800 mt-1">{{ number_format($paymentCount) }}</p>
         <p class="text-xs text-gray-400 mt-0.5">دفعة</p>
     </div>
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+    <div class="ui-card p-5">
         <p class="text-xs text-gray-500 font-medium">الحجوزات المدفوعة</p>
         <p class="text-2xl font-bold text-gray-800 mt-1">{{ number_format($reservationCount) }}</p>
         <p class="text-xs text-gray-400 mt-0.5">حجز فريد</p>
     </div>
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+    <div class="ui-card p-5">
         <p class="text-xs text-gray-500 font-medium">متوسط الدفعة</p>
         <p class="text-2xl font-bold text-gray-800 mt-1">{{ number_format($avgPayment, 0) }}</p>
         <p class="text-xs text-gray-400 mt-0.5">ر.ي</p>
@@ -114,22 +114,22 @@
 
 {{-- نوع الغرفة + طريقة الدفع --}}
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+    <div class="ui-card">
         <div class="px-5 py-4 border-b border-gray-100">
             <h3 class="font-semibold text-gray-700">الإيرادات حسب نوع الغرفة</h3>
         </div>
         <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead class="bg-gray-50">
+            <table class="w-full text-sm ui-dense">
+                <thead class="ui-thead">
                     <tr>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">نوع الغرفة</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الحجوزات</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الدفعات</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الإجمالي (ر.ي)</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">النسبة</th>
+                        <th class="ui-th">نوع الغرفة</th>
+                        <th class="ui-th">الحجوزات</th>
+                        <th class="ui-th">الدفعات</th>
+                        <th class="ui-th">الإجمالي (ر.ي)</th>
+                        <th class="ui-th">النسبة</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-50">
+                <tbody class="ui-divide">
                     @forelse($revenueByType as $r)
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-3 font-medium text-gray-800">{{ $r->name }}</td>
@@ -154,21 +154,21 @@
         </div>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+    <div class="ui-card">
         <div class="px-5 py-4 border-b border-gray-100">
             <h3 class="font-semibold text-gray-700">الإيرادات حسب طريقة الدفع</h3>
         </div>
         <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead class="bg-gray-50">
+            <table class="w-full text-sm ui-dense">
+                <thead class="ui-thead">
                     <tr>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الطريقة</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">عدد الدفعات</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الإجمالي (ر.ي)</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">النسبة</th>
+                        <th class="ui-th">الطريقة</th>
+                        <th class="ui-th">عدد الدفعات</th>
+                        <th class="ui-th">الإجمالي (ر.ي)</th>
+                        <th class="ui-th">النسبة</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-50">
+                <tbody class="ui-divide">
                     @forelse($revenueByMethod as $m)
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-3 font-medium text-gray-800">{{ $methodLabels[$m->method] ?? $m->method }}</td>
@@ -195,7 +195,7 @@
 
 {{-- مخطط الإيرادات اليومية --}}
 @if($dailyRevenue->isNotEmpty())
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+<div class="ui-card p-5">
     <h3 class="font-semibold text-gray-700 mb-4">الإيرادات اليومية <span class="text-xs text-gray-400 font-normal">(ر.ي)</span></h3>
     <div style="height:220px;">
         <canvas id="revDailyChart"></canvas>
@@ -206,22 +206,22 @@
 {{-- أفضل الغرف + جدول يومي --}}
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
     @if($topRooms->isNotEmpty())
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+    <div class="ui-card">
         <div class="px-5 py-4 border-b border-gray-100">
             <h3 class="font-semibold text-gray-700">أعلى الغرف إيرادًا</h3>
         </div>
         <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead class="bg-gray-50">
+            <table class="w-full text-sm ui-dense">
+                <thead class="ui-thead">
                     <tr>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">#</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">رقم الغرفة</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">النوع</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الحجوزات</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الإيراد (ر.ي)</th>
+                        <th class="ui-th">#</th>
+                        <th class="ui-th">رقم الغرفة</th>
+                        <th class="ui-th">النوع</th>
+                        <th class="ui-th">الحجوزات</th>
+                        <th class="ui-th">الإيراد (ر.ي)</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-50">
+                <tbody class="ui-divide">
                     @foreach($topRooms as $i => $room)
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-3 text-gray-400 text-xs">{{ $i + 1 }}</td>
@@ -240,21 +240,21 @@
     @endif
 
     @if($dailyRevenue->isNotEmpty())
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+    <div class="ui-card">
         <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
             <h3 class="font-semibold text-gray-700">تفصيل يومي</h3>
             <span class="text-xs text-gray-400">{{ $dailyRevenue->count() }} يوم</span>
         </div>
         <div class="overflow-x-auto max-h-80 overflow-y-auto">
-            <table class="w-full text-sm">
+            <table class="w-full text-sm ui-dense">
                 <thead class="bg-gray-50 sticky top-0">
                     <tr>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">التاريخ</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الدفعات</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الإيراد (ر.ي)</th>
+                        <th class="ui-th">التاريخ</th>
+                        <th class="ui-th">الدفعات</th>
+                        <th class="ui-th">الإيراد (ر.ي)</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-50">
+                <tbody class="ui-divide">
                     @foreach($dailyRevenue->sortByDesc('date') as $day)
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-2.5 text-gray-600 whitespace-nowrap">{{ \Carbon\Carbon::parse($day->date)->format('d/m/Y') }}</td>
@@ -277,7 +277,7 @@
 @if($tab === 'expenses')
 <div>
 {{-- فلتر --}}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-5">
+<div class="ui-card p-4 mb-5">
     <div class="flex flex-wrap items-end gap-3 justify-between">
         <form method="GET" class="flex gap-2 items-end flex-wrap">
             <input type="hidden" name="tab" value="expenses">
@@ -334,33 +334,33 @@
 
 {{-- رسوم بيانية --}}
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+    <div class="ui-card p-5">
         <h3 class="font-semibold text-gray-700 text-sm mb-4">توزيع المصروفات حسب الفئة</h3>
         <canvas id="expDistributionChart" height="100"></canvas>
     </div>
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+    <div class="ui-card p-5">
         <h3 class="font-semibold text-gray-700 text-sm mb-4">مقارنة الفئات</h3>
         <canvas id="expCategoryChart" height="100"></canvas>
     </div>
 </div>
 
 {{-- جدول تفصيلي --}}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100">
+<div class="ui-card">
     <div class="px-5 py-4 border-b border-gray-100">
         <h3 class="font-semibold text-gray-700 text-sm">تفصيل المصروفات حسب الفئة</h3>
     </div>
     <div class="overflow-x-auto">
         <table id="expensesTable" class="w-full text-sm">
-            <thead class="bg-gray-50">
+            <thead class="ui-thead">
                 <tr>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الفئة</th>
+                    <th class="ui-th">الفئة</th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500">عدد العمليات</th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500">الإجمالي (ر.ي)</th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500">النسبة</th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500">المتوسط</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @foreach($expensesByCategory as $row)
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 font-medium text-gray-800">{{ \App\Models\Expense::categoryLabel($row->category) }}</td>
@@ -401,7 +401,7 @@ $pmColors = ['cash'=>'#10b981','bank_transfer'=>'#3b82f6','pos'=>'#a855f7','chec
 @endphp
 <div>
 {{-- فلتر --}}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-5">
+<div class="ui-card p-4 mb-5">
     <form method="GET" class="flex gap-3 items-end flex-wrap">
         <input type="hidden" name="tab" value="methods">
         <div>
@@ -462,26 +462,26 @@ $pmColors = ['cash'=>'#10b981','bank_transfer'=>'#3b82f6','pos'=>'#a855f7','chec
 
 {{-- تفصيل --}}
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+    <div class="ui-card p-5">
         <h3 class="font-bold text-gray-800 mb-4">توزيع المدفوعات حسب الطريقة</h3>
         <div class="h-80 flex items-center justify-center">
             <canvas id="pmMethodChart"></canvas>
         </div>
     </div>
-    <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+    <div class="lg:col-span-2 ui-card p-5">
         <h3 class="font-bold text-gray-800 mb-4">تفاصيل كل طريقة دفع</h3>
         <div class="overflow-x-auto">
             <table id="pmTable" class="w-full text-sm">
-                <thead class="bg-gray-50">
+                <thead class="ui-thead">
                     <tr>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">طريقة الدفع</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">العدد</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">الإجمالي (ر.ي)</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">المتوسط (ر.ي)</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">النسبة %</th>
+                        <th class="ui-th">طريقة الدفع</th>
+                        <th class="ui-th">العدد</th>
+                        <th class="ui-th">الإجمالي (ر.ي)</th>
+                        <th class="ui-th">المتوسط (ر.ي)</th>
+                        <th class="ui-th">النسبة %</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-50">
+                <tbody class="ui-divide">
                     @forelse($byMethod as $method => $data)
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-3 font-semibold text-gray-700">
@@ -514,25 +514,25 @@ $pmColors = ['cash'=>'#10b981','bank_transfer'=>'#3b82f6','pos'=>'#a855f7','chec
 </div>
 
 {{-- تفاصيل كل عملية دفع فردياً: النزيل، الغرفة، وسند التحويل البنكي إن وُجد --}}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-5">
+<div class="ui-card mb-5">
     <div class="px-5 py-4 border-b border-gray-100">
         <h3 class="font-bold text-gray-800">تفاصيل عمليات الدفع</h3>
         <p class="text-xs text-gray-400 mt-0.5">كل عملية دفع على حدة — النزيل، الغرفة، ومن استلمها</p>
     </div>
     <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50">
+        <table class="w-full text-sm ui-dense">
+            <thead class="ui-thead">
                 <tr>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">التاريخ</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">طريقة الدفع</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">النزيل</th>
+                    <th class="ui-th">النزيل</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">الغرفة</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">المبلغ (ر.ي)</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">استلمها</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">سند التحويل</th>
+                    <th class="ui-th">سند التحويل</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @forelse($paymentDetails as $p)
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{{ $p->payment_date?->format('d/m/Y H:i') ?? '—' }}</td>
@@ -587,7 +587,7 @@ $pmColors = ['cash'=>'#10b981','bank_transfer'=>'#3b82f6','pos'=>'#a855f7','chec
 </div>
 
 {{-- الاسترجاعات المالية: استرجاع مباشر أو ناتج عن إلغاء حجز — يُخصم من الوردية المفتوحة عند تسجيله --}}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-5">
+<div class="ui-card mb-5">
     <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
         <div>
             <h3 class="font-bold text-gray-800">الاسترجاعات</h3>
@@ -599,19 +599,19 @@ $pmColors = ['cash'=>'#10b981','bank_transfer'=>'#3b82f6','pos'=>'#a855f7','chec
         </div>
     </div>
     <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50">
+        <table class="w-full text-sm ui-dense">
+            <thead class="ui-thead">
                 <tr>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">التاريخ</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">النزيل</th>
+                    <th class="ui-th">النزيل</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">الغرفة</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">المبلغ (ر.ي)</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">الطريقة</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">السبب</th>
+                    <th class="ui-th">السبب</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 whitespace-nowrap">نفّذها</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="ui-divide">
                 @forelse($refundDetails as $r)
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{{ $r->refunded_at?->format('d/m/Y H:i') ?? '—' }}</td>
@@ -642,7 +642,7 @@ $pmColors = ['cash'=>'#10b981','bank_transfer'=>'#3b82f6','pos'=>'#a855f7','chec
 </div>
 
 @if($dailyByMethod->isNotEmpty())
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+<div class="ui-card p-5">
     <h3 class="font-bold text-gray-800 mb-4">اتجاه المدفوعات اليومي</h3>
     <div class="h-96 flex items-center justify-center">
         <canvas id="pmDailyTrendChart"></canvas>
@@ -658,7 +658,7 @@ $pmColors = ['cash'=>'#10b981','bank_transfer'=>'#3b82f6','pos'=>'#a855f7','chec
 @if($tab === 'ratios')
 <div>
 {{-- فلتر --}}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-5">
+<div class="ui-card p-4 mb-5">
     <form method="GET" class="flex gap-2 items-end flex-wrap">
         <input type="hidden" name="tab" value="ratios">
         <div>
@@ -723,7 +723,7 @@ $pmColors = ['cash'=>'#10b981','bank_transfer'=>'#3b82f6','pos'=>'#a855f7','chec
 
 {{-- مؤشرات ثانوية --}}
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+    <div class="ui-card p-5">
         <h3 class="font-semibold text-gray-700 text-sm mb-4">مؤشرات الصحة المالية</h3>
         <div class="space-y-3">
             <div class="flex items-center justify-between">
@@ -759,7 +759,7 @@ $pmColors = ['cash'=>'#10b981','bank_transfer'=>'#3b82f6','pos'=>'#a855f7','chec
             </div>
         </div>
     </div>
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+    <div class="ui-card p-5">
         <h3 class="font-semibold text-gray-700 text-sm mb-4">مؤشرات التشغيل</h3>
         <div class="space-y-3">
             <div class="flex items-center justify-between">
@@ -798,7 +798,7 @@ $pmColors = ['cash'=>'#10b981','bank_transfer'=>'#3b82f6','pos'=>'#a855f7','chec
 </div>
 
 {{-- تقييم الأداء العام --}}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+<div class="ui-card p-5">
     <h3 class="font-semibold text-gray-700 text-sm mb-4">تقييم الأداء العام</h3>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div class="text-center p-4 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100">
@@ -866,7 +866,7 @@ $pmColors = ['cash'=>'#10b981','bank_transfer'=>'#3b82f6','pos'=>'#a855f7','chec
 <div class="space-y-5">
 
     {{-- ميزان المراجعة --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+    <div class="ui-card p-5">
         <h3 class="font-bold text-gray-800 text-sm mb-3">ميزان المراجعة</h3>
         <div class="flex flex-wrap gap-6 items-center">
             <div>
@@ -889,7 +889,7 @@ $pmColors = ['cash'=>'#10b981','bank_transfer'=>'#3b82f6','pos'=>'#a855f7','chec
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {{-- شجرة الحسابات --}}
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <div class="ui-card p-5">
             <h3 class="font-bold text-gray-800 text-sm mb-3">شجرة الحسابات</h3>
             <div class="space-y-1">
                 @include('reports.partials.account-tree-node', ['nodes' => $accountsTree, 'depth' => 0])
@@ -897,7 +897,7 @@ $pmColors = ['cash'=>'#10b981','bank_transfer'=>'#3b82f6','pos'=>'#a855f7','chec
         </div>
 
         {{-- درنة الحساب المحدد --}}
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <div class="ui-card p-5">
             @if($drillAccount)
             <h3 class="font-bold text-gray-800 text-sm mb-3">
                 حركات حساب: {{ $drillAccount->code }} — {{ $drillAccount->name }}

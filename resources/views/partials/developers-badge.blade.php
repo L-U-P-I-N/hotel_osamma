@@ -59,7 +59,7 @@
                 <div class="text-[10px]" style="color:#a8c8e0;">مطوّرو النظام — للتواصل</div>
             </div>
         </div>
-        <ul class="divide-y divide-gray-100">
+        <ul class="ui-divide">
             @foreach($devMembers as $member)
             <li class="px-3 py-2.5 flex items-center justify-between gap-2">
                 <span class="text-xs font-semibold text-gray-700 min-w-0 truncate">{{ $member['name'] }}</span>
