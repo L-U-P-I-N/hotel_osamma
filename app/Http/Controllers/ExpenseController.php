@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\DB;
 use App\Exports\ExpenseExport;
 use App\Models\CashSettlement;
 use App\Models\CashWithdrawal;
@@ -245,25 +246,34 @@ class ExpenseController extends Controller
         )?->id;
         $targetShift = $this->resolveShiftForExpense($data['expense_date'], $request->input('shift_id'), $expense->paid_by);
         $data['shift_id'] = $targetShift?->id;
-        $expense->update($data);
-        $expense->refresh();
 
-        if ($expense->isPaidFromCash()) {
-            $this->syncWithdrawal($expense, $targetShift);
-        } else {
-            // طريقة الدفع تغيّرت → احذف السحب المرتبط (Observer يعيد الحساب تلقائياً)
-            $expense->cashWithdrawal()?->delete();
-            $this->recomputeSettlement($expense);
-        }
+        // المصروف وسحبه النقدي وجهان لحركة واحدة. تحديث أحدهما دون الآخر يجعل
+        // رصيد الصندوق يخالف سجل المصروفات، ولا شيء في الشاشة يدلّ على السبب.
+        DB::transaction(function () use ($expense, $data, $targetShift): void {
+            $expense->update($data);
+            $expense->refresh();
+
+            if ($expense->isPaidFromCash()) {
+                $this->syncWithdrawal($expense, $targetShift);
+            } else {
+                // طريقة الدفع تغيّرت → احذف السحب المرتبط (Observer يعيد الحساب تلقائياً)
+                $expense->cashWithdrawal()?->delete();
+                $this->recomputeSettlement($expense);
+            }
+        });
 
         return redirect()->route('expenses.index')->with('success', 'تم تحديث المصروف بنجاح');
     }
 
     public function destroy(Expense $expense)
     {
-        $expense->cashWithdrawal()?->delete();
-        $this->recomputeSettlement($expense);
-        $expense->delete();
+        // حذف السحب قبل المصروف — لو فشل الثاني بقي الصندوق ناقصاً سحبه
+        // بينما المصروف ما زال قائماً، فيبدو الرصيد أكبر مما هو
+        DB::transaction(function () use ($expense): void {
+            $expense->cashWithdrawal()?->delete();
+            $this->recomputeSettlement($expense);
+            $expense->delete();
+        });
 
         return redirect()->route('expenses.index')->with('success', 'تم حذف المصروف بنجاح');
     }
@@ -300,6 +310,9 @@ class ExpenseController extends Controller
             return back()->withErrors(['error' => 'هذا المصروف مسوّى بالفعل']);
         }
 
+        // التسوية وقيدها معاً: مصروفٌ يُوسَم مسوّى بلا قيد يُبقي التزام 2150
+        // مفتوحاً في الميزان إلى الأبد دون أن يظهر في أي شاشة
+        DB::transaction(function () use ($expense): void {
         $expense->update([
             'settled_at' => now(),
             'settled_by' => auth()->id(),
@@ -310,8 +323,10 @@ class ExpenseController extends Controller
 
         // تسوية المصروف المؤجَّل = خروج نقدية فعلي الآن؛ يُقفَل التزام 2200
         // ويُقيَّد الخروج على نقدية الورديات.
+        // postOrFail: وسم «مسوّى» معناه أن النقد خرج فعلاً، فإن تعذّر القيد
+        // فالوسم كذب — يبقى التزام 2150 مفتوحاً في الميزان بلا ما يُقابله
         if ($expense->currency === 'YER') {
-            app(\App\Services\JournalService::class)->post(
+            app(\App\Services\JournalService::class)->postOrFail(
                 now()->toDateString(),
                 'تسوية مصروف مؤجَّل: ' . $expense->recipient_name,
                 Expense::class,
@@ -323,6 +338,7 @@ class ExpenseController extends Controller
                 auth()->id()
             );
         }
+        });
 
         return back()->with('success', 'تم تسوية المصروف بنجاح');
     }

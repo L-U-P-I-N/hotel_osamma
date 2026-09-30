@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\DB;
 use App\Models\Employee;
 use App\Models\Salary;
 use Illuminate\Http\Request;
@@ -145,6 +146,10 @@ class SalaryController extends Controller
             $validated['payment_account_id'] ?? null
         );
 
+        // ثلاث كتابات: حالة القسيمة، ثم قيد الاستحقاق، ثم قيد الصرف. فشل الأخير
+        // وحده كان يترك الراتب «مدفوعاً» مع استحقاقٍ مفتوح على 2410 بلا سداد —
+        // خزنةٌ لم تنقص ودينُ رواتب لا يُقفل أبداً.
+        DB::transaction(function () use ($salary, $account): void {
         $salary->update([
             'status'             => 'paid',
             'payment_account_id' => $account?->id,
@@ -153,9 +158,14 @@ class SalaryController extends Controller
         // يسدّ فجوة كانت موجودة: "مدفوع" لا ينشئ أي سجل مالي.
         $label = ($salary->employee?->name ?? '—') . ' — ' . $salary->month . '/' . $salary->year;
 
+        // postOrFail لا post هنا: القيدان زوجٌ لا يُفرَّق. وpost يبتلع الخطأ
+        // ويكتفي بالسجل، فكان فشل قيد الصرف وحده يترك الراتب موسوماً «مدفوعاً»
+        // والتزام 2410 مفتوحاً بلا سداد — خزنةٌ لم تنقص ودينُ رواتب لا يُقفل،
+        // ولا شيء في الشاشة يدلّ على ذلك.
+        //
         // الاستحقاق يسبق الصرف: بدونه يبقى حساب الرواتب المستحقة مديناً بلا
         // مقابل ويختفي المصروف من قائمة الدخل.
-        app(\App\Services\JournalService::class)->post(
+        app(\App\Services\JournalService::class)->postOrFail(
             now()->toDateString(),
             'استحقاق راتب: ' . $label,
             Salary::class,
@@ -168,7 +178,7 @@ class SalaryController extends Controller
             'payroll.accrued'
         );
 
-        app(\App\Services\JournalService::class)->post(
+        app(\App\Services\JournalService::class)->postOrFail(
             now()->toDateString(),
             'راتب مدفوع: ' . $label,
             Salary::class,
@@ -180,6 +190,7 @@ class SalaryController extends Controller
             auth()->id(),
             'payroll.paid'
         );
+        });
 
         return back()->with('success', 'تم تسجيل الراتب كمدفوع' . ($account ? " — صُرف من: {$account->name}" : ''));
     }

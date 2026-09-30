@@ -336,6 +336,10 @@ class ShiftService
         // مصدر تمويل المصروف: من نقدية الوردية الشخصية أو من الصندوق العام.
         $fundingSource = $data['funding_source'] ?? 'shift';
 
+        // ثلاث كتابات مترابطة: المصروف، ثم السحب، ثم القيد. فشل أيّها بعد
+        // الأولى كان يترك مصروفاً بلا سحبٍ يقابله — رقمٌ في المصروفات لا أثر
+        // له في الصندوق. فإما أن تتم كلها أو لا يبقى منها شيء.
+        return DB::transaction(function () use ($shift, $data, $type, $employeeId, $fundingSource): CashWithdrawal {
         // إنشاء سجل مصروف تلقائياً لكل سحب من نوع "مصروف"
         $expenseId = null;
         if ($type === 'expense') {
@@ -392,6 +396,7 @@ class ShiftService
         }
 
         return $withdrawal;
+        });
     }
 
     public function linkPaymentToShift(Payment $payment): void
@@ -562,6 +567,9 @@ class ShiftService
         $month   = $shift->shift_date->month;
         $year    = $shift->shift_date->year;
 
+        // الخصم يُكتب في قسيمة الراتب ثم يُوسَم في الوردية. لو نجحت الأولى وحدها
+        // لبقي العجز مخصوماً من الراتب والوردية غير موسومة، فيُخصم مرة أخرى.
+        DB::transaction(function () use ($shift, $requestingUser, $employee, $deficit, $month, $year): void {
         $salary = Salary::firstOrCreate(
             ['employee_id' => $employee->id, 'month' => $month, 'year' => $year],
             [
@@ -592,6 +600,7 @@ class ShiftService
         ]);
 
         AuditLogService::log('update', $shift, $old, $shift->fresh()->only(['salary_deducted_at', 'salary_deducted_by']), $requestingUser);
+        });
     }
 
     public function getAllUsersShiftStatus(): \Illuminate\Support\Collection

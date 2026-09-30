@@ -1005,6 +1005,13 @@ class ReservationController extends Controller
             ? 'both'
             : ($newRoom->isSuiteA() ? 'a_only' : ($newRoom->isSuiteB() ? 'b_only' : null));
 
+        // النقل ثلاث كتابات مترابطة: الحجز، ثم فترات المحاسبة، ثم حالات الغرف.
+        // فشل أيّها بعد الأولى كان يترك النزيل مسجَّلاً في غرفة ما زالت «متاحة»
+        // والقديمة «مشغولة» — لوحة الغرف تكذب، وقد تُباع الغرفة الجديدة لنزيل آخر.
+        DB::transaction(function () use (
+            $reservation, $newRoom, $partner, $suiteBookingType, $discountAmount,
+            $newTotal, $transferNote, $newPricePerNight, $oldRoom, $oldLinkedRoom
+        ): void {
         // Move guest to new room(s)
         $reservation->update([
             'room_id'            => $newRoom->id,
@@ -1044,6 +1051,7 @@ class ReservationController extends Controller
         }
         $newRoom->update(['status' => 'occupied']);
         $partner?->update(['status' => 'occupied']);
+        });
 
         AuditLogService::log('update', $reservation, $old, [
             'room_id'            => $newRoom->id,

@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\DB;
 use App\Models\Floor;
 use App\Models\Hotel;
 use App\Models\Room;
@@ -167,12 +168,19 @@ class RoomController extends Controller
             ]);
         }
 
-        // Permanently remove any soft-deleted suite rooms with the same numbers
-        Room::onlyTrashed()->whereIn('room_number', [$numA, $numB])->forceDelete();
+        // القسمان يُنشآن ويُربطان معاً أو لا يُنشأ أيّهما: فشل القسم الثاني كان
+        // يترك نصف جناح — غرفة suite_a بلا شقيقة ولا رابط، لا تُحجز ولا تُحذف
+        // من الواجهة لأن الشاشة تتعامل مع الجناح وحدةً واحدة.
+        [$roomA, $roomB] = DB::transaction(static function () use ($numA, $numB, $baseAttributes): array {
+            // Permanently remove any soft-deleted suite rooms with the same numbers
+            Room::onlyTrashed()->whereIn('room_number', [$numA, $numB])->forceDelete();
 
-        $roomA = Room::create(array_merge($baseAttributes, ['room_number' => $numA, 'room_sub_type' => 'suite_a']));
-        $roomB = Room::create(array_merge($baseAttributes, ['room_number' => $numB, 'room_sub_type' => 'suite_b', 'linked_room_id' => $roomA->id]));
-        $roomA->update(['linked_room_id' => $roomB->id]);
+            $roomA = Room::create(array_merge($baseAttributes, ['room_number' => $numA, 'room_sub_type' => 'suite_a']));
+            $roomB = Room::create(array_merge($baseAttributes, ['room_number' => $numB, 'room_sub_type' => 'suite_b', 'linked_room_id' => $roomA->id]));
+            $roomA->update(['linked_room_id' => $roomB->id]);
+
+            return [$roomA, $roomB];
+        });
 
         AuditLogService::log('create', $roomA, [], $roomA->toArray(), auth()->user());
         AuditLogService::log('create', $roomB, [], $roomB->toArray(), auth()->user());

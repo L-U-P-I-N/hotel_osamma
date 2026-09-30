@@ -29,6 +29,8 @@ class CashSettlementService
             throw new \RuntimeException('لا يمكن إضافة سحب لحساب مقفل');
         }
 
+        // السحب ثم إعادة احتساب الحساب ثم القيد — كتابات مترابطة لا تُجزَّأ
+        return DB::transaction(function () use ($settlement, $data): CashWithdrawal {
         $withdrawal = CashWithdrawal::create([
             'cash_settlement_id'  => $settlement->id,
             'amount'              => $data['amount'],
@@ -61,6 +63,7 @@ class CashSettlementService
         }
 
         return $withdrawal;
+        });
     }
 
     public function saveSignatures(CashSettlement $settlement, string $empSig, string $adminSig): void
