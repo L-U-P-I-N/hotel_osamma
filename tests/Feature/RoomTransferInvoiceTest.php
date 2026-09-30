@@ -6,6 +6,7 @@ use App\Models\Reservation;
 use App\Models\Room;
 use App\Models\Shift;
 use App\Models\User;
+use App\Services\AuditLogService;
 use App\Services\ReservationSegmentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -189,10 +190,13 @@ class RoomTransferInvoiceTest extends TestCase
     }
 
     /**
-     * تصحيح يدوي لغرفة فترة قديمة لا يوجد لها سجل مراجعة دقيق (نقل تم قبل هذه
-     * الميزة، أو بطريقة أخرى لم تُسجَّل) — الموظف يختار الغرفة الصحيحة يدوياً.
+     * تصحيح يدوي لغرفة فترة قديمة — بين غرف هذا الحجز وحدها.
+     *
+     * كان المسار يقبل أي غرفة في الفندق، فيُنسب تجديدٌ إلى غرفة لم يدخلها النزيل
+     * قطّ وتخرج فاتورة الغرفة الجزئية بأرقام غرفة أخرى دون أن يُخطئ شيء. وغرفة
+     * نقلٍ قديم لم تُسجَّل له فترة تبقى متاحة، لأنها تُسترجع من سجل المراجعة.
      */
-    public function test_staff_can_manually_correct_a_segments_room(): void
+    public function test_staff_can_correct_a_segment_to_a_room_the_guest_actually_stayed_in(): void
     {
         $admin = $this->admin();
         $this->openShift($admin);
@@ -202,15 +206,38 @@ class RoomTransferInvoiceTest extends TestCase
         $segment = $r->segments()->firstOrFail();
         $this->assertSame($r->room_id, $segment->room_id);
 
-        $correctRoomId = Room::where('id', '!=', $r->room_id)->value('id');
+        // غرفة نزلها الحجز سابقاً وسجّلها سجل المراجعة، بلا فترة محاسبة لها
+        $previousRoomId = Room::where('id', '!=', $r->room_id)->value('id');
+        AuditLogService::log('update', $r, ['room_id' => $previousRoomId], ['action' => 'room_transfer'], $admin);
 
         $this->actingAs($admin)
             ->put("/reservations/segment/{$segment->id}", [
                 'price_per_night' => (float) $segment->price_per_night,
-                'room_id'         => $correctRoomId,
+                'room_id'         => $previousRoomId,
             ])
             ->assertSessionHasNoErrors();
 
-        $this->assertSame($correctRoomId, $segment->fresh()->room_id);
+        $this->assertSame($previousRoomId, $segment->fresh()->room_id);
+    }
+
+    /** أما غرفة لا صلة لها بالحجز فتُرفض — وهي ما كان يقبله المسار سابقاً */
+    public function test_a_segment_cannot_be_moved_to_an_unrelated_room(): void
+    {
+        $admin = $this->admin();
+        $this->openShift($admin);
+        $r = $this->checkedInGuest(nightly: 20000, nights: 4);
+        app(ReservationSegmentService::class)->recordInitial($r, 20000, 20000, 4, $admin->id);
+
+        $segment  = $r->segments()->firstOrFail();
+        $stranger = Room::where('id', '!=', $r->room_id)->value('id');
+
+        $this->actingAs($admin)
+            ->put("/reservations/segment/{$segment->id}", [
+                'price_per_night' => (float) $segment->price_per_night,
+                'room_id'         => $stranger,
+            ])
+            ->assertSessionHasErrors('room_id');
+
+        $this->assertSame($r->room_id, $segment->fresh()->room_id);
     }
 }

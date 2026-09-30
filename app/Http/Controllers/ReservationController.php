@@ -15,6 +15,7 @@ use App\Services\ShiftService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class ReservationController extends Controller
 {
@@ -2163,11 +2164,18 @@ class ReservationController extends Controller
                 'required', 'numeric', 'min:0',
                 new WithinPriceBounds($reservation->room, auth()->user(), $reservation->suite_booking_type),
             ],
-            'room_id' => 'nullable|integer|exists:rooms,id',
+            // الغرفة تُقيَّد بغرف هذا الحجز وحدها. exists:rooms كانت تقبل أي غرفة
+            // في الفندق، فيُنسب تجديدٌ إلى غرفة لم يدخلها النزيل قطّ وتخرج فاتورة
+            // الغرفة الجزئية بأرقام غرفة أخرى دون أن يُخطئ شيء. والحرس هنا لا في
+            // القائمة وحدها: تقييد الخيارات في الصفحة لا يمنع طلباً يصل من خارجها.
+            'room_id' => [
+                'nullable', 'integer',
+                Rule::in($reservation->stayedRooms()->pluck('id')->all()),
+            ],
         ], [
             'price_per_night.required' => 'سعر الليلة مطلوب',
             'price_per_night.numeric'  => 'سعر الليلة يجب أن يكون رقماً',
-            'room_id.exists'           => 'الغرفة المختارة غير موجودة',
+            'room_id.in'               => 'الغرفة المختارة ليست من غرف هذا الحجز',
         ]);
 
         $newPrice  = (float) $validated['price_per_night'];

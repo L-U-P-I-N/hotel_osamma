@@ -48,11 +48,12 @@
     $roomSegments = $reservation->segments;
     $showSegments = $roomSegments->isNotEmpty()
         && abs(round((float) $roomSegments->sum('amount'), 2) - (float) $grossTotal) <= 1.0;
-    // كل الغرف (لا المتاحة فقط) لاختيار غرفة الفترة يدوياً — بعض الفترات القديمة
-    // قد تخصّ غرفة لم يلتقط سجل المراجعة نقلها بدقة، فيصحّحها الموظف يدوياً هنا.
-    $allRoomsForSegments = $showSegments
-        ? \App\Models\Room::orderBy('room_number')->get(['id', 'room_number'])
-        : collect();
+    // غرف هذا الحجز وحدها لاختيار غرفة الفترة — لا غرف الفندق كلها. بعض الفترات
+    // القديمة قد تخصّ غرفة لم يلتقط سجل المراجعة نقلها بدقة، فيصحّحها الموظف بينها.
+    // وما لم ينتقل النزيل بين غرفتين فلا خيار أصلاً، فيُخفى الحقل بدل عرض قائمة
+    // من عنصر واحد لا معنى لاختياره.
+    $segmentRoomOptions = $showSegments ? $reservation->stayedRooms() : collect();
+    $canPickSegmentRoom = $segmentRoomOptions->count() > 1;
 
     // معاينة "تصحيح: إعادة احتساب الفترات" — تُقارن ما هو محفوظ حالياً بما ستنتجه
     // الصيغة الحالية لحساب الليالي (حد 1 ظهراً بلحظتي الوصول والخروج)، فيظهر الزر
@@ -1937,16 +1938,20 @@ function openOldDebtModal(reservationId, balance, checkInDate) {
                        class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-400 outline-none">
             </div>
 
+            @if($canPickSegmentRoom)
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">الغرفة التي كان فيها النزيل في هذه الفترة</label>
                 <select id="editSegmentRoom" name="room_id"
                         class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-400 outline-none">
-                    @foreach($allRoomsForSegments as $roomOption)
+                    @foreach($segmentRoomOptions as $roomOption)
                     <option value="{{ $roomOption->id }}">غرفة {{ $roomOption->room_number }}</option>
                     @endforeach
                 </select>
-                <p class="text-xs text-gray-400 mt-1">صحِّحها إن كانت خاطئة — مفيد لطباعة فاتورة جزئية دقيقة لغرفة سابقة.</p>
+                <p class="text-xs text-gray-400 mt-1">
+                    غرف هذا النزيل وحدها — صحِّحها إن كانت خاطئة، فهي ما تُبنى عليه فاتورة الغرفة الجزئية.
+                </p>
             </div>
+            @endif
 
             <div class="rounded-xl bg-blue-50 border border-blue-100 p-3 flex justify-between items-center">
                 <span class="text-blue-800 font-semibold text-sm">مبلغ هذا التجديد بعد التعديل</span>

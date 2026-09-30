@@ -188,6 +188,62 @@ class Reservation extends Model
     }
 
     /**
+     * غرفٌ نزلها الحجز وسجّلها سجلّ المراجعة عند نقله، ولم تُسجَّل له فترة محاسبة.
+     *
+     * تُسترجع من سجل المراجعة لا من الفترات، لأن نقلاً وقع قبل ميزة الفترات ترك
+     * أثره هناك وحده — فبدونها يتعذّر تصحيح فترة قديمة إلى غرفتها الصحيحة.
+     *
+     * @return array<int,int>
+     */
+    private function transferredRoomIds(): array
+    {
+        $ids = [];
+
+        $rows = AuditLog::where('model_type', static::class)
+            ->where('model_id', $this->id)
+            ->get(['old_values', 'new_values']);
+
+        foreach ($rows as $row) {
+            foreach ([$row->old_values, $row->new_values] as $bag) {
+                if (!is_array($bag)) {
+                    continue;
+                }
+                foreach (['room_id', 'linked_room_id'] as $key) {
+                    if (!empty($bag[$key]) && is_numeric($bag[$key])) {
+                        $ids[] = (int) $bag[$key];
+                    }
+                }
+            }
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    /**
+     * الغرف التي نزلها هذا الحجز فعلاً عبر عمره: غرف فتراته المحفوظة، مع غرفته
+     * الحالية والمرتبطة بها.
+     *
+     * تُستعمل في تصحيح غرفة الفترة يدوياً. كانت القائمة هناك تعرض غرف الفندق
+     * كلها، فيُنسب تجديدٌ إلى غرفة لم يدخلها النزيل قطّ — وتخرج فاتورة الغرفة
+     * الجزئية بأرقام غرفة أخرى دون أن يُخطئ شيء.
+     *
+     * @return \Illuminate\Support\Collection<int,Room>
+     */
+    public function stayedRooms(): \Illuminate\Support\Collection
+    {
+        $ids = $this->segments->pluck('room_id')
+            ->merge($this->occupiedRoomIds())
+            ->merge($this->transferredRoomIds())
+            ->filter()
+            ->unique()
+            ->values();
+
+        return $ids->isEmpty()
+            ? collect()
+            : Room::whereIn('id', $ids)->orderBy('room_number')->get(['id', 'room_number']);
+    }
+
+    /**
      * أول حجز نشط يتعارض مع الفترة [checkIn, checkOut) على إحدى الغرف المُمرَّرة،
      * مع مراعاة يوم فاصل للتنظيف (TURNOVER_BUFFER_DAYS) بين الحجزين.
      *
