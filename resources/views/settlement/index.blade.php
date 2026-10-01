@@ -90,7 +90,9 @@
     <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
         <div>
             <h3 class="font-semibold text-gray-700">المصروفات النقدية من الصندوق</h3>
-            <p class="text-xs text-gray-400 mt-0.5">تُسجَّل من وحدة المصروفات وتُخصم تلقائياً</p>
+            <p class="text-xs text-gray-400 mt-0.5">
+                تُسجَّل من وحدة المصروفات — وما كان منها من الصندوق العام يُعرض هنا ولا يُخصم عليك
+            </p>
         </div>
         @if($settlement->status === 'open')
         @can('expenses.create')
@@ -110,6 +112,7 @@
                 <th class="ui-th">المبلغ (ر.ي)</th>
                 <th class="ui-th">المستلم</th>
                 <th class="ui-th">البيان</th>
+                <th class="ui-th">المصدر</th>
             </tr></thead>
             <tbody class="ui-divide">
                 @forelse($cashExpenses as $w)
@@ -127,9 +130,19 @@
                     <td class="px-4 py-3 font-bold text-red-600">{{ number_format($w->amount, 0) }}</td>
                     <td class="px-4 py-3 text-gray-700">{{ $w->withdrawn_by_name }}</td>
                     <td class="px-4 py-3 text-gray-500">{{ $w->notes ?: '—' }}</td>
+                    {{-- مصدر المال: ما خرج من الخزنة يُعرض ولا يدخل حساب الموظف --}}
+                    <td class="px-4 py-3">
+                        @if($w->funding_source === 'general_safe')
+                        <span class="ui-chip ui-chip--warn" title="خرج من خزنة الفندق — لا يُخصم من نقديتك">
+                            {{ $w->funding_source_label }}
+                        </span>
+                        @else
+                        <span class="ui-chip">{{ $w->funding_source_label }}</span>
+                        @endif
+                    </td>
                 </tr>
                 @empty
-                <tr><td colspan="5" class="px-4 py-6 text-center text-gray-400 text-sm">لا توجد مصروفات نقدية</td></tr>
+                <tr><td colspan="6" class="px-4 py-6 text-center text-gray-400 text-sm">لا توجد مصروفات نقدية</td></tr>
                 @endforelse
             </tbody>
         </table>

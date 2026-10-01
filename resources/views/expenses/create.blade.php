@@ -76,16 +76,31 @@
 
             {{-- الأوعية النقدية تُسرد يدوياً: المُنتقي المشترك يُخفي نفسه عند «نقداً»
                  لأنه مصمَّم لمقبوضات النزلاء، والمصروف يخرج من درجٍ أو خزنة --}}
-            <div x-show="method === 'cash'" x-cloak>
+            @php
+                $__cashAccounts = \App\Models\PaymentAccount::active()
+                    ->whereIn('type', ['shift_cash', 'safe'])->ordered()->get();
+                $__safeIds = $__cashAccounts->where('type', 'safe')->pluck('id')->values();
+            @endphp
+            <div x-show="method === 'cash'" x-cloak
+                 x-data="{ safeIds: @js($__safeIds), account: '{{ old('payment_account_id', $__prefillAccount ?: $__cashAccounts->first()?->id) }}' }">
                 <label class="block text-sm font-medium text-gray-700 mb-1.5">من أي صندوق؟</label>
-                <select name="payment_account_id"
+                <select name="payment_account_id" x-model="account"
                         class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-blue-400 bg-white">
-                    @foreach(\App\Models\PaymentAccount::active()->whereIn('type', ['shift_cash', 'safe'])->ordered()->get() as $__acc)
+                    @foreach($__cashAccounts as $__acc)
                     <option value="{{ $__acc->id }}" @selected(old('payment_account_id', $__prefillAccount) == $__acc->id)>{{ $__acc->name }}</option>
                     @endforeach
                 </select>
-                <p class="mt-2 bg-green-50 border border-green-200 rounded-lg p-3 text-xs text-green-700">
-                    سيُخصم هذا المبلغ تلقائياً من صندوق التسوية النقدية اليوم.
+
+                {{-- الرسالة تتبع الوعاء المختار: كانت تَعِد بالخصم حتى حين يُصرف من
+                     خزنة الفندق، فيظنّ الموظف أن المبلغ سيُحمَّل عليه --}}
+                <p x-show="!safeIds.includes(Number(account))" x-cloak
+                   class="mt-2 bg-green-50 border border-green-200 rounded-lg p-3 text-xs text-green-700">
+                    سيُخصم هذا المبلغ تلقائياً من نقدية ورديتك اليوم.
+                </p>
+                <p x-show="safeIds.includes(Number(account))" x-cloak
+                   class="mt-2 bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
+                    لن يُخصم من نقدية ورديتك — المال يخرج من خزنة الفندق.
+                    يُسجَّل ويظهر في تصدير وردية الموظف بأنه صُرف من الصندوق العام.
                 </p>
             </div>
 

@@ -100,8 +100,12 @@ class CashSettlementService
           ->where('method', 'cash')
           ->sum('amount');
 
+        // مصروف الصندوق العام يُربط بالحساب ليظهر في كشف الموظف، لكنه لا يُحمَّل
+        // عليه: المال خرج من خزنة الفندق لا من يده، فتحميله يُظهر عجزاً في نقدٍ
+        // لم ينقص — ويُطالَب الموظف بفرقٍ لم يأخذه.
         $totalWithdrawals = CashWithdrawal::where('cash_settlement_id', $settlement->id)
             ->where('currency', 'YER')
+            ->fromShiftDrawer()
             ->sum('amount');
 
         $settlement->update([
@@ -129,6 +133,7 @@ class CashSettlementService
         // Regular expenses per currency
         $expensesRaw = CashWithdrawal::where('cash_settlement_id', $settlement->id)
         ->where('withdrawal_type', 'expense')
+        ->fromShiftDrawer()
         ->selectRaw('currency, SUM(amount) as total')
         ->groupBy('currency')
         ->pluck('total', 'currency')
@@ -137,6 +142,7 @@ class CashSettlementService
         // Currency exchanges (e.g. gave 20,000 YER -> received 50 SAR)
         $exchanges = CashWithdrawal::where('cash_settlement_id', $settlement->id)
         ->where('withdrawal_type', 'currency_exchange')
+        ->fromShiftDrawer()
         ->get();
 
         // Payment details per currency

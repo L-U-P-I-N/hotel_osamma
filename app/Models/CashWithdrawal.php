@@ -50,4 +50,18 @@ class CashWithdrawal extends Model
     {
         return $this->belongsTo(PaymentAccount::class);
     }
+
+    /**
+     * السحبيات التي خرجت من نقدية الموظف فعلاً — دون ما مُوِّل من الصندوق العام.
+     *
+     * مصدرٌ واحد لهذا الفرق: ما خرج من الخزنة يُسجَّل ويُعرض في كشف الموظف
+     * ليعرف أنه صرفه، لكنه لا يدخل حساب ما عليه — المال لم يمرّ بيده.
+     */
+    public function scopeFromShiftDrawer(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->where(function ($q) {
+            $q->where('funding_source', '!=', 'general_safe')
+              ->orWhereNull('funding_source');
+        });
+    }
 }
