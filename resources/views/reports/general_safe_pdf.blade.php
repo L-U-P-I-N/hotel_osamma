@@ -134,6 +134,41 @@
     </div>
 </div>
 
+{{-- حركة نقدية الفندق في الفترة — نفس بيان الشاشة، فالتصدير يُقرأ وحده --}}
+<h2 style="font-size:11px;margin:14px 0 6px;">حركة النقدية في الفترة</h2>
+<table class="data" dir="rtl">
+    <tbody>
+        <tr>
+            <td class="c" style="width:28%;font-weight:bold;color:#15803d;">{{ number_format($period['received_cash'], 0) }}</td>
+            <td>إيرادات الورديات (نقداً) — {{ $period['shifts_count'] }} وردية</td>
+        </tr>
+        <tr>
+            <td class="c" style="color:#b91c1c;">{{ number_format($period['withdrawals'], 0) }}</td>
+            <td>− سحبيات ومصروفات من أدراج الورديات</td>
+        </tr>
+        <tr>
+            <td class="c" style="color:#b91c1c;">{{ number_format($period['refunds'], 0) }}</td>
+            <td>− استرجاعات للنزلاء</td>
+        </tr>
+        <tr>
+            <td class="c" style="color:#b91c1c;">{{ number_format($period['safe_out'], 0) }}</td>
+            <td>− مصروفات من الصندوق العام</td>
+        </tr>
+        <tr style="background:#f1f5f9;">
+            <td class="c" style="font-weight:bold;">{{ number_format($period['net_cash'], 0) }}</td>
+            <td style="font-weight:bold;">صافي حركة النقد في الفترة</td>
+        </tr>
+    </tbody>
+</table>
+@if($period['received_other'] > 0)
+<p style="font-size:8px;color:#666;margin:4px 0 10px;">
+    ويُضاف إليها {{ number_format($period['received_other'], 0) }} ر.ي قُبضت تحويلاً بنكياً أو شبكة —
+    تدخل البنك مباشرةً فلا تمرّ بصندوقٍ ولا بدرج، ولذلك لا تدخل الصافي.
+</p>
+@endif
+
+<h2 style="font-size:11px;margin:14px 0 6px;">حركة حساب الصندوق العام (1120)</h2>
+
 {{-- dompdf لا يعكس ترتيب أعمدة الجدول بحسب dir="rtl" — نكتبها بترتيب معكوس
      ليظهر أول عمود منطقياً في أقصى اليمين. --}}
 <table class="data" dir="rtl">

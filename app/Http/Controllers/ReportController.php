@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Models\CashWithdrawal;
 use App\Models\ChartOfAccount;
 use App\Models\Expense;
 use App\Models\Payment;
@@ -777,9 +778,41 @@ class ReportController extends Controller
         // الورديات المفتوحة لأنه يشمل الورديات المُقفلة أيضاً؛ نعرضه للمقارنة.
         $shiftsAccountBalance = (float) (ChartOfAccount::where('code', '1111')->first()?->balance ?? 0);
 
+        // ملخّص الفترة: ما دخل وما خرج من نقدية الفندق كلها خلالها، لا حركة
+        // حساب الصندوق العام وحدها. كانت الشاشة تعرض «الحالة الآن» وحركة الحساب
+        // فقط، فيبدو الصندوق كأنه مصروفات بلا إيراد — والإيراد يدخل أدراج
+        // الورديات أولاً ولا يمرّ بالحساب إلا عند التسليم.
+        $periodShifts = Shift::whereDate('shift_date', '>=', $from)
+            ->whereDate('shift_date', '<=', $to)
+            ->get();
+
+        // سحبيات الصندوق العام مفصولة عن سحبيات الأدراج: الأولى shift_id = null
+        // فلا تدخل مجاميع الورديات، فجمعُهما معاً لا يُكرّر شيئاً.
+        $safeOut = (float) CashWithdrawal::where('funding_source', 'general_safe')
+            ->where('currency', 'YER')
+            ->whereDate('withdrawal_date', '>=', $from)
+            ->whereDate('withdrawal_date', '<=', $to)
+            ->sum('amount');
+
+        $period = [
+            'shifts_count'   => $periodShifts->count(),
+            'received_cash'  => round((float) $periodShifts->sum('total_received_cash_yer'), 2),
+            'received_other' => round((float) $periodShifts->sum('total_received_noncash_yer'), 2),
+            'received_all'   => round((float) $periodShifts->sum('total_received_yer'), 2),
+            'withdrawals'    => round((float) $periodShifts->sum('total_withdrawals_yer'), 2),
+            'refunds'        => round((float) $periodShifts->sum('total_refunds_yer'), 2),
+            'safe_out'       => round($safeOut, 2),
+        ];
+        // الصافي على النقد وحده: التحويل والشبكة يدخلان البنك مباشرةً ولا يمرّان
+        // بصندوقٍ ولا بدرج، فإقحامهما هنا يُضخّم النقد الموجود.
+        $period['net_cash'] = round(
+            $period['received_cash'] - $period['withdrawals'] - $period['refunds'] - $period['safe_out'],
+            2
+        );
+
         return compact(
             'account', 'from', 'to', 'openingBalance', 'movements', 'currentBalance',
-            'shiftBoxes', 'shiftsCashTotal', 'totalCashOnHand', 'shiftsAccountBalance'
+            'shiftBoxes', 'shiftsCashTotal', 'totalCashOnHand', 'shiftsAccountBalance', 'period'
         );
     }
 

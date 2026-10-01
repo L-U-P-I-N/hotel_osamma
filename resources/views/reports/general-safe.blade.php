@@ -8,7 +8,9 @@
     <div class="flex items-center justify-between flex-wrap gap-3">
         <div>
             <h2 class="text-2xl font-black text-gray-800">الصندوق العام</h2>
-            <p class="text-gray-500 text-sm mt-1">كل حركات حساب الصندوق العام (1120) — وارد وصادر، والرصيد الجاري</p>
+            <p class="text-gray-500 text-sm mt-1">
+                حركة نقدية الفندق في الفترة — إيرادات الورديات وما خرج منها ومن الصندوق العام — وحركة حساب الصندوق (1120)
+            </p>
         </div>
         <div class="flex items-center gap-2">
             <a href="{{ route('reports.generalSafe.pdf', ['from' => $from, 'to' => $to]) }}" target="_blank"
@@ -29,20 +31,87 @@
 
     @include('reports.partials.account-search-results')
 
+    {{--
+        ملخّص الفترة: ما دخل نقدية الفندق وما خرج منها خلالها.
+
+        كانت الشاشة تعرض «الحالة الآن» وحركة حساب الصندوق وحدها، فيبدو الصندوق
+        كأنه مصروفات بلا إيراد — والإيراد يدخل أدراج الورديات أولاً ولا يمرّ
+        بالحساب إلا عند التسليم. فيُجمع الطرفان هنا في بيان واحد.
+
+        والصافي على النقد وحده: التحويل والشبكة يدخلان البنك مباشرةً ولا يمرّان
+        بصندوقٍ ولا بدرج، فإقحامهما يُضخّم النقد الموجود — ويُعرضان مستقلّين.
+    --}}
+    <div class="ui-panel">
+        <div class="ui-panel-head">
+            <span class="ui-panel-title">
+                حركة النقدية في الفترة ({{ \Carbon\Carbon::parse($from)->format('d/m/Y') }}
+                — {{ \Carbon\Carbon::parse($to)->format('d/m/Y') }})
+            </span>
+            <span style="margin-inline-start:auto;font-size:.6875rem;color:var(--ui-ink-3);">
+                {{ $period['shifts_count'] }} وردية في الفترة
+            </span>
+        </div>
+
+        <div class="ui-table-wrap">
+            <table class="ui-table" dir="rtl">
+                <tbody>
+                    <tr>
+                        <td class="t-strong">إيرادات الورديات (نقداً)</td>
+                        <td style="color:var(--ui-ink-3);font-size:.6875rem;">ما قبضه الموظفون نقداً من النزلاء</td>
+                        <td class="num num--pos t-strong">{{ number_format($period['received_cash'], 0) }}</td>
+                    </tr>
+                    <tr>
+                        <td>− سحبيات ومصروفات من أدراج الورديات</td>
+                        <td style="color:var(--ui-ink-3);font-size:.6875rem;">خرجت من يد الموظف وتُحتسب عليه</td>
+                        <td class="num num--neg">{{ number_format($period['withdrawals'], 0) }}</td>
+                    </tr>
+                    <tr>
+                        <td>− استرجاعات للنزلاء</td>
+                        <td style="color:var(--ui-ink-3);font-size:.6875rem;">مبالغ أُعيدت من الدرج</td>
+                        <td class="num num--neg">{{ number_format($period['refunds'], 0) }}</td>
+                    </tr>
+                    <tr>
+                        <td>− مصروفات من الصندوق العام</td>
+                        <td style="color:var(--ui-ink-3);font-size:.6875rem;">خرجت من خزنة الفندق ولا تُحتسب على موظف</td>
+                        <td class="num num--neg">{{ number_format($period['safe_out'], 0) }}</td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="2">صافي حركة النقد في الفترة</td>
+                        <td class="num {{ $period['net_cash'] < 0 ? 'num--neg' : '' }}"
+                            style="{{ $period['net_cash'] >= 0 ? 'color:var(--ui-accent);' : '' }}">
+                            {{ $period['net_cash'] < 0
+                                ? '(' . number_format(abs($period['net_cash']), 0) . ')'
+                                : number_format($period['net_cash'], 0) }}
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        @if($period['received_other'] > 0)
+        <div class="ui-note" style="margin:.625rem;">
+            ويُضاف إليها <b>{{ number_format($period['received_other'], 0) }} ر.ي</b> قُبضت تحويلاً بنكياً أو شبكة —
+            تدخل البنك مباشرةً فلا تمرّ بصندوقٍ ولا بدرج، ولذلك لا تدخل الصافي أعلاه.
+        </div>
+        @endif
+    </div>
+
     {{-- الموجود الفعلي: الصندوق العام + ما بأدراج الورديات المفتوحة --}}
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div class="rounded-xl p-5 border" style="background:#fffbeb; border-color:#fde68a;">
             <div class="text-xs text-amber-600">رصيد الصندوق العام</div>
-            <div class="text-2xl font-black text-amber-800 mt-1">{{ number_format($currentBalance, 0) }} <span class="text-sm font-normal">ر.ي</span></div>
+            <div class="text-2xl font-black text-amber-800 mt-1 num" style="text-align:start;">{{ number_format($currentBalance, 0) }} <span class="text-sm font-normal">ر.ي</span></div>
         </div>
         <div class="rounded-xl p-5 border" style="background:#eff6ff; border-color:#bfdbfe;">
             <div class="text-xs text-blue-600">بأدراج الورديات المفتوحة</div>
-            <div class="text-2xl font-black text-blue-800 mt-1">{{ number_format($shiftsCashTotal, 0) }} <span class="text-sm font-normal">ر.ي</span></div>
+            <div class="text-2xl font-black text-blue-800 mt-1 num" style="text-align:start;">{{ number_format($shiftsCashTotal, 0) }} <span class="text-sm font-normal">ر.ي</span></div>
             <div class="text-[11px] text-blue-500 mt-1">{{ $shiftBoxes->count() }} وردية مفتوحة</div>
         </div>
         <div class="rounded-xl p-5 border-2" style="background:#f0fdf4; border-color:#86efac;">
             <div class="text-xs text-green-700 font-semibold">الموجود الفعلي بالفندق</div>
-            <div class="text-2xl font-black text-green-800 mt-1">{{ number_format($totalCashOnHand, 0) }} <span class="text-sm font-normal">ر.ي</span></div>
+            <div class="text-2xl font-black text-green-800 mt-1 num" style="text-align:start;">{{ number_format($totalCashOnHand, 0) }} <span class="text-sm font-normal">ر.ي</span></div>
             <div class="text-[11px] text-green-600 mt-1">الصندوق العام + أدراج الورديات</div>
         </div>
     </div>
@@ -128,7 +197,7 @@
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="ui-card p-4">
             <div class="text-xs text-gray-500">الرصيد الافتتاحي</div>
-            <div class="text-xl font-bold text-gray-700 mt-1">{{ number_format($openingBalance, 0) }} ر.ي</div>
+            <div class="text-xl font-bold text-gray-700 mt-1 num" style="text-align:start;">{{ number_format($openingBalance, 0) }} ر.ي</div>
         </div>
         <div class="ui-card p-4">
             <div class="text-xs text-gray-500">إجمالي الوارد خلال الفترة</div>
