@@ -60,15 +60,7 @@
             إقفال الوردية
         </button>
         @can('shifts.delete')
-        <form method="POST" action="{{ route('shifts.destroy', $activeShift) }}"
-              onsubmit="return confirm('حذف هذه الوردية نهائياً؟\n\nلن تُحذف المستلمات والسحبيات والمصروفات — ستُصبح غير مرتبطة بوردية ويمكنك ضمّها إلى وردية جديدة.\n\nلا يمكن التراجع عن هذا الإجراء.')">
-            @csrf @method('DELETE')
-            <button type="submit"
-                    class="flex items-center gap-2 px-4 py-2 border border-red-300 text-red-600 rounded-lg text-sm hover:bg-red-50 transition">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                حذف الوردية
-            </button>
-        </form>
+        @include('shifts._delete-dialog', ['shift' => $activeShift, 'variant' => 'lg'])
         @endcan
     </div>
 </div>
@@ -391,6 +383,18 @@
                     ضمّ المحدد إلى ورديتي
                 </button>
             </form>
+
+            {{-- الحذف النهائي لبقايا وردية حُذفت سابقاً: لم يكن له سبيل من الشاشة --}}
+            @if(auth()->user()->isAdmin())
+            <form method="POST" action="{{ route('shifts.destroyOrphans') }}"
+                  @submit="return confirm('حذف المستلمات المحددة نهائياً؟\n\nسيُعاد احتساب المدفوع في حجوزاتها. لا رجعة في هذا.')">
+                @csrf @method('DELETE')
+                <template x-for="pid in selectedOrphans" :key="pid">
+                    <input type="hidden" name="payment_ids[]" :value="pid">
+                </template>
+                <button type="submit" class="ui-btn ui-btn--sm ui-btn--danger">حذف المحدد نهائياً</button>
+            </form>
+            @endif
         </div>
     </div>
     <div class="overflow-x-auto">
@@ -475,6 +479,17 @@
                     ضمّ المحدد إلى ورديتي
                 </button>
             </form>
+
+            @if(auth()->user()->isAdmin())
+            <form method="POST" action="{{ route('shifts.destroyOrphans') }}"
+                  @submit="return confirm('حذف السحبيات المحددة ومصروفاتها نهائياً؟\n\nلا رجعة في هذا.')">
+                @csrf @method('DELETE')
+                <template x-for="wid in selectedOrphanWithdrawals" :key="wid">
+                    <input type="hidden" name="withdrawal_ids[]" :value="wid">
+                </template>
+                <button type="submit" class="ui-btn ui-btn--sm ui-btn--danger">حذف المحدد نهائياً</button>
+            </form>
+            @endif
         </div>
     </div>
     <div class="overflow-x-auto">
@@ -727,16 +742,8 @@
                             @endif
                             @can('shifts.delete')
                             @if(!$s->salary_deducted_at)
-                            {{-- حذف وردية مقفلة أُدخلت بخطأ — تُفكّ ارتباطاتها المالية ولا تُحذف --}}
-                            <form method="POST" action="{{ route('shifts.destroy', $s) }}"
-                                  onsubmit="return confirm('حذف وردية {{ $s->shift_date->format('d/m/Y') }} نهائياً؟\n\nلن تُحذف المستلمات والسحبيات والمصروفات — ستُصبح غير مرتبطة بوردية ويمكنك ضمّها إلى وردية جديدة.\n\nلا يمكن التراجع عن هذا الإجراء.')">
-                                @csrf @method('DELETE')
-                                <button type="submit"
-                                        class="flex items-center gap-1 px-2 py-1 border border-red-300 text-red-600 rounded text-xs hover:bg-red-50 transition">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                    حذف
-                                </button>
-                            </form>
+                            {{-- حذف وردية أُدخلت بخطأ — بخيار بين فكّ الربط وحذف السجلات معها --}}
+                            @include('shifts._delete-dialog', ['shift' => $s, 'variant' => 'sm'])
                             @endif
                             @endcan
                         </div>

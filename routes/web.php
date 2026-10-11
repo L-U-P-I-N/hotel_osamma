@@ -266,6 +266,8 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/shifts/attach-orphan-withdrawals', [ShiftController::class, 'attachOrphanWithdrawals'])->name('shifts.attachOrphanWithdrawals')->middleware('permission:withdrawal.create');
     // حذف وردية (لتصحيح أخطاء الإدخال) — تُفكّ ارتباطاتها المالية دون حذفها
     Route::delete('/shifts/{shift}', [ShiftController::class, 'destroy'])->name('shifts.destroy')->middleware('permission:shifts.delete');
+    // تنظيف بقايا ورديات حُذفت سابقاً — لم يكن لها من الشاشة إلا الضمّ
+    Route::delete('/shifts/orphans/records', [ShiftController::class, 'destroyOrphans'])->name('shifts.destroyOrphans')->middleware('permission:shifts.delete');
     // نقل مستلمة (غير مرتبطة أو مرتبطة بوردية خطأ) إلى وردية محدَّدة بعينها
     Route::patch('/shifts/payments/{payment}/reassign', [ShiftController::class, 'reassignPayment'])->name('shifts.reassignPayment')->middleware('permission:payments.create');
     // نقل سحب (مصروف/صرف عملة) إلى وردية محدَّدة بعينها

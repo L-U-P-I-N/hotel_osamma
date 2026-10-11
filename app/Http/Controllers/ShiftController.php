@@ -207,20 +207,87 @@ class ShiftController extends Controller
      * السجلات المالية بها دون حذفها، فتُصبح غير مرتبطة بوردية ويمكن ضمّها لوردية
      * جديدة. الموظف يحذف ورديته فقط؛ المدير يحذف أي وردية.
      */
-    public function destroy(Shift $shift)
+    public function destroy(Request $request, Shift $shift)
     {
         $user = auth()->user();
         if (!$user->isAdmin() && $shift->user_id !== $user->id) {
             return back()->withErrors(['error' => 'لا يمكنك حذف وردية موظف آخر']);
         }
 
+        $validated = $request->validate([
+            'mode' => 'nullable|in:detach,with_records',
+        ], [
+            'mode.in' => 'وضع الحذف غير معروف',
+        ]);
+        $mode = $validated['mode'] ?? 'detach';
+
+        // حذف السجلات المالية معها يمسّ مال نزلاء ومصروفات مُقيَّدة، فيقتصر على
+        // المدير: فكّ الربط يُصحَّح لاحقاً بالضمّ، أما الحذف فلا رجعة فيه من الشاشة.
+        if ($mode === 'with_records' && !$user->isAdmin()) {
+            return back()->withErrors(['error' => 'حذف الوردية مع مستلماتها ومصروفاتها مقصور على المدير — احذف الوردية وحدها، وتبقى سجلاتها قابلة للضمّ.']);
+        }
+
         try {
-            $this->service->deleteShift($shift, $user);
+            $deleted = $this->service->deleteShift($shift, $user, $mode);
+
+            if ($mode === 'with_records') {
+                $parts = array_filter([
+                    $deleted['payments']    ? $deleted['payments'] . ' مستلمة'     : null,
+                    $deleted['refunds']     ? $deleted['refunds'] . ' استرجاع'     : null,
+                    $deleted['withdrawals'] ? $deleted['withdrawals'] . ' سحب'     : null,
+                    $deleted['expenses']    ? $deleted['expenses'] . ' مصروف'      : null,
+                ]);
+
+                return redirect()->route('shifts.index')->with('success',
+                    'حُذفت الوردية وسجلاتها'
+                    . ($parts ? ' (' . implode('، ', $parts) . ')' : '')
+                    . ' — وأُعيد احتساب المدفوع في حجوزاتها.');
+            }
+
             return redirect()->route('shifts.index')
                 ->with('success', 'تم حذف الوردية. أصبحت مستلماتها وسحبياتها ومصروفاتها غير مرتبطة بوردية — يمكنك ضمّها إلى وردية جديدة من نفس الشاشة.');
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()]);
         }
+    }
+
+    /**
+     * حذف سجلات يتيمة (بلا وردية) — بقايا ورديات حُذفت سابقاً.
+     *
+     * مقصور على المدير: فكّ الربط يُصحَّح بالضمّ، أما الحذف فلا رجعة فيه.
+     */
+    public function destroyOrphans(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user->isAdmin()) {
+            return back()->withErrors(['error' => 'حذف السجلات اليتيمة مقصور على المدير.']);
+        }
+
+        $validated = $request->validate([
+            'payment_ids'      => 'nullable|array',
+            'payment_ids.*'    => 'integer|exists:payments,id',
+            'withdrawal_ids'   => 'nullable|array',
+            'withdrawal_ids.*' => 'integer|exists:cash_withdrawals,id',
+        ]);
+
+        $paymentIds    = $validated['payment_ids'] ?? [];
+        $withdrawalIds = $validated['withdrawal_ids'] ?? [];
+
+        if (!$paymentIds && !$withdrawalIds) {
+            return back()->withErrors(['error' => 'لم تحدّد شيئاً للحذف.']);
+        }
+
+        $counts = $this->service->deleteOrphanRecords($paymentIds, $withdrawalIds, $user);
+
+        $parts = array_filter([
+            $counts['payments']    ? $counts['payments'] . ' مستلمة'   : null,
+            $counts['withdrawals'] ? $counts['withdrawals'] . ' سحب'   : null,
+            $counts['expenses']    ? $counts['expenses'] . ' مصروف'    : null,
+        ]);
+
+        return back()->with('success', $parts
+            ? 'حُذف نهائياً: ' . implode('، ', $parts) . ' — وأُعيد احتساب المدفوع في الحجوزات المتأثرة.'
+            : 'لم يُحذف شيء — السجلات المحددة مرتبطة بوردية.');
     }
 
     /**

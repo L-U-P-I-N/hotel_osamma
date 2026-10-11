@@ -100,26 +100,146 @@ class ShiftService
      * مستلمات/سحبيات/مصروفات "غير مرتبطة بوردية"، تُضَمّ لاحقاً إلى وردية جديدة
      * من شاشة الورديات. بذلك لا تضيع أي إيرادات أو مصروفات عند حذف الوردية.
      */
-    public function deleteShift(Shift $shift, User $actor): void
+    /**
+     * حذف وردية بأحد وضعين.
+     *
+     * 'detach' (الافتراضي): تُحذف الوردية وحدها وتبقى سجلاتها المالية قائمةً بلا
+     *   ربط، تُضمّ لاحقاً إلى وردية أخرى. يناسب الوردية التي أُنشئت بتاريخ خاطئ
+     *   أو قُسّمت خطأً — فالمال استُلم فعلاً ولا يجوز أن يختفي.
+     *
+     * 'with_records': تُحذف معها مستلماتها واسترجاعاتها ومصروفاتها وسحبياتها.
+     *   يناسب وردية تجريبية أو مكرّرة أُدخلت بالكامل خطأً، وبدونه تتراكم سجلات
+     *   يتيمة لا سبيل لإزالتها من الشاشة.
+     *
+     * وفترات الحجز (ReservationSegment) لا تُحذف في الوضعين: هي تسعير الحجز
+     * نفسه لا حركة نقدية للوردية، وحذفها يُفقد النزيل أساس فاتورته.
+     *
+     * @return array<string,int> عدد ما حُذف من كل نوع
+     */
+    public function deleteShift(Shift $shift, User $actor, string $mode = 'detach'): array
     {
         // لا يمكن حذف وردية خُصم عجزها من راتب الموظف (سيبقى الخصم دون مرجع).
         if ($shift->salary_deducted_at !== null) {
             throw new \RuntimeException('لا يمكن حذف هذه الوردية لأن عجزها خُصم من راتب الموظف مسبقاً.');
         }
 
-        DB::transaction(function () use ($shift, $actor) {
-            $old = $shift->toArray();
+        if (!in_array($mode, ['detach', 'with_records'], true)) {
+            throw new \RuntimeException('وضع حذف غير معروف.');
+        }
 
-            // فكّ ربط جميع السجلات المالية بالوردية (تُحفظ بياناتها كاملة)
-            Payment::where('shift_id', $shift->id)->update(['shift_id' => null]);
-            Refund::where('shift_id', $shift->id)->update(['shift_id' => null]);
-            Expense::where('shift_id', $shift->id)->update(['shift_id' => null]);
-            CashWithdrawal::where('shift_id', $shift->id)->update(['shift_id' => null]);
+        return DB::transaction(function () use ($shift, $actor, $mode): array {
+            $old     = $shift->toArray();
+            $deleted = ['payments' => 0, 'refunds' => 0, 'expenses' => 0, 'withdrawals' => 0];
+
+            if ($mode === 'with_records') {
+                $deleted = $this->deleteShiftRecords($shift, $actor);
+            } else {
+                // فكّ ربط جميع السجلات المالية بالوردية (تُحفظ بياناتها كاملة)
+                Payment::where('shift_id', $shift->id)->update(['shift_id' => null]);
+                Refund::where('shift_id', $shift->id)->update(['shift_id' => null]);
+                Expense::where('shift_id', $shift->id)->update(['shift_id' => null]);
+                CashWithdrawal::where('shift_id', $shift->id)->update(['shift_id' => null]);
+            }
+
+            // الفترات تُفكّ في الوضعين ولا تُحذف — انظر الشرح أعلاه
             ReservationSegment::where('shift_id', $shift->id)->update(['shift_id' => null]);
 
-            AuditLogService::log('delete', $shift, $old, null, $actor);
+            AuditLogService::log('delete', $shift, $old, ['mode' => $mode] + $deleted, $actor);
 
             $shift->delete();
+
+            return $deleted;
+        });
+    }
+
+    /**
+     * حذف السجلات المالية لوردية. يمرّ على كل سجل على حدة لا بـdelete() جماعي:
+     * حذف الدفعة يُعيد احتساب المدفوع في حجزها، وحذف السحب يُعيد احتساب حساب
+     * الصندوق عبر مُراقِبه — والحذف الجماعي يتخطّى هذا كلّه فيبقى حجزٌ يبدو
+     * مدفوعاً بمالٍ لم يعد له أثر.
+     *
+     * @return array<string,int>
+     */
+    private function deleteShiftRecords(Shift $shift, User $actor): array
+    {
+        $counts = ['payments' => 0, 'refunds' => 0, 'expenses' => 0, 'withdrawals' => 0];
+
+        foreach (Payment::where('shift_id', $shift->id)->get() as $payment) {
+            $reservation = $payment->reservation;
+            AuditLogService::log('delete', $payment, $payment->toArray(), ['via' => 'shift_delete'], $actor);
+            $payment->delete();
+            $reservation?->refresh()->recalculatePaidAmount();
+            $counts['payments']++;
+        }
+
+        foreach (Refund::where('shift_id', $shift->id)->get() as $refund) {
+            $reservation = $refund->reservation;
+            AuditLogService::log('delete', $refund, $refund->toArray(), ['via' => 'shift_delete'], $actor);
+            $refund->delete();
+            $reservation?->refresh()->recalculatePaidAmount();
+            $counts['refunds']++;
+        }
+
+        // السحب قبل مصروفه: حذف المصروف أولاً يترك سحباً يشير إلى مصروف محذوف
+        foreach (CashWithdrawal::where('shift_id', $shift->id)->get() as $withdrawal) {
+            AuditLogService::log('delete', $withdrawal, $withdrawal->toArray(), ['via' => 'shift_delete'], $actor);
+            $withdrawal->delete();
+            $counts['withdrawals']++;
+        }
+
+        foreach (Expense::where('shift_id', $shift->id)->get() as $expense) {
+            AuditLogService::log('delete', $expense, $expense->toArray(), ['via' => 'shift_delete'], $actor);
+            $expense->delete();
+            $counts['expenses']++;
+        }
+
+        return $counts;
+    }
+
+    /**
+     * حذف سجلات مالية يتيمة (بلا وردية) نهائياً.
+     *
+     * بقايا ورديات حُذفت سابقاً: لم يكن لها من الشاشة إلا الضمّ، فمن أراد
+     * إزالتها لم يجد سبيلاً. تُحذف هنا بنفس عناية حذف الوردية بسجلاتها —
+     * واحداً واحداً كي يُعاد احتساب المدفوع في حجز كل دفعة.
+     *
+     * @param  array<int,int>  $paymentIds
+     * @param  array<int,int>  $withdrawalIds
+     * @return array<string,int>
+     */
+    public function deleteOrphanRecords(array $paymentIds, array $withdrawalIds, User $actor): array
+    {
+        return DB::transaction(function () use ($paymentIds, $withdrawalIds, $actor): array {
+            $counts = ['payments' => 0, 'withdrawals' => 0, 'expenses' => 0];
+
+            // whereNull شرطٌ لا زينة: يمنع أن يُمرَّر معرّف سجلٍ يخصّ وردية قائمة
+            foreach (Payment::whereIn('id', $paymentIds)->whereNull('shift_id')->get() as $payment) {
+                $reservation = $payment->reservation;
+                AuditLogService::log('delete', $payment, $payment->toArray(), ['via' => 'orphan_cleanup'], $actor);
+                $payment->delete();
+                $reservation?->refresh()->recalculatePaidAmount();
+                $counts['payments']++;
+            }
+
+            foreach (CashWithdrawal::whereIn('id', $withdrawalIds)->whereNull('shift_id')->get() as $withdrawal) {
+                $expenseId = $withdrawal->expense_id;
+                AuditLogService::log('delete', $withdrawal, $withdrawal->toArray(), ['via' => 'orphan_cleanup'], $actor);
+                $withdrawal->delete();
+                $counts['withdrawals']++;
+
+                // المصروف المرتبط يرحل معه: تركه يُبقي رقماً في المصروفات بلا
+                // سحبٍ يقابله — وهو عين الخلل الذي يُنظَّف هنا
+                if ($expenseId) {
+                    $expense = Expense::whereKey($expenseId)->whereNull('shift_id')->first();
+                    if ($expense) {
+                        AuditLogService::log('delete', $expense, $expense->toArray(), ['via' => 'orphan_cleanup'], $actor);
+                        $expense->delete();
+                        $counts['expenses']++;
+                    }
+                }
+            }
+
+            return $counts;
         });
     }
 
@@ -508,8 +628,11 @@ class ShiftService
 
     public function getHistory(User $user, int $limit = 10): Collection
     {
+        // العدّ مُحمَّل مع الاستعلام: نافذة حذف الوردية تعرض ما سيُحذف معها،
+        // وقراءته لكل سطر على حدة كانت استعلاماً لكل وردية في القائمة
         return Shift::where('user_id', $user->id)
             ->with(['withdrawals'])
+            ->withCount(['payments', 'withdrawals', 'refunds'])
             ->latest()
             ->limit($limit)
             ->get();

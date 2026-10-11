@@ -316,3 +316,16 @@ textarea.ui-input { height: auto; padding: .5rem .625rem; line-height: 1.6; }
 .ui-dense tbody tr:hover { background: var(--ui-hover); }
 .ui-divide > tr + tr { border-top: 1px solid var(--ui-line-soft); }
 .ui-row:hover { background: var(--ui-hover); }
+
+/* ── النافذة المنبثقة ─────────────────────────────────────────
+   التخطيط هنا لا في style السطر: x-show يكتب display:none للإخفاء ثم يمسحه
+   للإظهار، فيمسح معه أي display مكتوب في السطر — فتعود النافذة كتلةً عادية
+   تلتصق بزاوية الشاشة بدل أن تتوسّطها.
+*/
+.ui-modal {
+    position: fixed; inset: 0; z-index: 60; padding: 1rem;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(15, 23, 42, .55);
+}
+html.dark .ui-modal { background: rgba(0, 0, 0, .66); }
+.ui-modal > .ui-panel { width: 100%; max-width: 30rem; margin: 0; max-height: 90vh; overflow: auto; }
