@@ -30,6 +30,41 @@ class ShiftController extends Controller
             ]);
         }
 
+        // أيام الوردية المفتوحة: حركاتها مجمَّعة بيومها.
+        //
+        // موظف نسي إقفال ورديته أمس ثم سجّل اليوم عليها يجد يومين مخلوطين، وكان
+        // جدول المستلمات يعرض الوقت بلا تاريخ — فلا يميّز أمسَ من اليوم ولا يعرف
+        // ماذا يُحدِّد ليفصله. نحسب الأيام هنا ونُسلّم معها معرّفات كل يوم، فيفصل
+        // اليوم السابق بضغطة بدل أن يتصفّح الصفوف واحداً واحداً.
+        $shiftDays = collect();
+        if ($activeShift) {
+            $byDay = [];
+
+            foreach ($activeShift->payments as $p) {
+                $key = $p->payment_date?->toDateString();
+                $byDay[$key]['payments'][] = $p->id;
+                $byDay[$key]['received']   = ($byDay[$key]['received'] ?? 0) + (float) $p->amount;
+            }
+            foreach ($activeShift->withdrawals as $w) {
+                $key = ($w->withdrawal_date ?? $w->created_at)?->toDateString();
+                $byDay[$key]['withdrawals'][] = $w->id;
+                $byDay[$key]['out']           = ($byDay[$key]['out'] ?? 0) + (float) $w->amount;
+            }
+
+            ksort($byDay);
+            $today = today()->toDateString();
+
+            $shiftDays = collect($byDay)->map(fn (array $d, string $date) => [
+                'date'        => $date,
+                'label'       => \Carbon\Carbon::parse($date)->format('d/m/Y'),
+                'is_today'    => $date === $today,
+                'payments'    => $d['payments'] ?? [],
+                'withdrawals' => $d['withdrawals'] ?? [],
+                'received'    => round($d['received'] ?? 0, 2),
+                'out'         => round($d['out'] ?? 0, 2),
+            ])->values();
+        }
+
         // مصروفات الصندوق العام التي سحبها المستخدم خلال وردية مفتوحة له حالياً —
         // توضيحية فقط، لا تدخل في حساب درج الوردية (ليست مسحوبة منه أصلاً).
         $generalSafeWithdrawals = collect();
@@ -83,7 +118,7 @@ class ShiftController extends Controller
                 ->get();
         }
 
-        return view('shifts.index', compact('activeShift', 'recentShifts', 'allActive', 'allUsersStatus', 'reassignTargets', 'orphanPayments', 'orphanWithdrawals', 'reopenableShifts', 'generalSafeWithdrawals'));
+        return view('shifts.index', compact('activeShift', 'shiftDays', 'recentShifts', 'allActive', 'allUsersStatus', 'reassignTargets', 'orphanPayments', 'orphanWithdrawals', 'reopenableShifts', 'generalSafeWithdrawals'));
     }
 
     /**

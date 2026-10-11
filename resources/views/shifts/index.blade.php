@@ -84,6 +84,43 @@
         <dd style="color:{{ $net >= 0 ? 'var(--ui-accent)' : 'var(--ui-neg)' }};">{{ number_format($net, 0) }} <span class="unit">ر.ي</span></dd></div>
 </dl>
 
+{{--
+    وردية امتدّت أكثر من يوم: الموظف نسي إقفالها أمس ثم سجّل عليها اليوم.
+    تُعرض أيامها مفصولة، ويُحدَّد اليوم السابق بضغطة ليُقفل في ورديته بتاريخه —
+    فلا تُخلط إيرادات يومين في إقفال واحد، ولا يُحذف مالٌ استُلم فعلاً.
+--}}
+@if($shiftDays->count() > 1)
+<div class="ui-note ui-note--warn" style="margin-bottom:1rem;padding:.875rem;">
+    <div style="font-size:.8125rem;font-weight:700;margin-bottom:.375rem;">
+        {{-- العربية تُثنّي ولا تجمع عند اثنين --}}
+        هذه الوردية تضمّ حركات
+        {{ $shiftDays->count() === 2 ? 'يومين' : $shiftDays->count() . ' أيام' }}
+        — لم تُقفل في حينها
+    </div>
+    <p style="margin-bottom:.625rem;line-height:1.7;">
+        أقفِل كل يوم سابق في ورديته بتاريخه قبل إقفال اليوم، وإلا دخلت إيرادات الأمس
+        في حساب اليوم. اضغط اليوم لتحديد حركاته، ثم «إقفال المحدد كوردية بتاريخ سابق».
+    </p>
+
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+        @foreach($shiftDays as $day)
+        <button type="button"
+                @click="selectedPayments = @js($day['payments']); selectedWithdrawals = @js($day['withdrawals']);"
+                class="ui-btn ui-btn--sm {{ $day['is_today'] ? '' : 'ui-btn--primary' }}"
+                title="تحديد كل حركات {{ $day['label'] }}">
+            {{ $day['label'] }}{{ $day['is_today'] ? ' (اليوم)' : '' }}
+            <span class="num" style="margin-inline-start:.375rem;font-size:.6875rem;">
+                {{ count($day['payments']) }}↓ {{ count($day['withdrawals']) }}↑
+            </span>
+        </button>
+        @endforeach
+
+        <button type="button" @click="selectedPayments = []; selectedWithdrawals = []"
+                class="ui-btn ui-btn--sm">إلغاء التحديد</button>
+    </div>
+</div>
+@endif
+
 {{-- المستلمات + السحبيات --}}
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
@@ -134,7 +171,11 @@
                                class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
                     </td>
                     @endif
-                    <td class="px-4 py-2 text-gray-400 text-xs">{{ $p->payment_date->format('H:i') }}</td>
+                    {{-- التاريخ يظهر حين تمتدّ الوردية أكثر من يوم: بالوقت وحده
+                         لا يُميَّز أمسُ من اليوم، فلا يُعرف ما يُحدَّد للفصل --}}
+                    <td class="px-4 py-2 text-gray-400 text-xs whitespace-nowrap">
+                        {{ $p->payment_date->format($shiftDays->count() > 1 ? 'd/m/Y H:i' : 'H:i') }}
+                    </td>
                     <td class="px-4 py-2 text-gray-700 text-xs">
                         <span class="font-medium">{{ $p->reservation?->display_room_number ?? '—' }}</span>
                         <span class="text-gray-400 mr-1">{{ $p->reservation?->guest?->full_name ?? '' }}</span>
