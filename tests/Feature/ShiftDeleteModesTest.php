@@ -147,24 +147,72 @@ class ShiftDeleteModesTest extends TestCase
 
     /* ═══ الصلاحية والتحقق ═══ */
 
-    /** حذف السجلات مقصور على المدير — فكّ الربط يُصحَّح، والحذف لا رجعة فيه */
-    public function test_a_non_admin_cannot_delete_the_records(): void
+    /** يمنح الموظفَ صلاحياتٍ صريحة ويُسلّمه الوردية */
+    private function staffWith(Shift $shift, array $permissions): User
+    {
+        $staff = User::role('receptionist')->firstOrFail();
+
+        foreach ($permissions as $key) {
+            \App\Models\UserPermission::updateOrCreate(
+                ['user_id' => $staff->id, 'permission_key' => $key],
+                ['is_granted' => true, 'granted_at' => now()]
+            );
+        }
+        $shift->update(['user_id' => $staff->id]);
+
+        return $staff->fresh();
+    }
+
+    /**
+     * حذف السجلات له صلاحيته المستقلة: من يملك حذف الوردية وحدها لا يملكه.
+     * فكّ الربط يُصحَّح بالضمّ، أما الحذف فلا رجعة فيه.
+     */
+    public function test_deleting_the_records_needs_its_own_permission(): void
     {
         ['shift' => $shift, 'payment' => $payment] = $this->shiftWithRecords();
 
-        $staff = User::role('receptionist')->firstOrFail();
-        \App\Models\UserPermission::updateOrCreate(
-            ['user_id' => $staff->id, 'permission_key' => 'shifts.delete'],
-            ['is_granted' => true, 'granted_at' => now()]
-        );
-        $shift->update(['user_id' => $staff->id]);
+        $staff = $this->staffWith($shift, ['shifts.delete']);
 
-        $this->actingAs($staff->fresh())
+        $this->actingAs($staff)
             ->delete(route('shifts.destroy', $shift), ['mode' => 'with_records'])
             ->assertSessionHasErrors('error');
 
         $this->assertNotNull(Shift::find($shift->id), 'حُذفت الوردية رغم رفض الصلاحية');
         $this->assertNotNull($payment->fresh());
+    }
+
+    /**
+     * ومن مُنحت له أنجزها ولو لم يكن مديراً — البوابة صلاحية لا فحصُ دور،
+     * فالمالك يمنحها من شاشة المستخدمين كبقية صلاحيات النظام.
+     */
+    public function test_a_non_admin_granted_the_permission_can_delete_the_records(): void
+    {
+        ['shift' => $shift, 'payment' => $payment] = $this->shiftWithRecords();
+
+        $staff = $this->staffWith($shift, ['shifts.delete', 'shifts.delete_records']);
+
+        $this->actingAs($staff)
+            ->delete(route('shifts.destroy', $shift), ['mode' => 'with_records'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertNull(Shift::find($shift->id));
+        $this->assertNull(Payment::find($payment->id));
+    }
+
+    /** والمدير يملكها تلقائياً بلا منحٍ صريح */
+    public function test_an_admin_has_the_permission_by_default(): void
+    {
+        $this->assertTrue($this->admin()->can('shifts.delete_records'));
+    }
+
+    /** وهي معروضة في شاشة الصلاحيات كي تُمنح أصلاً */
+    public function test_the_permission_is_listed_in_the_permissions_screen(): void
+    {
+        $this->assertArrayHasKey(
+            'shifts.delete_records',
+            \App\Services\PermissionService::ALL_PERMISSIONS,
+            'الصلاحية غير معروضة فلا سبيل لمنحها'
+        );
     }
 
     /* ═══ تنظيف اليتامى الموجودين سلفاً ═══ */

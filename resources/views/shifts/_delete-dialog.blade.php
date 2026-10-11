@@ -20,7 +20,7 @@
     $nExpenses    = \App\Models\Expense::where('shift_id', $shift->id)->count();
     $nAll         = $nPayments + $nWithdrawals + $nRefunds + $nExpenses;
 
-    $isAdmin = auth()->user()->isAdmin();
+    $canDeleteRecords = auth()->user()->can('shifts.delete_records');
 @endphp
 
 <div x-data="{ open: false, mode: 'detach' }" style="display:inline-block;">
@@ -74,7 +74,7 @@
                         </span>
                     </label>
 
-                    @if($isAdmin)
+                    @if($canDeleteRecords)
                     <label style="display:block;cursor:pointer;border:1px solid var(--ui-line);border-radius:.625rem;padding:.75rem;"
                            :style="mode === 'with_records' ? 'border-color:var(--ui-neg);background:var(--ui-err-bg);' : ''">
                         <span style="display:flex;align-items:flex-start;gap:.5rem;">

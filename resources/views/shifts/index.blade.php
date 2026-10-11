@@ -385,7 +385,7 @@
             </form>
 
             {{-- الحذف النهائي لبقايا وردية حُذفت سابقاً: لم يكن له سبيل من الشاشة --}}
-            @if(auth()->user()->isAdmin())
+            @can('shifts.delete_records')
             <form method="POST" action="{{ route('shifts.destroyOrphans') }}"
                   @submit="return confirm('حذف المستلمات المحددة نهائياً؟\n\nسيُعاد احتساب المدفوع في حجوزاتها. لا رجعة في هذا.')">
                 @csrf @method('DELETE')
@@ -394,7 +394,7 @@
                 </template>
                 <button type="submit" class="ui-btn ui-btn--sm ui-btn--danger">حذف المحدد نهائياً</button>
             </form>
-            @endif
+            @endcan
         </div>
     </div>
     <div class="overflow-x-auto">
@@ -480,7 +480,7 @@
                 </button>
             </form>
 
-            @if(auth()->user()->isAdmin())
+            @can('shifts.delete_records')
             <form method="POST" action="{{ route('shifts.destroyOrphans') }}"
                   @submit="return confirm('حذف السحبيات المحددة ومصروفاتها نهائياً؟\n\nلا رجعة في هذا.')">
                 @csrf @method('DELETE')
@@ -489,7 +489,7 @@
                 </template>
                 <button type="submit" class="ui-btn ui-btn--sm ui-btn--danger">حذف المحدد نهائياً</button>
             </form>
-            @endif
+            @endcan
         </div>
     </div>
     <div class="overflow-x-auto">

@@ -221,10 +221,12 @@ class ShiftController extends Controller
         ]);
         $mode = $validated['mode'] ?? 'detach';
 
-        // حذف السجلات المالية معها يمسّ مال نزلاء ومصروفات مُقيَّدة، فيقتصر على
-        // المدير: فكّ الربط يُصحَّح لاحقاً بالضمّ، أما الحذف فلا رجعة فيه من الشاشة.
-        if ($mode === 'with_records' && !$user->isAdmin()) {
-            return back()->withErrors(['error' => 'حذف الوردية مع مستلماتها ومصروفاتها مقصور على المدير — احذف الوردية وحدها، وتبقى سجلاتها قابلة للضمّ.']);
+        // حذف السجلات المالية معها يمسّ مال نزلاء ومصروفات مُقيَّدة، فله صلاحيته
+        // المستقلة: فكّ الربط يُصحَّح لاحقاً بالضمّ، أما الحذف فلا رجعة فيه.
+        // صلاحية لا فحصُ دور، كبقية النظام — فيمنحها المالك لمن يشاء من شاشة
+        // الصلاحيات، والمدير يملكها تلقائياً.
+        if ($mode === 'with_records' && !$user->can('shifts.delete_records')) {
+            return back()->withErrors(['error' => 'لا تملك صلاحية «حذف الوردية مع مستلماتها ومصروفاتها» — امنحها من شاشة المستخدمين، أو احذف الوردية وحدها وتبقى سجلاتها قابلة للضمّ.']);
         }
 
         try {
@@ -259,8 +261,8 @@ class ShiftController extends Controller
     public function destroyOrphans(Request $request)
     {
         $user = auth()->user();
-        if (!$user->isAdmin()) {
-            return back()->withErrors(['error' => 'حذف السجلات اليتيمة مقصور على المدير.']);
+        if (!$user->can('shifts.delete_records')) {
+            return back()->withErrors(['error' => 'لا تملك صلاحية «حذف الوردية مع مستلماتها ومصروفاتها» — وهي نفسها المطلوبة لحذف السجلات اليتيمة.']);
         }
 
         $validated = $request->validate([

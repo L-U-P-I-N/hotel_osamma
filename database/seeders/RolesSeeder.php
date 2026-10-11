@@ -37,6 +37,8 @@ class RolesSeeder extends Seeder
             // Attendance
             'attendance.view', 'attendance.create',
             // Admin-only
+            'shifts.delete_records',
+
             'users.manage', 'audit_log.view',
             // Chart of Accounts
             'accounts.view', 'accounts.manage',
