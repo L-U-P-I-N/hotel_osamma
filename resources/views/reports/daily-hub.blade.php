@@ -109,7 +109,7 @@
                     <tbody class="ui-divide">
                         @foreach($dailyReservations as $res)
                         @php
-                            $idTypeMap = ['national_id'=>'بطاقة','passport'=>'جواز','residence'=>'إقامة'];
+                            $idTypeMap = \App\Models\Guest::ID_TYPES_SHORT;
                             $payColors = ['unpaid'=>'text-red-600','partial'=>'text-yellow-600','paid'=>'text-green-600','deferred'=>'text-purple-600'];
                             $companions = $res->companions->count();
                         @endphp
@@ -416,7 +416,7 @@
                             $ps = $r->payment_status ?? 'pending';
                             $psBg = match($ps) { 'paid'=>'bg-green-100 text-green-700','partial'=>'bg-amber-100 text-amber-700',default=>'bg-red-100 text-red-700' };
                             $psLabel = match($ps) { 'paid'=>'مدفوع','partial'=>'جزئي',default=>'معلق' };
-                            $idTypeMap = ['national_id'=>'بطاقة','passport'=>'جواز','residence'=>'إقامة'];
+                            $idTypeMap = \App\Models\Guest::ID_TYPES_SHORT;
                         @endphp
                         <tr class="hover:bg-gray-50 transition">
                             <td class="px-3 py-2.5 text-gray-400">{{ $r->id }}</td>

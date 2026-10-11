@@ -46,7 +46,7 @@ class DailyReportExport extends StringValueBinder implements
 
     public function map($res): array
     {
-        $idTypeMap = ['national_id' => 'بطاقة', 'passport' => 'جواز', 'residence' => 'إقامة'];
+        $idTypeMap = \App\Models\Guest::ID_TYPES_SHORT;
         $companions = $res->companions->count();
         $rawPayNote = $res->payments->first(fn($p) => $p->notes)?->notes;
         $payNote    = $rawPayNote ? '💱 ' . $rawPayNote : null;

@@ -163,7 +163,7 @@ class CheckInController extends Controller
             'full_name'   => 'required|string|max:255',
             'occupation'  => 'nullable|string|max:255',
             'phone'       => 'nullable|string|max:30',
-            'id_type'     => 'required|in:passport,national_id,residence',
+            'id_type'     => 'required|' . \App\Models\Guest::idTypeRule(),
             'id_number'   => 'required|string',
             'id_image'    => $idImageRule,
             'nationality' => 'nullable|string|max:100',

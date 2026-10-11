@@ -24,14 +24,10 @@ class Companion extends Model
         return $this->belongsTo(Reservation::class);
     }
 
+    /** نفس أنواع هوية النزيل — مصدر واحد لا نسخة لكل موديل */
     public function getIdTypeLabel(): string
     {
-        return match($this->id_type) {
-            'passport'    => 'جواز سفر',
-            'national_id' => 'هوية وطنية',
-            'residence'   => 'إقامة',
-            default       => $this->id_type ?? '—',
-        };
+        return Guest::ID_TYPES[$this->id_type] ?? ($this->id_type ?: '—');
     }
 
     public function getRelationshipLabel(): string

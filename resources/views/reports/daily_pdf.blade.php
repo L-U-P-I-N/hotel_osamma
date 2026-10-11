@@ -95,7 +95,7 @@
 <body>
 
 @php
-    $idTypeMap = ['national_id' => 'بطاقة', 'passport' => 'جواز', 'residence' => 'إقامة'];
+    $idTypeMap = \App\Models\Guest::ID_TYPES_SHORT;
     $payLabels  = ['unpaid' => 'غير مدفوع', 'partial' => 'جزئي', 'paid' => 'مدفوع', 'deferred' => 'مؤجل'];
     $checkedIn  = $reservations->where('status', 'checked_in')->count();
     $confirmed  = $reservations->where('status', 'confirmed')->count();

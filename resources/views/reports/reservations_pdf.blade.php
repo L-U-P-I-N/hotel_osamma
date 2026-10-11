@@ -92,7 +92,7 @@
 <body>
 
 @php
-    $idTypeMap = ['national_id' => 'بطاقة', 'passport' => 'جواز', 'residence' => 'إقامة'];
+    $idTypeMap = \App\Models\Guest::ID_TYPES_SHORT;
     $psLabels  = ['paid' => 'مدفوع', 'partial' => 'جزئي', 'pending' => 'معلق', 'unpaid' => 'غير مدفوع', 'deferred' => 'مؤجل'];
     $psBadge   = ['paid' => 'badge-paid', 'partial' => 'badge-partial', 'pending' => 'badge-pending', 'unpaid' => 'badge-pending', 'deferred' => 'badge-deferred'];
     $strip     = fn($s) => $s ? preg_replace('/[^\x{0000}-\x{FFFF}]/u', '', $s) : null;

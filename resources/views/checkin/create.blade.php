@@ -505,9 +505,9 @@ html.dark [style*="background:var(--gold-l)"] {
                 <div>
                     <label class="fl">نوع الهوية <span class="freq">*</span></label>
                     <select name="id_type" x-model="guestData.id_type" required class="fi">
-                        <option value="national_id">هوية وطنية</option>
-                        <option value="passport">جواز سفر</option>
-                        <option value="residence">إقامة</option>
+                        @foreach(\App\Models\Guest::ID_TYPES as $value => $label)
+                        <option value="{{ $value }}">{{ $label }}</option>
+                        @endforeach
                     </select>
                 </div>
 
@@ -673,9 +673,9 @@ html.dark [style*="background:var(--gold-l)"] {
                             <div>
                                 <label class="fl text-xs">نوع الهوية</label>
                                 <select :name="`companions[${idx}][id_type]`" x-model="comp.id_type" class="fi text-sm">
-                                    <option value="national_id">هوية وطنية</option>
-                                    <option value="passport">جواز سفر</option>
-                                    <option value="residence">إقامة</option>
+                                    @foreach(\App\Models\Guest::ID_TYPES as $value => $label)
+                                    <option value="{{ $value }}">{{ $label }}</option>
+                                    @endforeach
                                 </select>
                             </div>
                             <div>
@@ -1604,7 +1604,7 @@ function checkInForm() {
         idImageName: '',
         floorFilter: 'all',
         typeFilter: 'all',
-        idTypeLabel: { national_id:'هوية وطنية', passport:'جواز سفر', residence:'إقامة' },
+        idTypeLabel: @js(\App\Models\Guest::ID_TYPES),
         submitting: false,
         stepError: '',
 

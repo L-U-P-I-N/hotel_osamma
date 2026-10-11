@@ -34,9 +34,9 @@
         <label class="block text-sm font-semibold text-gray-700 mb-2">نوع الهوية</label>
         <select id="{{ $prefix }}_id_type" name="id_type"
                 class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-violet-400 outline-none bg-white">
-            <option value="national_id" selected>هوية وطنية</option>
-            <option value="passport">جواز سفر</option>
-            <option value="residence">إقامة</option>
+            @foreach(\App\Models\Guest::ID_TYPES as $value => $label)
+            <option value="{{ $value }}" @selected($value === 'national_id')>{{ $label }}</option>
+            @endforeach
         </select>
     </div>
     <div>

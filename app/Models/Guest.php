@@ -64,13 +64,44 @@ class Guest extends Model
         return $query->where('id_number_hash', hash('sha256', $number));
     }
 
+    /**
+     * أنواع الهوية المقبولة — مصدرٌ واحد تقرأ منه النماذج وقواعد التحقق
+     * والتسميات وسجل المراجعة.
+     *
+     * كانت القائمة مكرّرة في ستة مواضع (موديلين، ثلاثة متحكّمات، عدة نماذج)،
+     * فإضافة نوعٍ واحد تقتضي تتبّعها كلها — ويكفي أن يُنسى موضع ليُرفض ما
+     * يختاره الموظف أو يظهر كوداً خاماً في التقرير.
+     */
+    public const ID_TYPES = [
+        'national_id'       => 'هوية وطنية',
+        'passport'          => 'جواز سفر',
+        'residence'         => 'إقامة',
+        'driver_license'    => 'رخصة قيادة',
+        'birth_certificate' => 'شهادة ميلاد',
+        'military_id'       => 'بطاقة عسكرية',
+    ];
+
+    /**
+     * تسميات مختصرة لأعمدة التقارير الضيقة (PDF وExcel) — التسمية الكاملة
+     * تلفّ السطر فيها فيختلّ الجدول.
+     */
+    public const ID_TYPES_SHORT = [
+        'national_id'       => 'بطاقة',
+        'passport'          => 'جواز',
+        'residence'         => 'إقامة',
+        'driver_license'    => 'رخصة',
+        'birth_certificate' => 'ميلاد',
+        'military_id'       => 'عسكرية',
+    ];
+
+    /** قاعدة التحقق: in:national_id,passport,... */
+    public static function idTypeRule(): string
+    {
+        return 'in:' . implode(',', array_keys(self::ID_TYPES));
+    }
+
     public function getIdTypeLabel(): string
     {
-        return match($this->id_type) {
-            'passport' => 'جواز سفر',
-            'national_id' => 'هوية وطنية',
-            'residence' => 'إقامة',
-            default => $this->id_type,
-        };
+        return self::ID_TYPES[$this->id_type] ?? ($this->id_type ?: '—');
     }
 }

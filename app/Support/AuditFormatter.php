@@ -91,7 +91,8 @@ class AuditFormatter
         'type'             => ['initial' => 'الحجز الأولي', 'renewal' => 'تجديد', 'damage' => 'تعويض أضرار',
                                'annual' => 'إجازة سنوية', 'sick' => 'مرضية', 'unpaid' => 'بدون راتب', 'emergency' => 'طارئة'],
         'segment_type'     => ['initial' => 'الحجز الأولي', 'renewal' => 'تجديد'],
-        'id_type'          => ['passport' => 'جواز سفر', 'national_id' => 'هوية وطنية', 'residence' => 'إقامة'],
+        // تُطابَق بـGuest::ID_TYPES في اختبار — الثابت لا يقبل استدعاءً هنا
+        'id_type'          => ['national_id' => 'هوية وطنية', 'passport' => 'جواز سفر', 'residence' => 'إقامة', 'driver_license' => 'رخصة قيادة', 'birth_certificate' => 'شهادة ميلاد', 'military_id' => 'بطاقة عسكرية'],
         'compensation_status' => ['none' => 'لا يوجد', 'pending' => 'غير محصَّل', 'paid' => 'محصَّل'],
     ];
 

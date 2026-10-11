@@ -57,10 +57,9 @@
                 <label class="block text-xs font-medium text-gray-600 mb-1">نوع الهوية</label>
                 <select name="guest_id_type" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 outline-none">
                     <option value="">-- اختر --</option>
-                    <option value="national_id" {{ old('guest_id_type', $reservation->guest?->id_type) === 'national_id' ? 'selected' : '' }}>بطاقة هوية</option>
-                    <option value="passport" {{ old('guest_id_type', $reservation->guest?->id_type) === 'passport' ? 'selected' : '' }}>جواز سفر</option>
-                    <option value="residence" {{ old('guest_id_type', $reservation->guest?->id_type) === 'residence' ? 'selected' : '' }}>إقامة</option>
-                    <option value="other" {{ old('guest_id_type', $reservation->guest?->id_type) === 'other' ? 'selected' : '' }}>أخرى</option>
+                    @foreach(\App\Models\Guest::ID_TYPES as $value => $label)
+                    <option value="{{ $value }}" @selected(old('guest_id_type', $reservation->guest?->id_type) === $value)>{{ $label }}</option>
+                    @endforeach
                 </select>
             </div>
             <div>
@@ -221,10 +220,9 @@
                                         :disabled="comp.delete"
                                         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none bg-white">
                                     <option value="">-- اختر --</option>
-                                    <option value="national_id">هوية وطنية</option>
-                                    <option value="passport">جواز سفر</option>
-                                    <option value="residence">إقامة</option>
-                                    <option value="other">أخرى</option>
+                                    @foreach(\App\Models\Guest::ID_TYPES as $value => $label)
+                                    <option value="{{ $value }}">{{ $label }}</option>
+                                    @endforeach
                                 </select>
                             </div>
                             <div>

@@ -44,7 +44,7 @@ class ReservationsReportExport extends StringValueBinder implements
 
     public function map($r): array
     {
-        $idTypeMap = ['national_id' => 'بطاقة', 'passport' => 'جواز', 'residence' => 'إقامة'];
+        $idTypeMap = \App\Models\Guest::ID_TYPES_SHORT;
         $psLabels  = ['paid' => 'مدفوع', 'partial' => 'جزئي', 'pending' => 'معلق'];
         $g = $r->guest;
         $payNote = $r->payments->first(fn($p) => $p->notes)?->notes;
