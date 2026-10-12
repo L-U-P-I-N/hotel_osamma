@@ -105,8 +105,15 @@ class OutflowContainerTest extends TestCase
         );
     }
 
-    /** ووعاء لا يناسب الطريقة يُستبدل بالافتراضي — لا مصروف نقدي من حساب بنكي. */
-    public function test_a_mismatched_container_is_replaced(): void
+    /**
+     * ووعاء لا يناسب الطريقة يُرفض — لا مصروف نقدي من حساب بنكي.
+     *
+     * كان يُستبدل بالافتراضي صامتاً، والصمت هو ما أخفى خللاً في النموذج:
+     * حقلا payment_account_id (النقدي والبنكي) يحملان نفس الاسم وكلاهما
+     * يُرسَل، فاختيار «الخزنة» يَصل بمعرّف بنكي فيسقط إلى الدرج ويُعجِز
+     * الموظف بمبلغ خرج من خزنة الفندق. التفصيل في SalaryExpensePeriodTest.
+     */
+    public function test_a_mismatched_container_is_refused(): void
     {
         $this->shift();
 
@@ -114,12 +121,9 @@ class OutflowContainerTest extends TestCase
             'amount' => 5000, 'category' => 'food', 'recipient_name' => 'بقالة',
             'expense_date' => today()->toDateString(),
             'payment_method' => 'cash', 'payment_account_id' => $this->bank()->id,
-        ])->assertRedirect();
+        ])->assertSessionHasErrors('payment_account_id');
 
-        $expense = Expense::where('recipient_name', 'بقالة')->firstOrFail();
-
-        $this->assertNotSame($this->bank()->id, $expense->payment_account_id);
-        $this->assertTrue($expense->paymentAccount->is_cash);
+        $this->assertSame(0, Expense::where('recipient_name', 'بقالة')->count());
     }
 
     /* ═══ السحبيات ═══ */

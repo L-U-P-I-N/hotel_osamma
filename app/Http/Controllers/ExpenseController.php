@@ -125,6 +125,45 @@ class ExpenseController extends Controller
             ->get();
     }
 
+    /**
+     * شهر الراتب يُمحى في غير فئة الرواتب: مصروفٌ كان راتباً ثم صُحّحت فئته
+     * كان يبقى محمولاً على شهرٍ قديم، فيُخصم من راتب شهرٍ لا يخصّه.
+     */
+    private function clearSalaryPeriodUnlessSalary(array $data): array
+    {
+        if (($data['category'] ?? null) !== 'salary') {
+            $data['salary_month'] = null;
+            $data['salary_year']  = null;
+        }
+
+        return $data;
+    }
+
+    /**
+     * الوعاء المُرسَل يجب أن يناسب طريقة الدفع. كان resolveFor يستبدل غير
+     * المناسب بالافتراضي صامتاً — وهو ما أخفى خللاً في النموذج: حقلا
+     * payment_account_id (النقدي والبنكي) يحملان نفس الاسم وكلاهما مُرسَل،
+     * فمصروف «نقداً من الخزنة» كان يَصل بمعرّف حساب بنكي فيسقط إلى الدرج،
+     * ويظهر الموظف عاجزاً بمبلغ خرج من خزنة الفندق لا من يده. فالرفض أصحّ
+     * من الاستبدال: خطأ ظاهر أهون من قيدٍ خاطئ لا يدلّ عليه شيء.
+     */
+    private function containerMatchesMethodRule(Request $request): \Closure
+    {
+        return function (string $attribute, $value, \Closure $fail) use ($request): void {
+            if (empty($value)) {
+                return;
+            }
+
+            $method  = (string) $request->input('payment_method', 'cash');
+            $allowed = \App\Models\PaymentAccount::METHOD_TYPES[$method] ?? [];
+            $account = \App\Models\PaymentAccount::find($value);
+
+            if ($account && !in_array($account->type, $allowed, true)) {
+                $fail('الوعاء المختار لا يناسب طريقة الدفع — اختر وعاءً من نفس النوع.');
+            }
+        };
+    }
+
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -132,15 +171,20 @@ class ExpenseController extends Controller
             'category'       => 'required|in:maintenance,electricity,salary,cleaning,food,other',
             'recipient_name' => 'required|string|max:255',
             'employee_id'    => 'nullable|exists:employees,id',
+            // شهر الراتب المصروف — مطلوب في فئة الرواتب وحدها، فهي الوحيدة التي
+            // يخصّ مبلغُها شهراً غير شهر صرفه
+            'salary_month'   => 'exclude_unless:category,salary|required|integer|between:1,12',
+            'salary_year'    => 'exclude_unless:category,salary|required|integer|min:2020|max:2100',
             'description'    => 'nullable|string',
             'expense_date'   => 'required|date',
             'payment_method' => 'required|in:cash,bank_transfer,later',
-            'payment_account_id' => 'nullable|exists:payment_accounts,id',
+            'payment_account_id' => ['nullable', 'exists:payment_accounts,id', $this->containerMatchesMethodRule($request)],
             'shift_id'       => 'nullable|exists:shifts,id',
         ]);
 
         $data['currency']       = 'YER';
         $data['paid_by']        = auth()->id();
+        $data = $this->clearSalaryPeriodUnlessSalary($data);
         $data['payment_method'] = $request->input('payment_method', 'cash');
         $data['payment_account_id'] = \App\Models\PaymentAccount::resolveFor(
             $data['payment_method'], $request->input('payment_account_id')
@@ -233,14 +277,19 @@ class ExpenseController extends Controller
             'category'       => 'required|in:maintenance,electricity,salary,cleaning,food,other',
             'recipient_name' => 'required|string|max:255',
             'employee_id'    => 'nullable|exists:employees,id',
+            // شهر الراتب المصروف — مطلوب في فئة الرواتب وحدها، فهي الوحيدة التي
+            // يخصّ مبلغُها شهراً غير شهر صرفه
+            'salary_month'   => 'exclude_unless:category,salary|required|integer|between:1,12',
+            'salary_year'    => 'exclude_unless:category,salary|required|integer|min:2020|max:2100',
             'description'    => 'nullable|string',
             'expense_date'   => 'required|date',
             'payment_method' => 'required|in:cash,bank_transfer,later',
-            'payment_account_id' => 'nullable|exists:payment_accounts,id',
+            'payment_account_id' => ['nullable', 'exists:payment_accounts,id', $this->containerMatchesMethodRule($request)],
             'shift_id'       => 'nullable|exists:shifts,id',
         ]);
 
         $data['currency'] = 'YER';
+        $data = $this->clearSalaryPeriodUnlessSalary($data);
         $data['payment_account_id'] = \App\Models\PaymentAccount::resolveFor(
             $data['payment_method'], $request->input('payment_account_id')
         )?->id;

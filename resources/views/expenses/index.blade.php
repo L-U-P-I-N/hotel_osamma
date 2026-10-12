@@ -157,7 +157,12 @@
                     @php $pm = $expense->payment_method ?? 'cash'; @endphp
                     <tr>
                         <td style="white-space:nowrap;color:var(--ui-ink-2);">{{ $expense->expense_date->format('d/m/Y') }}</td>
-                        <td><span class="ui-chip">{{ \App\Models\Expense::categoryLabel($expense->category) }}</span></td>
+                        <td><span class="ui-chip">{{ \App\Models\Expense::categoryLabel($expense->category) }}</span>
+                            {{-- شهر الراتب: بدونه لا يُعرف من السطر أيّ شهرٍ خصّه المبلغ --}}
+                            @if($expense->salary_period_label)
+                            <span class="ui-chip" style="margin-inline-start:.25rem;">{{ $expense->salary_period_label }}</span>
+                            @endif
+                        </td>
                         <td class="num num--neg t-strong">{{ number_format($expense->amount, 0) }}</td>
                         <td>
                             <span class="ui-chip {{ $pm === 'cash' ? 'ui-chip--ok' : ($pm === 'bank_transfer' ? 'ui-chip--info' : 'ui-chip--warn') }}">

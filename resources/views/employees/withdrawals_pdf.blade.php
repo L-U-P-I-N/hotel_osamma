@@ -136,7 +136,7 @@
             <td class="c">{{ $w->shift ? ($w->shift->user?->name ?? 'وردية #' . $w->shift->id) : '—' }}</td>
             <td class="c">{{ $w->paidBy?->name ?? '—' }}</td>
             <td>{{ $w->description ?: '—' }}</td>
-            <td class="c">{{ \App\Models\Expense::categoryLabel($w->category) }}</td>
+            <td class="c">{{ \App\Models\Expense::categoryLabel($w->category) }}{{ $w->salary_period_label ? ' (' . $w->salary_period_label . ')' : '' }}</td>
             <td class="c" style="font-weight:bold;color:#b45309;">{{ number_format((float) $w->amount, 0) }}</td>
             <td class="c">{{ $w->expense_date?->format('d/m/Y') }}</td>
             <td class="c">{{ $i + 1 }}</td>

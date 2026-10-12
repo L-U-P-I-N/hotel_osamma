@@ -47,13 +47,39 @@
         </div>
         @endif
 
-        <div>
+@php
+    // الشهر المحفوظ إن وُجد، وإلا الشهر الماضي (الرواتب تُصرف بعد انتهاء شهرها)
+    $__lastMonth = now()->subMonthNoOverflow();
+    $__defaultSalaryMonth = $expense->salary_month ?? $__lastMonth->month;
+    $__defaultSalaryYear  = $expense->salary_year  ?? $__lastMonth->year;
+@endphp
+        <div x-data="{ category: '{{ old('category', $expense->category) }}' }">
             <label class="block text-sm font-medium text-gray-700 mb-1.5">الفئة *</label>
-            <select name="category" required class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-blue-400">
+            <select name="category" x-model="category" required class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-blue-400">
                 @foreach($categories as $key => $label)
                 <option value="{{ $key }}" {{ old('category',$expense->category)==$key?'selected':'' }}>{{ $label }}</option>
                 @endforeach
             </select>
+
+            {{-- شهر الراتب مستقلّ عن تاريخ الصرف — انظر شاشة الإضافة. --}}
+            <div x-show="category === 'salary'" x-cloak class="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">هذا الراتب عن أي شهر؟ *</label>
+                <div class="flex gap-2">
+                    <select name="salary_month" :disabled="category !== 'salary'"
+                            class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 bg-white">
+                        @for($__m = 1; $__m <= 12; $__m++)
+                        <option value="{{ $__m }}" @selected((int) old('salary_month', $__defaultSalaryMonth) === $__m)>{{ \App\Models\Salary::monthName($__m) }}</option>
+                        @endfor
+                    </select>
+                    <select name="salary_year" :disabled="category !== 'salary'"
+                            class="w-28 border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 bg-white">
+                        @for($__y = now()->year + 1; $__y >= now()->year - 3; $__y--)
+                        <option value="{{ $__y }}" @selected((int) old('salary_year', $__defaultSalaryYear) === $__y)>{{ $__y }}</option>
+                        @endfor
+                    </select>
+                </div>
+                <p class="text-xs text-blue-800 mt-2">يُخصم المبلغ من راتب هذا الشهر لا من شهر تاريخ الصرف.</p>
+            </div>
         </div>
 
 @php $__expenseMethod = $expense->payment_method; $__expenseAccountId = $expense->payment_account_id; @endphp
@@ -71,9 +97,16 @@
 
             {{-- الأوعية النقدية تُسرد يدوياً: المُنتقي المشترك يُخفي نفسه عند «نقداً»
                  لأنه مصمَّم لمقبوضات النزلاء، والمصروف يخرج من درجٍ أو خزنة --}}
+            {{--
+                :disabled لا زينة: الحقلان يحملان نفس الاسم payment_account_id وكلاهما
+                في الصفحة. وx-show يُخفي بالعرض لا بالتعطيل، فالمخفيّ كان يُرسَل أيضاً
+                ويغلب الظاهر (آخر حقل بنفس الاسم يفوز في PHP) — فمصروف «نقداً من الخزنة»
+                كان يُرسل معرّف حسابٍ بنكي، فيسقط الاختيار إلى الدرج الافتراضي ويظهر
+                الموظف عاجزاً بمبلغ لم يخرج من يده.
+            --}}
             <div x-show="method === 'cash'" x-cloak>
                 <label class="block text-sm font-medium text-gray-700 mb-1.5">من أي صندوق؟</label>
-                <select name="payment_account_id"
+                <select name="payment_account_id" :disabled="method !== 'cash'"
                         class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-blue-400 bg-white">
                     @foreach(\App\Models\PaymentAccount::active()->whereIn('type', ['shift_cash', 'safe'])->ordered()->get() as $__acc)
                     <option value="{{ $__acc->id }}" @selected(old('payment_account_id', $__expenseAccountId ?? null) == $__acc->id)>{{ $__acc->name }}</option>
@@ -83,7 +116,7 @@
 
             <div x-show="method === 'bank_transfer'" x-cloak>
                 <label class="block text-sm font-medium text-gray-700 mb-1.5">من أي حساب بنكي؟</label>
-                <select name="payment_account_id"
+                <select name="payment_account_id" :disabled="method !== 'bank_transfer'"
                         class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-blue-400 bg-white">
                     @foreach(\App\Models\PaymentAccount::active()->where('type', 'bank')->ordered()->get() as $__acc)
                     <option value="{{ $__acc->id }}" @selected(old('payment_account_id', $__expenseAccountId ?? null) == $__acc->id)>{{ $__acc->name }}{{ $__acc->bank_name ? ' — ' . $__acc->bank_name : '' }}</option>

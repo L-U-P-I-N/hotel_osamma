@@ -108,10 +108,10 @@ class Employee extends Model
      */
     public function expensesTotalForMonth(int $month, int $year, ?string $category = null): float
     {
+        // الشهر المحاسبي لا شهر التاريخ: راتب سبتمبر المصروف في أكتوبر يخصّ سبتمبر
         return (float) $this->expenses()
             ->when($category !== null, fn($q) => $q->where('category', $category))
-            ->whereMonth('expense_date', $month)
-            ->whereYear('expense_date', $year)
+            ->forAccountingMonth($month, $year)
             ->sum('amount');
     }
 

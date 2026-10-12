@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -19,6 +20,8 @@ class Expense extends Model
         'expense_date',
         'paid_by',
         'employee_id',
+        'salary_month',
+        'salary_year',
         'shift_id',
         'room_inspection_id',
         'payment_method',
@@ -31,7 +34,38 @@ class Expense extends Model
         'amount'       => 'decimal:2',
         'expense_date' => 'date',
         'settled_at'   => 'datetime',
+        'salary_month' => 'integer',
+        'salary_year'  => 'integer',
     ];
+
+    /**
+     * مصروفات شهر محاسبي بعينه.
+     *
+     * الأصل شهر تاريخ المصروف، إلا أن يحمل شهر راتبٍ صريحاً فهو الحكم: رواتب
+     * الشهر تُصرف بعد انتهائه، فراتب سبتمبر المصروف في أكتوبر يخصّ سبتمبر —
+     * وكان يُخصم من راتب أكتوبر فيظهر الموظف مديناً بشهرٍ لم يُصرف له.
+     */
+    public function scopeForAccountingMonth(Builder $query, int $month, int $year): Builder
+    {
+        return $query->where(function (Builder $q) use ($month, $year): void {
+            $q->where(fn (Builder $explicit) => $explicit
+                    ->whereNotNull('salary_month')
+                    ->where('salary_month', $month)
+                    ->where('salary_year', $year))
+              ->orWhere(fn (Builder $byDate) => $byDate
+                    ->whereNull('salary_month')
+                    ->whereMonth('expense_date', $month)
+                    ->whereYear('expense_date', $year));
+        });
+    }
+
+    /** «راتب 9/2025» — يُعرض بجوار المصروف كي يُعرف الشهر الذي خصّه. */
+    public function getSalaryPeriodLabelAttribute(): ?string
+    {
+        return $this->salary_month
+            ? Salary::monthName($this->salary_month) . ' ' . $this->salary_year
+            : null;
+    }
 
     public function paidBy()
     {

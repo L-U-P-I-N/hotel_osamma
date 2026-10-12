@@ -147,7 +147,8 @@
                         <td class="px-4 py-3 text-gray-700">{{ $w->expense_date->format('d/m/Y') }}</td>
                         <td class="px-4 py-3 text-gray-500">{{ $w->created_at?->format('h:i A') ?? '—' }}</td>
                         <td class="px-4 py-3 font-bold text-amber-700">{{ number_format($w->amount, 0) }}</td>
-                        <td class="px-4 py-3 text-gray-600">{{ \App\Models\Expense::categoryLabel($w->category) }}</td>
+                        <td class="px-4 py-3 text-gray-600">{{ \App\Models\Expense::categoryLabel($w->category) }}@if($w->salary_period_label)
+                            <span class="text-xs text-gray-400">({{ $w->salary_period_label }})</span>@endif</td>
                         <td class="px-4 py-3 text-gray-600">{{ $w->description ?? '—' }}</td>
                         <td class="px-4 py-3 text-gray-500">{{ $w->paidBy?->name ?? '—' }}</td>
                         <td class="px-4 py-3 text-gray-500">{{ $w->shift ? ($w->shift->user?->name ?? 'وردية #' . $w->shift->id) : '—' }}</td>

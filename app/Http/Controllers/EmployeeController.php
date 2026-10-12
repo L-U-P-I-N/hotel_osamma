@@ -108,8 +108,7 @@ class EmployeeController extends Controller
     {
         $withdrawals = $employee->expenses()
             ->with(['paidBy', 'shift.user'])
-            ->whereMonth('expense_date', $month)
-            ->whereYear('expense_date', $year)
+            ->forAccountingMonth($month, $year)
             ->orderBy('expense_date', 'desc')
             ->orderBy('id', 'desc')
             ->get();
