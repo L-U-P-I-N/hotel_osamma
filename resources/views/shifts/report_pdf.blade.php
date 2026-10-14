@@ -134,9 +134,12 @@
     }
 
     $withdrawals = $shift->withdrawals ?? collect();
+    // المجاميع من الدرج وحده — الجدول يعرض الكل ويفصله عمودُ «مصدر التمويل»،
+    // لكن مجموعاً يخلط الخزنة بالدرج يخالف صافي الوردية ولا يُطابق إقفالها
+    $drawerWithdrawals = $withdrawals->filter(fn($w) => $w->funding_source !== 'general_safe');
     $wdrByCur = [];
     foreach (['YER','SAR','USD'] as $c) {
-        $total = $withdrawals->where('currency', $c)->sum(fn($w) => (float)$w->amount);
+        $total = $drawerWithdrawals->where('currency', $c)->sum(fn($w) => (float)$w->amount);
         if ($total > 0) $wdrByCur[$c] = $total;
     }
 @endphp
@@ -258,13 +261,13 @@
         </tr>
         @endforeach
         @foreach(['YER','SAR','USD'] as $c)
-        @php $cTotal = $withdrawals->where('currency', $c)->sum(fn($w) => (float)$w->amount); @endphp
+        @php $cTotal = $drawerWithdrawals->where('currency', $c)->sum(fn($w) => (float)$w->amount); @endphp
         @if($cTotal > 0)
         <tr class="total-row">
             <td colspan="3"></td>
             <td class="center">{{ $curLabels[$c] }}</td>
             <td class="ltr neg">{{ number_format($cTotal, 0) }}</td>
-            <td colspan="5" style="text-align:right;">مجموع السحبيات ({{ $curLabels[$c] }})</td>
+            <td colspan="5" style="text-align:right;">مجموع السحبيات من درج الوردية ({{ $curLabels[$c] }})</td>
         </tr>
         @endif
         @endforeach

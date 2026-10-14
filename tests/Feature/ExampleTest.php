@@ -2,18 +2,19 @@
 
 namespace Tests\Feature;
 
-// use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
+/**
+ * الجذر يُحوّل إلى الدخول — لا شاشة عامة في هذا النظام.
+ *
+ * كان هذا اختبار Laravel الافتراضي يطلب 200 من «/»، فيفشل دائماً منذ أول يوم
+ * (الجذر يُحوّل). وفاشلٌ دائمٌ لا يُقرأ: يصير سطراً أحمر يُتخطّى بالعين،
+ * فيستر فشلاً حقيقياً يظهر بجواره.
+ */
 class ExampleTest extends TestCase
 {
-    /**
-     * A basic test example.
-     */
-    public function test_the_application_returns_a_successful_response(): void
+    public function test_the_root_redirects_a_guest_to_the_login_screen(): void
     {
-        $response = $this->get('/');
-
-        $response->assertStatus(200);
+        $this->get('/')->assertRedirect(route('login'));
     }
 }

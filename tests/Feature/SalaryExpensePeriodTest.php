@@ -176,6 +176,41 @@ class SalaryExpensePeriodTest extends TestCase
         $this->assertEqualsWithDelta(0, $shift->net_balance_yer, 0.01, 'ظهر عجز بمبلغٍ خرج من الخزنة');
     }
 
+    /**
+     * وسحبيةٌ قديمة تحمل shift_id ومصدرَ تمويلٍ «الصندوق العام» معاً لا تُنقص
+     * الدرج بعد إعادة الاحتساب.
+     *
+     * قبل فصل المسارين كان مصروف الخزنة يُربط بالوردية كأي سحب، فسجلاتٌ قائمة
+     * في النظام تحمل الاثنين — وهي ما ظلّ يُعجِز الموظف ولو صار النموذج سليماً.
+     */
+    public function test_a_legacy_safe_withdrawal_linked_to_a_shift_no_longer_deficits_it(): void
+    {
+        $shift = $this->shift();
+
+        CashWithdrawal::create([
+            'shift_id' => $shift->id, 'funding_source' => 'general_safe',
+            'payment_account_id' => $this->safe()->id,
+            'amount' => 60000, 'currency' => 'YER', 'withdrawal_date' => now(),
+            'withdrawn_by_name' => 'راتب قديم', 'handed_by_name' => $this->admin()->name,
+            'withdrawal_type' => 'expense',
+        ]);
+
+        // وسحبية من الدرج في نفس الوردية تبقى محتسبة
+        CashWithdrawal::create([
+            'shift_id' => $shift->id, 'funding_source' => 'shift',
+            'payment_account_id' => $this->drawer()->id,
+            'amount' => 4000, 'currency' => 'YER', 'withdrawal_date' => now(),
+            'withdrawn_by_name' => 'مورّد', 'handed_by_name' => $this->admin()->name,
+            'withdrawal_type' => 'expense',
+        ]);
+
+        app(\App\Services\ShiftService::class)->computeTotals($shift);
+
+        $this->assertEqualsWithDelta(4000, $shift->refresh()->total_withdrawals_yer, 0.01);
+        // ولا تختفي من سجلّ الوردية — ظاهرةٌ غير محتسبة
+        $this->assertSame(2, $shift->withdrawals()->count());
+    }
+
     /** ونموذج المصروف لا يُرسل إلا وعاء الطريقة المختارة. */
     public function test_the_expense_form_disables_the_hidden_container_field(): void
     {

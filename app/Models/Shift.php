@@ -36,7 +36,11 @@ class Shift extends Model
      * حركات اليوم كلها — وهو ما فوجئ به الموظف عند إقفالها ثانياً: بياناتٌ
      * ظنّ أنها انتهت، ومعها حركات يومٍ آخر.
      *
-     * الدليل سجلّ الأحداث: مفتوحةٌ وفي تاريخها إقفالٌ سابق.
+     * الدليل سجلّ الأحداث: مفتوحةٌ وفي تاريخها إقفالٌ سابق أو إعادةُ فتح.
+     *
+     * وحدث إعادة الفتح يكفي وحده: وردية أُقفلت قبل وجود close_events ليس فيها
+     * حدثُ إقفال، فلو اشترطناه بقيت تمتصّ حركات اليوم بعد إعادة فتحها —
+     * والترحيل لا يُعيد ما لم يُسجَّل.
      */
     public function getWasReopenedAttribute(): bool
     {
@@ -45,7 +49,7 @@ class Shift extends Model
         }
 
         return collect($this->close_events ?? [])
-            ->contains(fn ($event) => ($event['event'] ?? null) === 'close');
+            ->contains(fn ($event) => in_array($event['event'] ?? null, ['close', 'reopen'], true));
     }
 
     public function user()        { return $this->belongsTo(User::class); }

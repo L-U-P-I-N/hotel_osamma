@@ -176,6 +176,68 @@ class ReopenedShiftIsNotForWorkTest extends TestCase
             ->assertSee('أُعيد فتحها', false);
     }
 
+    /**
+     * ووردية أُقفلت قبل وجود سجلّ الأحداث ثم أُعيد فتحها تُعرَف كذلك.
+     *
+     * سجلّها لا يحمل حدثَ إقفال (لم يكن يُسجَّل حينها)، فلو اشترطناه بقيت
+     * تمتصّ حركات اليوم — والترحيل لا يُعيد ما لم يُسجَّل.
+     */
+    public function test_a_legacy_reopen_without_a_close_event_is_still_recognised(): void
+    {
+        $shift = Shift::create([
+            'user_id'    => $this->admin()->id, 'shift_date' => today()->subDay(),
+            'started_at' => now()->subDay(), 'is_closed' => true, 'closed_at' => now()->subDay(),
+            'opening_balance_yer' => 0,
+        ]);
+
+        $this->actingAs($this->admin());
+        $this->service()->reopenShift($shift, $this->admin(), 'تصحيح');
+
+        $this->assertTrue($shift->refresh()->was_reopened);
+        $this->assertNull($this->service()->getPostingShift($this->admin()));
+    }
+
+    /**
+     * ومسار السحب لا يقبل فئة الرواتب: لا يحمل شهر الراتب، فكان يُخصم من
+     * شهر تاريخه — وهو عين الخلل الذي عولج في شاشة المصروفات.
+     */
+    public function test_the_withdrawal_route_refuses_the_salary_category(): void
+    {
+        Shift::create([
+            'user_id'    => $this->admin()->id, 'shift_date' => today(),
+            'started_at' => now()->subHour(), 'is_closed' => false, 'opening_balance_yer' => 0,
+        ]);
+
+        $this->actingAs($this->admin())->post(route('shifts.withdrawal'), [
+            'amount' => 50000, 'currency' => 'YER', 'withdrawn_by_name' => 'محمد',
+            'withdrawal_type' => 'expense', 'category' => 'salary', 'funding_source' => 'shift',
+        ])->assertSessionHasErrors('category');
+    }
+
+    /**
+     * ومسارٌ لا بوابة له (دفعة التجديد) يُخرج السجل يتيماً لا يُقيّده على
+     * الوردية المُعاد فتحها: هذا سلوكه نفسه حين لا تكون للموظف وردية أصلاً،
+     * واليتيم يُعرض في صفحة الورديات ويُضَمّ بضغطة — أما التقييد على يومٍ
+     * أُقفل حسابه فلا رجعة فيه.
+     */
+    public function test_an_ungated_payment_is_left_unattached_not_charged_to_the_reopened_shift(): void
+    {
+        $shift       = $this->reopenedShift();
+        $reservation = $this->reservation(40000);
+
+        Payment::create([
+            'reservation_id' => $reservation->id,
+            'shift_id'       => $this->service()->getPostingShift($this->admin())?->id,
+            'amount'         => 40000, 'currency' => 'YER', 'method' => 'cash',
+            'payment_date'   => now(), 'received_by' => $this->admin()->id,
+        ]);
+
+        $this->assertNull(Payment::where('reservation_id', $reservation->id)->firstOrFail()->shift_id);
+
+        $this->service()->computeTotals($shift);
+        $this->assertEqualsWithDelta(0, $shift->refresh()->total_received_yer, 0.01);
+    }
+
     /** والإقفال يبقى ممكناً — وإلا لم يكن للموظف مخرج من الحالة. */
     public function test_a_reopened_shift_can_still_be_closed(): void
     {

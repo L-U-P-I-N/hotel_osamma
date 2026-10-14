@@ -599,7 +599,11 @@ class ShiftService
             }
         }
 
-        $withdrawals = CashWithdrawal::where('shift_id', $shift->id)->get();
+        // درج الوردية وحده: سحبيات الصندوق العام تبقى مرئية في سجلّ الوردية
+        // لكنها لا تُنقص درجها. وسجلاتٌ أُنشئت قبل فصل المسارين تحمل shift_id
+        // ومصدرَ تمويلٍ «الصندوق العام» معاً — فبدون هذا الشرط تظلّ تُعجِز
+        // الموظف بمالٍ خرج من خزنة الفندق، وهو عين البلاغ.
+        $withdrawals = CashWithdrawal::where('shift_id', $shift->id)->fromShiftDrawer()->get();
         $wdr = ['YER' => 0, 'SAR' => 0, 'USD' => 0];
         foreach ($withdrawals as $w) {
             $wdr[$w->currency] = ($wdr[$w->currency] ?? 0) + (float)$w->amount;
