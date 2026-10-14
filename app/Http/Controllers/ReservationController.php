@@ -736,7 +736,7 @@ class ReservationController extends Controller
         // الوردية المفتوحة حالياً (إن وُجدت) — تُربط بها فترة التجديد حتى يُمنَع
         // لاحقاً تعديل/حذف تجديدٍ يخصّ وردية أُقفلت بالفعل
         $shiftService = app(\App\Services\ShiftService::class);
-        $shift = $shiftService->getActiveShift(auth()->user());
+        $shift = $shiftService->getPostingShift(auth()->user());
 
         $reservation->update([
             'check_out_date'          => $validated['new_check_out_date'],
@@ -1034,7 +1034,7 @@ class ReservationController extends Controller
         if ($reservation->segments()->count() === 0) {
             $segmentService->backfillFromHistory($reservation);
         }
-        $shift = app(ShiftService::class)->getActiveShift(auth()->user());
+        $shift = app(ShiftService::class)->getPostingShift(auth()->user());
         $segmentService->recordTransfer(
             $reservation,
             today(),
@@ -1267,8 +1267,8 @@ class ReservationController extends Controller
 
         // يجب أن تكون للموظف وردية مفتوحة قبل تسجيل الدخول، وإلا لا يظهر النزيل
         // ضمن أي وردية في التسوية اليومية.
-        if (!app(ShiftService::class)->getActiveShift(auth()->user())) {
-            return back()->withErrors(['error' => 'لا يمكن تسجيل دخول نزيل دون وردية مفتوحة — افتح وردية أولاً من صفحة الورديات']);
+        if ($msg = app(ShiftService::class)->postingBlockReason(auth()->user(), 'تسجيل دخول نزيل')) {
+            return back()->withErrors(['error' => $msg]);
         }
 
         $old = $reservation->only(['status']);
@@ -2324,7 +2324,7 @@ class ReservationController extends Controller
         }
 
         $amount = round($nights * $price, 2);
-        $shift  = app(\App\Services\ShiftService::class)->getActiveShift(auth()->user());
+        $shift  = app(\App\Services\ShiftService::class)->getPostingShift(auth()->user());
 
         DB::transaction(function () use ($reservation, $oldCheckOut, $newCheckOut, $nights, $price, $amount, $shift) {
             $reservation->check_out_date = $newCheckOut->toDateString();

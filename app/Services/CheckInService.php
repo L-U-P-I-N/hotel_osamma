@@ -155,7 +155,7 @@ class CheckInService
             // — تُربط بالوردية المفتوحة وقت تسجيل الدخول (إن وُجدت) حتى يُمنَع لاحقاً
             // تعديل سعرها إن أُقفلت تلك الوردية.
             if ($billedDays > 0 && $pricePerNight > 0) {
-                $activeShift = app(ShiftService::class)->getActiveShift($user);
+                $activeShift = app(ShiftService::class)->getPostingShift($user);
                 app(ReservationSegmentService::class)
                     ->recordInitial($reservation, $firstNight, $pricePerNight, $billedDays, $user->id, $activeShift?->id);
             }

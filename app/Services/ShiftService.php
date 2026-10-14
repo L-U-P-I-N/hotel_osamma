@@ -37,12 +37,59 @@ class ShiftService
         return $shift;
     }
 
+    /**
+     * وردية الموظف المفتوحة — أياً كان سببُ فتحها.
+     *
+     * تُسأل عن الوجود: هل يملك وردية مفتوحة؟ (فلا تُفتح له ثانية، ولا يُعاد
+     * فتح وردية أخرى له). ولإسناد حركة جديدة تُسأل getPostingShift لا هذه.
+     */
     public function getActiveShift(User $user): ?Shift
     {
         return Shift::where('user_id', $user->id)
             ->where('is_closed', false)
             ->latest()
             ->first();
+    }
+
+    /**
+     * الوردية التي تُقيَّد عليها حركة جديدة — وهي المفتوحة ما لم تكن معادة الفتح.
+     *
+     * كانت هي نفسها getActiveShift، فوردية أُقفلت أمس ثم أُعيد فتحها للتصحيح
+     * تعود «الوردية المفتوحة» فتمتصّ مستلمات اليوم ومصروفاته بلا أي أثر يدلّ
+     * على ذلك. فيُفاجأ الموظف عند إقفالها ثانياً بمالٍ لم يَعُدّه، ويُخلط
+     * إيراد يومين في إقفال واحد.
+     *
+     * إعادة الفتح نافذةُ تصحيحٍ قصيرة لا استئنافُ عمل، فلا تُقبل عليها حركة:
+     * تُقفَل ثم تُفتح وردية اليوم.
+     */
+    public function getPostingShift(User $user): ?Shift
+    {
+        $shift = $this->getActiveShift($user);
+
+        return $shift && $shift->was_reopened ? null : $shift;
+    }
+
+    /**
+     * سبب تعذّر تسجيل حركة جديدة، أو null إن كان ممكناً.
+     *
+     * $action فعلُ الشاشة الطالبة («استلام دفعة»، «تسجيل دخول نزيل») — فالرسالة
+     * تُعيد صياغة ما حدث لا تكرار مصطلح داخلي. ومن غير هذا التمييز كان الموظف
+     * يُطالَب بفتح وردية وله واحدة مفتوحة أمامه، فلا يجد مخرجاً.
+     */
+    public function postingBlockReason(User $user, string $action): ?string
+    {
+        if ($this->getPostingShift($user)) {
+            return null;
+        }
+
+        $reopened = $this->getActiveShift($user);
+
+        if ($reopened) {
+            return 'لا يمكن ' . $action . ' على وردية ' . $reopened->shift_date->format('d/m/Y')
+                . ' لأنها أُعيد فتحها للتصحيح — أقفِلها ثم افتح وردية اليوم من صفحة الورديات';
+        }
+
+        return 'لا يمكن ' . $action . ' دون وردية مفتوحة — افتح وردية أولاً من صفحة الورديات';
     }
 
     public function closeShift(Shift $shift, string $notes = '', ?float $actualAmount = null, ?\Carbon\Carbon $endedAt = null): void
@@ -524,7 +571,7 @@ class ShiftService
         $user = User::find($payment->received_by);
         if (!$user) return;
 
-        $shift = $this->getActiveShift($user);
+        $shift = $this->getPostingShift($user);
         if ($shift) {
             $payment->update(['shift_id' => $shift->id]);
             $this->computeTotals($shift);

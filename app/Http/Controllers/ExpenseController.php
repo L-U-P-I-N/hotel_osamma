@@ -255,11 +255,15 @@ class ExpenseController extends Controller
             }
         }
 
+        // السقوط الأخير: الوردية المقيَّد عليها، لا أيّ وردية مفتوحة. وردية
+        // أُعيد فتحها للتصحيح ليست محلّاً لمصروف اليوم.
+        $owner = User::find($ownerId);
+
         return Shift::where('user_id', $ownerId)
                 ->whereDate('shift_date', $expenseDate)
                 ->latest()
                 ->first()
-            ?? Shift::where('is_closed', false)->where('user_id', $ownerId)->latest()->first();
+            ?? ($owner ? app(\App\Services\ShiftService::class)->getPostingShift($owner) : null);
     }
 
     public function edit(Expense $expense)

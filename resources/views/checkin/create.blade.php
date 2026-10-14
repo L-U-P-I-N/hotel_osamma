@@ -368,8 +368,10 @@ html.dark [style*="background:var(--gold-l)"] {
 <div class="mb-6 bg-red-50 border-2 border-red-300 rounded-xl p-4 flex items-start gap-3">
     <svg class="w-6 h-6 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
     <div class="text-sm text-red-800">
-        <p class="font-bold">لا يمكن تسجيل الدخول دون وردية مفتوحة</p>
-        <p class="mt-1">افتح وردية أولاً من صفحة الورديات ثم عد لإتمام تسجيل الدخول.</p>
+        {{-- السبب من المصدر: «وردية أُعيد فتحها» ليست «لا وردية»، ومطالبة
+             الموظف بفتح وردية وله واحدة مفتوحة أمامه تُبقيه بلا مخرج. --}}
+        <p class="font-bold">لا يمكن تسجيل الدخول الآن</p>
+        <p class="mt-1">{{ $shiftBlockReason ?? 'افتح وردية أولاً من صفحة الورديات ثم عد لإتمام تسجيل الدخول.' }}</p>
         <a href="{{ route('shifts.index') }}" class="inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-semibold hover:bg-red-700 transition">
             الذهاب لصفحة الورديات
         </a>

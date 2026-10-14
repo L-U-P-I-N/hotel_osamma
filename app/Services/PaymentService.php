@@ -23,7 +23,7 @@ class PaymentService
                 $bankReceiptPath = StorageHelper::store($data['bank_receipt'], 'bank_receipts');
             }
 
-            $shift = $this->shiftService->getActiveShift($user);
+            $shift = $this->shiftService->getPostingShift($user);
 
             // الوعاء الذي دخله المبلغ فعلاً: درج الوردية، حساب بنكي بعينه، أو
             // جهاز شبكة. بدونه كان كل مقبوض يُسجَّل نقداً في الدرج مهما كانت

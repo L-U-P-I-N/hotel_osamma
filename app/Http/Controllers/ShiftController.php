@@ -397,12 +397,15 @@ class ShiftController extends Controller
             'exchange_to_amount.required_if'   => 'المبلغ المُحوَّل إليه مطلوب',
         ]);
 
-        $shift = $this->service->getActiveShift(auth()->user());
+        $shift = $this->service->getPostingShift(auth()->user());
         $isGeneralSafe = $request->input('funding_source') === 'general_safe';
 
         // مصروف الصندوق العام لا يتطلب وردية مفتوحة (ليس سحباً من درج الوردية).
         if (!$shift && !$isGeneralSafe) {
-            return back()->withErrors(['error' => 'لا توجد وردية مفتوحة لك']);
+            return back()->withErrors([
+                'error' => $this->service->postingBlockReason(auth()->user(), 'تسجيل سحب')
+                    ?? 'لا توجد وردية مفتوحة لك',
+            ]);
         }
 
         try {

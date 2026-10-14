@@ -65,8 +65,8 @@ class GroupPaymentController extends Controller
     public function store(Request $request)
     {
         // يجب أن تكون للموظف وردية مفتوحة قبل استلام أي دفعة (موحّدة أو مفردة).
-        if (!app(\App\Services\ShiftService::class)->getActiveShift(auth()->user())) {
-            return back()->withErrors(['error' => 'لا يمكن استلام دفعة دون وردية مفتوحة — افتح وردية أولاً من صفحة الورديات']);
+        if ($msg = app(\App\Services\ShiftService::class)->postingBlockReason(auth()->user(), 'استلام دفعة')) {
+            return back()->withErrors(['error' => $msg]);
         }
 
         $request->validate([

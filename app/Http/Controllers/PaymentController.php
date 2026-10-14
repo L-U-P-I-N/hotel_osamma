@@ -19,8 +19,7 @@ class PaymentController extends Controller
 
         // يجب أن تكون للموظف وردية مفتوحة قبل استلام أي دفعة، وإلا تُستلَم
         // نقداً دون أن تظهر ضمن أي وردية فتضيع من التسوية اليومية.
-        if (!$this->shiftService->getActiveShift(auth()->user())) {
-            $msg = 'لا يمكن استلام دفعة دون وردية مفتوحة — افتح وردية أولاً من صفحة الورديات';
+        if ($msg = $this->shiftService->postingBlockReason(auth()->user(), 'استلام دفعة')) {
             if ($request->expectsJson()) {
                 return response()->json(['message' => $msg], 422);
             }

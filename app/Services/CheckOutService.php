@@ -244,7 +244,7 @@ class CheckOutService
 
                 // ربط دفعة الخروج بالوردية المفتوحة للموظف حتى تظهر عند إقفالها
                 $shiftService = app(ShiftService::class);
-                $shift = $shiftService->getActiveShift($user);
+                $shift = $shiftService->getPostingShift($user);
 
                 $method  = $data['remaining_method'] ?? 'cash';
                 // الوعاء الذي دخله المبلغ فعلاً — بدونه تُحسب تسوية الخروج

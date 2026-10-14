@@ -72,7 +72,8 @@ class CheckInController extends Controller
 
         $admins = User::role('admin')->where('is_active', true)->get();
         $nationalities = $this->getNationalities();
-        $hasActiveShift = (bool) $this->shiftService->getActiveShift(auth()->user());
+        $hasActiveShift = (bool) $this->shiftService->getPostingShift(auth()->user());
+        $shiftBlockReason = $this->shiftService->postingBlockReason(auth()->user(), 'تسجيل دخول نزيل');
 
         // حجوزات مستقبلية (لم تبدأ بعد) لكل غرفة معروضة — تُستخدم لتنبيه الموظف
         // عند اختيار غرفة محجوزة مسبقاً لنزيل آخر سيصل قريباً
@@ -102,15 +103,14 @@ class CheckInController extends Controller
             ->orderBy('room_number')
             ->get();
 
-        return view('checkin.create', compact('availableRooms', 'displayRooms', 'floors', 'linkedAvailability', 'admins', 'nationalities', 'mode', 'upcomingByRoom', 'hasActiveShift', 'suiteRange', 'blockedRooms'));
+        return view('checkin.create', compact('availableRooms', 'displayRooms', 'floors', 'linkedAvailability', 'admins', 'nationalities', 'mode', 'upcomingByRoom', 'hasActiveShift', 'shiftBlockReason', 'suiteRange', 'blockedRooms'));
     }
 
     public function store(Request $request)
     {
         // يجب أن تكون للموظف وردية مفتوحة قبل تسجيل دخول نزيل، وإلا تُستلَم دفعة
         // الوصول (إن وُجدت) دون أن تظهر ضمن أي وردية فتضيع من التسوية اليومية.
-        if (!$this->shiftService->getActiveShift(auth()->user())) {
-            $msg = 'لا يمكن تسجيل دخول نزيل دون وردية مفتوحة — افتح وردية أولاً من صفحة الورديات';
+        if ($msg = $this->shiftService->postingBlockReason(auth()->user(), 'تسجيل دخول نزيل')) {
             if ($request->expectsJson()) {
                 return response()->json(['message' => $msg], 422);
             }

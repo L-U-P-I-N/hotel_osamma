@@ -83,7 +83,7 @@ class GuestCreditService
 
         return DB::transaction(function () use ($credit, $data, $user) {
             $shiftService = app(ShiftService::class);
-            $shift        = $shiftService->getActiveShift($user);
+            $shift        = $shiftService->getPostingShift($user);
 
             // affects_paid_amount = false: "المدفوع" على الحجز خُصم منه المبلغ
             // وقت الترحيل، فخصمه ثانيةً هنا يُنقصه مرتين.

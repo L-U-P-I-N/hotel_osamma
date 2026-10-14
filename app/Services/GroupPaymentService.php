@@ -29,7 +29,7 @@ class GroupPaymentService
     {
         return DB::transaction(function () use ($allocations, $meta, $user) {
             $groupId = $this->generateGroupId();
-            $shift   = $this->shiftService->getActiveShift($user);
+            $shift   = $this->shiftService->getPostingShift($user);
 
             // نُخزّن سند التحويل مرّة واحدة ونشاركه بين دفعات المجموعة (تحويل واحد).
             $bankReceiptPath = null;

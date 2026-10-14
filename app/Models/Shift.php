@@ -28,6 +28,26 @@ class Shift extends Model
         'close_events'        => 'array',
     ];
 
+    /**
+     * وردية أُقفلت ثم أُعيد فتحها — مفتوحة للتصحيح لا للعمل.
+     *
+     * إعادة الفتح تصحيحٌ أو إعادة طباعة، لا استئنافُ وردية. وبدون هذا التمييز
+     * كانت وردية الأمس المُعاد فتحها تعود «الوردية المفتوحة» للموظف، فتمتصّ
+     * حركات اليوم كلها — وهو ما فوجئ به الموظف عند إقفالها ثانياً: بياناتٌ
+     * ظنّ أنها انتهت، ومعها حركات يومٍ آخر.
+     *
+     * الدليل سجلّ الأحداث: مفتوحةٌ وفي تاريخها إقفالٌ سابق.
+     */
+    public function getWasReopenedAttribute(): bool
+    {
+        if ($this->is_closed) {
+            return false;
+        }
+
+        return collect($this->close_events ?? [])
+            ->contains(fn ($event) => ($event['event'] ?? null) === 'close');
+    }
+
     public function user()        { return $this->belongsTo(User::class); }
     public function lockedBy()    { return $this->belongsTo(User::class, 'locked_by'); }
     public function payments()    { return $this->hasMany(Payment::class); }

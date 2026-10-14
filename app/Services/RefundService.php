@@ -11,7 +11,7 @@ class RefundService
     public function createRefund(Reservation $reservation, array $data, User $user, bool $adjustPaidAmount = true): Refund
     {
         return DB::transaction(function () use ($reservation, $data, $user, $adjustPaidAmount) {
-            $shift = app(ShiftService::class)->getActiveShift($user);
+            $shift = app(ShiftService::class)->getPostingShift($user);
 
             $refund = Refund::create([
                 'reservation_id' => $reservation->id,
