@@ -138,7 +138,25 @@ cd C:\laragon\www\hotel_osamma
 php artisan hotel:backup --files
 ```
 
-## 11. التحديثات المستقبلية للنظام
+## 11. تحديث النظام إلى آخر إصدار
+
+بياناتك (`database\database.sqlite` وصور الهويات في `storage\app\private`)
+على القرص مباشرة ولا تتأثر بخطوات التحديث. ومع ذلك: **خُذ نسخة قبل كل
+تحديث** — هي ما يُعيدك إلى الوراء إن فشل ترحيل.
+
+### 11.1 نسخة قبل التحديث (لا تتخطَّ هذه الخطوة)
+
+من Laragon Terminal داخل مجلد المشروع:
+
+```
+mkdir ..\نسخة-قبل-التحديث
+xcopy storage ..\نسخة-قبل-التحديث\storage /E /I /Y
+copy database\database.sqlite ..\نسخة-قبل-التحديث\
+```
+
+انسخ المجلد الناتج على قرص خارجي. لا يحتاج إنترنت.
+
+### 11.2 التحديث
 
 ```
 cd C:\laragon\www\hotel_osamma
@@ -147,7 +165,40 @@ composer install --no-dev --optimize-autoloader
 npm install
 npm run build
 php artisan migrate --force
+php artisan db:seed --class=ProductionSeeder --force
+php artisan config:clear
+php artisan route:clear
+php artisan view:clear
 ```
 
-بياناتك (`database\database.sqlite` وصور الهويات في `storage\app\private`)
-على القرص مباشرة ولا تتأثر بهذه الخطوات إطلاقاً.
+السطران الأخيران ليسا زينة: الواجهات والمسارات المُجمَّعة من الإصدار السابق
+تبقى في الذاكرة فتُخدَم صفحاتٌ قديمة بكود جديد. و`ProductionSeeder` يُحدِّث
+البيانات المرجعية (الأدوار، دليل الحسابات، أنواع الغرف) دون أن يمسّ أي حركة
+مالية أو نزيل — هو نفسه ما تُنفّذه الاستضافة تلقائياً عند كل رفع.
+
+### 11.3 التأكد أن التحديث نجح
+
+```
+php artisan migrate:status
+```
+
+لا يجب أن يبقى أي سطر `Pending`. ثم افتح النظام وسجّل الدخول.
+
+### 11.4 إن فشل ترحيل
+
+أعِد قاعدة البيانات من نسخة ما قبل التحديث، ثم ارجع إلى الإصدار السابق:
+
+```
+copy ..\نسخة-قبل-التحديث\database.sqlite database\database.sqlite /Y
+git log --oneline -5          ← اختر الإصدار الذي كان يعمل
+git checkout <رقم الإصدار>
+php artisan config:clear
+```
+
+والنظام يعود كما كان. أبلغ عن نصّ الخطأ كما هو — السبب يُقرأ منه.
+
+### 11.5 ملاحظة: الواجهة تحتاج إنترنت حالياً
+
+مكتبات الواجهة (Tailwind وAlpine ومُنتقي التواريخ والرسوم) تُحمَّل من
+الإنترنت وقت فتح الصفحة. فالنظام يعمل بلا إنترنت، لكن الشاشة تظهر بلا تنسيق
+ولا تفتح نوافذها إن انقطع. هذا قيدٌ قائم يُزال ببناء المكتبات محلياً.
