@@ -55,6 +55,29 @@ class OfflineAssetsTest extends TestCase
         $this->assertFileExists(public_path('build/manifest.json'));
     }
 
+    /**
+     * والبناء مرفوعٌ مع المشروع، لا متروكٌ لخطوة بناء عند النشر.
+     *
+     * كان public/build في .gitignore، فنُشر المشروع بلا manifest.json —
+     * و@vite لا يتسامح مع غيابه: ليس تنسيقاً ناقصاً بل خطأ 500 في كل صفحة،
+     * فسقط الموقع كلّه. والبناء لا يجري إلا حيث يُستدعى npm صراحةً، ومنصّات
+     * النشر قد لا تفعل.
+     */
+    public function test_the_built_bundle_is_not_ignored_by_git(): void
+    {
+        $ignore = File::get(base_path('.gitignore'));
+
+        $active = collect(preg_split('/\R/', $ignore))
+            ->map(fn (string $line) => trim($line))
+            ->filter(fn (string $line) => $line !== '' && !str_starts_with($line, '#'))
+            ->filter(fn (string $line) => str_contains($line, 'public/build'));
+
+        $this->assertTrue(
+            $active->isEmpty(),
+            'public/build مُستثنى في .gitignore — سيُنشر المشروع بلا أصول وتسقط كل صفحة'
+        );
+    }
+
     /** والمكتبات الثلاث والخطّ في الحزمة، لا في وسومٍ متفرّقة. */
     public function test_the_bundle_entry_point_pulls_in_every_library(): void
     {
