@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>404 - غير موجود</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>body { font-family: 'Cairo', sans-serif; }</style>
     <!-- إعادة توجيه تلقائية للداشبورد بعد 4 ثوانٍ -->
     <meta http-equiv="refresh" content="4;url=/dashboard">

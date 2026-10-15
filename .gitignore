@@ -9,6 +9,10 @@
 .env
 .env.backup
 .env.production
+# أي ملف .env مهما كانت لاحقته — .env.mysql_backup كان متعقَّباً في
+# مستودعٍ عامّ ومعه APP_KEY حقيقي
+.env.*
+!.env.example
 .phpactor.json
 .phpunit.result.cache
 Homestead.json

@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>تسجيل الدخول - {{ \App\Models\Setting::hotelName() }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>tailwind.config={theme:{extend:{fontFamily:{cairo:['Cairo','sans-serif']},colors:{primary:{DEFAULT:'#0F4C75',800:'#0F4C75',700:'#1e578f',600:'#2d6aab',100:'#c5d8ea'},accent:{DEFAULT:'#D4A574'}}}}}</script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         /* الصفحة دائماً بنمط فاتح حتى لو كان نظام المستخدم في الوضع الليلي،
            حتى لا تنقلب حقول الإدخال إلى ألوان داكنة تُخفي النص */

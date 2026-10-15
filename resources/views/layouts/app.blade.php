@@ -41,94 +41,22 @@
     <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png">
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: { cairo: ['Cairo', 'sans-serif'] },
-                    colors: {
-                        primary: { DEFAULT: '#0F4C75', 50:'#e8f0f7', 100:'#c5d8ea', 200:'#9fbedd', 300:'#79a4cf', 400:'#5b90c5', 500:'#3d7cbb', 600:'#2d6aab', 700:'#1e578f', 800:'#0F4C75', 900:'#0a3555' },
-                        accent:  { DEFAULT: '#D4A574', 50:'#fdf6ee', 100:'#f9e8d2', 200:'#f3d5b0', 300:'#ecc18e', 400:'#e6ae6c', 500:'#D4A574', 600:'#c08d5a', 700:'#a67040', 800:'#8c5530', 900:'#6e3f22' },
-                    }
-                }
-            }
-        }
-    </script>
-    {{-- Flatpickr — date picker that supports typing OR calendar selection (loaded before Alpine) --}}
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ar.js"></script>
-    <script>
-        // Apply Arabic locale globally (runs synchronously, before Alpine's deferred init)
-        if (window.flatpickr && flatpickr.l10ns && flatpickr.l10ns.ar) {
-            flatpickr.localize(flatpickr.l10ns.ar);
-        }
+    {{--
+        مكتبات الواجهة وخطّها تُبنى محلياً وتُخدَم من الجهاز نفسه — لا من CDN.
 
-        // ── توحيد كل حقول التاريخ في النظام لتُعرض بالإنجليزية dd/mm/yyyy ──
-        // يحوّل كل <input type="date"> إلى منتقي flatpickr يعرض d/m/Y بينما
-        // يُرسل للخادم القيمة الآمنة Y-m-d، ويطلق حدثَي input + change حتى تعمل
-        // روابط Alpine (x-model) ومرشّحات onchange="this.form.submit()" كما هي.
-        (function () {
-            function convertDateInput(el) {
-                if (typeof window.flatpickr === 'undefined' || el.dataset.fpInit) return;
-                el.dataset.fpInit = '1';
-                var opts = {
-                    allowInput: true,
-                    dateFormat: 'Y-m-d',
-                    altInput: true,
-                    altFormat: 'd/m/Y',
-                    disableMobile: true,
-                    // عند كتابة التاريخ يدوياً (بدل اختياره من التقويم)، النص المكتوب هو
-                    // بصيغة العرض d/m/Y — بدون هذا التحليل الصريح يحاول flatpickr تحليله
-                    // كأنه Y-m-d فيُنتج تاريخاً خاطئاً بصمت (لا خطأ ظاهر) بدل التاريخ المقصود.
-                    // لكن القيمة الابتدائية القادمة من الخادم (value="Y-m-d") تُطابق أيضاً
-                    // بصمت نمط d/m/Y بأرقام مختلفة تماماً (مثلاً "2026-07-05" تُقرأ كأنها
-                    // اليوم 20 الشهر 6...) فتُغيَّر القيمة فور تحميل الصفحة دون أي تفاعل من
-                    // المستخدم. لذا نستثني صراحة صيغة Y-m-d (أرقام-شرطة-أرقام-شرطة-أرقام)
-                    // ونحلّلها مباشرة كما هي قبل تجربة d/m/Y.
-                    parseDate: function (datestr, format) {
-                        if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(datestr)) {
-                            return window.flatpickr.parseDate(datestr, 'Y-m-d');
-                        }
-                        return window.flatpickr.parseDate(datestr, 'd/m/Y') || window.flatpickr.parseDate(datestr, format);
-                    },
-                    onChange: function (selected, str, inst) {
-                        inst.input.dispatchEvent(new Event('input',  { bubbles: true }));
-                        inst.input.dispatchEvent(new Event('change', { bubbles: true }));
-                    },
-                };
-                if (el.getAttribute('min')) opts.minDate = el.getAttribute('min');
-                if (el.getAttribute('max')) opts.maxDate = el.getAttribute('max');
-                var fp = window.flatpickr(el, opts);
-                if (fp && fp.altInput) fp.altInput.setAttribute('placeholder', 'dd/mm/yyyy');
-            }
-            function scan(root) {
-                (root || document).querySelectorAll('input[type="date"]:not([data-fp-init])').forEach(convertDateInput);
-            }
-            // مسح أولي بعد جاهزية Alpine (لعناصر x-for) ثم احتياطي على DOMContentLoaded
-            document.addEventListener('alpine:initialized', function () { scan(); });
-            document.addEventListener('DOMContentLoaded', function () {
-                scan();
-                // التقاط الحقول المُضافة ديناميكياً (مرافقون، نوافذ منبثقة…)
-                var mo = new MutationObserver(function (muts) {
-                    muts.forEach(function (m) {
-                        m.addedNodes.forEach(function (n) {
-                            if (n.nodeType !== 1) return;
-                            if (n.matches && n.matches('input[type="date"]')) convertDateInput(n);
-                            else if (n.querySelectorAll) scan(n);
-                        });
-                    });
-                });
-                if (document.body) mo.observe(document.body, { childList: true, subtree: true });
-            });
-        })();
-    </script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        كانت Tailwind وAlpine وflatpickr وChart.js وخطّ Cairo تُحمَّل من
+        الإنترنت وقت فتح الصفحة. فالنظام يعمل بلا إنترنت، لكن الشاشة كانت
+        تظهر بلا تنسيق ولا تفتح نوافذها ولا يعمل مُنتقي التاريخ عند أول
+        انقطاع — وهو ما يُفرغ «التشغيل المحلي» من معناه.
+
+        وإعداد Tailwind (الألوان والخطّ ووضع الليل) نُقل إلى
+        tailwind.config.js حرفياً، فالبناء يُخرج نفس الأصناف.
+
+        موضعه قبل app-theme.css وui-kit.css مقصود: كان وسم الـCDN أولاً،
+        فيبقى ترتيب التتالي كما هو ويبقى للملفَّين حقّ التجاوز.
+    --}}
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+
     <link rel="stylesheet" href="/css/app-theme.css?v={{ @filemtime(public_path('css/app-theme.css')) ?: '1' }}">
     {{-- بعد app-theme.css: نظام تصميم الصفحات المشترك يرث توكيناته ويصحّح ما يلزم --}}
     <link rel="stylesheet" href="/css/ui-kit.css?v={{ @filemtime(public_path('css/ui-kit.css')) ?: '1' }}">

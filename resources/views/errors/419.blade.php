@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head><meta charset="UTF-8"><title>419 - انتهت صلاحية الصفحة</title>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.tailwindcss.com"></script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 <style>body{font-family:'Cairo',sans-serif;}</style>
 </head>
 <body class="min-h-screen bg-gray-50 flex items-center justify-center p-4">
