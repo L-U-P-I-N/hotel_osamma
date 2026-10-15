@@ -37,9 +37,21 @@ return [
             'database' => env('DB_DATABASE', database_path('database.sqlite')),
             'prefix' => '',
             'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
-            'busy_timeout' => null,
-            'journal_mode' => null,
-            'synchronous' => null,
+
+            // الثلاثة كانت null (أي: افتراضات sqlite العارية) — وهي لا تصلح
+            // لنظام يعمل على جهاز في الفندق يفتحه عدة موظفين من أجهزتهم:
+            //
+            // busy_timeout: كان صفراً، فكتابتان متزامنتان ترفع «database is
+            //   locked» فوراً بدل أن تنتظر دورها. خمس ثوانٍ تكفي لكل كتابة
+            //   في نظام فندق (أجزاء من الثانية فعلياً).
+            // journal_mode=wal: القراءة لا تحجب الكتابة ولا العكس — فتقريرٌ
+            //   يُطبَع لا يُعطّل استلام دفعة. وأكثر صموداً عند انقطاع الكهرباء.
+            // synchronous=full: يُجبر القرص على التثبيت عند كل إقفال معاملة.
+            //   أبطأ نظرياً وبلا أثر عملي هنا (حركات معدودة في الدقيقة)،
+            //   وهو ما يجعل انقطاع الكهرباء لا يُفقد آخر عملية مُثبَّتة.
+            'busy_timeout' => env('DB_BUSY_TIMEOUT', 5000),
+            'journal_mode' => env('DB_JOURNAL_MODE', 'wal'),
+            'synchronous'  => env('DB_SYNCHRONOUS', 'full'),
         ],
 
         'mysql' => [

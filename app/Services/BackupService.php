@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Process;
 
 /**
@@ -27,7 +28,14 @@ class BackupService
                 throw new \RuntimeException('ملف قاعدة بيانات sqlite غير موجود: ' . $source);
             }
             $dest = $workDir . '/database-' . $timestamp . '.sqlite';
-            copy($source, $dest);
+
+            // VACUUM INTO لا copy(): النسخ الخام يقرأ الملف بينما قد تكون
+            // معاملةٌ قيد التنفيذ، فيحمل حالةً ممزّقة بلا سجلّ التراجع الذي
+            // يُصحّحها — نسخةٌ تبدو سليمة ولا تُفتح. ومع journal_mode=wal
+            // يصير أسوأ: آخر العمليات تكون في ملف -wal لا في الملف المنسوخ،
+            // فتضيع بلا أثر. وVACUUM INTO يُخرج لقطةً متماسكة من قاعدة حيّة.
+            DB::connection('sqlite')->statement('VACUUM INTO ?', [$dest]);
+
             return $dest;
         }
 
